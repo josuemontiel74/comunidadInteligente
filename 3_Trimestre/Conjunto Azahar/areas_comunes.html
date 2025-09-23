@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Panel de Trabajador</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="sidebar" id="sidebar">
+    <button class="close-btn" onclick="toggleSidebar()">✖</button>
+    <ul>
+      <li><a href="index.html">Gestión de áreas comunes</a></li>
+      <li><a href="paqueteria.html">Gestión de trabajadores</a></li>
+      <li><a href="parqueaderos.html">Gestión de Notificaciones</a></li>
+    </ul>
+  </div>
+
+  <div class="user-popup" id="userPopup">
+    <div class="user-popup-content">
+      <p><strong>Administrador:</strong> Josué Montiel</p>
+      <p><strong>Email:</strong> Administrador@correo.com</p>
+      <button onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <header class="top-bar">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <div class="logo-container">
+      <img src="logo.png" alt="Logo" class="logo" />
+      <p class="nombre-conjunto">Conjunto Azahar</p>
+    </div>
+    <div class="user-info" onclick="toggleUserPopup()">
+      <span>ADMINISTRADOR</span>
+      <div class="user-icon">👤</div>
+    </div>
+  </header>
+
+  <div class="barra-progreso"></div>
+
+
+  <div class="panel">
+    <h2>Lista de Áreas Comunes</h2>
+    <p>Bienvenido a la lista de áreas comunes.<br>Por favor selecciona una de las siguientes opciones</p>
+
+    <div class="area">
+      <span>✔ SALÓN COMUNAL - ESTADO: <span class="ocupado">(OCUPADO)</span></span>
+      <button class="btn-detalles" onclick="mostrarDetalles('salon1')">Detalles</button>
+    </div>
+
+    <div class="area">
+      <span>✔ SALÓN COMUNAL - ESTADO: <span class="ocupado">(OCUPADO)</span></span>
+      <button class="btn-detalles" onclick="mostrarDetalles('salon2')">Detalles</button>
+    </div>
+
+    <div class="area">
+      <span>✔ ESPACIO BBQ - ESTADO: <span class="disponible">(DISPONIBLE)</span></span>
+      <button class="btn-detalles" onclick="mostrarDetalles('bbq')">Detalles</button>
+    </div>
+  </div>
+
+  <!-- DETALLES OCUPADO -->
+  <div class="popup" id="detallesOcupado">
+    <div class="popup-content">
+      <h3>Detalles de la reserva</h3>
+      <p><strong>Nombre:</strong> Aaron Rodelo</p>
+      <p><strong>Documento:</strong> 1023456789</p>
+      <p><strong>Horario:</strong> 10:00 AM - 2:00 PM</p>
+      <p><strong>Monto pagado:</strong> $30.000</p>
+      <button onclick="liberarEspacio()">Liberar</button>
+      <button onclick="cerrarPopup()">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- DETALLES DISPONIBLE -->
+  <div class="popup" id="formularioBBQ">
+    <div class="popup-content">
+      <h3>Asignar Espacio BBQ</h3>
+      <input type="text" placeholder="Nombre">
+      <input type="text" placeholder="Documento">
+      <input type="text" placeholder="Apartamento">
+      <input type="datetime-local" placeholder="Fecha y Hora">
+      <input type="text" placeholder="Cobro por tiempo">
+      <button onclick="asignarEspacio()">Asignar</button>
+      <button onclick="cerrarPopup()">Cerrar</button>
+    </div>
+  </div>
+
+  <div class="boton-final">
+    <button onclick="window.location.href='modulos_administrador.html'">Menú Principal</button>
+  </div>
+</div>
+
+
+  <script>
+        function mostrarDetalles(id) {
+      if (id === 'bbq') {
+        document.getElementById('formularioBBQ').style.display = 'flex';
+      } else {
+        document.getElementById('detallesOcupado').style.display = 'flex';
+      }
+    }
+
+    function cerrarPopup() {
+      document.getElementById('detallesOcupado').style.display = 'none';
+      document.getElementById('formularioBBQ').style.display = 'none';
+    }
+
+    function liberarEspacio() {
+      alert("Espacio liberado correctamente");
+      cerrarPopup();
+    }
+
+    function asignarEspacio() {
+      alert("Espacio asignado correctamente");
+      cerrarPopup();
+    }
+      function mostrarMensaje(event) {
+      event.preventDefault();
+      document.getElementById("mensaje").style.display = "block";
+      }
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("active");
+    }
+
+    function toggleUserPopup() {
+      document.getElementById("userPopup").classList.toggle("active");
+    }
+
+    function cerrarSesion() {
+      window.location.href = "index.html";
+    }
+  </script>
+</body>
+</html>
