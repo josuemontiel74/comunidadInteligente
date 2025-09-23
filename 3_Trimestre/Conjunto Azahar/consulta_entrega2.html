@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registro exitoso</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+  <div class="top-bar">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <div class="logo-container">
+      <img src="logo.png" alt="Logo" class="logo">
+      <p class="nombre-conjunto">Conjunto Azahar</p>
+    </div>
+    <div class="user-info" onclick="toggleUserPopup()">
+      USUARIO <span class="user-icon">👤</span>
+    </div>
+  </div>
+
+  <div class="sidebar" id="sidebar">
+    <button class="close-btn" onclick="toggleSidebar()">×</button>
+    <ul>
+      <li><a href="trabajador.html">Inicio</a></li>
+      <li><a href="#">Entregas</a></li>
+      <li><a href="#">Parqueaderos</a></li>
+    </ul>
+  </div>
+
+  <div class="user-popup" id="userPopup">
+    <div class="user-popup-content">
+      <p><strong>Usuario:</strong> USUARIO</p>
+      <p><strong>Email:</strong> usuario@correo.com</p>
+      <button onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+  </div>
+  <main class="contenedor">
+    <section class="panel-izquierdo">
+      <h2>¡Hecho!</h2>
+      <p class="codigo-label">CÓDIGO DE ENTREGA</p>
+      <p class="codigo-entrega">K26WVCEE</p>
+      <hr>
+      <h3>DATOS DE LA ENTREGA</h3>
+      <ul class="lista-datos">
+        <li><i class="fas fa-check-circle"></i> Fecha de recepción</li>
+        <li><i class="fas fa-check-circle"></i> Hora de recepción</li>
+        <li><i class="fas fa-check-circle"></i> Nombre del destinatario</li>
+        <li><i class="fas fa-check-circle"></i> Torre / Apartamento del destinatario</li>
+        <li><i class="fas fa-check-circle"></i> Empresa de mensajería o remitente</li>
+        <li><i class="fas fa-check-circle"></i> Estado del pedido</li>
+        <li><i class="fas fa-check-circle"></i> Tipo de entrega</li>
+      </ul>
+      <hr>
+      <div class="comentarios">
+        <h4>COMENTARIOS</h4>
+        <textarea id="comentarioInput" placeholder="Escribe un comentario..." rows="3"></textarea>
+        <button onclick="enviarComentario()">Enviar comentario</button>
+      </div>
+    </div>
+    </section>
+
+    <section class="panel-derecho">
+      <h2>Registro de entrega</h2>
+      <p>El estado actual de la entrega es</p>
+      <h3 class="estado-entrega">Entregado</h3>
+      <div class="icono-entrega">
+        <i class="fas fa-check-circle icono-verde"></i>
+      </div>
+      <p><strong>El residente ha recibido la entrega satisfactoriamente</strong></p>
+      <div class="botones">
+        <button onclick="window.location.href='paqueteria.html'">Ir al menú principal</button>
+        <button onclick="window.location.href='historial.html'">Consultar historial de entregas</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("active");
+    }
+
+    function toggleUserPopup() {
+      document.getElementById("userPopup").classList.toggle("active");
+    }
+
+    function cerrarSesion() {
+      window.location.href = "index.html";
+    }
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("active");
+    }
+  </script>
+</body>
+</html>
