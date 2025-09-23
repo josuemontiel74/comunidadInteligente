@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Consultar Entregas</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="top-bar">
+        <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+        <div class="logo-container">
+          <img src="logo.png" alt="Logo" class="logo">
+          <p class="nombre-conjunto">Conjunto Azahar</p>
+        </div>
+        <div class="user-info" onclick="toggleUserPopup()">
+          USUARIO <span class="user-icon">👤</span>
+        </div>
+      </div>
+    
+      <div class="sidebar" id="sidebar">
+        <button class="close-btn" onclick="toggleSidebar()">×</button>
+        <ul>
+          <li><a href="trabajador.html">Inicio</a></li>
+          <li><a href="#">Entregas</a></li>
+          <li><a href="#">Parqueaderos</a></li>
+        </ul>
+      </div>
+    
+      <div class="user-popup" id="userPopup">
+        <div class="user-popup-content">
+          <p><strong>Usuario:</strong> USUARIO</p>
+          <p><strong>Email:</strong> usuario@correo.com</p>
+          <button onclick="cerrarSesion()">Cerrar sesión</button>
+        </div>
+      </div>
+      <div class="contenedor-central">
+        <h1>Consultar Entregas</h1>
+      
+        <div class="formulario-consulta">
+          <select id="tipoBusqueda">
+            <option disabled selected>Cómo quieres buscar la entrega</option>
+            <option value="codigo">Código de entrega</option>
+            <option value="fecha">Fecha</option>
+            <option value="direccion">Dirección de residencia</option>
+            <option value="nombre">Nombre del residente</option>
+          </select>
+      
+          <input type="text" id="parametroBusqueda" placeholder="Escribe aquí tu parámetro de búsqueda">
+          <button onclick="consultarEntrega()">Consultar</button>
+        </div>
+      </div>
+  </div>
+
+  <script>
+        function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("active");
+    }
+
+    function toggleUserPopup() {
+      document.getElementById("userPopup").classList.toggle("active");
+    }
+
+    function consultarEntrega() {
+
+      window.location.href = "consulta_entrega2.html";
+    }
+  </script>
+</body>
+</html>

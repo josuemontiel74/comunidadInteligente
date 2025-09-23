@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Panel de Trabajador</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="sidebar" id="sidebar">
+    <button class="close-btn" onclick="toggleSidebar()">✖</button>
+    <ul>
+      <li><a href="index.html">Inicio</a></li>
+      <li><a href="paqueteria.html">Paquetería</a></li>
+      <li><a href="parqueaderos.html">Parqueaderos</a></li>
+    </ul>
+  </div>
+
+  <div class="user-popup" id="userPopup">
+    <div class="user-popup-content">
+      <p><strong>Trabajador:</strong> Cristian Mora</p>
+      <p><strong>Email:</strong> trabajador@correo.com</p>
+      <button onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <header class="top-bar">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <div class="logo-container">
+      <img src="logo.png" alt="Logo" class="logo" />
+      <p class="nombre-conjunto">Conjunto Azahar</p>
+    </div>
+    <div class="user-info" onclick="toggleUserPopup()">
+      <span>TRABAJADOR</span>
+      <div class="user-icon">👤</div>
+    </div>
+  </header>
+
+  <div class="welcome">
+    <h2>Bienvenido <strong>TRABAJADOR</strong></h2>
+    <p>Selecciona el módulo que deseas gestionar en nuestra plataforma.</p>
+  </div>
+  <div class="contenedor-formulario">
+    <div class="form-box">
+      <button class="btn-back" onclick="window.location.href='gestion_residente.html'">🔙</button>
+      <h2>RESIDENTE</h2>
+    
+      <form onsubmit="mostrarMensaje(event)">
+        <input type="text" placeholder="NOMBRE" required />
+        <input type="text" placeholder="DOCUMENTO" required />
+        
+        <select required>
+          <option value="">PARQUEADERO ASIGNADO</option>
+          <option value="P1">P1</option>
+          <option value="P2">P2</option>
+          <option value="P3">P3</option>
+        </select>
+        
+        <input type="text" placeholder="VEHÍCULO" required />
+        <p class="confirm-text">¿Estás seguro de editar este residente?</p>
+        <button type="submit" class="btn-editar">Cargar</button>
+      </form>
+    
+      <!-- 👇 Aquí el botón ya dentro de .form-box -->
+      <div class="footer">
+        <button class="btn-menu" onclick="window.location.href='parking.html'">Menú Principal</button>
+      </div>
+    </div>
+
+  <script>
+      function mostrarMensaje(event) {
+      event.preventDefault();
+      document.getElementById("mensaje").style.display = "block";
+      }
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("active");
+    }
+
+    function toggleUserPopup() {
+      document.getElementById("userPopup").classList.toggle("active");
+    }
+
+    function cerrarSesion() {
+      window.location.href = "index.html";
+    }
+  </script>
+</body>
+</html>
