@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Panel de Trabajador</title>
+  <link rel="stylesheet" href="../style/style.css" />
+    <link rel="stylesheet" href="../css/bootstrap.min.css">
+  <link rel="shortcut icon" href="../img/logo.png" type="image/x-icon">
+</head>
+<body>
+  <style>
+    .botonvolver {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: #f8f9fa;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      
+    }
+  </style>
+ <div class="container-fluid p-0 ">
+    <div class="row">
+  <div class="sidebar col-md-2" id="sidebar">
+    <button class="btn btn-light" onclick="toggleSidebar()">✖</button>
+    <ul>
+      <li><a href="../login/index.html">Inicio</a></li>
+      <li><a href="paqueteria.html">Gestión de trabajadores</a></li>
+      <li><a href="parqueaderos.html">Gestión de Notificaciones</a></li>
+    </ul>
+  </div>
+  <div class=" col-lg-12 col-md-10 bg-success">
+  <div class="user-popup" id="userPopup">
+    <div class="user-popup-content">
+      <p><strong>Administrador:</strong> Josué Montiel</p>
+      <p><strong>Email:</strong> Administrador@correo.com</p>
+      <button class="btn btn-primary" onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <header class="top-bar bg-success d-flex justify-content-between align-items-center p-3">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <div class="logo-container">
+      <img src="../img/logo.png" alt="Logo" class="logo ico" />
+      <p class="nombre-conjunto">Conjunto Azahar</p>
+    </div>
+    <div class="user-info" onclick="toggleUserPopup()">
+      <div class="">👤
+      <span class="text-light">Perfil</span>
+      </div> 
+    </div>
+  </header>
+  </div>
+    </div>
+  <div class="welcome">
+    <h2 style="color:white;"><strong style="color:white;">Bienvenido ADMINISTRADOR</strong></h2>
+    <p style="color:white;">Selecciona para editar a los residentes.</p>
+  </div>
+  <div class="container-md my-5">
+  <div class="bg-light rounded-4 shadow p-4 p-md-5">
+    <h2 class="text-center text-success mb-4">Registro de Residente</h2>
+    <form onsubmit="mostrarMensaje(event)">
+      <div class="row g-3">
+
+        <div class="col-md-6">
+          <input type="text" class="form-control" placeholder="Nombre completo" required />
+        </div>
+
+        <div class="col-md-6">
+          <input type="text" class="form-control" placeholder="Documento de identidad" required />
+        </div>
+
+        <div class="col-md-6">
+          <input type="text" class="form-control" placeholder="Teléfono" required />
+        </div>
+
+        <div class="col-md-6">
+          <input type="email" class="form-control" placeholder="Correo electrónico" required />
+        </div>
+
+        <div class="col-md-6">
+          <input type="text" class="form-control" placeholder="Contacto de emergencia" required />
+        </div>
+
+        <div class="col-md-3">
+          <input type="text" class="form-control" placeholder="Torre" required />
+        </div>
+
+        <div class="col-md-3">
+          <input type="text" class="form-control" placeholder="Apartamento" required />
+        </div>
+
+        <div class="col-md-6">
+          <select class="form-select" required>
+            <option value="">Rol en el conjunto</option>
+            <option value="P1">Propietario</option>
+            <option value="P2">Arrendatario</option>
+            <option value="P3">Familiar</option>
+          </select>
+        </div>
+
+      </div>
+
+      <div class="text-center mt-4">
+        <p class="mb-3 fw-bold text-dark">¿Estás seguro de crear a este residente?</p>
+
+        <div class="d-flex justify-content-center gap-3">
+          <button type="submit" class="btn btn-success px-4">Cargar</button>
+          <a href="../rolAdmi/administacion_residentes.html" class="btn btn-dark px-4">calelar</a>
+          <a href="../rolTrab/parking.html" class="btn btn-danger px-4">Menú Principal</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+  <script>
+      function mostrarMensaje(event) {
+      event.preventDefault();
+      document.getElementById("mensaje").style.display = "block";
+      }
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("active");
+    }
+
+    function toggleUserPopup() {
+      document.getElementById("userPopup").classList.toggle("active");
+    }
+
+    function cerrarSesion() {
+      window.location.href = "../login/index.html";
+    }
+  </script>
+</body>
+</html>
