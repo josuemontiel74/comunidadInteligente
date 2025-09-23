@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Panel de Trabajador</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="sidebar" id="sidebar">
+    <button class="close-btn" onclick="toggleSidebar()">✖</button>
+    <ul>
+      <li><a href="index.html">Inicio</a></li>
+      <li><a href="paqueteria.html">Paquetería</a></li>
+      <li><a href="parqueaderos.html">Parqueaderos</a></li>
+    </ul>
+  </div>
+
+  <div class="user-popup" id="userPopup">
+    <div class="user-popup-content">
+      <p><strong>Trabajador:</strong> Cristian Mora</p>
+      <p><strong>Email:</strong> trabajador@correo.com</p>
+      <button onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <header class="top-bar">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <div class="logo-container">
+      <img src="logo.png" alt="Logo" class="logo" />
+      <p class="nombre-conjunto">Conjunto Azahar</p>
+    </div>
+    <div class="user-info" onclick="toggleUserPopup()">
+      <span>TRABAJADOR</span>
+      <div class="user-icon">👤</div>
+    </div>
+  </header>
+
+  <div class="welcome">
+    <h2>Bienvenido <strong>TRABAJADOR</strong></h2>
+    <p>Selecciona el módulo que deseas gestionar en nuestra plataforma.</p>
+  </div>
+  <main class="contenedor">
+    <div class="formulario">
+      <button class="btn-volver" onclick="window.location.href='menu.html'">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+
+      <h2>Lista de parqueaderos de residentes activos</h2>
+      <p>Bienvenido a la lista de residentes activos</p>
+
+      <div class="busqueda">
+        <input type="text" placeholder="🔍 Búsqueda" />
+      </div>
+
+      <div class="lista">
+        <div class="item">
+          <span class="estado">✔</span>
+          <p>NOMBRE - APARTAMENTO - PARQUEADERO ASIGNADO - VEHÍCULO</p>
+          <button onclick="window.location.href='editar_residente.html'">Editar</button>
+        </div>
+        <div class="item">
+          <span class="estado">✔</span>
+          <p>NOMBRE - APARTAMENTO - PARQUEADERO ASIGNADO - VEHÍCULO</p>
+          <button onclick="window.location.href='editar_residente.html'">Editar</button>
+        </div>
+        <div class="item">
+          <span class="estado">✔</span>
+          <p>NOMBRE - APARTAMENTO - PARQUEADERO ASIGNADO - VEHÍCULO</p>
+          <button onclick="window.location.href='editar_residente.html'">Editar</button>
+        </div>
+        <div class="item">
+          <span class="estado">✔</span>
+          <p>NOMBRE - APARTAMENTO - PARQUEADERO ASIGNADO - VEHÍCULO</p>
+          <button onclick="window.location.href='editar_residente.html'">Editar</button>
+        </div>
+        <div class="item">
+          <span class="estado">✔</span>
+          <p>NOMBRE - APARTAMENTO - PARQUEADERO ASIGNADO - VEHÍCULO</p>
+          <button onclick="window.location.href='editar_residente.html'">Editar</button>
+        </div>
+      </div>
+
+      <button class="btn-agregar" onclick="window.location.href='agregar_residente.html'">Agregar Nuevo</button>
+    </div>
+  </main>
+
+  <script>
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("active");
+    }
+
+    function toggleUserPopup() {
+      document.getElementById("userPopup").classList.toggle("active");
+    }
+
+    function cerrarSesion() {
+      window.location.href = "index.html";
+    }
+
+    function liberar() {
+      alert("Visitante liberado.");
+    }
+  </script>
+</body>
+</html>

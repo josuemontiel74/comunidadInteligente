@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Panel de Trabajador</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="sidebar" id="sidebar">
+    <button class="close-btn" onclick="toggleSidebar()">✖</button>
+    <ul>
+      <li><a href="index.html">Inicio</a></li>
+      <li><a href="paqueteria.html">Paquetería</a></li>
+      <li><a href="parqueaderos.html">Parqueaderos</a></li>
+    </ul>
+  </div>
+
+  <div class="user-popup" id="userPopup">
+    <div class="user-popup-content">
+      <p><strong>Trabajador:</strong> Cristian Mora</p>
+      <p><strong>Email:</strong> trabajador@correo.com</p>
+      <button onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <header class="top-bar">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <div class="logo-container">
+      <img src="logo.png" alt="Logo" class="logo" />
+      <p class="nombre-conjunto">Conjunto Azahar</p>
+    </div>
+    <div class="user-info" onclick="toggleUserPopup()">
+      <span>TRABAJADOR</span>
+      <div class="user-icon">👤</div>
+    </div>
+  </header>
+
+  <div class="welcome">
+    <h2>Bienvenido <strong>TRABAJADOR</strong></h2>
+    <p>Selecciona el módulo que deseas gestionar en nuestra plataforma.</p>
+  </div>
+  <div class="contenedor-formulario">
+    <div class="form-box">
+      <button class="btn-back" onclick="window.location.href='gestion_residente.html'">🔙</button>
+      <title>Registrar Residente</title>
+    </head>
+    <body>
+        <div class="formulario-registro">
+            <p></p>
+          <h2>REGISTRAR NUEVO RESIDENTE</h2>
+          <form>
+            <input type="text" placeholder="Nombre completo" required />
+            <input type="text" placeholder="Documento de Identidad" required />
+            <input type="tel" placeholder="Teléfono" required />
+            <input type="email" placeholder="Correo" required />
+            <input type="tel" placeholder="Contacto De emergencia" required />
+            <input type="text" placeholder="Torre" required />
+            <input type="text" placeholder="Apartamento" required />
+            <select required>
+                <option value="">Rol en el conjunto</option>
+                <option value="P1">Propietario</option>
+                <option value="P2">Arrendatario</option>
+                <option value="P3">Familiar</option>
+              </select>
+            <textarea placeholder="Comentarios" rows="2"></textarea>
+            <button type="button" class="btn-verde" onclick="window.location.href='asignacion_residentes.html'">
+              Crear
+            </button>
+          </form>
+        </div>
+      </div>
+    </body>
+  <script>
+      function mostrarMensaje(event) {
+      event.preventDefault();
+      document.getElementById("mensaje").style.display = "block";
+      }
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("active");
+    }
+
+    function toggleUserPopup() {
+      document.getElementById("userPopup").classList.toggle("active");
+    }
+
+    function cerrarSesion() {
+      window.location.href = "index.html";
+    }
+  </script>
+</body>
+</html>
