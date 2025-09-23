@@ -1,0 +1,137 @@
+Personas que son usuarios del sistema y además ocupan un apartamento
+SELECT 
+  p.numeroDocumento,
+  CONCAT(p.primerNombre, ' ', p.primerApellido) AS nombreCompleto,
+  a.numeroApartamento,
+  o.tipoOcupacion
+FROM personas p
+JOIN usuarios u ON p.numeroDocumento = u.numeroDocumento
+JOIN ocupante o ON p.numeroDocumento = o.numeroDocumento
+JOIN apartamentos a ON o.apartamentosId = a.idApartamento;
+
+Paquetes con más de 30 días sin entregarse y cuyo estado sea 'Recibido'
+
+SELECT 
+  rp.idPaquete,
+  rp.nombreDestinatario,
+  a.numeroApartamento,
+  rp.fechaRecepcion,
+  e.nombreEstado
+FROM recepcionPaquetes rp
+JOIN apartamentos a ON rp.apartamentoId = a.idApartamento
+JOIN estados e ON rp.estadoId = e.idEstado
+WHERE e.nombreEstado = 'recibido'  
+  AND rp.fechaEntrega IS NULL 
+  AND DATEDIFF(NOW(), rp.fechaRecepcion) > 30;
+
+Áreas comunes más reservadas por los apartamentos
+SELECT 
+  ac.nombreArea,
+  COUNT(*) AS totalReservas
+FROM reservasAreas ra
+JOIN areaComun ac ON ra.areaComunId = ac.idAreaComun
+GROUP BY ac.nombreArea
+ORDER BY totalReservas DESC
+LIMIT 5;
+
+Habitantes que sean arrendatarios
+
+SELECT 
+  CONCAT(p.primerNombre, ' ', p.primerApellido) AS nombreArrendatario,
+  a.numeroApartamento,
+  t.nombreTorre
+FROM ocupante o
+JOIN personas p ON o.numeroDocumento = p.numeroDocumento
+JOIN apartamentos a ON o.apartamentosId = a.idApartamento
+JOIN torres t ON a.torresId = t.idTorre
+WHERE o.tipoOcupacion = 'arrendatario';
+
+
+Visitante que mas visito el conjunto y a que apartamento visito durante el mes de julio 2024
+SELECT 
+  v.numeroDocumento,
+  vis.nombreVisitante,
+  a.numeroApartamento,
+  COUNT(*) AS cantidadVisitas
+FROM visitas v
+JOIN visitantes vis ON v.numeroDocumento = vis.numeroDocumento
+JOIN apartamentos a ON v.apartamentoId = a.idApartamento
+WHERE v.fechaHoraIngreso BETWEEN '2024-07-01' AND '2024-07-31'
+GROUP BY v.numeroDocumento, vis.nombreVisitante, a.numeroApartamento
+ORDER BY cantidadVisitas DESC
+LIMIT 1;
+
+
+SUBCONSULTAS
+
+Porcentaje de ocupación entre arrendatarios y propietarios
+
+SELECT 
+  tipoOcupacion,
+  COUNT(*) AS cantidad,
+  ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM ocupante)), 2) AS porcentaje
+FROM ocupante
+GROUP BY tipoOcupacion;
+
+Muestre la cantidad de visitas registradas en el mes julio del 2024 junto con el tipo de vehiculo mas usado
+
+SELECT
+  COUNT(v.idVisita) AS totalVisitasJulio,
+  (SELECT tv.nombreVehiculo
+   FROM visitas v2
+   JOIN vehiculo ve ON v2.vehiculoMatricula = ve.matricula
+   JOIN tiposVehiculo tv ON ve.tipoVehiculoId = tv.idTipoVehiculo
+   WHERE v2.fechaHoraIngreso BETWEEN '2024-07-01' AND '2024-07-31'
+   GROUP BY tv.nombreVehiculo
+   ORDER BY COUNT(*) DESC
+   LIMIT 1
+  ) AS tipoVehiculoMasUsado
+FROM visitas v
+WHERE v.fechaHoraIngreso BETWEEN '2024-07-01' AND '2024-07-31';
+
+
+mostrar a solicitante con mas reservas realizadas y que salon uso y a que apartamento pertenece ese solicitante
+
+SELECT 
+  s.documentoSolicitante,
+  s.nombreSolicitante,
+  (SELECT ac.nombreArea
+   FROM reservasAreas ra2
+   JOIN areaComun ac ON ra2.areaComunId = ac.idAreaComun
+   WHERE ra2.documentoSolicitante = s.documentoSolicitante
+   GROUP BY ac.nombreArea
+   ORDER BY COUNT(*) DESC
+   LIMIT 1) AS salonMasUsado,
+  (SELECT a.numeroApartamento
+   FROM reservasAreas ra3
+   JOIN apartamentos a ON ra3.apartamentoId = a.idApartamento
+   WHERE ra3.documentoSolicitante = s.documentoSolicitante
+   LIMIT 1) AS apartamento
+FROM solicitante s
+WHERE s.documentoSolicitante = (
+  SELECT ra.documentoSolicitante
+  FROM reservasAreas ra
+  GROUP BY ra.documentoSolicitante
+  ORDER BY COUNT(*) DESC
+  LIMIT 1
+);
+
+
+mostrar destinatario que haya tenido mas recepción de paquete en el año 2025
+
+
+SELECT 
+  rp.apartamentoId,
+  (SELECT a.numeroApartamento 
+   FROM apartamentos a 
+   WHERE a.idApartamento = rp.apartamentoId) AS numeroApartamento,
+  (SELECT rp2.nombreDestinatario
+   FROM recepcionPaquetes rp2
+   WHERE rp2.apartamentoId = rp.apartamentoId
+   LIMIT 1) AS nombreDestinatario,
+COUNT(*) AS cantidadPaquetes
+FROM recepcionPaquetes rp
+WHERE YEAR(rp.fechaRecepcion) = 2025
+GROUP BY rp.apartamentoId
+HAVING COUNT(*) >= 2;
+
