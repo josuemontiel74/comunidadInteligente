@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registro exitoso</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+  <div class="top-bar">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <div class="logo-container">
+      <img src="logo.png" alt="Logo" class="logo">
+      <p class="nombre-conjunto">Conjunto Azahar</p>
+    </div>
+    <div class="user-info" onclick="toggleUserPopup()">
+      USUARIO <span class="user-icon">👤</span>
+    </div>
+  </div>
+
+  <div class="sidebar" id="sidebar">
+    <button class="close-btn" onclick="toggleSidebar()">×</button>
+    <ul>
+      <li><a href="trabajador.html">Inicio</a></li>
+      <li><a href="#">Entregas</a></li>
+      <li><a href="#">Parqueaderos</a></li>
+    </ul>
+  </div>
+
+  <div class="user-popup" id="userPopup">
+    <div class="user-popup-content">
+      <p><strong>Usuario:</strong> USUARIO</p>
+      <p><strong>Email:</strong> usuario@correo.com</p>
+      <button onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+  </div>
+ 
+  <div class="contenedor-historial">
+    <div class="panel-izquierdo">
+      <h4>RESIDENTE</h4>
+      <h2>RESIDENTE PRUEBA</h2>
+
+      <h3>DATOS DEL RESIDENTE</h3>
+      <ul class="lista-datos">
+        <li><i class="fas fa-check-circle"></i> Documento de identidad</li>
+        <li><i class="fas fa-check-circle"></i> Torre / Apartamento del destinatario</li>
+        <li><i class="fas fa-check-circle"></i> Estado de pago</li>
+        <li><i class="fas fa-check-circle"></i> Tipo de residente</li>
+      </ul>
+
+      <div class="comentarios">
+        <h4>COMENTARIOS</h4>
+        <textarea placeholder="Comentarios..."></textarea>
+        <button class="btn-enviar">Enviar comentario</button>
+      </div>
+    </div>
+
+    <div class="panel-derecho">
+      <h2>Historial de Entrega</h2>
+      <p>Bienvenido al historial de entregas de <strong>RESIDENTE PRUEBA</strong></p>
+
+      <div class="lista-entregas">
+        <div class="item-entrega">
+          <i class="fas fa-check-circle"></i> CÓDIGO PEDIDO - FECHA PEDIDO - TIPO DE ENTREGA - REMITENTE
+        </div>
+        <div class="item-entrega">
+          <i class="fas fa-check-circle"></i> CÓDIGO PEDIDO - FECHA PEDIDO - TIPO DE ENTREGA - REMITENTE
+        </div>
+        <div class="item-entrega">
+          <i class="fas fa-check-circle"></i> CÓDIGO PEDIDO - FECHA PEDIDO - TIPO DE ENTREGA - REMITENTE
+        </div>
+        <div class="item-entrega">
+          <i class="fas fa-check-circle"></i> CÓDIGO PEDIDO - FECHA PEDIDO - TIPO DE ENTREGA - REMITENTE
+        </div>
+      </div>
+
+      <div class="botones">
+        <button onclick="window.location.href='paqueteria.html'">Ir al menú principal</button>
+        <button onclick="window.location.href='historial.html'">Consultar historial de entregas</button>
+      </div>
+    </div>
+  </div> 
+
+  <script>
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("active");
+    }
+
+    function toggleUserPopup() {
+      document.getElementById("userPopup").classList.toggle("active");
+    }
+
+    function cerrarSesion() {
+      window.location.href = "index.html";
+    }
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("active");
+    }
+  </script>
+</body>
+</html>

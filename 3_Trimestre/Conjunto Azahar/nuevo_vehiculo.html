@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Panel de Trabajador</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="sidebar" id="sidebar">
+    <button class="close-btn" onclick="toggleSidebar()">✖</button>
+    <ul>
+      <li><a href="index.html">Inicio</a></li>
+      <li><a href="paqueteria.html">Paquetería</a></li>
+      <li><a href="parqueaderos.html">Parqueaderos</a></li>
+    </ul>
+  </div>
+
+  <div class="user-popup" id="userPopup">
+    <div class="user-popup-content">
+      <p><strong>Trabajador:</strong> Cristian Mora</p>
+      <p><strong>Email:</strong> trabajador@correo.com</p>
+      <button onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <header class="top-bar">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <div class="logo-container">
+      <img src="logo.png" alt="Logo" class="logo" />
+      <p class="nombre-conjunto">Conjunto Azahar</p>
+    </div>
+    <div class="user-info" onclick="toggleUserPopup()">
+      <span>TRABAJADOR</span>
+      <div class="user-icon">👤</div>
+    </div>
+  </header>
+
+  <div class="welcome">
+    <h2>Bienvenido <strong>TRABAJADOR</strong></h2>
+    <p>Selecciona el módulo que deseas gestionar en nuestra plataforma.</p>
+  </div>
+
+  <main class="contenedor-formulario">
+    <form class="formulario">
+      <button class="btn-volver" onclick="window.location.href='trabajadores.html'" type="button">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+
+      <h2>NUEVO VEHICULO</h2>
+
+      <input type="text" placeholder="NOMBRE VISITANTE" required />
+      
+      <select>
+        <option value="">TIPO VEHICULO</option>
+        <option value="vigilante">Bicicleta</option>
+        <option value="vigilante">Vehiculo</option>
+        <option value="conserje">Motocicleta</option>
+        <option value="conserje">Ninguno</option>
+      </select>
+
+      <input type="text" placeholder="PLACA VEHICULO" />
+
+      <select required>
+        <option value="">TURNO ASIGNADO</option>
+        <option value="mañana">Mañana</option>
+        <option value="tarde">Tarde</option>
+        <option value="noche">Noche</option>
+      </select>
+
+      <input type="tel" placeholder="TELÉFONO DE CONTACTO" required />
+
+
+      <button class="btn-editar" type="button" onclick="window.location.href='asignacion_moto.html'">Crear</button>
+    </form>
+  </main>
+
+  <script>
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("active");
+    }
+
+    function toggleUserPopup() {
+      document.getElementById("userPopup").classList.toggle("active");
+    }
+
+    function cerrarSesion() {
+      window.location.href = "index.html";
+    }
+
+    function liberar() {
+      alert("Visitante liberado.");
+    }
+  </script>
+</body>
+</html>
