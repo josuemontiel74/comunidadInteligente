@@ -47,13 +47,21 @@ export const getAllPersonas = async (req, res) => {
 export const getAllPersonasID = async (req, res) => {
   try {
     await personasModel.sync();
-    const IDpersonas = req.params.id;
 
-    const listPersonas = await personasModel.findAll({
-      where: { numeroDocumento: IDpersonas },
+    const numeroDocumento = req.params.numeroDocumento;
+
+    if (!numeroDocumento) {
+      return res.status(400).json({
+        message: "El numeroDocumento es obligatorio",
+        status: 400,
+      });
+    }
+
+    const listPersonas = await personasModel.findOne({
+      where: { numeroDocumento: numeroDocumento },
     });
 
-    if (listPersonas.length === 0) {
+    if (!listPersonas) {
       return res.status(404).json({
         message: "No se encontró ninguna persona con ese número de documento",
         status: 404,
@@ -62,12 +70,12 @@ export const getAllPersonasID = async (req, res) => {
 
     res.status(200).json({
       message: "Lista de personas",
-      estatus: 200,
+      status: 200,
       body: listPersonas,
     });
   } catch (error) {
     res.status(500).json({
-      message: "lo siento no se pude obtener la lista de personas",
+      message: "Lo siento no se pudo obtener la lista de personas",
       status: 500,
       error: error.message,
     });
@@ -76,12 +84,18 @@ export const getAllPersonasID = async (req, res) => {
 
 export const UpdatePersona = async (req, res) => {
   try {
-    const IDpersonas = req.params.id;
+    const numeroDocumento = req.params.numeroDocumento; // la ruta debe ser /personas/:numeroDocumento
     const data = req.body;
 
-    const updated = await personasModel.update(
+    if (!numeroDocumento) {
+      return res
+        .status(400)
+        .json({ message: "El numeroDocumento es obligatorio" });
+    }
+
+    // Actualizar solo los campos editables (numeroDocumento no se toca)
+    const [updated] = await personasModel.update(
       {
-        numeroDocumento: data.numeroDocumento,
         tipoDocumentoId: data.tipoDocumentoId,
         primerNombre: data.primerNombre,
         segundoNombre: data.segundoNombre,
@@ -89,21 +103,23 @@ export const UpdatePersona = async (req, res) => {
         segundoApellido: data.segundoApellido,
         telefono: data.telefono,
         correoElectronico: data.correoElectronico,
-        estadoId: data.estadoId ?? undefined,
+        estadoId: data.estadoId ?? null,
       },
-      { where: { numeroDocumento: IDpersonas } }
+      { where: { numeroDocumento } }
     );
 
-    if (updated[0] === 0) {
+    if (updated === 0) {
       return res
         .status(404)
         .json({ message: "No se encontró la persona para actualizar" });
     }
 
+    // Consultar la persona ya actualizada
     const personaActualizada = await personasModel.findOne({
-      where: { numeroDocumento: data.numeroDocumento },
+      where: { numeroDocumento },
     });
 
+    // Si se mandó estadoId, sincronizar en usuarios
     if (data.estadoId) {
       await User.update(
         { estadoId: data.estadoId },
@@ -116,30 +132,34 @@ export const UpdatePersona = async (req, res) => {
       data: personaActualizada,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error al actualizar", error: error.message });
+    res.status(500).json({
+      message: "Error al actualizar persona",
+      error: error.errors ? error.errors.map((e) => e.message) : error.message,
+    });
   }
 };
 
-export const EliminarPersona = async (req, res) => {
+export const deletePersona = async (req, res) => {
   try {
-    await personasModel.sync();
-    const numeroDocumento = req.params.id;
-    const EliminarPersona = await personasModel.destroy({
-      where: { numeroDocumento: numeroDocumento },
+    const numeroDocumento = req.params.numeroDocumento;
+
+    if (!numeroDocumento) {
+      return res.status(400).json({ message: "El numeroDocumento es obligatorio" });
+    }
+
+    const deleted = await personasModel.destroy({
+      where: { numeroDocumento },
     });
 
-    res.status(200).json({
-      message: "La eliminacion de  la persona fue exitosa",
-      status: 200,
-      body: EliminarPersona,
-    });
+    if (deleted === 0) {
+      return res.status(404).json({ message: "No se encontró la persona para eliminar" });
+    }
+
+    res.status(200).json({ message: "Persona y usuarios eliminados exitosamente" });
   } catch (error) {
     res.status(500).json({
-      message: "No se pudo hacer la eliminacion de la persona",
-      status: 500,
-      error: error.meessage,
+      message: "Error al eliminar persona",
+      error: error.message,
     });
   }
 };

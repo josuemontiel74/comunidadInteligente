@@ -1,28 +1,45 @@
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import Persona from "../models/personas.model.js";
 
 export const crearUsuario = async (req, res) => {
   try {
     await User.sync();
+    await Persona.sync();
+
     const dataUser = req.body;
+
+    const nuevaPersona = await Persona.create({
+      numeroDocumento: dataUser.numeroDocumento,
+      tipoDocumentoId: dataUser.tipoDocumentoId,
+      primerNombre: dataUser.primerNombre,
+      segundoNombre: dataUser.segundoNombre,
+      primerApellido: dataUser.primerApellido,
+      segundoApellido: dataUser.segundoApellido,
+      telefono: dataUser.telefono,
+      correoElectronico: dataUser.correoElectronico,
+    });
+
     const hashedPassword = await bcrypt.hash(dataUser.password, 10);
     const createUser = await User.create({
       username: dataUser.username,
-      numeroDocumento: dataUser.numeroDocumento,
+      numeroDocumento: nuevaPersona.numeroDocumento,
       password: hashedPassword,
       rolesId: dataUser.rolesId,
-      estadoId: dataUser.estadoId,
+      estadoId: dataUser.estadoId ? dataUser.estadoId : 1,
     });
+
     res.status(201).json({
       ok: true,
       status: 201,
-      Message: "Usuario creado",
-      id: createUser.idUsuario,
+      message: "Usuario y Persona creados",
+      idUsuario: createUser.username,
+      idPersona: nuevaPersona.numeroDocumento,
     });
   } catch (error) {
     return res.status(500).json({
-      Message: "Algo salió mal en la peticion :(",
+      message: "Algo salió mal en la petición :(",
       status: 500,
       error: error.message,
     });
@@ -78,7 +95,10 @@ export const actualizarUsuario = async (req, res) => {
     const username = req.params.username;
     const requester = req.user;
 
-    const usuario = await User.findByPk(username);
+    const usuario = await User.findByPk(username, {
+      include: [{ model: Persona, as: "persona" }],
+    });
+
     if (!usuario) {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
@@ -94,6 +114,7 @@ export const actualizarUsuario = async (req, res) => {
         message: "No tienes permisos para cambiar el estado de un superadmin",
       });
     }
+
     if (
       requester.username === username &&
       typeof dataUser.estadoId !== "undefined" &&
@@ -105,23 +126,36 @@ export const actualizarUsuario = async (req, res) => {
         message: "No puedes cambiar tu propio estado",
       });
     }
+
     if (dataUser.password) {
       dataUser.password = await bcrypt.hash(dataUser.password, 10);
     }
 
     await usuario.update(dataUser);
 
+    if (usuario.persona && dataUser.numeroDocumento) {
+      await usuario.persona.update({
+        tipoDocumentoId: dataUser.tipoDocumentoId,
+        primerNombre: dataUser.primerNombre,
+        segundoNombre: dataUser.segundoNombre,
+        primerApellido: dataUser.primerApellido,
+        segundoApellido: dataUser.segundoApellido,
+        telefono: dataUser.telefono,
+        correoElectronico: dataUser.correoElectronico,
+      });
+    }
+
     const { password, ...usuarioSinPass } = usuario.toJSON();
 
     res.status(200).json({
       ok: true,
       status: 200,
-      message: "Usuario actualizado",
+      message: "Usuario y Persona actualizados",
       body: usuarioSinPass,
     });
   } catch (error) {
     return res.status(500).json({
-      message: "Algo salió mal en la peticion :(",
+      message: "Algo salió mal en la petición :(",
       status: 500,
       error: error.message,
     });
@@ -197,6 +231,31 @@ export const buscarUsuarios = async (req, res) => {
       status: 200,
       message: "Mostrando Usuario por username",
       body: usuario,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Algo salió mal en la peticion :(",
+      status: 500,
+      error: error.message,
+    });
+  }
+};
+
+export const inactivarUsuario = async (req, res) => {
+  try {
+    const username = req.params.username;
+    const usuario = await User.findByPk(username);
+    if (!usuario) {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        status: 404,
+        error: error.message,
+      });
+    }
+    await usuario.update({ estadoId: 2 });
+    res.status(200).json({
+      message: "El usuario ha sido finalizado correctamente",
+      status: 200,
     });
   } catch (error) {
     return res.status(500).json({

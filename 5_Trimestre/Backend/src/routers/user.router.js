@@ -9,20 +9,21 @@ router.post(
   "/usuario",
   validarJWT,
   validarRol(1),
-  validate(userSchema.createUserSchema),
+  validate(userSchema.createUserSchema, "body", true),
   userController.crearUsuario
 );
 router.get(
   "/usuario",
   validarJWT,
   validarRol(1),
+  validate(userSchema.getUserSchema),
   userController.obtenerUsuario
 );
 router.get(
   "/usuario/:username",
   validarJWT,
   validarRol(1),
-  validate(userSchema.getUserSchema, "params"),
+  validate(userSchema.getUserSchema, "params", true),
   userController.obtenerUsuarioPorId
 );
 router.post(
@@ -35,15 +36,23 @@ router.get(
   "/usuario/buscar/:estadoId",
   validarJWT,
   validarRol(1),
-  validate(userSchema.searchByEstadoSchema, "params"),
+  validate(userSchema.searchByEstadoSchema, "params", true),
   userController.buscarUsuarios
 );
 router.patch(
   "/usuario/:username",
   validarJWT,
   validarRol(1),
-  validate(userSchema.updateUserSchema, "body"),
-  validate(userSchema.getUserSchema, "params"),
+  validate(userSchema.updateUserSchema, "body", true),
+  validate(userSchema.getUserSchema, "params", true),
   userController.actualizarUsuario
+);
+
+router.delete(
+  "/usuario/:username",
+  validarJWT,
+  validarRol(1),
+  validate(userSchema.deleteUserSchema, "params", true),
+  userController.inactivarUsuario
 );
 export default router;

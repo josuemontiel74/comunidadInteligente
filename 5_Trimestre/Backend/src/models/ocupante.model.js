@@ -42,6 +42,11 @@ class Ocupante extends Model {
           type: DataTypes.DATE,
           allowNull: true,
         },
+        estadoId: {
+          type: DataTypes.INTEGER,
+          allowNull: false,
+          defaultValue: 1,
+        },
       },
       {
         sequelize,

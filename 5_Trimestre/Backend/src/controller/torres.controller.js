@@ -5,6 +5,7 @@ export const crearTorre = async (req, res) => {
     await torresModel.sync();
     const dataTorre = req.body;
     const createTorre = await torresModel.create({
+      idTorre: dataTorre.idTorre,
       nombreTorre: dataTorre.nombreTorre,
     });
     res.status(201).json({
@@ -43,21 +44,27 @@ export const mostrarTorre = async (req, res) => {
 
 export const mostrarIdTorre = async (req, res) => {
   try {
+    const { idTorre } = req.params;
     await torresModel.sync();
-    const idTorre = (Torre = await torresModel.findOne({
-      where: {
-        idTorre: idTorre,
-      },
-    }));
+
+    const torre = await torresModel.findOne({
+      where: { idTorre: idTorre },
+    });
+
+    if (!torre) {
+      return res.status(404).json({
+        message: "Torre no encontrada",
+        status: 404,
+      });
+    }
 
     res.status(200).json({
-      ok: true,
+      message: "Torre encontrada",
       status: 200,
-      message: " Mostrando Id de Torres",
-      body: mostrarIdPTorres,
+      body: torre,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: "Algo salió mal en la peticion :(",
       status: 500,
       error: error.message,
@@ -68,22 +75,27 @@ export const mostrarIdTorre = async (req, res) => {
 export const actualizarTorre = async (req, res) => {
   try {
     await torresModel.sync();
-    const dataTorre = req.body;
-    const idTorre = req.params.id;
 
-    await torresModel.update(
-      { nombreTorre: dataTorre.nombreTorre },
-      { where: { idTorre: idTorre } }
-    );
+    const { idTorre } = req.params;
+    const { nombreTorre } = req.body;
 
-    const torreActualizada = await torresModel.findOne({
-      where: { idTorre: idTorre },
-    });
+    const torre = await torresModel.findOne({ where: { idTorre } });
+    if (!torre) {
+      return res.status(404).json({
+        ok: false,
+        status: 404,
+        message: "Torre no encontrada",
+      });
+    }
+
+    await torresModel.update({ nombreTorre }, { where: { idTorre } });
+
+    const torreActualizada = await torresModel.findOne({ where: { idTorre } });
 
     res.status(200).json({
       ok: true,
       status: 200,
-      message: "Torres Actualizadas",
+      message: "Torre actualizada exitosamente",
       body: torreActualizada,
     });
   } catch (error) {
@@ -98,7 +110,7 @@ export const actualizarTorre = async (req, res) => {
 export const borrarTorre = async (req, res) => {
   try {
     await torresModel.sync();
-    const idTorre = req.params.id;
+    const idTorre = req.params.idTorre;
     const borrarTorre = await torresModel.destroy({
       where: {
         idTorre: idTorre,
