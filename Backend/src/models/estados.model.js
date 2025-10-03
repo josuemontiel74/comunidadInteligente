@@ -1,4 +1,3 @@
-// src/models/estados.model.js
 import { Model, DataTypes } from "sequelize";
 
 class Estado extends Model {

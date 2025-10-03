@@ -53,7 +53,7 @@ export const mostrarApartamento = async (req, res) => {
 export const mostrarIdApartamento = async (req, res) => {
   try {
     await apartamentosModel.sync();
-    const idApartamento = req.params.id;
+    const idApartamento = req.params.idApartamento;
     const mostrarIdApartamento = await apartamentosModel.findOne({
       where: {
         idApartamento: idApartamento,
@@ -82,7 +82,7 @@ export const actualizarApartamento = async (req, res) => {
   try {
     await apartamentosModel.sync();
     const dataApartamento = req.body;
-    const idApartamento = req.params.id;
+    const idApartamento = req.params.idApartamento;
     await apartamentosModel.update(
       {
         numeroApartamento: dataApartamento.numeroApartamento,
@@ -103,6 +103,27 @@ export const actualizarApartamento = async (req, res) => {
       status: 200,
       message: "Apartamento actualizado",
       body: apartamentoActualizado,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Algo salió mal en la peticion :(",
+      status: 500,
+      error: error.message,
+    });
+  }
+};
+
+export const eliminarApartamento = async (req, res) => {
+  try {
+    await apartamentosModel.sync();
+    const idApartamento = req.params.idApartamento;
+    await apartamentosModel.destroy({
+      where: { idApartamento: idApartamento },
+    });
+    res.status(200).json({
+      ok: true,
+      status: 200,
+      message: "Apartamento eliminado",
     });
   } catch (error) {
     return res.status(500).json({

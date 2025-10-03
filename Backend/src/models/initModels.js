@@ -9,7 +9,7 @@ import Rol from "./rol.model.js";
 import Permiso from "./permisos.model.js";
 import initRolesPermisos from "./rolespermisos.model.js";
 import tiposVehiculo from "./tiposVehiculo.model.js";
-import tipodocumento from "./tipodocumento.model.js";
+import tipodocumento from "./tipoDocumento.model.js";
 import Parqueadero from "./parqueaderos.model.js";
 import Vehiculo from "./vehiculo.model.js";
 import Visitante from "./visitantes.model.js";
@@ -61,6 +61,9 @@ export function initModels(sequelize) {
   PersonasModel.hasMany(OcupanteModel, { foreignKey: "numeroDocumento" });
   OcupanteModel.belongsTo(PersonasModel, { foreignKey: "numeroDocumento" });
 
+  OcupanteModel.belongsTo(EstadoModel, { foreignKey: "estadoId" });
+  EstadoModel.hasMany(OcupanteModel, { foreignKey: "estadoId" });
+
   RolModel.hasMany(UsuarioModel, { foreignKey: "rolesId" });
   UsuarioModel.belongsTo(RolModel, { foreignKey: "rolesId" });
 
@@ -74,6 +77,10 @@ export function initModels(sequelize) {
   tiposVehiculoModel.hasMany(ParqueaderoModel, {
     foreignKey: "tipoVehiculoId",
   });
+
+  VehiculoModel.belongsTo(tiposVehiculoModel, { foreignKey: "tipoVehiculoId" });
+  tiposVehiculoModel.hasMany(VehiculoModel, { foreignKey: "tipoVehiculoId" });
+
   ParqueaderoModel.belongsTo(tiposVehiculoModel, {
     foreignKey: "tipoVehiculoId",
   });
@@ -86,8 +93,10 @@ export function initModels(sequelize) {
   EstadoModel.hasMany(ParqueaderoModel, { foreignKey: "estadoId" });
   ParqueaderoModel.belongsTo(EstadoModel, { foreignKey: "estadoId" });
 
-  ParqueaderoModel.hasMany(VehiculoModel, { foreignKey: "parqueaderoId" });
-  VehiculoModel.belongsTo(ParqueaderoModel, { foreignKey: "parqueaderoId" });
+  ParqueaderoModel.hasMany(VehiculoModel, { foreignKey: "codigoParqueadero" });
+  VehiculoModel.belongsTo(ParqueaderoModel, {
+    foreignKey: "codigoParqueadero",
+  });
 
   tipodocumentoModel.hasMany(VisitanteModel, { foreignKey: "tipoDocumentoId" });
   VisitanteModel.belongsTo(tipodocumentoModel, {
@@ -102,6 +111,12 @@ export function initModels(sequelize) {
 
   EstadoModel.hasMany(VisitaModel, { foreignKey: "estadoId" });
   VisitaModel.belongsTo(EstadoModel, { foreignKey: "estadoId" });
+
+  VisitaModel.belongsTo(VehiculoModel, { foreignKey: "vehiculoMatricula" });
+  VehiculoModel.hasMany(VisitaModel, { foreignKey: "vehiculoMatricula" });
+
+  VehiculoModel.belongsTo(tiposVehiculoModel, { foreignKey: "tipoVehiculoId" });
+  tiposVehiculoModel.hasMany(VehiculoModel, { foreignKey: "tipoVehiculoId" });
 
   ApartamentoModel.hasMany(RecepcionPaquetesModel, {
     foreignKey: "apartamentoId",
@@ -139,7 +154,6 @@ export function initModels(sequelize) {
     foreignKey: "documentoSolicitante",
   });
 
-  // 3. Exportar los modelos ya listos
   return {
     Estado: EstadoModel,
     Apartamento: ApartamentoModel,
