@@ -1,7 +1,7 @@
 # 🌐 Comunidad Inteligente – Conjunto Residencial Azahar 🌼
 
 ## 📖 Descripción del proyecto
-**Comunidad Inteligente** es un sistema orientado a la web que busca optimizar la **gestión administrativa y logística** del Conjunto Residencial **Azahar**.  
+**Comunidad Inteligente** es un sistema web que busca optimizar la **gestión administrativa y logística** del Conjunto Residencial **Azahar**.  
 
 El proyecto surge como respuesta a problemáticas comunes en la comunidad, tales como:  
 - Pérdida y mala gestión de **paquetes**.  
@@ -37,13 +37,17 @@ Con este software se pretende garantizar mayor **seguridad**, **transparencia** 
 ---
 
 ## 🚀 Estado actual
-- ✅ Backend inicial funcional con Node.js + Express.  
-- ✅ Tablas principales creadas en MySQL.  
-- ✅ Autenticación implementada con JWT.  
-- 🚧 Desarrollo de middlewares de validación.  
-- 🚧 Frontend en construcción con React + Vite + Bootstrap.  
+- ✅ **Primera versión funcional disponible**.  
+- ✅ Conexión establecida entre **backend y frontend**.  
+- ✅ Tablas principales creadas en **MySQL**.  
+- ✅ Autenticación implementada con **JWT**.  
+- 🚧 En proceso de optimización de consultas y seguridad.  
+- 🚧 Pendientes mejoras visuales y de experiencia de usuario (UI/UX).  
 
 ---
 
 ## 📌 Nota
-Este es un proyecto en desarrollo, por lo cual se estarán agregando nuevas funcionalidades y módulos progresivamente.
+Este es un proyecto en desarrollo. A partir de esta **primera versión funcional**, se trabajará en:  
+- Optimizar la lógica y las validaciones.  
+- Mejorar aspectos visuales y de usabilidad.  
+- Incorporar nuevos módulos según las necesidades de la comunidad.
