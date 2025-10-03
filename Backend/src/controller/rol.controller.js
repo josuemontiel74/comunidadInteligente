@@ -44,7 +44,7 @@ export const mostrarRol = async (req, res) => {
 export const mostrarIdRol = async (req, res) => {
   try {
     await rolModel.sync();
-    const idRol = req.params.id;
+    const idRol = req.params.idRol;
     const mostrarIdRol = await rolModel.findOne({
       where: {
         idRol: idRol,
@@ -70,7 +70,7 @@ export const actualizarRol = async (req, res) => {
   try {
     await rolModel.sync();
     const dataRol = req.body;
-    const idRol = req.params.id;
+    const idRol = req.params.idRol;
 
     await rolModel.update(
       { nombreRol: dataRol.nombreRol },
@@ -97,7 +97,7 @@ export const actualizarRol = async (req, res) => {
 export const borrarRol = async (req, res) => {
   try {
     await rolModel.sync();
-    const idRol = req.params.id;
+    const idRol = req.params.idRol;
     const borrarRol = await rolModel.destroy({
       where: {
         idRol: idRol,

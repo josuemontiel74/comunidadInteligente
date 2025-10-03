@@ -47,16 +47,18 @@ export const obtenerVisitantePorId = async (req, res) => {
 };
 
 export const actualizarVisitante = async (req, res) => {
-  const { id } = req.params;
-  const { numeroDocumento, tipoDocumentoId, nombreVisitante } = req.body;
+  const { numeroDocumento } = req.params;
+  const { tipoDocumentoId, nombreVisitante } = req.body;
   try {
     await VisitanteModel.sync();
     const visitante = await VisitanteModel.findOne({
-      where: { idVisitante: id },
+      where: { numeroDocumento: numeroDocumento },
     });
     if (visitante) {
       visitante.numeroDocumento = numeroDocumento;
-      visitante.tipoDocumentoId = tipoDocumentoId;
+      if (tipoDocumentoId !== undefined) {
+        visitante.tipoDocumentoId = tipoDocumentoId;
+      }
       visitante.nombreVisitante = nombreVisitante;
       await visitante.save();
       res.status(200).json(visitante);
@@ -65,16 +67,18 @@ export const actualizarVisitante = async (req, res) => {
     }
   } catch (error) {
     console.error("Error al actualizar visitante:", error);
-    res.status(500).json({ error: "Error al actualizar visitante" });
+    res
+      .status(500)
+      .json({ error: "Error al actualizar visitante", error: error.message });
   }
 };
 
 export const eliminarVisitante = async (req, res) => {
-  const { id } = req.params;
+  const { numeroDocumento } = req.params;
   try {
     await VisitanteModel.sync();
     const visitante = await VisitanteModel.findOne({
-      where: { idVisitante: id },
+      where: { numeroDocumento: numeroDocumento },
     });
     if (visitante) {
       await visitante.destroy();

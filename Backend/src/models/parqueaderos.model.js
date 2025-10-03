@@ -5,7 +5,7 @@ class Parqueadero extends Model {
     Parqueadero.init(
       {
         codigoParqueadero: {
-          type: DataTypes.INTEGER,
+          type: DataTypes.STRING(10),
           primaryKey: true,
         },
         tipoVehiculoId: {

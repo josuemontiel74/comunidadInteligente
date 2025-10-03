@@ -1,21 +1,49 @@
 import { Router } from "express";
-import * as reservasAreasController from "../controllers/reservasAreas.controller.js";
+import * as reservasAreasController from "../controller/reservasAreas.controller.js";
+import { validarJWT, validarRol } from "../middlewares/auth.middleware.js";
+import validate from "../middlewares/user.middleware.js";
+import * as reservarAreasSchema from "../schemas/reservarAreas.schema.js";
 
 const router = Router();
 
-router.post("/reservarAreas", reservasAreasController.CrearReservaArea);
-router.get("/reservarAreas", reservasAreasController.ObtenerReservasAreas);
+router.post(
+  "/reservarAreas",
+  validate(reservarAreasSchema.crearReservarAreasSchema, "body", true),
+  validarJWT,
+  validarRol(1, 2),
+  reservasAreasController.CrearReservaArea
+);
+
 router.get(
-  "/reservarAreas/:id",
+  "/reservarAreas",
+  validate(reservarAreasSchema.obtenerReservarAreasSchema),
+  validarJWT,
+  validarRol(1, 2),
+  reservasAreasController.ObtenerReservasAreas
+);
+
+router.get("/reservas-areas", reservasAreasController.listarReservasAreas);
+
+router.get(
+  "/reservarAreas/:idReservas",
+  validate(reservarAreasSchema.obtenerReservarAreasSchema, "params", true),
+  validarJWT,
+  validarRol(1, 2),
   reservasAreasController.ObtenerReservaAreaPorId
 );
 router.patch(
-  "/reservarAreas/:id",
+  "/reservarAreas/:idReservas",
+  validate(reservarAreasSchema.actualizarReservarAreasSchema, "body", true),
+  validarJWT,
+  validarRol(1, 2),
   reservasAreasController.ActualizarReservaArea
 );
 router.delete(
-  "/reservarAreas/:id",
-  reservasAreasController.EliminarReservaArea
+  "/reservarAreas/:idReservas",
+  validate(reservarAreasSchema.eliminarReservarAreasSchema, "params", true),
+  validarJWT,
+  validarRol(1, 2),
+  reservasAreasController.eliminarReservaArea
 );
 
 export default router;
