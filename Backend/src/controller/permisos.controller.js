@@ -44,7 +44,7 @@ export const mostrarPermiso = async (req, res) => {
 export const mostrarIdPermiso = async (req, res) => {
   try {
     await permisosModel.sync();
-    const idPermiso = req.params.id;
+    const idPermiso = req.params.idPermiso;
     const mostrarIdPermiso = await permisosModel.findOne({
       where: {
         idPermiso: idPermiso,
@@ -70,7 +70,7 @@ export const actualizarPermiso = async (req, res) => {
   try {
     await permisosModel.sync();
     const dataPermiso = req.body;
-    const idPermiso = req.params.id;
+    const idPermiso = req.params.idPermiso;
 
     await permisosModel.update(
       { nombrePermiso: dataPermiso.nombrePermiso },
@@ -99,7 +99,7 @@ export const actualizarPermiso = async (req, res) => {
 export const borrarPermiso = async (req, res) => {
   try {
     await permisosModel.sync();
-    const idPermiso = req.params.id;
+    const idPermiso = req.params.idPermiso;
     const borrarPermiso = await permisosModel.destroy({
       where: {
         idPermiso: idPermiso,

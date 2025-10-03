@@ -1,4 +1,4 @@
-import tipoDocumentoModel from "../models/tipodocumento.model.js";
+import tipoDocumentoModel from "../models/tipoDocumento.model.js";
 
 export const mostraDocumentos = async (req, res) => {
   try {
@@ -19,12 +19,20 @@ export const mostraDocumentos = async (req, res) => {
 };
 
 export const mostraDocumentosporId = async (req, res) => {
-  const { id } = req.params;
   try {
-    await tipoDocumentoModel.sync();
+    const { idTipoDocumento } = req.params;
+
     const mostraDocumentos = await tipoDocumentoModel.findOne({
-      where: { idTipoDocumento: id },
+      where: { idTipoDocumento: idTipoDocumento },
     });
+
+    if (!mostraDocumentos) {
+      return res.status(404).json({
+        message: "No se encontró el documento",
+        status: 404,
+      });
+    }
+
     res.status(200).json({
       message: "Documento encontrado",
       status: 200,
@@ -32,9 +40,9 @@ export const mostraDocumentosporId = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
-      message: "Algo salio mal, No se puede mostrar el documento",
+      message: "Algo salió mal, no se puede mostrar el documento",
       status: 500,
       error: error.message,
     });
   }
-};
+}; 

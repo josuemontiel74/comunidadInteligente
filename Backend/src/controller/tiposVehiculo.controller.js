@@ -1,13 +1,13 @@
 import tipoVehiculoModel from "../models/tiposVehiculo.model.js";
 
-export const mostraVehiculos = async (req, res) => {
+export const mostrarVehiculos = async (req, res) => {
   try {
     await tipoVehiculoModel.sync();
-    const mostraVehiculos = await tipoVehiculoModel.findAll();
+    const mostrarVehiculos = await tipoVehiculoModel.findAll();
     res.status(200).json({
       message: "Vehiculos",
       status: 200,
-      body: mostraVehiculos,
+      body: mostrarVehiculos,
     });
   } catch (error) {
     res.status(500).json({
@@ -18,17 +18,17 @@ export const mostraVehiculos = async (req, res) => {
   }
 };
 
-export const mostraVehiculosporId = async (req, res) => {
-  const { id } = req.params;
+export const mostrarVehiculosporId = async (req, res) => {
+  const { idTipoVehiculo } = req.params;
   try {
     await tipoVehiculoModel.sync();
-    const mostraVehiculos = await tipoVehiculoModel.findOne({
-      where: { idTipoVehiculo: id },
+    const mostrarVehiculos = await tipoVehiculoModel.findOne({
+      where: { idTipoVehiculo: idTipoVehiculo },
     });
     res.status(200).json({
       message: "Vehiculo encontrado",
       status: 200,
-      body: mostraVehiculos,
+      body: mostrarVehiculos,
     });
   } catch (error) {
     res.status(500).json({

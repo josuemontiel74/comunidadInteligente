@@ -34,6 +34,10 @@ class Visitas extends Model {
           type: DataTypes.INTEGER,
           allowNull: false,
         },
+        observaciones: {
+          type: DataTypes.TEXT,
+          allowNull: true,
+        },
       },
       {
         sequelize,
