@@ -13,5 +13,9 @@ export const updateApartamentoSchema = Joi.object({
 }).min(1);
 
 export const getApartamentoSchema = Joi.object({
-  id: Joi.number().integer().required(),
+  idApartamento: Joi.number().integer().required(),
+});
+
+export const deleteApartamentoSchema = Joi.object({
+  idApartamento: Joi.number().integer().required(),
 });
