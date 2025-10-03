@@ -1,19 +1,55 @@
+import dayjs from "dayjs";
 import Ocupante from "../models/ocupante.model.js";
+import Persona from "../models/personas.model.js";
+import { sequelize } from "../config/connect.db.js";
 
 export const crearOcupante = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
-    await Ocupante.sync();
     const dataOcupante = req.body;
-    const createOcupante = await Ocupante.create({
-      apartamentosId: dataOcupante.apartamentosId,
-      numeroDocumento: dataOcupante.numeroDocumento,
-      tipoOcupacion: dataOcupante.tipoOcupacion,
-      personasACargo: dataOcupante.personasACargo,
-      fechaInicio: dataOcupante.fechaInicio,
-      fechaFin: dataOcupante.fechaFin,
+
+    const [persona, created] = await Persona.findOrCreate({
+      where: { numeroDocumento: dataOcupante.numeroDocumento },
+      defaults: {
+        numeroDocumento: dataOcupante.numeroDocumento,
+        tipoDocumentoId: dataOcupante.tipoDocumentoId,
+        primerNombre: dataOcupante.primerNombre,
+        segundoNombre: dataOcupante.segundoNombre,
+        primerApellido: dataOcupante.primerApellido,
+        segundoApellido: dataOcupante.segundoApellido,
+        telefono: dataOcupante.telefono,
+        correoElectronico: dataOcupante.correoElectronico,
+      },
+      transaction: t,
     });
-    res.status(201).json(createOcupante);
+
+    const createOcupante = await Ocupante.create(
+      {
+        apartamentosId: dataOcupante.apartamentosId,
+        numeroDocumento: persona.numeroDocumento,
+        tipoOcupacion: dataOcupante.tipoOcupacion,
+        personasACargo: dataOcupante.personasACargo,
+        fechaInicio: dataOcupante.fechaInicio
+          ? dayjs(dataOcupante.fechaInicio).format("YYYY-MM-DD")
+          : null,
+        fechaFin: dataOcupante.fechaFin
+          ? dayjs(dataOcupante.fechaFin).format("YYYY-MM-DD")
+          : null,
+        estadoId: 5,
+      },
+      { transaction: t }
+    );
+
+    await t.commit();
+
+    res.status(201).json({
+      message: "Ocupante creado correctamente",
+      ocupante: createOcupante,
+      persona: persona,
+      personaNueva: created,
+    });
   } catch (error) {
+    await t.rollback();
     res.status(500).json({
       message: "Lo siento, no se pudo registrar el ocupante",
       status: 500,
@@ -22,9 +58,62 @@ export const crearOcupante = async (req, res) => {
   }
 };
 
+export const listarOcupantes = async (req, res) => {
+  try {
+    const [results] = await sequelize.query(`
+      SELECT 
+    oc.idOcupante,
+    oc.apartamentosId,
+    oc.numeroDocumento,
+    oc.tipoOcupacion,
+    oc.personasACargo,
+    oc.fechaInicio,
+    oc.fechaFin,
+    es.nombreEstado,
+    ap.idApartamento,
+    ap.torresId,
+    pe.tipoDocumentoId,
+    pe.primerNombre,
+    pe.segundoNombre,
+    pe.primerApellido,
+    pe.segundoApellido,
+    pe.telefono,
+    pe.correoElectronico
+FROM ocupante AS oc
+JOIN apartamentos AS ap 
+    ON oc.apartamentosId = ap.idApartamento
+JOIN personas AS pe 
+    ON oc.numeroDocumento = pe.numeroDocumento
+JOIN estados AS es
+    ON oc.estadoId = es.idEstado;
+    `);
+
+    res.status(200).json({
+      ok: true,
+      status: 200,
+      message: "Listado de ocupantes",
+      body: results,
+    });
+  } catch (error) {
+    console.error("Error al listar ocupantes:", error);
+    res.status(500).json({
+      error: "Error interno al listar ocupantes",
+      status: 500,
+      details: error.message,
+    });
+  }
+};
+
 export const obtenerOcupante = async (req, res) => {
   try {
-    const ocupantes = await Ocupante.findAll();
+    const ocupantes = await Ocupante.findAll({
+      include: [
+        {
+          model: Persona,
+          as: "persona",
+        },
+      ],
+    });
     res.status(200).json(ocupantes);
   } catch (error) {
     res.status(500).json({
@@ -37,8 +126,17 @@ export const obtenerOcupante = async (req, res) => {
 
 export const obtenerOcupantePorId = async (req, res) => {
   try {
-    const id = req.params.id;
-    const ocupante = await Ocupante.findOne({ where: { IdOcupante: id } });
+    const id = req.params.idOcupante;
+    const ocupante = await Ocupante.findOne({
+      where: { idOcupante: id },
+      include: [
+        {
+          model: Persona,
+          as: "persona",
+        },
+      ],
+    });
+
     if (ocupante) {
       res.status(200).json(ocupante);
     } else {
@@ -55,18 +153,83 @@ export const obtenerOcupantePorId = async (req, res) => {
     });
   }
 };
+
 export const actualizarOcupante = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
-    const id = req.params.id;
+    const id = req.params.idOcupante;
     const dataOcupante = req.body;
-    const [updated] = await Ocupante.update(dataOcupante, {
-      where: { IdOcupante: id },
-    });
-    if (updated) {
-      const updatedOcupante = await Ocupante.findOne({
-        where: { IdOcupante: id },
+
+    const [updated] = await Ocupante.update(
+      {
+        apartamentosId: dataOcupante.apartamentosId,
+        tipoOcupacion: dataOcupante.tipoOcupacion,
+        personasACargo: dataOcupante.personasACargo,
+        fechaInicio: dataOcupante.fechaInicio,
+        fechaFin: dataOcupante.fechaFin,
+        estadoId: dataOcupante.estadoId,
+      },
+      { where: { idOcupante: id }, transaction: t }
+    );
+
+    if (!updated) {
+      await t.rollback();
+      return res.status(404).json({
+        message: "Ocupante no encontrado",
+        status: 404,
       });
-      res.status(200).json(updatedOcupante);
+    }
+
+    if (dataOcupante.numeroDocumento) {
+      await Persona.update(
+        {
+          tipoDocumentoId: dataOcupante.tipoDocumentoId,
+          primerNombre: dataOcupante.primerNombre,
+          segundoNombre: dataOcupante.segundoNombre,
+          primerApellido: dataOcupante.primerApellido,
+          segundoApellido: dataOcupante.segundoApellido,
+          telefono: dataOcupante.telefono,
+          correoElectronico: dataOcupante.correoElectronico,
+        },
+        {
+          where: { numeroDocumento: dataOcupante.numeroDocumento },
+          transaction: t,
+        }
+      );
+    }
+
+    const updatedOcupante = await Ocupante.findOne({
+      where: { idOcupante: id },
+      include: [{ model: Persona, as: "persona" }],
+      transaction: t,
+    });
+
+    await t.commit();
+    res.status(200).json(updatedOcupante);
+  } catch (error) {
+    await t.rollback();
+    res.status(500).json({
+      message: "Lo siento, no se pudo actualizar el ocupante",
+      status: 500,
+      error: error.message,
+    });
+  }
+};
+
+export const finalizarOcupante = async (req, res) => {
+  try {
+    const id = req.params.idOcupante;
+    const [updated] = await Ocupante.update(
+      {
+        estadoId: 6,
+        fechaFin: dayjs().format("YYYY-MM-DD"),
+      },
+      { where: { idOcupante: id } }
+    );
+    if (updated) {
+      res
+        .status(200)
+        .json({ message: "Ocupante se ha finalizado correctamente" });
     } else {
       res.status(404).json({
         message: "Ocupante no encontrado",
@@ -75,26 +238,7 @@ export const actualizarOcupante = async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({
-      message: "Lo siento, no se pudo actualizar el ocupante",
-      status: 500,
-      error: error.message,
-    });
-  }
-};
-export const eliminarOcupante = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const deleted = await Ocupante.destroy({
-      where: { IdOcupante: id },
-    });
-    if (deleted) {
-      res.status(200).json({ message: "Ocupante eliminado", status: 200 });
-    } else {
-      res.status(404).json({ message: "Ocupante no encontrado", status: 404 });
-    }
-  } catch (error) {
-    res.status(500).json({
-      message: "Lo siento, no se pudo eliminar el ocupante",
+      message: "Lo siento, no se pudo finalizar el ocupante",
       status: 500,
       error: error.message,
     });
