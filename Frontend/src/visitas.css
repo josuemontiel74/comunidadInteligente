@@ -1,0 +1,55 @@
+
+.logo-img {
+  height: 50px;
+}
+
+.user-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+
+.worker-menu {
+  position: fixed;
+  top: 0;
+  left: -260px;
+  width: 260px;
+  height: 100vh;
+  overflow-y: auto;
+  transition: left 0.3s ease;
+  z-index: 1050;
+}
+
+.worker-menu.open {
+  left: 0;
+}
+
+.worker-menu .nav-link {
+  padding: 8px 12px;
+  border-radius: 5px;
+}
+
+.worker-menu .nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.table th, .table td {
+  vertical-align: middle;
+}
+.user-menu {
+  position: absolute;
+  top: 60px;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+  width: 180px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+  z-index: 2000;
+  text-align: left;
+}
