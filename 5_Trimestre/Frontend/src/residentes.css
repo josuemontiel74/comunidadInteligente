@@ -14,15 +14,10 @@ body {
   margin: 0 auto;
 }
 
-.logo-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
 
-.logo-container a {
-  text-decoration: none;
-}
+    .logo-container a {
+    text-decoration: none;
+    }
 
 .dropdown-menu {
   min-width: 200px;
@@ -44,7 +39,7 @@ body {
   position: fixed;
   top: 0;
   left: 0;
-  width: 280px;
+  width: 250px;
   height: 100vh;
   background-color: #343a40;
   color: white;
@@ -104,8 +99,18 @@ body {
 
 /* Contenido principal */
 .main-content {
-  margin-left: 0;
+  margin-left: 350px;
+  margin-top: 0px; /* lo sube aún más */
   transition: margin-left 0.3s ease;
+  padding: 20px;
+}
+.header-bar {
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+}
+
+.container {
+  margin-top: 10px !important; 
 }
 .user-menu {
   position: absolute;
@@ -133,12 +138,5 @@ body {
   color: red;
   cursor: pointer;
   margin-top: 10px;
-}
-.toast-chiquito {
-  font-size: 14px !important;   
-  padding: 8px 12px !important;
-  width: auto !important;       
-  min-width: 180px !important;  
-  border-radius: 10px !important; 
 }
 

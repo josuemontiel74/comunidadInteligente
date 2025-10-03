@@ -6,6 +6,7 @@ html, body {
   min-height: 100vh;
 }
 
+
 .main-dashboard {
   background-color: #f5f7fa;
   min-height: 100vh;
@@ -29,11 +30,13 @@ html, body {
   padding: 0 20px;
 }
 
+
 .logo-img {
   height: 70px;
   width: 70px;
   margin-left: 100px;
 }
+
 
 .user-menu {
   position: absolute;
@@ -63,6 +66,7 @@ html, body {
   margin-top: 10px;
 }
 
+
 .worker-menu {
   position: fixed;
   top: 0;
@@ -76,9 +80,18 @@ html, body {
   flex-direction: column;
 }
 
+.modules-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px; 
+  justify-items: center; 
+  margin: 40px auto; 
+  max-width: 800px; 
+}
+
 .module-card {
-  width: 300px;           
-  height: 300px;           
+  width: 300px;
+  height: 300px;
   border-radius: 12px;
   overflow: hidden;
   text-align: center;
@@ -92,7 +105,7 @@ html, body {
 
 .module-card img {
   width: 100%;
-  height: 150px;           
+  height: 150px;
   object-fit: cover;
   border-radius: 8px;
 }
@@ -104,12 +117,12 @@ html, body {
 
 .module-card a {
   display: inline-block;
-   width: 50px;
+  width: 50px;
   height: 50px;
-  font-size: 28px;         
+  font-size: 28px;
   text-decoration: none;
-  
 }
+
 
 .dashboard-card {
   width: 240px;
@@ -142,6 +155,7 @@ body, html, .container-fluid {
   height: 100%;
   font-family: Arial, sans-serif;
 }
+
 
 
 

@@ -3,6 +3,12 @@ import './styles.css';
 import { Link, useNavigate } from "react-router-dom";
 
 function VisitasAdmin() {
+   const navigator = useNavigate();
+    const  cerrarSesión = (s) =>{
+      localStorage.clear(); 
+      s.preventDefault();
+      navigator("/");
+    };
   return (
     <div className="container-fluid p-0">
       {/* Navbar */}
@@ -35,7 +41,9 @@ function VisitasAdmin() {
               </li>
               <li><hr className="dropdown-divider" /></li>
               <li>
-                <a className="dropdown-item text-danger" href="#">Cerrar sesión</a>
+              <button className="btn btn-light w-100" onClick={cerrarSesión}>
+              Cerrar sesión
+            </button>
               </li>
             </ul>
           </div>
@@ -139,7 +147,9 @@ function VisitasAdmin() {
             </div>
 
             <div className="mt-auto">
-          <button className="btn btn-light w-100">Cerrar sesión</button>
+           <button className="btn btn-light w-100" onClick={cerrarSesión}>
+              Cerrar sesión
+            </button>
             </div>
           </div>
         </div>
@@ -151,9 +161,6 @@ function VisitasAdmin() {
   <h3 class="fw-bold text-success">📋 Historial de Visitas</h3>
 
   <div class="d-flex gap-2">
-    <button class="btn btn-info" id="btnReporteIA">
-      <i class="bi bi-robot"></i> Realizar reporte con IA
-    </button>
     <button class="btn btn-success" id="btnRegistrarVisita">
   Registrar Nueva Visita
 </button>

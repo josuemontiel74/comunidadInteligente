@@ -1,16 +1,111 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Routes, Route, Link } from "react-router-dom";
+import { Routes, Route, Link, useNavigate, Outlet } from "react-router-dom";
 import Chart from "chart.js/auto";
 import VisitasAdmin from "./visitasAdmin.jsx";
 import Paqueteria from "./paqueteria.jsx";
 import "bootstrap/dist/css/bootstrap.min.css";
-import "./vigilanteDashboard.css";
-import Visitas  from "./visitas.jsx";
+import Visitas from "./visitas.jsx";
+import Paqueadero from "./seleccionparqueadero.jsx";
+import Login from "./login.jsx";
 
 function Dashboard() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    window.onpopstate = function () {
+      window.history.go(1);
+    };
+  }, []);
+  const CERRAR = (e) => {
+    e.preventDefault();
+    localStorage.clear();
+    navigate("/");
+  };
+
   const chartRef = useRef(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const obtenerToken = () => {
+    const token =
+      localStorage.getItem("token") ||
+      localStorage.getItem("authToken") ||
+      sessionStorage.getItem("token") ||
+      sessionStorage.getItem("authToken");
 
+    // Si no hay token válido, usar token de desarrollo
+    if (!token) {
+      console.warn(
+        "No se encontró token de autenticación, usando token de desarrollo"
+      );
+      return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Impvc3VlMjAyMyIsInJvbGVzSWQiOjEsImlhdCI6MTc1OTUxNTQwMCwiZXhwIjoxNzU5NTE5MDAwfQ.wKzrnUttdHRGkHnnZL1LR1amxt2ZQ4PZR85khZauShQ";
+    }
+
+    return token;
+  };
+
+  const token = obtenerToken();
+
+  // Función para verificar si el token está vencido
+  const verificarTokenVencido = (token) => {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const fechaExpiracion = payload.exp * 1000; // Convertir a milisegundos
+      return Date.now() >= fechaExpiracion;
+    } catch (error) {
+      console.error("Error al verificar expiración del token:", error);
+      return true; // Considerar vencido si hay error
+    }
+  };
+
+  const obtenerUsuarioDelToken = () => {
+    try {
+      if (verificarTokenVencido(token)) {
+        console.warn("Token vencido, usando usuario por defecto...");
+        return "josue2023";
+      }
+
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload.username || "Usuario";
+    } catch (error) {
+      console.error("Error al decodificar el token:", error);
+      return "Usuario";
+    }
+  };
+  //obtener rol 
+  const obtenerRolDelToken = () => {
+    try {
+      if (verificarTokenVencido(token)) {
+        console.warn("Token vencido, usando rol por defecto...");
+        return "RolDesconocido";
+      }
+
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload.rolesId || "RolNoDefinido";
+    } catch (error) {
+      console.error("Error al decodificar el token:", error);
+      return "RolNoDefinido";
+    }
+  };
+  if (verificarTokenVencido(token)) {
+
+  }
+  const rolesId = obtenerRolDelToken();
+  let rolUsuario;
+
+  switch (rolesId) {
+    case 1:
+      rolUsuario = "superAdmin";
+      break;
+    case 2:
+      rolUsuario = "admin";
+      break;
+    case 3:
+      rolUsuario = "vigilante";
+      break;
+    default:
+      rolUsuario = "RolNoDefinido";
+  }
+
+  const nombreUsuario = obtenerUsuarioDelToken();
   useEffect(() => {
     const ctx = document.getElementById("parqueoChart");
 
@@ -45,43 +140,53 @@ function Dashboard() {
       <aside id="menuTrabajador" className="worker-menu bg-success text-white">
         <div className="p-3 d-flex flex-column h-100">
           <div className="d-flex align-items-center gap-3 mb-4">
-            <div className="user-circle text-dark fw-semibold bg-white">Josue</div>
+            <div
+              className="user-circle bg-white d-flex align-items-center justify-content-center"
+              style={{ width: "50px", height: "50px", borderRadius: "50%" }}
+            >
+              <span className="fw-bold text-success">
+                {nombreUsuario?.substring(0, 2).toUpperCase() || "US"}
+              </span>
+            </div>
             <div className="d-flex flex-column">
-              <span className="fw-semibold text-white">Vigilante</span>
-              <span className="fw-semibold text-white">Sesión activa</span>
+              <span className="fw-semibold text-white">
+                {nombreUsuario || "Usuario"}
+              </span>
+              <span className="fw-semibold text-white"> {rolUsuario || "Usuario"}</span>
+              <span className="small text-white-50">Sesión activa</span>
             </div>
           </div>
 
-          <h5 className="mb-3 mx-4">Menú del Vigilante</h5>
-   
+          
+
           <div className="mb-4">
             <h6 className="text-uppercase fw-bold ">
-      
+
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-seam-fill" viewBox="0 0 16 16">
-  <path fill-rule="evenodd" d="M15.528 2.973a.75.75 0 0 1 .472.696v8.662a.75.75 0 0 1-.472.696l-7.25 2.9a.75.75 0 0 1-.557 0l-7.25-2.9A.75.75 0 0 1 0 12.331V3.669a.75.75 0 0 1 .471-.696L7.443.184l.01-.003.268-.108a.75.75 0 0 1 .558 0l.269.108.01.003zM10.404 2 4.25 4.461 1.846 3.5 1 3.839v.4l6.5 2.6v7.922l.5.2.5-.2V6.84l6.5-2.6v-.4l-.846-.339L8 5.961 5.596 5l6.154-2.461z"/>
-</svg> Gestión de Paquetes
+                <path fill-rule="evenodd" d="M15.528 2.973a.75.75 0 0 1 .472.696v8.662a.75.75 0 0 1-.472.696l-7.25 2.9a.75.75 0 0 1-.557 0l-7.25-2.9A.75.75 0 0 1 0 12.331V3.669a.75.75 0 0 1 .471-.696L7.443.184l.01-.003.268-.108a.75.75 0 0 1 .558 0l.269.108.01.003zM10.404 2 4.25 4.461 1.846 3.5 1 3.839v.4l6.5 2.6v7.922l.5.2.5-.2V6.84l6.5-2.6v-.4l-.846-.339L8 5.961 5.596 5l6.154-2.461z" />
+              </svg> Gestión de Paquetes
             </h6>
             <ul className="nav flex-column mt-2 gap-2">
-              <li><Link className="nav-link  text-white" to="../Paqueteria?abrirModal=1">Registrar Paquete</Link></li>
-              <li><Link className="nav-link text-white" to="../Paqueteria.jsx">Historial de Paquetes</Link></li>
+              <li><Link className="nav-link  text-white" to="/Paqueteria" state={{ abrirModal: true }}>Registrar Paquete</Link></li>
+              <li><Link className="nav-link text-white" to="/Paqueteria">Historial de Paquetes</Link></li>
             </ul>
           </div>
 
           <div className="mb-4">
             <h6 className="text-uppercase fw-bold">
-             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-people-fill" viewBox="0 0 16 16">
-  <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-5.784 6A2.24 2.24 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.3 6.3 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5"/>
-</svg> Gestión de Visitas
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-people-fill" viewBox="0 0 16 16">
+                <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-5.784 6A2.24 2.24 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.3 6.3 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5" />
+              </svg> Gestión de Visitas
             </h6>
             <ul className="nav flex-column mt-2 gap-2">
-              <li><Link className="nav-link text-white" to="../visitas?abrirModal=1">Registrar Visita</Link></li>
-              <li><Link className="nav-link text-white" to="../visitas">Consultar Visitas</Link></li>
-              <li><Link className="nav-link text-white" to="../visitas?mostrarParqueaderos=1">Consultar Parqueaderos</Link></li>
+              <li><Link className="nav-link text-white" to="/visitas" state={{ abrirModal: true }}>Registrar Visita</Link></li>
+              <li><Link className="nav-link text-white" to="/visitas">Consultar Visitas</Link></li>
+              <li><Link className="nav-link text-white" to="/parqueaderos">Consultar Parqueaderos</Link></li>
             </ul>
           </div>
 
           <div className="mt-auto">
-            <button className="btn btn-light w-100">Cerrar sesión</button>
+            <div onClick={CERRAR} className="btn btn-light w-100">Cerrar sesión</div>
           </div>
         </div>
       </aside>
@@ -94,21 +199,28 @@ function Dashboard() {
             <Link to="/"><img src="../img/logo.png" alt="Logo del sistema" className="logo-img" /></Link>
           </div>
           <div className="position-relative">
-            <div
-              className=" btn btn-outline-success d-flex align-items-center gap-2"
+                 <div
+              className="btn btn-outline-success d-flex align-items-center gap-2"
               onClick={() => setShowUserMenu(!showUserMenu)}
-              style={{ cursor: "pointer" }}><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-circle" viewBox="0 0 16 16">
-  <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/>
-  <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1"/>
-</svg> Josue
+              style={{ cursor: "pointer" }}
+            >
+              {nombreUsuario}
             </div>
             {showUserMenu && (
-              <div className="user-menu text-center">
-                <p>Usuario: <strong>josmon07</strong></p>
+              <div
+                className="position-absolute end-0 mt-2 bg-white border rounded shadow p-3"
+                style={{ minWidth: "200px", zIndex: 1000 }}
+              >
+                <p className="mb-2">
+                  Usuario: <strong>{nombreUsuario}</strong>
+                </p>
+                <p className="mb-2">
+                  Rol: <strong>{rolUsuario}</strong>
+                </p>
                 <hr />
-                <div className="text-center">
-                  <button className="btn btn-danger d-block mx-auto">Cerrar sesión</button>
-                </div>
+                <button onClick={cerrarSesión} className="btn btn-danger w-100">
+                  Cerrar sesión
+                </button>
               </div>
             )}
           </div>
@@ -135,36 +247,43 @@ function Dashboard() {
         </div>
 
         {/* Dashboard */}
-       <div className="d-flex flex-wrap justify-content-center gap-4 my-4">
-          <div className="dashboard-card">
-            <h5>Visitas del Día</h5>
-            <div className="stat-number">9</div>
-            <p>Ingresos registrados hoy.</p>
-            <div className="btn btn-success">
-            <Link to="/VisitasAdmin">Ver Registro</Link>
-          </div>
-          </div>
-           <div className="dashboard-card">
-            <h5>Parqueaderos Ocupados</h5>
-            <div className="chart-container">
-              <canvas id="parqueoChart"></canvas>
+     <div className="d-flex flex-wrap justify-content-center gap-4 px-4 mb-4">
+          <div className="card text-center" style={{ width: "300px" }}>
+            <div className="card-body">
+              <h5 className="card-title">Visitas del Día</h5>
+              <div className="display-4 text-success fw-bold">9</div>
+              <p className="text-muted">Ingresos registrados hoy</p>
+              <Link to="/visitas" className="btn btn-success">
+                Ver Registro
+              </Link>
             </div>
-            <div className="btn btn-success">
-            <Link to="/parqueaderos">Ver Estado</Link>
-          </div>
           </div>
 
-            <div className="dashboard-card">
-            <h5>Paquetes Recibidos</h5>
-            <div className="stat-number">8</div>
-            <p>Total de paquetes que llegaron al conjunto hoy.</p>
-            <div className="btn btn-success">
-            <Link to="/Paqueteria">Ver Detalles</Link>
+          <div className="card text-center" style={{ width: "300px" }}>
+            <div className="card-body">
+              <h5 className="card-title">Parqueaderos Ocupados</h5>
+              <div style={{ height: "200px", position: "relative" }}>
+                <canvas id="parqueoChart"></canvas>
+              </div>
+              <Link to="/visitas" className="btn btn-success mt-3">
+                Ver Estado
+              </Link>
+            </div>
           </div>
+
+          <div className="card text-center" style={{ width: "300px" }}>
+            <div className="card-body">
+              <h5 className="card-title">Paquetes Recibidos</h5>
+              <div className="display-4 text-success fw-bold">8</div>
+              <p className="text-muted">Total de paquetes que llegaron hoy</p>
+              <Link to="/Paqueteria" className="btn btn-success">
+                Ver Detalles
+              </Link>
+            </div>
           </div>
         </div>
       </div>
-      </div>
+    </div>
   );
 }
 
@@ -175,6 +294,8 @@ export default function App() {
       <Route path="/VisitasAdmin" element={<VisitasAdmin />} />
       <Route path="/Paqueteria" element={<Paqueteria />} />
       <Route path="/visitas" element={<Visitas />} />
+      <Route path="/parqueaderos" element={<Paqueadero />} />
+      <Route path="/Login" element={<Login />} />
     </Routes>
   );
 }

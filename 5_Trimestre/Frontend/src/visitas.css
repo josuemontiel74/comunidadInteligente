@@ -1,9 +1,8 @@
-/* Logo en el header */
+
 .logo-img {
   height: 50px;
 }
 
-/* Círculo de usuario */
 .user-circle {
   width: 40px;
   height: 40px;
@@ -13,7 +12,7 @@
   align-items: center;
 }
 
-/* Menú lateral */
+
 .worker-menu {
   position: fixed;
   top: 0;
@@ -38,7 +37,6 @@
   background-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Tabla */
 .table th, .table td {
   vertical-align: middle;
 }
