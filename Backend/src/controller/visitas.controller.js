@@ -26,7 +26,7 @@ export const crearVisita = async (req, res) => {
       codigoParqueadero,
     } = req.body;
 
-    console.log("📝 Datos recibidos:", req.body);
+    console.log(" Datos recibidos:", req.body);
 
     const fechaActual = dayjs().tz("America/Bogota");
 
@@ -34,10 +34,9 @@ export const crearVisita = async (req, res) => {
       ? dayjs(fechaHoraIngreso, "YYYY-MM-DD HH:mm", true).tz("America/Bogota")
       : fechaActual;
 
+    // Validaciones de fecha
     if (!fechaIngreso.isValid()) {
-      return res
-        .status(400)
-        .json({ error: "La fecha de ingreso no es válida" });
+      return res.status(400).json({ error: "La fecha de ingreso no es válida" });
     }
 
     if (fechaIngreso.isBefore(fechaActual.subtract(1, "minute"))) {
@@ -52,7 +51,7 @@ export const crearVisita = async (req, res) => {
       });
     }
 
-    // Crear o actualizar visitante
+    // 🧍 Crear o actualizar visitante
     let visitante = await Visitante.findByPk(numeroDocumento);
     if (!visitante) {
       visitante = await Visitante.create({
@@ -60,16 +59,17 @@ export const crearVisita = async (req, res) => {
         ...(nombreVisitante && { nombreVisitante }),
         ...(tipoDocumentoId && { tipoDocumentoId }),
       });
-      console.log("✅ Nuevo visitante creado:", visitante.numeroDocumento);
+      console.log(" Nuevo visitante creado:", visitante.numeroDocumento);
     } else if (nombreVisitante || tipoDocumentoId) {
       await visitante.update({
         ...(nombreVisitante && { nombreVisitante }),
         ...(tipoDocumentoId && { tipoDocumentoId }),
       });
-      console.log("✅ Visitante actualizado:", visitante.numeroDocumento);
+      console.log(" Visitante actualizado:", visitante.numeroDocumento);
     }
 
     let vehiculoMatricula = null;
+    let parqueadero = null;
 
     // Procesar vehículo solo si se envía matrícula
     if (matricula && matricula.trim() !== "") {
@@ -83,7 +83,7 @@ export const crearVisita = async (req, res) => {
         });
       }
 
-      const parqueadero = await Parqueadero.findByPk(codigoParqueadero);
+      parqueadero = await Parqueadero.findByPk(codigoParqueadero);
       if (!parqueadero) {
         return res.status(400).json({ error: "El parqueadero no existe" });
       }
@@ -96,15 +96,14 @@ export const crearVisita = async (req, res) => {
 
       let vehiculo = await Vehiculo.findByPk(matricula);
       if (!vehiculo) {
-        // Crear vehículo nuevo
         vehiculo = await Vehiculo.create({
           matricula,
           tipoVehiculoId,
           codigoParqueadero,
         });
-        console.log("✅ Nuevo vehículo creado:", matricula);
+        console.log(" Nuevo vehículo creado:", matricula);
       } else {
-        // Si el vehículo ya tenía parqueadero distinto → liberarlo
+        // Si tenía parqueadero distinto → liberarlo
         if (
           vehiculo.codigoParqueadero &&
           vehiculo.codigoParqueadero !== codigoParqueadero
@@ -116,42 +115,45 @@ export const crearVisita = async (req, res) => {
           console.log(`Parqueadero ${vehiculo.codigoParqueadero} liberado`);
         }
 
-        // Actualizar datos del vehículo
         await vehiculo.update({
           tipoVehiculoId,
           codigoParqueadero,
         });
-        console.log("✅ Vehículo actualizado:", matricula);
+        console.log(" Vehículo actualizado:", matricula);
       }
-
-      // Ocupar el parqueadero actual
-      await Parqueadero.update(
-        { estadoId: 3 },
-        { where: { codigoParqueadero } }
-      );
-      console.log(`Parqueadero ${codigoParqueadero} ocupado`);
 
       vehiculoMatricula = matricula;
     }
 
-    // Crear la visita
+    //  Crear la visita
     const visita = await Visita.create({
       numeroDocumento,
       apartamentoId,
       fechaHoraIngreso: fechaIngreso.format("YYYY-MM-DD HH:mm"),
-      estadoId: estadoId || 8,
+      estadoId: estadoId || 8, // Por defecto "En curso" o "Activa"
       vehiculoMatricula,
       observaciones: observaciones || null,
     });
 
     console.log("✅ Visita creada exitosamente:", visita.toJSON());
 
-    res.status(201).json(visita);
+    // 🚧 Ocupar parqueadero SOLO si la visita fue creada correctamente
+    if (parqueadero && vehiculoMatricula) {
+      await parqueadero.update({ estadoId: 3 });
+      console.log(`🅿️ Parqueadero ${codigoParqueadero} ocupado`);
+    }
+
+    res.status(201).json({
+      mensaje: "Visita creada correctamente",
+      visita,
+    });
   } catch (error) {
-    console.error("❌ Error al crear visita:", error);
-    res.status(500).json({ error: error.message });
+    console.error(" Error al crear visita:", error);
+    return res.status(400).json({ error: error.message });
   }
 };
+
+
 
 export const listarVisitas = async (req, res) => {
   try {
