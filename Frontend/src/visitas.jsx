@@ -795,89 +795,57 @@ switch (rolesId) {
   };
 
 
-  const asignarParqueadero = async () => {
-    if (!codigoParqueadero) {
-      alert("Debes seleccionar un parqueadero");
-      return;
+ const asignarParqueadero = async () => {
+  if (!codigoParqueadero) {
+    Swal.fire("Error", "Debes seleccionar un parqueadero", "error");
+    return null;
+  }
+
+  const token = localStorage.getItem("token");
+
+  try {
+    const datosAsignacion = {
+      estadoId: 3, // Ocupado
+      tipoVehiculoId: parseInt(tipoVehiculoId),
+    };
+
+    const res = await fetch(
+      `http://localhost:3001/api/parqueadero/${codigoParqueadero}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(datosAsignacion),
+      }
+    );
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Error ${res.status}: ${errorText}`);
     }
 
-    const token = localStorage.getItem("token");
+    const data = await res.json();
 
- 
-    console.log(" === DEBUGGING ASIGNACIÓN PARQUEADERO ===");
-    console.log("Parqueadero a asignar:", codigoParqueadero);
-    console.log("Tipo vehículo:", tipoVehiculoId);
-    console.log("Token presente:", !!token);
+    setParqueaderosDisponibles((prev) =>
+      prev.filter((p) => p.codigoParqueadero !== codigoParqueadero)
+    );
 
-    try {
-      const datosAsignacion = {
-        estadoId: 3, // Ocupado
-        tipoVehiculoId: parseInt(tipoVehiculoId),
-      };
+    console.log(`✅ Parqueadero ${codigoParqueadero} asignado correctamente`);
+    return data.body || { codigoParqueadero };
+  } catch (error) {
+    console.error("Error asignando parqueadero:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Error al asignar parqueadero",
+      text: error.message,
+      confirmButtonText: "Entendido",
+    });
+    return null;
+  }
+};
 
-      console.log(" Datos a enviar para asignación:", datosAsignacion);
-      console.log(
-        " URL completa:",
-        `http://localhost:3001/api/parqueadero/${codigoParqueadero}`
-      );
-
-      const res = await fetch(
-        `http://localhost:3001/api/parqueadero/${codigoParqueadero}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(datosAsignacion),
-        }
-      );
-
-      console.log(" Respuesta del servidor:", {
-        status: res.status,
-        statusText: res.statusText,
-        ok: res.ok,
-      });
-
-      let responseBody;
-      try {
-        responseBody = await res.text();
-        console.log(" Cuerpo de la respuesta:", responseBody);
-
-        if (
-          responseBody.trim().startsWith("{") ||
-          responseBody.trim().startsWith("[")
-        ) {
-          const jsonResponse = JSON.parse(responseBody);
-          console.log(" Respuesta parseada:", jsonResponse);
-        }
-      } catch (parseError) {
-        console.log(" No se pudo parsear la respuesta como JSON");
-      }
-
-      if (!res.ok) {
-        const errorMessage = `Error ${res.status}: ${res.statusText}. Respuesta: ${responseBody}`;
-        console.error(" ERROR EN ASIGNACIÓN:", errorMessage);
-        throw new Error(errorMessage);
-      }
-
-      console.log(`Parqueadero ${codigoParqueadero} asignado correctamente`);
-      console.log(" === FIN DEBUGGING ASIGNACIÓN ===");
-      return true;
-    } catch (error) {
-      console.error(" Error asignando parqueadero:", error);
-      console.log(" === FIN DEBUGGING ASIGNACIÓN (CON ERROR) ===");
-
-  
-      Swal.fire({
-        icon: "error",
-        title: "Error al asignar parqueadero",
-        text: error.message,
-        confirmButtonText: "Entendido",
-      });
-      return false;
-    }
-  };
 
   
   const liberarParqueadero = async (codigoParqueaderoALiberar) => {
@@ -919,397 +887,177 @@ switch (rolesId) {
   };
 
   const registrarVisita = async (e) => {
-    e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/");
+  e.preventDefault();
+  const token = localStorage.getItem("token");
+  if (!token) {
+    navigate("/");
+    return;
+  }
+
+  // 🔹 Validaciones básicas
+  if (
+    !numeroDocumento ||
+    !tipoDocumentoId ||
+    !nombreVisitante ||
+    !torreId ||
+    !apartamentoId ||
+    !fechaHoraIngreso
+  ) {
+    Swal.fire("Error", "Por favor completa todos los campos obligatorios", "error");
+    return;
+  }
+
+  if (nombreVisitante.trim().length < 20) {
+    Swal.fire({
+      icon: "error",
+      title: "Nombre muy corto",
+      text: `El nombre debe tener al menos 20 caracteres. Actual: ${nombreVisitante.trim().length}`,
+      confirmButtonText: "Entendido",
+    });
+    return;
+  }
+
+  if (numeroDocumento.trim().length < 8) {
+    Swal.fire({
+      icon: "error",
+      title: "Documento inválido",
+      text: `El número de documento debe tener al menos 8 caracteres. Actual: ${numeroDocumento.trim().length}`,
+      confirmButtonText: "Entendido",
+    });
+    return;
+  }
+
+  const validacionFecha = validarFecha(fechaHoraIngreso);
+  if (!validacionFecha.valida) {
+    Swal.fire({
+      icon: "error",
+      title: "Fecha inválida",
+      text: validacionFecha.error,
+      confirmButtonText: "Entendido",
+    });
+    return;
+  }
+
+  if (isNaN(parseInt(tipoDocumentoId)) || parseInt(tipoDocumentoId) < 1) {
+    Swal.fire({
+      icon: "error",
+      title: "Tipo de documento inválido",
+      text: "Debes seleccionar un tipo de documento válido",
+      confirmButtonText: "Entendido",
+    });
+    return;
+  }
+
+  if (isNaN(parseInt(apartamentoId)) || parseInt(apartamentoId) < 1) {
+    Swal.fire({
+      icon: "error",
+      title: "Apartamento inválido",
+      text: "Debes seleccionar un apartamento válido",
+      confirmButtonText: "Entendido",
+    });
+    return;
+  }
+
+  // 🔹 Validación de datos del vehículo
+  if (vieneEnVehiculo === "SI") {
+    if (!matricula) {
+      Swal.fire("Error", "Debes ingresar la matrícula", "error");
       return;
     }
-
-    if (
-      !numeroDocumento ||
-      !tipoDocumentoId ||
-      !nombreVisitante ||
-      !torreId ||
-      !apartamentoId ||
-      !fechaHoraIngreso
-    ) {
-      Swal.fire(
-        "Error",
-        "Por favor completa todos los campos obligatorios",
-        "error"
-      );
+    if (!tipoVehiculoId) {
+      Swal.fire("Error", "Debes seleccionar el tipo de vehículo", "error");
       return;
     }
-
-    if (nombreVisitante.trim().length < 20) {
-      Swal.fire({
-        icon: "error",
-        title: "Nombre muy corto",
-        text: `El nombre debe tener al menos 20 caracteres. Actual: ${
-          nombreVisitante.trim().length
-        } caracteres`,
-        confirmButtonText: "Entendido",
-      });
+    if (!codigoParqueadero) {
+      Swal.fire("Error", "Debes seleccionar un parqueadero", "error");
       return;
     }
+  }
 
-    if (numeroDocumento.trim().length < 8) {
-      Swal.fire({
-        icon: "error",
-        title: "Documento inválido",
-        text: `El número de documento debe tener al menos 8 caracteres. Actual: ${
-          numeroDocumento.trim().length
-        } caracteres`,
-        confirmButtonText: "Entendido",
-      });
-      return;
-    }
+  try {
+    // 🔹 Construir objeto de datos
+    const visitaData = {
+      numeroDocumento: numeroDocumento.trim(),
+      nombreVisitante: nombreVisitante.trim(),
+      tipoDocumentoId: parseInt(tipoDocumentoId),
+      apartamentoId: parseInt(apartamentoId),
+      fechaHoraIngreso: getFechaCompleta(fechaHoraIngreso),
+      observaciones: observaciones.trim() || "-",
+    };
 
-    const validacionFecha = validarFecha(fechaHoraIngreso);
-    if (!validacionFecha.valida) {
-      Swal.fire({
-        icon: "error",
-        title: "Fecha inválida",
-        text: validacionFecha.error,
-        confirmButtonText: "Entendido",
-      });
-      return;
-    }
-
-    if (isNaN(parseInt(tipoDocumentoId)) || parseInt(tipoDocumentoId) < 1) {
-      Swal.fire({
-        icon: "error",
-        title: "Tipo de documento inválido",
-        text: "Debes seleccionar un tipo de documento válido",
-        confirmButtonText: "Entendido",
-      });
-      return;
-    }
-
-    if (isNaN(parseInt(apartamentoId)) || parseInt(apartamentoId) < 1) {
-      Swal.fire({
-        icon: "error",
-        title: "Apartamento inválido",
-        text: "Debes seleccionar un apartamento válido",
-        confirmButtonText: "Entendido",
-      });
-      return;
-    }
-
+    // 🔹 Datos del vehículo si aplica
     if (vieneEnVehiculo === "SI") {
-      if (!matricula) {
-        Swal.fire("Error", "Debes ingresar la matrícula", "error");
+      if (!matricula || !tipoVehiculoId || !codigoParqueadero) {
+        Swal.fire("Error", "Debes ingresar todos los datos del vehículo y parqueadero", "error");
         return;
       }
-      if (!tipoVehiculoId) {
-        Swal.fire("Error", "Debes seleccionar el tipo de vehículo", "error");
-        return;
-      }
-      if (!codigoParqueadero) {
-        Swal.fire("Error", "Debes seleccionar un parqueadero", "error");
-        return;
-      }
+
+      visitaData.matricula = matricula.trim().toUpperCase();
+      visitaData.tipoVehiculoId = parseInt(tipoVehiculoId);
+      visitaData.codigoParqueadero = codigoParqueadero;
+    } else {
+      visitaData.matricula = null;
+      visitaData.tipoVehiculoId = null;
+      visitaData.codigoParqueadero = null;
     }
 
-    try {
-      const visitaData = {
-        numeroDocumento: numeroDocumento.trim(),
-        nombreVisitante: nombreVisitante.trim(),
-        tipoDocumentoId: parseInt(tipoDocumentoId),
-        apartamentoId: parseInt(apartamentoId),
-        fechaHoraIngreso: getFechaCompleta(fechaHoraIngreso),
-        observaciones: observaciones.trim() || "-",
-      };
+    // 🔹 Determinar método y URL
+    const url =
+      editingIndex !== null
+        ? `http://localhost:3001/api/visita/${visitas[editingIndex].idVisita}`
+        : "http://localhost:3001/api/visita";
 
+    const method = editingIndex !== null ? "PATCH" : "POST";
 
-      if (editingIndex === null) {
-        visitaData.estadoId = estadoId;
-      }
+    console.log("📤 Enviando al backend:", { url, method, visitaData });
 
-      if (vieneEnVehiculo === "SI") {
-        visitaData.matricula = matricula.trim().toUpperCase();
-        visitaData.tipoVehiculoId = parseInt(tipoVehiculoId);
-        visitaData.codigoParqueadero = codigoParqueadero;
+    // 🔹 Enviar al backend
+    const res = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(visitaData),
+    });
 
-        if (editingIndex === null) {
-          console.log(
-            " Asignando parqueadero para nueva visita:",
-            codigoParqueadero
-          );
-          const parqueaderoAsignado = await asignarParqueadero();
-          if (!parqueaderoAsignado) {
-            Swal.fire("Error", "No se pudo asignar el parqueadero", "error");
-            return;
-          }
-        }
+    const contentType = res.headers.get("content-type");
+    const data = contentType && contentType.includes("application/json")
+      ? await res.json()
+      : await res.text();
 
-      } else if (editingIndex !== null) {
-   
-        const visitaAnterior = visitas[editingIndex];
-        if (visitaAnterior.codigoParqueadero) {
-          console.log(
-            " Liberando parqueadero anterior:",
-            visitaAnterior.codigoParqueadero
-          );
-          await liberarParqueadero(visitaAnterior.codigoParqueadero);
-        }
-        visitaData.matricula = null;
-        visitaData.tipoVehiculoId = null;
-        visitaData.codigoParqueadero = null;
-      }
-
-      const url =
-        editingIndex !== null
-          ? `http://localhost:3001/api/visita/${visitas[editingIndex].idVisita}`
-          : "http://localhost:3001/api/visita";
-
-      const method = editingIndex !== null ? "PATCH" : "POST";
-
-      console.log(" Datos a enviar al backend:", {
-        url,
-        method,
-        editingIndex,
-        visitaData,
-        validacionesRealizadas: {
-          nombreLength: nombreVisitante.trim().length,
-          documentoLength: numeroDocumento.trim().length,
-          fechaValida: !isNaN(new Date(visitaData.fechaHoraIngreso).getTime()),
-          tiposNumericos: {
-            tipoDocumentoId: typeof visitaData.tipoDocumentoId,
-            apartamentoId: typeof visitaData.apartamentoId,
-          },
-        },
-      });
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(visitaData),
-      });
-
-      let data;
-      const contentType = res.headers.get("content-type");
-
-      if (contentType && contentType.includes("application/json")) {
-        data = await res.json();
-        console.log("Respuesta del servidor:", {
-          status: res.status,
-          ok: res.ok,
-          data: data,
-        });
-      } else {
-       
-        const textResponse = await res.text();
-        console.error("Non-JSON response:", textResponse);
-        throw new Error(
-          `Servidor devolvió respuesta no válida: ${res.status} ${res.statusText}`
-        );
-      }
-
-      if (!res.ok) {
-        console.error("Error response:", {
-          status: res.status,
-          statusText: res.statusText,
-          data: data,
-          url: url,
-          method: method,
-          sentData: visitaData,
-        });
-
-      
-        if (res.status === 400 && data && data.errors) {
-          const erroresValidacion = Array.isArray(data.errors)
-            ? data.errors.join("\n")
-            : data.errors;
-
-          Swal.fire({
-            icon: "error",
-            title: "Error de validación",
-            html: `<div style="text-align: left;">
-              <strong>Corrige los siguientes errores:</strong><br><br>
-              ${erroresValidacion.replace(/\n/g, "<br>")}
-            </div>`,
-            confirmButtonText: "Entendido",
-          });
-          return; 
-        }
-
-        throw new Error(
-          data.message || data.error || `Error ${res.status}: ${res.statusText}`
-        );
-      }
-
-      const mensaje =
-        editingIndex !== null
-          ? "Visita actualizada correctamente"
-          : "Visita registrada correctamente";
-
-      if (editingIndex !== null) {
-        Swal.fire({
-          icon: "success",
-          title: "¡Visita actualizada!",
-          text: `Los datos de ${nombreVisitante.trim()} se han actualizado correctamente`,
-          timer: 2000,
-          showConfirmButton: false,
-        });
-      } else {
-        Swal.fire("Éxito", mensaje, "success");
-      }
-
-
-      resetForm();
-
-    
-      console.log(
-        " Recargando visitas después de",
-        editingIndex !== null ? "edición" : "registro"
-      );
-
-     
-      cerrarModal();
-
-      try {
-  
-        if (editingIndex === null) {
-          console.log(" Verificando sincronización de nueva visita...");
-
-          const resultado = await verificarSincronizacion(
-            {
-              nombre: nombreVisitante.trim(),
-              documento: numeroDocumento.trim(),
-            },
-            6
-          ); 
-
-          if (resultado.success) {
-            Swal.fire({
-              icon: "success",
-              title: "¡Registro exitoso!",
-              text: `La visita de ${nombreVisitante.trim()} se ha registrado con ID: ${
-                resultado.visita.idVisita
-              }`,
-              timer: 3000,
-              showConfirmButton: false,
-            });
-          } else {
-         
-            Swal.fire({
-              icon: "info",
-              title: "Visita registrada",
-              text: "La visita se registró correctamente en el servidor. Si no aparece en la lista, intenta recargar los datos.",
-              showCancelButton: true,
-              confirmButtonText: "Forzar recarga",
-              cancelButtonText: "Cerrar",
-            }).then((result) => {
-              if (result.isConfirmed) {
-                cargarVisitas(0, 5);
-              }
-            });
-          }
-        } else {
-         
-          console.log("Forzando recarga después de edición...");
-          const visitaIdEditada = visitas[editingIndex]?.idVisita;
-          console.log("ID de visita editada:", visitaIdEditada);
-
-      
-          sessionStorage.removeItem("visitasInitialLoad");
-
-         
-          await new Promise((resolve) => setTimeout(resolve, 500));
-
-    
-          let visitasActualizadas = null;
-          for (let intento = 1; intento <= 3; intento++) {
-            console.log(` Intento de recarga ${intento}/3`);
-            visitasActualizadas = await cargarVisitas(0, 2);
-
-            if (visitasActualizadas && visitasActualizadas.length > 0) {
-              const visitaEditada = visitasActualizadas.find(
-                (v) => v.idVisita === visitaIdEditada
-              );
-              if (visitaEditada) {
-                console.log(` Visita encontrada en intento ${intento}:`, {
-                  id: visitaEditada.idVisita,
-                  nombre: visitaEditada.nombreVisitante,
-                  observaciones: visitaEditada.observaciones,
-                });
-                break; 
-              }
-            }
-
-          
-            if (intento < 3) {
-              await new Promise((resolve) => setTimeout(resolve, 1000));
-            }
-          }
-
-          if (visitasActualizadas && visitasActualizadas.length > 0) {
-            console.log(" Forzando actualización inmediata de la UI...");
-
-      
-            setVisitas([...visitasActualizadas]);
-
-         
-            setTimeout(() => {
-              setVisitas((prevVisitas) => [...visitasActualizadas]);
-              console.log("UI actualizada forzosamente");
-            }, 100);
-
-            const visitaEditada = visitasActualizadas.find(
-              (v) => v.idVisita === visitaIdEditada
-            );
-            if (visitaEditada) {
-              console.log(" Confirmación final - datos actualizados:", {
-                id: visitaEditada.idVisita,
-                nombre: visitaEditada.nombreVisitante,
-                observaciones: visitaEditada.observaciones,
-              });
-            } else {
-              console.warn(
-                " No se encontró la visita editada después de todos los intentos"
-              );
-            }
-          } else {
-           
-            Swal.fire({
-              icon: "info",
-              title: "Actualización exitosa",
-              text: "Los cambios se guardaron correctamente. Si no ves los cambios, actualiza la página.",
-              showCancelButton: true,
-              confirmButtonText: "Actualizar página",
-              cancelButtonText: "Cerrar",
-            }).then((result) => {
-              if (result.isConfirmed) {
-                window.location.reload();
-              }
-            });
-          }
-        }
-      } catch (reloadError) {
-        console.error(" Error recargando visitas:", reloadError);
-        Swal.fire({
-          icon: "warning",
-          title: "Recarga manualmente",
-          text: "La operación fue exitosa, pero actualiza la página para ver los cambios",
-          confirmButtonText: "Recargar página",
-        }).then(() => {
-          window.location.reload();
-        });
-      }
-    } catch (err) {
-      console.error("Error registrando visita:", err);
-      Swal.fire(
-        "Error",
-        err.message || "No se pudo conectar al servidor",
-        "error"
-      );
+    if (!res.ok) {
+      console.error("❌ Error del servidor:", data);
+      Swal.fire("Error", data.error || "No se pudo registrar la visita", "error");
+      return;
     }
-  };
+
+    // 🔹 Mensaje de éxito
+    const mensaje = editingIndex !== null
+      ? "Visita actualizada correctamente"
+      : "Visita registrada correctamente";
+
+    Swal.fire({
+      icon: "success",
+      title: "✅ Éxito",
+      text: mensaje,
+      timer: 2000,
+      showConfirmButton: false,
+    });
+
+    // 🔹 Limpiar formulario y actualizar lista
+    resetForm();
+    cerrarModal();
+
+    console.log("🔄 Recargando visitas...");
+    await cargarVisitas(0, 5);
+
+  } catch (err) {
+    console.error("🚨 Error registrando visita:", err);
+    Swal.fire("Error", err.message || "No se pudo conectar al servidor", "error");
+  }
+};
+
 
   const getFechaCompleta = (fechaHora) => {
     if (!fechaHora) return null;
