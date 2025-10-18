@@ -521,6 +521,7 @@ export const actualizarVisita = async (req, res) => {
 export const finalizarVisita = async (req, res) => {
   try {
     const { idVisita } = req.params;
+    let fechaHoraSalida =  dayjs().tz("America/Bogota").toDate();
 
     const visita = await Visita.findByPk(idVisita);
     if (!visita) {
@@ -547,10 +548,6 @@ export const finalizarVisita = async (req, res) => {
         );
       }
     }
-
-    // Guardar fecha salida
-    const fechaHoraSalida = dayjs().tz("America/Bogota").toDate();
-
     await visita.update({
       estadoId: 9,
       fechaHoraSalida,
