@@ -51,7 +51,7 @@ export const crearVisita = async (req, res) => {
       });
     }
 
-    // 🧍 Crear o actualizar visitante
+    //  Crear o actualizar visitante
     let visitante = await Visitante.findByPk(numeroDocumento);
     if (!visitante) {
       visitante = await Visitante.create({
@@ -135,12 +135,12 @@ export const crearVisita = async (req, res) => {
       observaciones: observaciones || null,
     });
 
-    console.log("✅ Visita creada exitosamente:", visita.toJSON());
+    console.log(" Visita creada exitosamente:", visita.toJSON());
 
     // 🚧 Ocupar parqueadero SOLO si la visita fue creada correctamente
     if (parqueadero && vehiculoMatricula) {
       await parqueadero.update({ estadoId: 3 });
-      console.log(`🅿️ Parqueadero ${codigoParqueadero} ocupado`);
+      console.log(`🅿Parqueadero ${codigoParqueadero} ocupado`);
     }
 
     res.status(201).json({
@@ -521,6 +521,7 @@ export const actualizarVisita = async (req, res) => {
 export const finalizarVisita = async (req, res) => {
   try {
     const { idVisita } = req.params;
+    let fechaHoraSalida =  dayjs().tz("America/Bogota").toDate();
 
     const visita = await Visita.findByPk(idVisita);
     if (!visita) {
@@ -547,10 +548,6 @@ export const finalizarVisita = async (req, res) => {
         );
       }
     }
-
-    // Guardar fecha salida
-    const fechaHoraSalida = dayjs().tz("America/Bogota").toDate();
-
     await visita.update({
       estadoId: 9,
       fechaHoraSalida,
