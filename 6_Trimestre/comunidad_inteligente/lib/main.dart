@@ -1,12 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-
+import 'dashboardsuperadmin.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 void main() {
   runApp(const MyApp());
 }
 
+class LoginServe {
+  static String baseUrl = 'http://localhost:3001';
+
+  static Future<http.Response> postLogin(
+    String username,
+    String password,
+  ) async {
+    final url = Uri.parse('$baseUrl/api/login');
+
+    final response = await http.post(
+      url,
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: jsonEncode(<String, String>{
+        'username': username,
+        'password': password,
+      }),
+    );
+
+    return response;
+  }
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -47,13 +74,13 @@ class MyApp extends StatelessWidget {
                   "Inicia sesión para continuar",
                   style: TextStyle(fontSize: 18, color: Colors.black),
                 ),
-                SizedBox(height: 40), 
+                SizedBox(height: 40),
                 Lottie.asset(
                   'assets/animacion/loginSaluda.json',
                   width: 180,
                   height: 130,
                 ),
-                SizedBox(height: 40), 
+                SizedBox(height: 40),
                 Login(),
               ],
             ),
@@ -72,7 +99,44 @@ class Login extends StatefulWidget {
 
 class Loginstate extends State<Login> {
   final TextEditingController usuario = TextEditingController();
-  final TextEditingController password = TextEditingController();
+  final TextEditingController contrasena= TextEditingController();
+  void _hateLogin() async {
+    final username = usuario.text;
+    final password = contrasena.text;
+    try {
+      final response = await LoginServe.postLogin(username, password);
+       if (!mounted) return;
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('¡Login Exitoso!')));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Dashboardsuperadmin()),
+        );
+      } else {
+        final errorBody = jsonDecode(response.body);
+        final errorMessage =
+            errorBody['mensaje'] ?? 'Error desconocido del servidor';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error de Login: $errorMessage'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (error) {
+       if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Error de Conexión: No se pudo conectar al servidor. ',
+          ),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -89,9 +153,8 @@ class Loginstate extends State<Login> {
           ),
           SizedBox(height: 20),
           TextField(
-            controller: password,
+            controller: contrasena,
             obscureText: true,
-
             decoration: InputDecoration(
               labelText: 'Password',
               border: OutlineInputBorder(),
@@ -99,14 +162,7 @@ class Loginstate extends State<Login> {
           ),
           SizedBox(height: 60),
           ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const SegundaPantalla(),
-                ),
-              );
-            },
+            onPressed: _hateLogin,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
               minimumSize: Size(100, 65),
@@ -122,13 +178,5 @@ class Loginstate extends State<Login> {
         ],
       ),
     );
-  }
-}
-
-class SegundaPantalla extends StatelessWidget {
-  const SegundaPantalla({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: Text("Esta en proceso ")));
   }
 }
