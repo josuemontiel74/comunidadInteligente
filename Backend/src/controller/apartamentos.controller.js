@@ -42,7 +42,7 @@ export const mostrarApartamento = async (req, res) => {
       body: mostrarApartamento,
     });
   } catch (error) {
-    return res.status(500).json({
+    return res.status(500).json({ 
       message: "Algo salió mal en la peticion :(",
       status: 500,
       error: error.message,
