@@ -3,13 +3,13 @@ import 'package:lottie/lottie.dart';
 import 'dashboardsuperadmin.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+
 void main() {
   runApp(const MyApp());
 }
 
 class LoginServe {
   static String baseUrl = 'http://localhost:3001';
-
   static Future<http.Response> postLogin(
     String username,
     String password,
@@ -26,7 +26,6 @@ class LoginServe {
         'password': password,
       }),
     );
-
     return response;
   }
 }
@@ -99,17 +98,42 @@ class Login extends StatefulWidget {
 
 class Loginstate extends State<Login> {
   final TextEditingController usuario = TextEditingController();
-  final TextEditingController contrasena= TextEditingController();
+  final TextEditingController contrasena = TextEditingController();
   void _hateLogin() async {
     final username = usuario.text;
     final password = contrasena.text;
     try {
       final response = await LoginServe.postLogin(username, password);
-       if (!mounted) return;
+      if (!mounted) return;
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('¡Login Exitoso!')));
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Dialog(
+            backgroundColor: Colors.green,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Lottie.asset(
+                  'assets/animacion/Approve.json',
+                  width: 180,
+                  height: 130,
+                  repeat: false,
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  '¡Bienvenido!',
+                  style: TextStyle(color: Colors.white, fontSize: 18),
+                ),
+              ],
+            ),
+          ),
+        );
+
+        await Future.delayed(const Duration(seconds: 2));
+
+        if (!mounted) return;
+        Navigator.pop(context);
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const Dashboardsuperadmin()),
@@ -117,21 +141,37 @@ class Loginstate extends State<Login> {
       } else {
         final errorBody = jsonDecode(response.body);
         final errorMessage =
-            errorBody['mensaje'] ?? 'Error desconocido del servidor';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error de Login: $errorMessage'),
-            backgroundColor: Colors.red,
+            errorBody['mensaje'] ??
+            'Lo siento contraseña oh usuario incorrecto Vuelva a intetalor';
+        showDialog(
+          context: context,
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Lottie.asset(
+                  'assets/animacion/Error.json',
+                  width: 180,
+                  height: 130,
+                  repeat: false,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  errorMessage,
+                  style: const TextStyle(color: Colors.red, fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
         );
       }
     } catch (error) {
-       if (!mounted) return;
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Error de Conexión: No se pudo conectar al servidor. ',
-          ),
+          content: Text('Error de Conexión: No se pudo conectar al servidor. '),
           backgroundColor: Colors.orange,
         ),
       );
