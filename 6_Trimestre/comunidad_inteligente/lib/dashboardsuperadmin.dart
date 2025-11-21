@@ -1,7 +1,8 @@
+
 import 'package:flutter/material.dart';
 import 'main.dart';
 import 'gestionusuarios.dart';
-
+import 'areascomunes.dart';
 class Dashboardsuperadmin extends StatelessWidget {
   final String? token;
   const Dashboardsuperadmin({super.key, required this.token});
@@ -199,7 +200,7 @@ class Dashboardsuperadmin extends StatelessWidget {
       {
         'title': 'Áreas Comunes',
         'image': 'assets/img/areascomunes.jpg',
-        'route': TerceraPantalla(),
+        'route': Areascomunes(token:token),
       },
       {
         'title': 'Gestión de Usuarios',
