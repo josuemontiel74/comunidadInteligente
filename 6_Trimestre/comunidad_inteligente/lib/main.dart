@@ -3,30 +3,39 @@ import 'package:lottie/lottie.dart';
 import 'dashboardsuperadmin.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
 class LoginServe {
-  static String baseUrl = 'http://localhost:3001';
   static Future<http.Response> postLogin(
     String username,
     String password,
   ) async {
-    final url = Uri.parse('$baseUrl/api/login');
+    final url = Uri.parse('http://localhost:3001/api/login');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+        body: jsonEncode({'username': username, 'password': password}),
+      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        final  token = jsonResponse['token'];
 
-    final response = await http.post(
-      url,
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, String>{
-        'username': username,
-        'password': password,
-      }),
-    );
-    return response;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('token', token);
+        await prefs.setString('token', token);
+      } else {
+        print('Error de login: ${response.statusCode}');
+      }
+      return response;
+    } catch (e) {
+      print('Excepción en login: $e');
+      rethrow;
+    }
   }
 }
 
@@ -104,8 +113,11 @@ class Loginstate extends State<Login> {
     final password = contrasena.text;
     try {
       final response = await LoginServe.postLogin(username, password);
+
       if (!mounted) return;
       if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        final String? token = jsonResponse['token'];
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -136,7 +148,9 @@ class Loginstate extends State<Login> {
         Navigator.pop(context);
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const Dashboardsuperadmin()),
+          MaterialPageRoute(
+            builder: (context) => Dashboardsuperadmin(token: token),
+          ),
         );
       } else {
         final errorBody = jsonDecode(response.body);
