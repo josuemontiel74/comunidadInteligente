@@ -5,7 +5,9 @@ import validate from "../middlewares/user.middleware.js";
 import * as reservarAreasSchema from "../schemas/reservarAreas.schema.js";
 
 const router = Router();
-
+//Version movil traer usuarioss
+router.get("/ReservasAreasComunesMovil",validarJWT,
+  validarRol(1, 2),reservasAreasController.mostrarAreasComunesVersionMovil);
 router.post(
   "/reservarAreas",
   validate(reservarAreasSchema.crearReservarAreasSchema, "body", true),

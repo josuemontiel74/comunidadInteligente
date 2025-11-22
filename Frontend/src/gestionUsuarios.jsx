@@ -146,7 +146,7 @@ function Parqueaderos() {
     }
 
     try {
-      const resUsuario = await fetch("http://localhost:3001/api/usuariol", {  
+      const resUsuario = await fetch("http://localhost:3001/api/usuario", {  
         method: "POST",
         headers: { 
           "Content-Type": "application/json", 

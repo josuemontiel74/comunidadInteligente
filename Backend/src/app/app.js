@@ -26,7 +26,10 @@ app.use(morgan("dev"));
 app.use(express.json());
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173","http://localhost:59063"],
+    methods: ["GET", "POST", "PUT", "DELETE"], 
+      credentials: true
+   
   })
 );
 app.use("/api/", personasRoutes);
@@ -49,7 +52,7 @@ app.use("/api/", parqueaderosRoutes);
 app.use("/api/", tiposVehiculo);
 app.use("/api/", Vehiculo);
 
-app.get((req, res, next) => {
+app.use((req, res, next) => {
   res.status(404).json({
     message: "Endpoint no encontrado",
   });

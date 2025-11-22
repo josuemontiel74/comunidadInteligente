@@ -40,8 +40,8 @@ router.patch(
   visitasController.actualizarVisita
 );
 
-router.delete(
-  "/visita/:idVisita",
+router.patch(
+  "/visitaFinalizar/:idVisita",
   validate(visitasSchema.finalizarVisitaSchema, "params", true),
   validarJWT,
   validarRol(1, 2, 3),

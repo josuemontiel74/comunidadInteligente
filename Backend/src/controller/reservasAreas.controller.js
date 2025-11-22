@@ -2,6 +2,8 @@ import reservasAreasModel from "../models/reservasAreas.model.js";
 import areasModel from "../models/areaComun.model.js";
 import solicitantesModel from "../models/solicitante.model.js";
 import dayjs from "dayjs";
+import Apartamento from "../models/apartamentos.model.js";
+import Estado from "../models/estados.model.js";
 import { sequelize } from "../config/connect.db.js";
 
 export const CrearReservaArea = async (req, res) => {
@@ -206,4 +208,49 @@ export const eliminarReservaArea = async (req, res) => {
       error: error.message,
     });
   }
+};
+// trae datos de mejor manera version movil 
+export const mostrarAreasComunesVersionMovil = async (req, res) => {
+  try {
+    const mmostraareascomunes = await reservasAreasModel.findAll({
+      attributes: [
+        ['idReservas', 'idReservas'],
+        ['fechaReserva', 'fechaReserva'],
+        ['horaInicio', 'horaInicio'],
+        ['horaFin', 'horaFin'],
+        ['motivoReserva', 'motivoReserva'],
+        ['cantidadAsistentes', 'cantidadAsistentes'],
+        ['invitadosExternos', 'invitadosExternos'],
+      ],
+      include: [
+        {
+          model: Estado,
+          attributes: [
+            ['nombreEstado', 'nombreEstado']
+          ]
+        },
+        {
+          model: Apartamento,
+          attributes: [
+            ['numeroApartamento', 'numeroApartamento']
+          ]
+        }, {
+          model: solicitantesModel,
+          attributes: [
+            ['documentoSolicitante', 'documentoSolicitante'],
+            ['nombreSolicitante', 'nombreSolicitante'],
+            ['correoSolicitante', 'correoSolicitante'],
+            ['telefonoSolicitante', 'telefonoSolicitante']
+
+          ]
+        }
+      ]
+    });
+  res.status(200).json({
+    ok: true,
+    mmostraareascomunes
+  })
+} catch (error) {
+  console.log("erro", error.message);
+}
 };
