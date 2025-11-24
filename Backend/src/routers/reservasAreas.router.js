@@ -15,7 +15,8 @@ router.post(
   validarRol(1, 2),
   reservasAreasController.CrearReservaArea
 );
-
+router.post("/ReservarAreaMovil",validarJWT,validarRol(1,2),reservasAreasController.crearReservasParaMovil);
+router.get("/BuscarReserva/:idReservas",validarJWT,validarRol(1,2),reservasAreasController.buscar);
 router.get(
   "/reservarAreas",
   validate(reservarAreasSchema.obtenerReservarAreasSchema),
@@ -23,7 +24,7 @@ router.get(
   validarRol(1, 2),
   reservasAreasController.ObtenerReservasAreas
 );
-
+router.put("/AtulizarReserva/:idReservas",validarJWT,validarRol(1,2),validate(reservarAreasSchema.actualizarReservarAreasSchema,true),reservasAreasController.ActualizarReservaAreaParaMovil);
 router.get("/reservas-areas", reservasAreasController.listarReservasAreas);
 
 router.get(
