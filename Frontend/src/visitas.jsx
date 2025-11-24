@@ -284,6 +284,7 @@ switch (rolesId) {
     }
     return null;
   }; 
+
   const cargarUsuario = () => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -1098,7 +1099,7 @@ switch (rolesId) {
           console.log(" Usando PATCH con payload completo");
 
           const response = await fetch(
-            `http://localhost:3001/api/visita/${idVisita}`,
+            `http://localhost:3001/api/visitaFinalizar/${idVisita}`,
             {
               method: "PATCH",
               headers: {
@@ -1109,7 +1110,7 @@ switch (rolesId) {
             }
           );
 
-          console.log("📡 Response status:", response.status);
+          console.log(" Response status:", response.status);
 
           if (!response.ok) {
             const errorText = await response.text();
