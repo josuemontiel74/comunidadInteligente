@@ -1,0 +1,3 @@
+# Configuración del servidor web de Flutter
+# Este archivo establece el puerto predeterminado para desarrollo web
+web-port=8080

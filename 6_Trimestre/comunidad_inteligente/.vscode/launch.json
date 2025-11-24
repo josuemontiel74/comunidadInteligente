@@ -1,0 +1,30 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Flutter (Edge)",
+            "request": "launch",
+            "type": "dart",
+            "args": [
+                "-d",
+                "edge",
+                "--web-port=8080"
+            ]
+        },
+        {
+            "name": "Flutter (Chrome)",
+            "request": "launch",
+            "type": "dart",
+            "args": [
+                "-d",
+                "chrome",
+                "--web-port=8080"
+            ]
+        },
+        {
+            "name": "Flutter (Windows)",
+            "request": "launch",
+            "type": "dart"
+        }
+    ]
+}

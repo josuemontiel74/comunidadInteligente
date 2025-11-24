@@ -19,7 +19,9 @@ export const crearRecepcionPaquete = async (req, res) => {
         .json({ error: "La fecha de recepción no es válida" });
     }
 
-    if (fechaRecepcion.isBefore(ahora)) {
+    // Permitir fechas con diferencia de hasta 5 minutos hacia atrás (por latencia de red)
+    const cincoMinutosAtras = ahora.subtract(5, "minute");
+    if (fechaRecepcion.isBefore(cincoMinutosAtras)) {
       return res.status(400).json({
         error: "La fecha de recepción no puede ser anterior a la actual",
       });
@@ -131,21 +133,24 @@ export const actualizarRecepcionPaquete = async (req, res) => {
   try {
     await RecepcionPaquetes.sync();
     const { idPaquete } = req.params;
-    const { fechaRecepcion, apartamentoId, ...resto } = req.body;
+    const datosActualizacion = {};
 
-    // Validar que el apartamento existe si se está actualizando
-    if (apartamentoId) {
-      const apartamentoExiste = await Apartamento.findByPk(apartamentoId);
+    // Validar y agregar apartamentoId si se proporciona
+    if (req.body.apartamentoId !== undefined) {
+      const apartamentoExiste = await Apartamento.findByPk(
+        req.body.apartamentoId
+      );
       if (!apartamentoExiste) {
         return res.status(400).json({
           error: "El apartamento especificado no existe",
         });
       }
+      datosActualizacion.apartamentoId = req.body.apartamentoId;
     }
 
-    let fechaValida = null;
-    if (fechaRecepcion) {
-      const fecha = dayjs(fechaRecepcion, "YYYY-MM-DD HH:mm", true);
+    // Validar y agregar fechaRecepcion si se proporciona
+    if (req.body.fechaRecepcion) {
+      const fecha = dayjs(req.body.fechaRecepcion, "YYYY-MM-DD HH:mm", true);
 
       if (!fecha.isValid()) {
         return res
@@ -159,17 +164,29 @@ export const actualizarRecepcionPaquete = async (req, res) => {
         });
       }
 
-      fechaValida = fecha.format("YYYY-MM-DD HH:mm");
+      datosActualizacion.fechaRecepcion = fecha.format("YYYY-MM-DD HH:mm");
     }
 
-    const [updated] = await RecepcionPaquetes.update(
-      {
-        ...resto,
-        ...(apartamentoId && { apartamentoId }),
-        ...(fechaValida && { fechaRecepcion: fechaValida }),
-      },
-      { where: { idPaquete } }
-    );
+    // Agregar los demás campos opcionales
+    if (req.body.nombreDestinatario !== undefined) {
+      datosActualizacion.nombreDestinatario = req.body.nombreDestinatario;
+    }
+    if (req.body.empresaMensajeria !== undefined) {
+      datosActualizacion.empresaMensajeria = req.body.empresaMensajeria;
+    }
+    if (req.body.fechaEntrega !== undefined) {
+      datosActualizacion.fechaEntrega = req.body.fechaEntrega;
+    }
+    if (req.body.observaciones !== undefined) {
+      datosActualizacion.observaciones = req.body.observaciones;
+    }
+    if (req.body.estadoId !== undefined) {
+      datosActualizacion.estadoId = req.body.estadoId;
+    }
+
+    const [updated] = await RecepcionPaquetes.update(datosActualizacion, {
+      where: { idPaquete },
+    });
 
     if (updated) {
       const recepcionPaqueteActualizado = await RecepcionPaquetes.findOne({

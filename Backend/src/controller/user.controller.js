@@ -2,6 +2,7 @@ import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import Persona from "../models/personas.model.js";
+import Rol from "../models/rol.model.js";
 
 export const crearUsuario = async (req, res) => {
   try {
@@ -166,15 +167,25 @@ export const loginUsuario = async (req, res) => {
   try {
     await User.sync();
     const { username, password } = req.body;
+
+    // Buscar usuario e incluir la relación con Rol
     const usuario = await User.findOne({
       where: { username },
+      include: [
+        {
+          model: Rol,
+          attributes: ["idRol", "nombreRol"],
+        },
+      ],
     });
+
     if (!usuario) {
       return res.status(404).json({
         message: "Usuario no encontrado",
         status: 404,
       });
     }
+
     const contraseñaValida = await bcrypt.compare(password, usuario.password);
     if (!contraseñaValida) {
       return res.status(401).json({
@@ -182,17 +193,27 @@ export const loginUsuario = async (req, res) => {
         status: 401,
       });
     }
+
+    // Obtener el nombre del rol
+    const nombreRol = usuario.Rol ? usuario.Rol.nombreRol : "sin rol";
+
     const token = jwt.sign(
-      { username: usuario.username, rolesId: usuario.rolesId },
+      {
+        username: usuario.username,
+        rolesId: usuario.rolesId,
+        rol: nombreRol,
+      },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
+
     const {
       username: nombreUsuario,
       numeroDocumento,
       rolesId,
       estadoId,
     } = usuario;
+
     res.status(200).json({
       ok: true,
       status: 200,
@@ -203,6 +224,7 @@ export const loginUsuario = async (req, res) => {
         numeroDocumento,
         rolesId,
         estadoId,
+        rol: nombreRol, // Ahora devuelve el nombre del rol desde la BD
       },
     });
   } catch (error) {
