@@ -20,16 +20,16 @@ import reservaAreaComun from "../routers/reservasAreas.router.js";
 import parqueaderosRoutes from "../routers/parqueaderos.router.js";
 import tiposVehiculo from "../routers/tiposVehiculo.router.js";
 import Vehiculo from "../routers/vehiculo.router.js";
+import dashboardRoutes from "../routers/dashboard.router.js";
 
 const app = express();
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(
   cors({
-    origin: ["http://localhost:5173","http://localhost:59063"],
-    methods: ["GET", "POST", "PUT", "DELETE"], 
-      credentials: true
-   
+    origin: ["http://localhost:5173", "http://localhost:57720"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    credentials: true,
   })
 );
 app.use("/api/", personasRoutes);
@@ -51,6 +51,7 @@ app.use("/api/", reservaAreaComun);
 app.use("/api/", parqueaderosRoutes);
 app.use("/api/", tiposVehiculo);
 app.use("/api/", Vehiculo);
+app.use("/api/", dashboardRoutes);
 
 app.use((req, res, next) => {
   res.status(404).json({
