@@ -5,6 +5,7 @@ import 'dart:convert';
 import '../paqueteria/paqueteria.dart';
 import '../gestionUsuarios/gestionusuarios.dart';
 import '../areasComunes/areascomunes.dart';
+import '../visitas.dart';
 
 class Dashboardsuperadmin extends StatefulWidget {
   final String nombreUsuario;
