@@ -2,7 +2,12 @@ import React, { useEffect, useRef, useState } from "react";
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import Chart from "chart.js/auto";
 import "bootstrap/dist/css/bootstrap.min.css";
-import "./dashboardAdmin.css";
+import "../Styles/dashboardAdmin.css";
+import logo from "../../img/logo.png";
+import paquetesImg from "../../img/paquetes.jpeg";
+import visitasImg from "../../img/visitas.jpg";
+import areasImg from "../../img/areascomunes.jpg";
+import modoluresidenteImg from "../../img/modoluresidente.jpg";
 function Dashboard() {
   const chartRef = useRef(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -273,7 +278,7 @@ function Dashboard() {
           <div className="text-center flex-grow-1">
             <Link to="/">
               <img
-                src="../img/logo.png"
+                src={logo}
                 alt="Logo del sistema"
                 style={{ maxHeight: "50px" }}
               />
@@ -330,7 +335,7 @@ function Dashboard() {
         <div className="d-flex flex-wrap justify-content-center gap-4 px-4 mb-4">
           <div className="card text-center" style={{ width: "250px" }}>
             <img
-              src="../img/paquetes.jpeg"
+              src={paquetesImg}
               className="card-img-top"
               alt="Paquetería"
               style={{ height: "150px", objectFit: "cover" }}
@@ -345,7 +350,7 @@ function Dashboard() {
 
           <div className="card text-center" style={{ width: "250px" }}>
             <img
-              src="../img/visitas.jpg"
+              src={visitasImg}
               className="card-img-top"
               alt="Visitas"
               style={{ height: "150px", objectFit: "cover" }}
@@ -360,7 +365,7 @@ function Dashboard() {
 
           <div className="card text-center" style={{ width: "250px" }}>
             <img
-              src="../img/areascomunes.jpg"
+              src={areasImg}
               className="card-img-top"
               alt="Áreas Comunes"
               style={{ height: "150px", objectFit: "cover" }}
@@ -375,7 +380,7 @@ function Dashboard() {
 
           <div className="card text-center" style={{ width: "250px" }}>
             <img
-              src="../img/modoluresidente.jpg"
+              src={modoluresidenteImg}
               className="card-img-top"
               alt="Residentes"
               style={{ height: "150px", objectFit: "cover" }}

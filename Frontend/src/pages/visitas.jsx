@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
-import "./dashboardSuperAdmin.css";
+import "../Styles/estiloVisitas.css";
+import logo from "../../img/logo.png";
 import Swal from "sweetalert2";
 
 const styles = `
@@ -1324,7 +1325,7 @@ switch (rolesId) {
           <div className="flex-grow-1 text-center">
             <Link to="/Superadmin">
               <img
-                src="/img/logo.png"
+                src={logo}
                 alt="Logo del sistema"
                 className="logo-img"
               />
@@ -1390,6 +1391,11 @@ switch (rolesId) {
                 <i className="bi bi-people-fill"></i> Historial de Visitas
               </h3>
               <div className="d-flex gap-2 align-items-center">
+                 <button className="btn btn-primary btn-sm" >
+                 <Link className="nav-link text-white" to="/parqueaderos">
+                  Consultar Parqueaderos
+                </Link>
+                </button>
                 <button className="btn btn-success btn-sm" onClick={abrirModal}>
                   <i className="bi bi-plus-circle"></i> Registrar Nueva Visita
                 </button>

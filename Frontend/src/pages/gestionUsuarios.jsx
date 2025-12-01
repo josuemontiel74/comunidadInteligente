@@ -2,20 +2,21 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation, Outlet } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
-import "./estiloPaqueteria.css";
+import "../Styles/gestionUsuarios.css";
+import logo from "../../img/logo.png";
 import Swal from "sweetalert2";
 import Lottie from 'lottie-react';
-import BIEN from "./animacion/celebrate.json";
-import Inactivo from "./animacion/Inactivo.json";
-
+import BIEN from "../animacion/celebrate.json";
+import Inactivo from "../animacion/Inactivo.json";
+import { registrarUsuario } from "../services/gestionUsuarios.jsx"
 
 function Parqueaderos() {
   const navigate = useNavigate();
-  
+
   const CERRAR = (e) => {
-    localStorage.clear(); 
+    localStorage.clear();
     e.preventDefault();
-    navigate("/"); 
+    navigate("/");
   };
 
   // Estados de modales
@@ -38,11 +39,11 @@ function Parqueaderos() {
   const [password, setPassword] = useState("");
   const [rolesId, setRolesId] = useState("");
   const [estadoId, setEstadoId] = useState("");
-  const [username, setUsername] = useState(""); 
+  const [username, setUsername] = useState("");
 
   // Estado para usuarios y búsqueda
   const [usuario, setUsuario] = useState([]);
-  const [usuarioLog, setUsuarioLog] = useState(null); 
+  const [usuarioLog, setUsuarioLog] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("Todos");
@@ -53,15 +54,15 @@ function Parqueaderos() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     const userGuardado = localStorage.getItem("user");
-    
+
     if (!token) {
       navigate("/");
       return;
     }
-    
+
     if (userGuardado) {
       try {
-        
+
         const usuarioParsed = JSON.parse(userGuardado);
         setUsuarioLog(usuarioParsed);
         setLoading(false);
@@ -118,7 +119,7 @@ function Parqueaderos() {
       })
       .then((data) => {
         console.log("Usuarios cargados:", data.body);
-        setUsuario(data.body || []); 
+        setUsuario(data.body || []);
         setLoading(false);
       })
       .catch((error) => {
@@ -128,13 +129,7 @@ function Parqueaderos() {
   }, [navigate]);
 
   // Generar username automático
-  useEffect(() => {
-    if (modoRegistro && primerNombre && primerApellido) {
-      const aleatorio = Math.floor(Math.random() );
-      const nuevoUsername = primerNombre.toLowerCase() + primerApellido.toLowerCase() + aleatorio;
-      setUsername(nuevoUsername);
-    }
-  }, [primerNombre, primerApellido, modoRegistro]);
+
 
   // Registrar usuario
   const registrarTodo = async (e) => {
@@ -146,28 +141,20 @@ function Parqueaderos() {
     }
 
     try {
-      const resUsuario = await fetch("http://localhost:3001/api/usuario", {  
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json", 
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify({
-          username,
-          password,
-          rolesId: parseInt(rolesId),
-          estadoId:1,
-          numeroDocumento,
-          tipoDocumentoId: parseInt(tipoDocumentoId),
-          primerNombre,
-          segundoNombre,
-          primerApellido,
-          segundoApellido,
-          telefono,
-          correoElectronico
-        }),
-      });
-
+      const datos = {
+        password,
+        rolesId: parseInt(rolesId),
+        estadoId: 1,
+        numeroDocumento,
+        tipoDocumentoId: parseInt(tipoDocumentoId),
+        primerNombre,
+        segundoNombre,
+        primerApellido,
+        segundoApellido,
+        telefono,
+        correoElectronico
+      }
+      const resUsuario = await registrarUsuario( datos, token     )
       const dataUsuario = await resUsuario.json();
       console.log("Respuesta backend:", dataUsuario);
 
@@ -175,9 +162,14 @@ function Parqueaderos() {
         throw new Error(dataUsuario.error || dataUsuario.message || JSON.stringify(dataUsuario));
       }
 
-      Swal.fire("Éxito", "Usuario registrado correctamente", "success");
+
+      Swal.fire(
+        "Éxito",
+        `Usuario registrado correctamente.\n Username asignado: ${dataUsuario.usuario?.username || dataUsuario.idUsuario}`,
+        "success"
+      );
       resetForm();
-      await cargarUsuarios(); 
+      await cargarUsuarios();
       cerrarModal();
     } catch (err) {
       console.error(err);
@@ -237,9 +229,9 @@ function Parqueaderos() {
 
     try {
       const res = await fetch("http://localhost:3001/api/usuario", {
-        headers: { 
-          "Content-Type": "application/json", 
-          Authorization: `Bearer ${token}` 
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
         },
       });
       const data = await res.json();
@@ -261,9 +253,9 @@ function Parqueaderos() {
         headers: { Authorization: `Bearer ${token}` }
       });
       const dataUsuario = await resUsuario.json();
-    
+
       if (resUsuario.ok && dataUsuario) {
-        const u = dataUsuario.body || dataUsuario; 
+        const u = dataUsuario.body || dataUsuario;
         setUsername(u.username || "");
         setRolesId(u.rolesId || "");
         setEstadoId(u.estadoId || "");
@@ -277,7 +269,7 @@ function Parqueaderos() {
       const dataPersona = await resPersona.json();
 
       if (resPersona.ok && dataPersona) {
-        const p = dataPersona.body || dataPersona; 
+        const p = dataPersona.body || dataPersona;
         setTipoDocumentoId(p.tipoDocumentoId || "");
         setPrimerNombre(p.primerNombre || "");
         setSegundoNombre(p.segundoNombre || "");
@@ -308,7 +300,7 @@ function Parqueaderos() {
     }).then(async (result) => {
       if (result.isConfirmed) {
         const usuarioPayload = { estadoId: 2 };
-        
+
         try {
           const res = await fetch(`http://localhost:3001/api/usuario/${username}`, {
             method: "PATCH",
@@ -316,7 +308,7 @@ function Parqueaderos() {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify(usuarioPayload), 
+            body: JSON.stringify(usuarioPayload),
           });
 
           if (!res.ok) {
@@ -377,7 +369,7 @@ function Parqueaderos() {
     setPrimerApellido("");
     setSegundoApellido("");
     setTelefono("");
-    setCorreoElectronico(""); 
+    setCorreoElectronico("");
     setPassword("");
     setRolesId("");
     setEstadoId("");
@@ -404,10 +396,10 @@ function Parqueaderos() {
 
   if (loading) {
     return (
-      <div style={{ 
-        display: "flex", 
-        justifyContent: "center", 
-        alignItems: "center", 
+      <div style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
         height: "100vh",
         fontSize: "18px",
         color: "#28a745"
@@ -424,10 +416,10 @@ function Parqueaderos() {
         id="menuTrabajador"
         className={`workers-menu bg-success text-white ${menuAbierto ? "active" : ""}`}
       >
-        <div className="p-3 d-flex flex-column h-100"> 
+        <div className="p-3 d-flex flex-column h-100">
           <div className="d-flex align-items-center gap-3 mb-4">
-            <div className="user-circle bg-white d-flex align-items-center justify-content-center" 
-                 style={{ width: "50px", height: "50px", borderRadius: "50%" }}>
+            <div className="user-circle bg-white d-flex align-items-center justify-content-center"
+              style={{ width: "50px", height: "50px", borderRadius: "50%" }}>
               <span className="fw-bold text-success">
                 {usuarioLog?.username?.substring(0, 2).toUpperCase() || "US"}
               </span>
@@ -441,11 +433,11 @@ function Parqueaderos() {
             </div>
           </div>
 
-          <h5 className="mb-3 mx-4">Menú SuperAdmin</h5> 
+          <h5 className="mb-3 mx-4">Menú SuperAdmin</h5>
 
-          <div className="mb-4"> 
+          <div className="mb-4">
             <h6 className="text-uppercase fw-bold">Gestión de Usuarios</h6>
-            <ul className="nav flex-column mt-2 gap-2"> 
+            <ul className="nav flex-column mt-2 gap-2">
               <li>
                 <Link className="nav-link text-white" to="/paqueteria?abrirModal=1">
                   Registrar Paquete
@@ -527,7 +519,7 @@ function Parqueaderos() {
           <div className="logo-container text-center flex-grow-1">
             <Link to="/">
               <img
-                src="../img/logo.png"
+                src={logo}
                 alt="Logo del sistema"
                 style={{ marginLeft: "100px" }}
                 className="logo-img"
@@ -712,9 +704,8 @@ function Parqueaderos() {
                 ))}
 
                 <li
-                  className={`page-item ${
-                    currentPage === totalPaginas || totalPaginas === 0 ? "disabled" : ""
-                  }`}
+                  className={`page-item ${currentPage === totalPaginas || totalPaginas === 0 ? "disabled" : ""
+                    }`}
                 >
                   <button
                     className="page-link"
@@ -758,347 +749,338 @@ function Parqueaderos() {
                   />
                 </div>
                 <div className="modal-body">
-  <form onSubmit={registrarTodo} className="p-4 shadow rounded bg-light">
-  <h4 className="mb-4 text-center fw-bold text-success">Registrar Usuario</h4>
+                  <form onSubmit={registrarTodo} className="p-4 shadow rounded bg-light">
+                    <h4 className="mb-4 text-center fw-bold text-success">Registrar Usuario</h4>
 
-  <div className="row g-3">
-    <div className="col-md-6">
-      <label className="form-label fw-semibold">Tipo Documento *</label>
-      <select
-        className="form-select"
-        value={tipoDocumentoId}
-        onChange={(e) => setTipoDocumentoId(e.target.value)}
-        required
-      >
-        <option value="">Selecciona...</option>
-        <option value="1">CC</option>
-        <option value="2">CE</option>
-        <option value="3">PA</option>
-        <option value="4">PP</option>
-        <option value="5">PPT</option>
-      </select>
-    </div>
+                    <div className="row g-3">
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Tipo Documento *</label>
+                        <select
+                          className="form-select"
+                          value={tipoDocumentoId}
+                          onChange={(e) => setTipoDocumentoId(e.target.value)}
+                          required
+                        >
+                          <option value="">Selecciona...</option>
+                          <option value="1">CC</option>
+                          <option value="2">CE</option>
+                          <option value="3">PA</option>
+                          <option value="4">PP</option>
+                          <option value="5">PPT</option>
+                        </select>
+                      </div>
 
-    <div className="col-md-6">
-      <label className="form-label fw-semibold">Documento *</label>
-      <input
-        type="number"
-        className="form-control"
-        value={numeroDocumento}
-        onChange={(e) => setNumeroDocumento(e.target.value)}
-        required
-      />
-    </div>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Documento *</label>
+                        <input
+                          type="number"
+                          className="form-control"
+                          value={numeroDocumento}
+                          onChange={(e) => setNumeroDocumento(e.target.value)}
+                          required
+                        />
+                      </div>
 
-    <div className="col-md-6">
-      <label className="form-label fw-semibold">Primer Nombre *</label>
-      <input
-        type="text"
-        className="form-control"
-        value={primerNombre}
-        onChange={(e) => setPrimerNombre(e.target.value)}
-        required
-      />
-    </div>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Primer Nombre *</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={primerNombre}
+                          onChange={(e) => setPrimerNombre(e.target.value)}
+                          required
+                        />
+                      </div>
 
-    <div className="col-md-6">
-      <label className="form-label fw-semibold">Segundo Nombre</label>
-      <input
-        type="text"
-        className="form-control"
-        value={segundoNombre}
-        onChange={(e) => setSegundoNombre(e.target.value)}
-      />
-    </div>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Segundo Nombre</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={segundoNombre}
+                          onChange={(e) => setSegundoNombre(e.target.value)}
+                        />
+                      </div>
 
-    <div className="col-md-6">
-      <label className="form-label fw-semibold">Primer Apellido *</label>
-      <input
-        type="text"
-        className="form-control"
-        value={primerApellido}
-        onChange={(e) => setPrimerApellido(e.target.value)}
-        required
-      />
-    </div>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Primer Apellido *</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={primerApellido}
+                          onChange={(e) => setPrimerApellido(e.target.value)}
+                          required
+                        />
+                      </div>
 
-    <div className="col-md-6">
-      <label className="form-label fw-semibold">Segundo Apellido</label>
-      <input
-        type="text"
-        className="form-control"
-        value={segundoApellido}
-        onChange={(e) => setSegundoApellido(e.target.value)}
-      />
-    </div>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Segundo Apellido</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={segundoApellido}
+                          onChange={(e) => setSegundoApellido(e.target.value)}
+                        />
+                      </div>
 
-    <div className="col-md-6">
-      <label className="form-label fw-semibold">Teléfono</label>
-      <input
-        type="number"
-        className="form-control"
-        value={telefono}
-        onChange={(e) => setTelefono(e.target.value)}
-      />
-    </div>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Teléfono</label>
+                        <input
+                          type="number"
+                          className="form-control"
+                          value={telefono}
+                          onChange={(e) => setTelefono(e.target.value)}
+                        />
+                      </div>
 
-    <div className="col-md-6">
-      <label className="form-label fw-semibold">Correo</label>
-      <input
-        type="email"
-        className="form-control"
-        value={correoElectronico}
-        onChange={(e) => setCorreoElectronico(e.target.value)}
-      />
-    </div>
-
-    <div className="col-md-6">
-      <label className="form-label fw-semibold">Username</label>
-      <input
-        type="text"
-        className="form-control bg-light"
-        value={username}
-        readOnly
-      />
-    </div>
-
-    <div className="col-md-6">
-      <label className="form-label fw-semibold">Contraseña *</label>
-      <input
-        type="password"
-        className="form-control"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-      />
-    </div>
-
-    <div className="col-md-6">
-      <label className="form-label fw-semibold">Rol *</label>
-      <select
-        className="form-select"
-        value={rolesId}
-        onChange={(e) => setRolesId(parseInt(e.target.value))}
-      >
-        <option value="">Selecciona...</option>
-        <option value={3}>Trabajador</option>
-        <option value={2}>Admin</option>
-        <option value={1}>Super_Admin</option>
-      </select>
-    </div>
-
- <div className="col-md-6 d-none">
-  <label className="form-label fw-semibold">Estado *</label>
-  <select
-    className="form-select"
-    value={estadoId}
-    onChange={(e) => setEstadoId(parseInt(e.target.value))}
-  >
-    <option value={1}>Activo</option>
-    <option value={2}>Inactivo</option>
-  </select>
-</div>
-
-  </div>
-
-  <div className="d-flex justify-content-center mt-4">
-    <button type="submit" className="btn btn-success px-4 py-2 shadow-sm">
-      <i className="bi bi-person-plus me-2"></i> Registrar
-    </button>
-  </div>
-</form>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Correo</label>
+                        <input
+                          type="email"
+                          className="form-control"
+                          value={correoElectronico}
+                          onChange={(e) => setCorreoElectronico(e.target.value)}
+                        />
+                      </div>
 
 
-                
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Contraseña *</label>
+                        <input
+                          type="password"
+                          className="form-control"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Rol *</label>
+                        <select
+                          className="form-select"
+                          value={rolesId}
+                          onChange={(e) => setRolesId(parseInt(e.target.value))}
+                        >
+                          <option value="">Selecciona...</option>
+                          <option value={3}>Trabajador</option>
+                          <option value={2}>Admin</option>
+                          <option value={1}>Super_Admin</option>
+                        </select>
+                      </div>
+
+                      <div className="col-md-6 d-none">
+                        <label className="form-label fw-semibold">Estado *</label>
+                        <select
+                          className="form-select"
+                          value={estadoId}
+                          onChange={(e) => setEstadoId(parseInt(e.target.value))}
+                        >
+                          <option value={1}>Activo</option>
+                          <option value={2}>Inactivo</option>
+                        </select>
+                      </div>
+
+                    </div>
+
+                    <div className="d-flex justify-content-center mt-4">
+                      <button type="submit" className="btn btn-success px-4 py-2 shadow-sm">
+                        <i className="bi bi-person-plus me-2"></i> Registrar
+                      </button>
+                    </div>
+                  </form>
+
+
+
                 </div>
               </div>
             </div>
           </div>
         )}
 
-    {/* Modal Editar */}
-{modalEditar && (
-  <div
-    className="modal fade show"
-    style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }}
-  >
-    <div className="modal-dialog">
-      <div className="modal-content">
-        <div className="modal-header bg-success text-white">
-          <h5 className="modal-title">Editar Usuario</h5>
-          <button className="btn-close btn-close-white" onClick={cerrarModalEditar} />
-        </div>
-        <div className="modal-body">
-       <form onSubmit={editar} className="p-4 shadow-lg rounded bg-white">
-  <h4 className="fw-bold text-primary text-center mb-4">
-    ✏️ Editar Usuario
-  </h4>
+        {/* Modal Editar */}
+        {modalEditar && (
+          <div
+            className="modal fade show"
+            style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }}
+          >
+            <div className="modal-dialog">
+              <div className="modal-content">
+                <div className="modal-header bg-success text-white">
+                  <h5 className="modal-title">Editar Usuario</h5>
+                  <button className="btn-close btn-close-white" onClick={cerrarModalEditar} />
+                </div>
+                <div className="modal-body">
+                  <form onSubmit={editar} className="p-4 shadow-lg rounded bg-white">
+                    <h4 className="fw-bold text-primary text-center mb-4">
+                      ✏️ Editar Usuario
+                    </h4>
 
-  {/* Persona */}
-  <div className="mb-3 pb-2 border-bottom">
-    <h6 className="text-secondary fw-semibold mb-3">
-      <i className="bi bi-person-badge me-2"></i>Datos de Persona
-    </h6>
+                    {/* Persona */}
+                    <div className="mb-3 pb-2 border-bottom">
+                      <h6 className="text-secondary fw-semibold mb-3">
+                        <i className="bi bi-person-badge me-2"></i>Datos de Persona
+                      </h6>
 
-    <div className="row g-3">
-      <div className="col-md-6">
-        <label className="form-label small">Número Documento</label>
-        <input
-          type="text"
-          className="form-control bg-light"
-          value={numeroDocumento}
-          onChange={(e) => setnumeroDocumento(e.target.value)}
-          readOnly
-        />
-      </div>
+                      <div className="row g-3">
+                        <div className="col-md-6">
+                          <label className="form-label small">Número Documento</label>
+                          <input
+                            type="text"
+                            className="form-control bg-light"
+                            value={numeroDocumento}
+                            onChange={(e) => setnumeroDocumento(e.target.value)}
+                            readOnly
+                          />
+                        </div>
 
-      <div className="col-md-6">
-        <label className="form-label small">Tipo Documento</label>
-        <select
-          className="form-select"
-          value={tipoDocumentoId}
-          onChange={(e) => setTipoDocumentoId(parseInt(e.target.value))}
-        >
-          <option value="">Selecciona...</option>
-          <option value={1}>CC</option>
-          <option value={2}>CE</option>
-          <option value={3}>PA</option>
-          <option value={4}>PP</option>
-          <option value={5}>PPT</option>
-        </select>
-      </div>
+                        <div className="col-md-6">
+                          <label className="form-label small">Tipo Documento</label>
+                          <select
+                            className="form-select"
+                            value={tipoDocumentoId}
+                            onChange={(e) => setTipoDocumentoId(parseInt(e.target.value))}
+                          >
+                            <option value="">Selecciona...</option>
+                            <option value={1}>CC</option>
+                            <option value={2}>CE</option>
+                            <option value={3}>PA</option>
+                            <option value={4}>PP</option>
+                            <option value={5}>PPT</option>
+                          </select>
+                        </div>
 
-      <div className="col-md-6">
-        <label className="form-label small">Primer Nombre</label>
-        <input
-          type="text"
-          className="form-control"
-          value={primerNombre}
-          onChange={(e) => setPrimerNombre(e.target.value)}
-        />
-      </div>
+                        <div className="col-md-6">
+                          <label className="form-label small">Primer Nombre</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={primerNombre}
+                            onChange={(e) => setPrimerNombre(e.target.value)}
+                          />
+                        </div>
 
-      <div className="col-md-6">
-        <label className="form-label small">Segundo Nombre</label>
-        <input
-          type="text"
-          className="form-control"
-          value={segundoNombre}
-          onChange={(e) => setSegundoNombre(e.target.value)}
-        />
-      </div>
+                        <div className="col-md-6">
+                          <label className="form-label small">Segundo Nombre</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={segundoNombre}
+                            onChange={(e) => setSegundoNombre(e.target.value)}
+                          />
+                        </div>
 
-      <div className="col-md-6">
-        <label className="form-label small">Primer Apellido</label>
-        <input
-          type="text"
-          className="form-control"
-          value={primerApellido}
-          onChange={(e) => setPrimerApellido(e.target.value)}
-        />
-      </div>
+                        <div className="col-md-6">
+                          <label className="form-label small">Primer Apellido</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={primerApellido}
+                            onChange={(e) => setPrimerApellido(e.target.value)}
+                          />
+                        </div>
 
-      <div className="col-md-6">
-        <label className="form-label small">Segundo Apellido</label>
-        <input
-          type="text"
-          className="form-control"
-          value={segundoApellido}
-          onChange={(e) => setSegundoApellido(e.target.value)}
-        />
-      </div>
+                        <div className="col-md-6">
+                          <label className="form-label small">Segundo Apellido</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={segundoApellido}
+                            onChange={(e) => setSegundoApellido(e.target.value)}
+                          />
+                        </div>
 
-      <div className="col-md-6">
-        <label className="form-label small">Teléfono</label>
-        <input
-          type="text"
-          className="form-control"
-          value={telefono}
-          onChange={(e) => setTelefono(e.target.value)}
-        />
-      </div>
+                        <div className="col-md-6">
+                          <label className="form-label small">Teléfono</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={telefono}
+                            onChange={(e) => setTelefono(e.target.value)}
+                          />
+                        </div>
 
-      <div className="col-md-6">
-        <label className="form-label small">Correo Electrónico</label>
-        <input
-          type="email"
-          className="form-control"
-          value={correoElectronico}
-          onChange={(e) => setCorreoElectronico(e.target.value)}
-        />
-      </div>
-    </div>
-  </div>
+                        <div className="col-md-6">
+                          <label className="form-label small">Correo Electrónico</label>
+                          <input
+                            type="email"
+                            className="form-control"
+                            value={correoElectronico}
+                            onChange={(e) => setCorreoElectronico(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
 
-  {/* Usuario */}
-  <div className="mb-3">
-    <h6 className="text-secondary fw-semibold mb-3">
-      <i className="bi bi-person-circle me-2"></i>Datos de Usuario
-    </h6>
+                    {/* Usuario */}
+                    <div className="mb-3">
+                      <h6 className="text-secondary fw-semibold mb-3">
+                        <i className="bi bi-person-circle me-2"></i>Datos de Usuario
+                      </h6>
 
-    <div className="row g-3">
-      <div className="col-md-6">
-        <label className="form-label small">Username</label>
-        <input
-          type="text"
-          className="form-control"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-      </div>
+                      <div className="row g-3">
+                        <div className="col-md-6">
+                          <label className="form-label small">Username</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                          />
+                        </div>
 
-      <div className="col-md-6">
-        <label className="form-label small">Contraseña</label>
-        <input
-          type="password"
-          className="form-control"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-      </div>
+                        <div className="col-md-6">
+                          <label className="form-label small">Contraseña</label>
+                          <input
+                            type="password"
+                            className="form-control"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                          />
+                        </div>
 
-      <div className="col-md-6">
-        <label className="form-label small">Rol</label>
-        <select
-          className="form-select"
-          value={rolesId}
-          onChange={(e) => setRolesId(parseInt(e.target.value))}
-        >
-          <option value="">Selecciona...</option>
-          <option value={3}>Trabajador</option>
-          <option value={2}>Admin</option>
-          <option value={1}>Super_Admin</option>
-        </select>
-      </div>
+                        <div className="col-md-6">
+                          <label className="form-label small">Rol</label>
+                          <select
+                            className="form-select"
+                            value={rolesId}
+                            onChange={(e) => setRolesId(parseInt(e.target.value))}
+                          >
+                            <option value="">Selecciona...</option>
+                            <option value={3}>Trabajador</option>
+                            <option value={2}>Admin</option>
+                            <option value={1}>Super_Admin</option>
+                          </select>
+                        </div>
 
-      {/* Estado oculto */}
-      <div className="col-md-6 d-none">
-        <label className="form-label small">Estado</label>
-        <select
-          className="form-select"
-          value={estadoId}
-          onChange={(e) => setEstadoId(parseInt(e.target.value))}
-        >
-          <option value="">Selecciona...</option>
-          <option value={1}>Activo</option>
-          <option value={2}>Inactivo</option>
-        </select>
-      </div>
-    </div>
-  </div>
+                        {/* Estado oculto */}
+                        <div className="col-md-6 d-none">
+                          <label className="form-label small">Estado</label>
+                          <select
+                            className="form-select"
+                            value={estadoId}
+                            onChange={(e) => setEstadoId(parseInt(e.target.value))}
+                          >
+                            <option value="">Selecciona...</option>
+                            <option value={1}>Activo</option>
+                            <option value={2}>Inactivo</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
 
-  <div className="d-flex justify-content-center mt-4">
-    <button type="submit" className="btn btn-primary px-4 py-2 shadow-sm">
-      <i className="bi bi-save me-2"></i> Guardar Cambios
-    </button>
-  </div>
-</form>
+                    <div className="d-flex justify-content-center mt-4">
+                      <button type="submit" className="btn btn-primary px-4 py-2 shadow-sm">
+                        <i className="bi bi-save me-2"></i> Guardar Cambios
+                      </button>
+                    </div>
+                  </form>
 
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

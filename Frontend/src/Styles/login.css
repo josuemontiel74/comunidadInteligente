@@ -13,7 +13,7 @@ body, html {
   align-items: center;    
   justify-content: center;
   background: linear-gradient(rgba(20, 79, 2, 0.6), rgba(33, 33, 33, 0.6)),
-    url("/img/fondo.jpg");
+    url("../../img/fondo.jpg");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

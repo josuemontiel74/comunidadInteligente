@@ -1,5 +1,6 @@
 import "bootstrap/dist/css/bootstrap.min.css";
-import "./estiloPaqueteria.css";
+import "../Styles/estiloPaqueteria.css";
+import logo from "../../img/logo.png";
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
@@ -660,7 +661,7 @@ switch (rolesId) {
         <div className="d-flex align-items-center justify-content-between px-3 py-2 header-bar">
           <div className="logo-container text-center flex-grow-1">
             <Link to="/">
-              <img src="../img/logo.png" alt="Logo" className="logo-img" />
+              <img src={logo} alt="Logo" className="logo-img" />
             </Link>
           </div>
           <div className="position-relative">

@@ -1,7 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Chart from "chart.js/auto";
-import "./dashboardSuperAdmin.css";
+import "../Styles/dashboardSuperAdmin.css";
+import logo from "../../img/logo.png";
+import paquetesImg from "../../img/paquetes.jpeg";
+import visitasImg from "../../img/visitas.jpg";
+import areasImg from "../../img/areascomunes.jpg";
+import gestionImg from "../../img/gestion.webp";
+import residentesImg from "../../img/residentes.jpg";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 
@@ -253,7 +259,7 @@ function Dashboard() {
         <div className="container-md d-flex align-items-center justify-content-between px-3 py-2">
           <div className="logo-container text-center flex-grow-1">
             <Link to="/Superadmin">
-              <img src="/img/logo.png" alt="Logo del sistema" className="logo-img" />
+              <img src={logo} alt="Logo del sistema" className="logo-img" />
             </Link>
           </div>
           <div className="position-relative">
@@ -290,35 +296,35 @@ function Dashboard() {
 
         <div className="d-flex flex-wrap justify-content-center gap-4 my-4">
           <div className="module-card">
-            <img src="/img/paquetes.jpeg" alt="Paquetería" />
+            <img src={paquetesImg} alt="Paquetería" />
             <h5>Gestión de Paquetería</h5>
             <Link to="/Paqueteria" className="btn btn-success">
               ➜
             </Link>
           </div>
           <div className="module-card">
-            <img src="/img/visitas.jpg" alt="Visitas" />
+            <img src={visitasImg} alt="Visitas" />
             <h5>Gestión de Visitas</h5>
             <Link to="/visitas" className="btn btn-success">
               ➜
             </Link>
           </div>
           <div className="module-card">
-            <img src="/img/areascomunes.jpg" alt="Áreas Comunes" />
+            <img src={areasImg} alt="Áreas Comunes" />
             <h5>Áreas Comunes</h5>
             <button onClick={AreasComunes} className="btn btn-success">
               ➜
             </button>
           </div>
           <div className="module-card">
-            <img src="/img/gestion.webp" alt="Usuarios" />
+            <img src={gestionImg} alt="Usuarios" />
             <h5>Gestión De Usuarios</h5>
             <button onClick={GestionUsuarios} className="btn btn-success">
               ➜
             </button>
           </div>
           <div className="module-card">
-            <img src="/img/residentes.jpg" alt="Residentes" />
+            <img src={residentesImg} alt="Residentes" />
             <h5>Gestión Residentes</h5>
             <Link to="/Residentes" className="btn btn-success">
               ➜
