@@ -1,5 +1,6 @@
 import "bootstrap/dist/css/bootstrap.min.css";
-import "./residentes.css";
+import "../Styles/residentes.css";
+import logo from "../../img/logo.png";
 
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -953,7 +954,7 @@ function Residentes() {
         <div className="d-flex align-items-center justify-content-between px-4 py-3 header-bar w-100">
           <div className="logo-container mx-auto">
             <Link to="/">
-              <img src="/img/logo.png" alt="Logo" className="logo-img" />
+              <img src={logo} alt="Logo" className="logo-img" />
             </Link>
           </div>
           <div className="position-relative">

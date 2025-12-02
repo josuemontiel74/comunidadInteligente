@@ -380,8 +380,8 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                           const SizedBox(width: 10),
                           IconButton(
                             icon: const Icon(
-                              Icons.delete,
-                              color: Colors.red,
+                              Icons.done,
+                              color: Colors.greenAccent,
                               size: 30,
                             ),
                             onPressed: () async {

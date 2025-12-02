@@ -215,6 +215,10 @@ export const mostrarAreasComunesVersionMovil = async (req, res) => {
   try {
 
     const mmostraareascomunes = await reservasAreasModel.findAll({
+      where:{
+        estadoId:7,
+        estadoId:8
+      },
       attributes: [
         ['idReservas', 'idReservas'],
         ['fechaReserva', 'fechaReserva'],
