@@ -61,7 +61,7 @@ class DetallesReserva extends StatelessWidget {
                     ),
                     _buildDetalle(
                       'Área Común',
-                      obtenerNombreAreaComun(reserva.areaComunId),
+                      obtenerNombreAreaComun(reserva.areaComun),
                     ),
                     _buildDetalle('Fecha', reserva.fechaReserva ?? 'N/A'),
                     _buildDetalle(
