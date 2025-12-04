@@ -19,6 +19,10 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
   int paginaActual = 1;
   int totalPaginas = 1;
   final int itemsPorPagina = 10;
+  String busquedaNombre = '';
+  String? filtroTorre;
+  String? filtroApartamento;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -93,6 +97,35 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
           'Paquetes después del filtro: ${paquetesFiltrados.length}',
         ); // Debug
 
+        // Filtrar por búsqueda de nombre
+        if (busquedaNombre.isNotEmpty) {
+          paquetesFiltrados = paquetesFiltrados.where((paquete) {
+            final nombre =
+                paquete['nombreDestinatario']?.toString().toLowerCase() ?? '';
+            return nombre.contains(busquedaNombre.toLowerCase());
+          }).toList();
+        }
+
+        // Filtrar por torre
+        if (filtroTorre != null && filtroTorre!.isNotEmpty) {
+          // Convertir "Torre A" a 1, "Torre B" a 2, etc.
+          final torreLetra = filtroTorre!.replaceAll('Torre ', '');
+          final torreId = torreLetra.codeUnitAt(0) - 'A'.codeUnitAt(0) + 1;
+
+          paquetesFiltrados = paquetesFiltrados.where((paquete) {
+            final torresIdPaquete = paquete['apartamento']?['torresId'];
+            return torresIdPaquete?.toString() == torreId.toString();
+          }).toList();
+        }
+
+        // Filtrar por apartamento
+        if (filtroApartamento != null && filtroApartamento!.isNotEmpty) {
+          paquetesFiltrados = paquetesFiltrados.where((paquete) {
+            return paquete['apartamento']?['numeroApartamento'] ==
+                filtroApartamento;
+          }).toList();
+        }
+
         // Ordenar por fecha de más reciente a más viejo
         paquetesFiltrados.sort((a, b) {
           final fechaA = DateTime.tryParse(
@@ -143,6 +176,35 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
         );
       }
     }
+  }
+
+  // Método para obtener los apartamentos según la torre seleccionada
+  List<DropdownMenuItem<String>> _getApartamentosPorTorre(String torre) {
+    Map<String, List<String>> apartamentosPorTorre = {
+      'Torre A': ['101', '102', '103', '104', '105'],
+      'Torre B': ['201', '202', '203', '204', '205'],
+      'Torre C': ['301', '302', '303', '304', '305'],
+      'Torre D': ['401', '402', '403', '404', '405'],
+      'Torre E': ['501', '502', '503', '504', '505'],
+      'Torre F': ['601', '602', '603', '604', '605'],
+      'Torre G': ['701', '702', '703', '704', '705'],
+      'Torre H': ['801', '802', '803', '804', '805'],
+      'Torre I': ['901', '902', '903', '904', '905'],
+      'Torre J': ['1001', '1002', '1003', '1004', '1005'],
+    };
+
+    List<String> apartamentos = apartamentosPorTorre[torre] ?? [];
+    return apartamentos.map((apto) {
+      return DropdownMenuItem(value: apto, child: Text(apto));
+    }).toList();
+  }
+
+  // Convertir número de torre (1-10) a letra (A-J)
+  String _convertirTorreIdALetra(dynamic torresId) {
+    if (torresId == null) return '';
+    final id = int.tryParse(torresId.toString());
+    if (id == null || id < 1 || id > 10) return torresId.toString();
+    return String.fromCharCode('A'.codeUnitAt(0) + id - 1);
   }
 
   void _mostrarFormularioRegistro() {
@@ -299,7 +361,7 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      'Torre ${paquete['apartamento']?['torresId']?.toString() ?? ''} - Apto ${paquete['apartamento']?['numeroApartamento']?.toString() ?? ''}',
+                      'Torre ${_convertirTorreIdALetra(paquete['apartamento']?['torresId'])} - Apto ${paquete['apartamento']?['numeroApartamento']?.toString() ?? ''}',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey.shade700,
@@ -472,7 +534,11 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
               cells: [
                 DataCell(Text(paquete['nombreDestinatario']?.toString() ?? '')),
                 DataCell(
-                  Text(paquete['apartamento']?['torresId']?.toString() ?? ''),
+                  Text(
+                    _convertirTorreIdALetra(
+                      paquete['apartamento']?['torresId'],
+                    ),
+                  ),
                 ),
                 DataCell(
                   Text(
@@ -587,7 +653,105 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                   ),
                 ),
                 const SizedBox(height: 15),
-                // Filtros
+                // Barra de búsqueda
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Buscar por nombre del destinatario...',
+                    prefixIcon: const Icon(Icons.search, color: Colors.blue),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      busquedaNombre = value;
+                      paginaActual = 1;
+                    });
+                    _cargarPaquetes();
+                  },
+                ),
+                const SizedBox(height: 15),
+                // Filtros de torre y apartamento
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: filtroTorre,
+                        decoration: InputDecoration(
+                          labelText: 'Torre',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        items: [
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('Todas'),
+                          ),
+                          ...[
+                            'Torre A',
+                            'Torre B',
+                            'Torre C',
+                            'Torre D',
+                            'Torre E',
+                            'Torre F',
+                            'Torre G',
+                            'Torre H',
+                            'Torre I',
+                            'Torre J',
+                          ].map(
+                            (t) => DropdownMenuItem(value: t, child: Text(t)),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            filtroTorre = value;
+                            filtroApartamento = null;
+                            paginaActual = 1;
+                          });
+                          _cargarPaquetes();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: filtroApartamento,
+                        decoration: InputDecoration(
+                          labelText: 'Apartamento',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        items: [
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('Todos'),
+                          ),
+                          // Generar apartamentos según la torre seleccionada
+                          if (filtroTorre != null)
+                            ..._getApartamentosPorTorre(filtroTorre!),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            filtroApartamento = value;
+                            paginaActual = 1;
+                          });
+                          _cargarPaquetes();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 15),
+                // Filtros de estado
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -1308,6 +1472,7 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
       );
 
       final body = {
+        'apartamentoId': apartamentoIdSeleccionado,
         'nombreDestinatario': residenteController.text.trim(),
         'empresaMensajeria': transportadoraController.text.trim(),
         'fechaRecepcion': fechaHora.toIso8601String(),
@@ -1692,6 +1857,14 @@ class DetallesPaquete extends StatelessWidget {
 
   const DetallesPaquete({super.key, required this.paquete});
 
+  // Convertir número de torre (1-10) a letra (A-J)
+  String _convertirTorreIdALetra(dynamic torresId) {
+    if (torresId == null) return 'N/A';
+    final id = int.tryParse(torresId.toString());
+    if (id == null || id < 1 || id > 10) return torresId.toString();
+    return String.fromCharCode('A'.codeUnitAt(0) + id - 1);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
@@ -1730,7 +1903,9 @@ class DetallesPaquete extends StatelessWidget {
                   ),
                   _buildDetalle(
                     'Torre',
-                    paquete['apartamento']?['torresId']?.toString() ?? 'N/A',
+                    _convertirTorreIdALetra(
+                      paquete['apartamento']?['torresId'],
+                    ),
                   ),
                   _buildDetalle(
                     'Apartamento',
