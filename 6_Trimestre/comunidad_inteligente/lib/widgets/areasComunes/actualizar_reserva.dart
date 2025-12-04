@@ -81,7 +81,7 @@ class _ActualizarState extends State<Actualizar> {
           }
 
           // Inicializar tipo de documento
-          tipoDocumentoId = reservas[0].tipodocumento;
+          tipoDocumentoId = reservas[0].tipoDocumentoId;
 
           // Inicializar acepta reglamento
           aceptaReglamento = reservas[0].aceptaReglamento;
@@ -394,7 +394,7 @@ class _ActualizarState extends State<Actualizar> {
                           children: [
                             DropdownButtonFormField<String>(
                               value: reservas.isNotEmpty
-                                  ? reservas[0].areaComun?.toString()
+                                  ? reservas[0].areaComunId?.toString()
                                   : null,
                               decoration: InputDecoration(
                                 labelText: "Área común",
