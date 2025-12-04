@@ -3,12 +3,13 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import Persona from "../models/personas.model.js";
 import Rol from "../models/rol.model.js";
-import { where } from "sequelize";
 
 export const crearUsuario = async (req, res) => {
   try {
-    const dataUser = req.body;
+    await User.sync();
+    await Persona.sync();
 
+    const dataUser = req.body;
 
     const nuevaPersona = await Persona.create({
       numeroDocumento: dataUser.numeroDocumento,
@@ -21,48 +22,31 @@ export const crearUsuario = async (req, res) => {
       correoElectronico: dataUser.correoElectronico,
     });
 
-   
-    let crearUser = (dataUser.primerNombre?.substring(0, 5) || "") +
-                    (dataUser.primerApellido?.substring(0, 2) || "");
-
-   
-    const buscarUsername = await User.findOne({ where: { username: crearUser } });
-    if (buscarUsername) {
-      crearUser = `${crearUser}${Math.floor(Math.random() * 99999)}`;
-    }
-
-    
     const hashedPassword = await bcrypt.hash(dataUser.password, 10);
-
- 
     const createUser = await User.create({
-      username: crearUser,
+      username: dataUser.username,
       numeroDocumento: nuevaPersona.numeroDocumento,
       password: hashedPassword,
       rolesId: dataUser.rolesId,
-      estadoId: dataUser.estadoId ?? 1,
+      estadoId: dataUser.estadoId ? dataUser.estadoId : 1,
     });
 
     res.status(201).json({
       ok: true,
       status: 201,
       message: "Usuario y Persona creados",
-      usuario: {
-        id: createUser.id,
-        username: createUser.username,
-      },
-      persona: {
-        numeroDocumento: nuevaPersona.numeroDocumento,
-      },
+      idUsuario: createUser.username,
+      idPersona: nuevaPersona.numeroDocumento,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       message: "Algo salió mal en la petición :(",
       status: 500,
       error: error.message,
     });
   }
 };
+
 export const obtenerUsuario = async (req, res) => {
   try {
     await User.sync();

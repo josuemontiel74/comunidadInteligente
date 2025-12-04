@@ -19,7 +19,7 @@ class ReservarAreas extends Model {
           allowNull: false,
         },
         fechaReserva: {
-          type: DataTypes.DATE,
+          type: DataTypes.DATEONLY,
           allowNull: false,
         },
         horaInicio: {
