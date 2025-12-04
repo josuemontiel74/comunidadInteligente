@@ -4,6 +4,10 @@ import Chart from "chart.js/auto";
 import VisitasAdmin from "./visitasAdmin.jsx";
 import Paqueteria from "./paqueteria.jsx";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "../Styles/vigilanteDashboard.css";
+import logo from "../../img/logo.png";
+import paquetesImg from "../../img/paquetes.jpeg";
+import visitasImg from "../../img/visitas.jpg";
 import Visitas from "./visitas.jsx";
 import Paqueadero from "./seleccionparqueadero.jsx";
 import Login from "./login.jsx";
@@ -196,7 +200,7 @@ function Dashboard() {
         {/* Barra superior */}
         <div className="d-flex align-items-center justify-content-between px-3 py-2">
           <div className="logo-container text-center flex-grow-1">
-            <Link to="/"><img src="../img/logo.png" alt="Logo del sistema" className="logo-img" /></Link>
+            <Link to="/"><img src={logo} alt="Logo del sistema" className="logo-img" /></Link>
           </div>
           <div className="position-relative">
                  <div
@@ -235,12 +239,12 @@ function Dashboard() {
         {/* Tarjetas principales */}
         <div className="d-flex flex-wrap justify-content-center gap-4 my-4">
           <div className="module-card">
-            <img src="../img/paquetes.jpeg" alt="Paquetería" />
+            <img src={paquetesImg} alt="Paquetería" />
             <h5>Gestión de Paquetería</h5>
             <Link to="/Paqueteria" className="btn btn-success">➜</Link>
           </div>
           <div className="module-card">
-            <img src="../img/visitas.jpg" alt="Visitas" />
+            <img src={visitasImg} alt="Visitas" />
             <h5>Gestión de Visitas</h5>
             <Link to="/visitas" className="btn btn-success">➜</Link>
           </div>

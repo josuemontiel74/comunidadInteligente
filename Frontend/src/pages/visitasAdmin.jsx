@@ -1,5 +1,7 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
-import './styles.css';
+import '../Styles/styles.css';
+import logo from '../../img/logo.png';
+import moto from '../../img/moto.png';
 import { Link, useNavigate } from "react-router-dom";
 
 function VisitasAdmin() {
@@ -14,14 +16,12 @@ function VisitasAdmin() {
       {/* Navbar */}
       <div className="d-flex align-items-center justify-content-between px-3 py-2">
         <div className="d-flex align-items-center">
-          <button id="menuToggle" className="btn text-dark fs-4 border-0 m-0 px-3">
-            ☰
-          </button>
+          <button id="menuToggle" className="btn text-dark fs-4 border-0 m-0 px-3">☰</button>
         </div>
         <div className="logo-container text-center flex-grow-1">
-          <a href="/vistas/dashboardAdmin.html">
-            <img src="/img/logo.png" alt="Logo del sistema" className="logo-img" />
-          </a>
+          <Link to="/">
+            <img src={logo} alt="Logo del sistema" className="logo-img" />
+          </Link>
         </div>
         <div className="d-flex align-items-center gap-3 px-3">
           <div className="dropdown">
@@ -41,9 +41,7 @@ function VisitasAdmin() {
               </li>
               <li><hr className="dropdown-divider" /></li>
               <li>
-              <button className="btn btn-light w-100" onClick={cerrarSesión}>
-              Cerrar sesión
-            </button>
+                <button className="btn btn-light w-100" onClick={cerrarSesión}>Cerrar sesión</button>
               </li>
             </ul>
           </div>
@@ -56,7 +54,7 @@ function VisitasAdmin() {
       </div>
 
   
-        <div id="menuTrabajador" className="worker-menu bg-success text-white">
+        <td><img src={moto} alt="Moto" width="24" height="24" title="Motocicleta"/></td>
           <div className="p-3 d-flex flex-column h-100">
             <button
           id="closeMenu"
@@ -70,7 +68,7 @@ function VisitasAdmin() {
             <span className="fw-semibold text-white">Administrador</span>
             <span className="fw-semibold text-white">Sesión activa</span>
           </div>
-            </div>
+        <td><img src={moto} alt="Moto" width="24" height="24" title="Motocicleta"/></td>
 
             <div className="mb-4">
           <h6 className="text-uppercase fw-bold">🏠 Inicio</h6>
@@ -230,7 +228,7 @@ function VisitasAdmin() {
           <td>Torre B - 404</td>
           <td>2025-07-10 13:15</td>
           <td>–</td>
-          <td><img src="/img/moto.png" alt="Moto" width="24" height="24" title="Motocicleta"/></td>
+          <td><img src={moto} alt="Moto" width="24" height="24" title="Motocicleta"/></td>
           <td><span class="badge bg-warning text-dark">En proceso</span></td>
           <td>
             <button class="btn btn-sm btn-outline-warning">Editar</button>
@@ -256,7 +254,7 @@ function VisitasAdmin() {
             <td>Torre E - 303</td>
             <td>2025-07-10 08:45</td>
             <td>–</td>
-            <td><img src="/img/moto.png" alt="Moto" width="24" height="24" title="Motocicleta"/></td>
+            <td><img src={moto} alt="Moto" width="24" height="24" title="Motocicleta"/></td>
             <td><span className="badge bg-warning text-dark">En proceso</span></td>
             <td>
                 <button className="btn btn-sm btn-outline-warning">Editar</button>
@@ -282,7 +280,7 @@ function VisitasAdmin() {
             <td>Torre B - 202</td>
             <td>2025-07-10 14:30</td>
             <td>–</td>
-            <td><img src="/img/moto.png" alt="Moto" width="24" height="24" title="Motocicleta"/></td>
+            <td><img src={moto} alt="Moto" width="24" height="24" title="Motocicleta"/></td>
             <td><span className="badge bg-warning text-dark">En proceso</span></td>
             <td>
                 <button className="btn btn-sm btn-outline-warning">Editar</button>
@@ -308,7 +306,7 @@ function VisitasAdmin() {
             <td>Torre D - 505</td>
             <td>2025-07-10 13:45</td>
             <td>–</td>
-            <td><img src="/img/moto.png" alt="Moto" width="24" height="24" title="Motocicleta"/></td>
+            <td><img src={moto} alt="Moto" width="24" height="24" title="Motocicleta"/></td>
             <td><span className="badge bg-warning text-dark">En proceso</span></td>
             <td>
                 <button className="btn btn-sm btn-outline-warning">Editar</button>
@@ -334,7 +332,7 @@ function VisitasAdmin() {
             <td>Torre C - 202</td>
             <td>2025-07-10 11:30</td>
             <td>–</td>
-            <td><img src="/img/moto.png" alt="Moto" width="24" height="24" title="Motocicleta"/></td>
+            <td><img src={moto} alt="Moto" width="24" height="24" title="Motocicleta"/></td>
             <td><span className="badge bg-warning text-dark">En proceso</span></td>
             <td>
                 <button className="btn btn-sm btn-outline-warning">Editar</button>
