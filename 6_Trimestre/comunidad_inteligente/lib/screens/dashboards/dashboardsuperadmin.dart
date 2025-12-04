@@ -5,7 +5,7 @@ import 'dart:convert';
 import '../paqueteria/paqueteria.dart';
 import '../gestionUsuarios/gestionusuarios.dart';
 import '../areasComunes/areascomunes.dart';
-import '../visitas.dart';
+import '../../widgets/areasComunes/registrar_reserva.dart';
 
 class Dashboardsuperadmin extends StatefulWidget {
   final String nombreUsuario;
@@ -153,11 +153,17 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                       ),
                     ]),
                     _buildMenuSection('Gestión de Áreas Comunes', [
-                      _buildMenuItem(context, Icons.event, 'Registrar Reserva'),
-                      _buildMenuItem(
+                      _buildMenuItemNav(
+                        context,
+                        Icons.event,
+                        'Registrar Reserva',
+                        RegistrarReserva(token: LoginServe.token),
+                      ),
+                      _buildMenuItemNav(
                         context,
                         Icons.location_on,
-                        'Consultar Zona',
+                        'Consultar Áreas Comunes',
+                        Areascomunes(token: LoginServe.token),
                       ),
                     ]),
                     _buildMenuSection('Gestión de Usuarios', [

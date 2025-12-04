@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../paqueteria/paqueteria.dart';
 import '../areasComunes/areascomunes.dart';
+import '../../widgets/areasComunes/registrar_reserva.dart';
 
 class Dashboardadministrador extends StatefulWidget {
   final String nombreUsuario;
@@ -154,11 +155,17 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
                       ),
                     ]),
                     _buildMenuSection('Gestión de Áreas Comunes', [
-                      _buildMenuItem(context, Icons.event, 'Registrar Reserva'),
-                      _buildMenuItem(
+                      _buildMenuItemNav(
+                        context,
+                        Icons.event,
+                        'Registrar Reserva',
+                        RegistrarReserva(token: LoginServe.token),
+                      ),
+                      _buildMenuItemNav(
                         context,
                         Icons.location_on,
-                        'Consultar Zona',
+                        'Consultar Áreas Comunes',
+                        Areascomunes(token: LoginServe.token),
                       ),
                     ]),
                     _buildMenuSection('Gestión de Residentes', [
