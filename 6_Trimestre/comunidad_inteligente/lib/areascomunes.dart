@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
-import '../../main.dart';
-import '../gestionUsuarios/gestionusuarios.dart';
+import 'main.dart';
+import 'gestionusuarios.dart';
 import 'package:http/http.dart' as http;
-import '../dashboards/dashboardsuperadmin.dart';
+import 'DashboardSuperAdmin.dart';
 
 class Areascomunes extends StatelessWidget {
   const Areascomunes({super.key, required this.token});
@@ -235,7 +235,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
 
   Future<void> finalizarReserva(int idReservas) async {
     final url = Uri.parse(
-      '${LoginServe.baseUrl}/api/AtulizarReserva/$idReservas',
+      'http://localhost:3001/api/AtulizarReserva/$idReservas',
     );
 
     final response = await http.put(
@@ -272,7 +272,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
   Future<void> cargarReservas() async {
     try {
       final response = await http.get(
-        Uri.parse('${LoginServe.baseUrl}/api/ReservasAreasComunesMovil'),
+        Uri.parse('http://localhost:3001/api/ReservasAreasComunesMovil'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
@@ -340,9 +340,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
-                    color: estaFinalizada
-                        ? Colors.grey.shade600
-                        : Colors.green.shade600,
+                    color: estaFinalizada ? Colors.grey.shade600 : Colors.green.shade600,
                     child: Row(
                       children: [
                         const Icon(Icons.event_note, color: Colors.white),
@@ -379,11 +377,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                           ),
                           const SizedBox(width: 10),
                           IconButton(
-                            icon: const Icon(
-                              Icons.delete,
-                              color: Colors.red,
-                              size: 30,
-                            ),
+                            icon: const Icon(Icons.delete, color: Colors.red, size: 30),
                             onPressed: () async {
                               final confirm = await showDialog<bool>(
                                 context: context,
@@ -394,13 +388,11 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                                   ),
                                   actions: [
                                     TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(context, false),
+                                      onPressed: () => Navigator.pop(context, false),
                                       child: const Text("Cancelar"),
                                     ),
                                     TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(context, true),
+                                      onPressed: () => Navigator.pop(context, true),
                                       child: const Text("Sí"),
                                     ),
                                   ],
@@ -534,7 +526,6 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
     );
   }
 }
-
 class Reserva {
   final int? idReservas;
   final String? fechaReserva;
@@ -621,7 +612,7 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
   DateTime? fechaReserva;
   int? aceptaReglamento;
   Future<void> crearReserva() async {
-    final url = Uri.parse('${LoginServe.baseUrl}/api/ReservarAreaMovil');
+    final url = Uri.parse('http://localhost:3001/api/ReservarAreaMovil');
     final response = await http.post(
       url,
       headers: {
@@ -983,7 +974,7 @@ class _ActualizarState extends State<Actualizar> {
     try {
       final response = await http.get(
         Uri.parse(
-          '${LoginServe.baseUrl}/api/BuscarReserva/${widget.idReservas}',
+          'http://localhost:3001/api/BuscarReserva/${widget.idReservas}',
         ),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
@@ -1032,7 +1023,7 @@ class _ActualizarState extends State<Actualizar> {
   // ignore: non_constant_identifier_names
   Future<void> Actualizar() async {
     final url = Uri.parse(
-      '${LoginServe.baseUrl}/api/AtulizarReserva/${widget.idReservas}',
+      'http://localhost:3001/api/AtulizarReserva/${widget.idReservas}',
     );
     Map<String, dynamic> datosActualizar = {};
 

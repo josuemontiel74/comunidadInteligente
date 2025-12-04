@@ -1,19 +1,21 @@
 import React, { useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
-import "./login.css";
+import "../Styles/login.css";
+import logo from "../../img/logo.png";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import Lottie from 'lottie-react';
-import animationData from './animacion/loginSaluda.json';
-import ingresar from "./animacion/Unlocked.json";
-import Error from "./animacion/Error.json";
+import animationData from '../animacion/loginSaluda.json';
+import ingresar from "../animacion/Unlocked.json";
+import Error from "../animacion/Error.json";
+import { handleSubmit as loginService } from "../services/login.serves.jsx";
 function Login() {
   const navigate = useNavigate();
-const [errorAnim, setErrorAnim] = useState(false);
+  const [errorAnim, setErrorAnim] = useState(false);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-const [exito, setExito] = useState(false);
+  const [exito, setExito] = useState(false);
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -27,45 +29,40 @@ const [exito, setExito] = useState(false);
     }
 
     try {
-      const res = await fetch("http://localhost:3001/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
+    const data  = await loginService(username,password);
+     
+      if (!data.ok) {
+        setErrorAnim(true);
+        setTimeout(() => setErrorAnim(false), 3000);
+        return;
+      }
+      localStorage.clear();
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.usuario));
+      console.log(" Token guardado:", localStorage.getItem("token"));
+      if (data.usuario.estadoId != 2) {
+        setExito(true);
+        setTimeout(() => {
+          const tokenAntes = localStorage.getItem("token");
+          console.log("🔑 Token antes de navegar:", tokenAntes);
+          if (data.usuario.rolesId === 1) {
+            navigate("/Superadmin");
+          } else if (data.usuario.rolesId === 2) {
+            navigate("/Admin");
+          } else if (data.usuario.rolesId === 3) {
+            navigate("/Vigilante");
+          } else {
+            navigate("/");
+          }
+        }, 3160);
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Si Acceso",
+          text: "Te quitaron el acceso a la aplicacion :(",
+        });
+      }
 
-      const data = await res.json();
-if (!res.ok) {
-  setErrorAnim(true); 
-  setTimeout(() => setErrorAnim(false), 3000); 
-  return;
-}
-localStorage.clear();
-localStorage.setItem("token", data.token);
-localStorage.setItem("user", JSON.stringify(data.usuario));
-console.log(" Token guardado:", localStorage.getItem("token"));
-if(data.usuario.estadoId != 2){
-  setExito(true);
-  setTimeout(() => {
-    const tokenAntes = localStorage.getItem("token");
-    console.log("🔑 Token antes de navegar:", tokenAntes);
-    if (data.usuario.rolesId === 1) {
-      navigate("/Superadmin");
-    } else if (data.usuario.rolesId === 2) {
-      navigate("/Admin");
-    } else if (data.usuario.rolesId === 3){
-      navigate("/Vigilante");
-    } else {
-      navigate("/");
-    }
-  }, 3160);
-} else{
-      Swal.fire({
-        icon: "error",
-        title: "Si Acceso",
-        text: "Te quitaron el acceso a la aplicacion :(",
-      });
-    }
-      
     } catch (err) {
       console.error(err);
       Swal.fire({
@@ -77,13 +74,13 @@ if(data.usuario.estadoId != 2){
   };
 
   return (
-    
+
     <div className="login-container">
-      
+
       <div className="login-box w-100 mx-3">
         <div className="text-center mb-4">
           <img
-            src="/img/logo.png"
+            src={logo}
             alt="Logo Azahar"
             style={{ maxHeight: "80px" }}
           />
@@ -94,27 +91,27 @@ if(data.usuario.estadoId != 2){
         </div>
         <div className="d-flex justify-content-center">
           {!exito && !errorAnim && (
-      <Lottie animationData={animationData} loop={true} autoplay={true} style={{ width: 310, height: 320 }} />
-    )}
+            <Lottie animationData={animationData} loop={true} autoplay={true} style={{ width: 310, height: 320 }} />
+          )}
 
-    {exito && (
-      <Lottie animationData={ingresar} loop={false} autoplay={true} style={{ width: 300, height: 300 }} />
-    )}
+          {exito && (
+            <Lottie animationData={ingresar} loop={false} autoplay={true} style={{ width: 300, height: 300 }} />
+          )}
 
-{errorAnim && (
-  <div style={{ textAlign: 'center', marginTop: '20px' }}>
- 
-    <h5>Usuario o contraseña incorrecta </h5>
-    <Lottie
-      animationData={Error}
-      loop={false}
-      autoplay={true}
-      style={{ width: 300, height: 300 }}
-    />
-  </div>
-)}
-       </div>
-   
+          {errorAnim && (
+            <div style={{ textAlign: 'center', marginTop: '20px' }}>
+
+              <h5>Usuario o contraseña incorrecta </h5>
+              <Lottie
+                animationData={Error}
+                loop={false}
+                autoplay={true}
+                style={{ width: 300, height: 300 }}
+              />
+            </div>
+          )}
+        </div>
+
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label className="form-label">Usuario</label>
