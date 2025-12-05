@@ -3,7 +3,7 @@ import RecepcionPaquetes from "../models/recepcionPaquetes.model.js";
 import Estado from "../models/estados.model.js";
 import Apartamento from "../models/apartamentos.model.js";
 import { sequelize } from "../config/connect.db.js";
-
+import { fn, col, where } from "sequelize";
 export const crearRecepcionPaquete = async (req, res) => {
   try {
     await RecepcionPaquetes.sync();
@@ -247,3 +247,17 @@ export const FinalizarRecepcionPaquete = async (req, res) => {
     });
   }
 };
+// informacion
+export const paqueteDelDia = async(req,res)=>{
+  try {
+     const paqueteDia = await RecepcionPaquetes.count({
+      where: where(fn("Date",col("fechaRecepcion")),"=",fn("CURDATE"))
+     })
+     res.status(200).json({
+      ok:true,
+      paqueteDia
+     })
+  } catch (error) {
+    console.log("Ocurrio un erro a la hora de trea la informacion",error.message);
+  }
+}
