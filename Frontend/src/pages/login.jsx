@@ -11,6 +11,19 @@ import Error from "../animacion/Error.json";
 import { handleSubmit as loginService } from "../services/login.serves.jsx";
 function Login() {
   const navigate = useNavigate();
+
+  // Bloquear navegación hacia atrás y adelante en login
+  React.useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    const handlePopState = () => {
+      window.history.pushState(null, "", window.location.href);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
   const [errorAnim, setErrorAnim] = useState(false);
 
   const [username, setUsername] = useState("");

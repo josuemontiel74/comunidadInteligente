@@ -10,23 +10,76 @@ import gestionImg from "../../img/gestion.webp";
 import residentesImg from "../../img/residentes.jpg";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
-
-
+import { visitasDia } from "../services/visitas.services";
+import { paquetesDia } from "../services/paqueteria.services";
+import { obtenerParqueaderos} from "../services/parqueadero.services.jsx";
 function Dashboard() {
-    
-
   const navigator = useNavigate();
   const chartRef = useRef(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [loading, setLoading] = useState(true);
   const [usuario, setUsuario] = useState(null);
+  const [totalVisitas, setTotalVisitas] = useState(0);
+   const [totalPaquetes, setTotalPaquetes] = useState(0);
+   
+     const [parqueaderos, setParqueaderos] = useState([]);
+     //obtenr paquederos
+     useEffect(() => {
+  async function fetchParqueaderos() {
+    const token = localStorage.getItem("token");
+    if (!token) return;
 
+    try {
+      const res = await obtenerParqueaderos(token);
+      const data = await res.json();
+
+      console.log(data);
+
+      setParqueaderos(data.body);
+    } catch (error) {
+      console.error("Error cargando parqueaderos:", error);
+    }
+  }
+
+  fetchParqueaderos();
+}, []);
+
+// para paqueaderos
+
+  const espaciosLibres = parqueaderos.filter((p) => p.estadoId === 4).length;
+  const espaciosOcupados = parqueaderos.filter((p) => p.estadoId === 3).length;
+// visitas del dia
   useEffect(() => {
-    window.history.pushState(null, "", window.location.href);
-    window.onpopstate = function () {
-      window.history.go(1);
-    };
-  }, []);
+    async function fetchVisitas() {
+      const token = localStorage.getItem("token"); 
+      if (!token) return;
+      
+      try {
+        const res = await visitasDia(token);
+        const data = await res.json();
+        setTotalVisitas(data.visitasDia);
+      } catch (error) {
+        console.error("Error cargando visitas del día:", error);
+      }
+    }
+    fetchVisitas();
+  }, []); 
+// paquetes del dia 
+useEffect(()=>{
+  async function fecthpaquetesDia() {
+    const token = localStorage.getItem("token");
+    if(!token)return;
+    try {
+       const res = await paquetesDia(token);
+       const data = await res.json();
+       setTotalPaquetes(data.paqueteDia)
+    } catch (error) {
+      console.error("No se cargaron los datos")
+    }
+    
+  }
+  fecthpaquetesDia();
+},[]);
 
   const cerrarSesión = (e) => {
     e.preventDefault();
@@ -45,15 +98,14 @@ function Dashboard() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     const userGuardado = localStorage.getItem("user");
-    
+
     if (!token) {
       navigator("/");
       return;
     }
-    
+
     if (userGuardado) {
       try {
-        
         const usuarioParsed = JSON.parse(userGuardado);
         console.log("=== USUARIO DESDE LOCALSTORAGE ===");
         console.log("Usuario completo:", usuarioParsed);
@@ -86,7 +138,7 @@ function Dashboard() {
           console.log("Data completo:", data);
           console.log("Data.usuario:", data.usuario);
           console.log("========================");
-          
+
           setUsuario(data.usuario);
           localStorage.setItem("user", JSON.stringify(data.usuario));
           setLoading(false);
@@ -99,42 +151,43 @@ function Dashboard() {
     }
   }, [navigator]);
 
-  useEffect(() => {
-    if (loading) return; 
+ useEffect(() => {
+  if (loading) return;
 
-    const ctx = document.getElementById("parqueoChart");
-    if (!ctx) return;
+  const ctx = document.getElementById("parqueoChart");
+  if (!ctx) return;
 
+  if (chartRef.current) {
+    chartRef.current.destroy();
+  }
+
+  chartRef.current = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: ["Ocupados", "Disponibles"],
+      datasets: [
+        {
+          data: [espaciosOcupados, espaciosLibres],
+          backgroundColor: ["#dc3545", "#198754"],
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "bottom" },
+      },
+    },
+  });
+
+  return () => {
     if (chartRef.current) {
       chartRef.current.destroy();
     }
+  };
+}, [parqueaderos, loading]);
 
-    chartRef.current = new Chart(ctx, {
-      type: "doughnut",
-      data: {
-        labels: ["Ocupados", "Disponibles"],
-        datasets: [
-          {
-            data: [7, 3],
-            backgroundColor: ["#dc3545", "#198754"],
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: "bottom" },
-        },
-      },
-    });
-
-    return () => {
-      if (chartRef.current) {
-        chartRef.current.destroy();
-      }
-    };
-  }, [loading]);
 
   if (loading) {
     return <h2 className="text-center text-success mt-5">Verificando sesión...</h2>;
@@ -145,8 +198,8 @@ function Dashboard() {
       <aside id="menuTrabajador" className="worker-menu bg-success text-white">
         <div className="p-3 d-flex flex-column h-100">
           <div className="d-flex align-items-center gap-3 mb-4">
-            <div className="user-circle bg-white d-flex align-items-center justify-content-center" 
-                 style={{ width: "50px", height: "50px", borderRadius: "50%" }}>
+            <div className="user-circle bg-white d-flex align-items-center justify-content-center"
+              style={{ width: "50px", height: "50px", borderRadius: "50%" }}>
               <span className="fw-bold text-success">
                 {usuario?.username?.substring(0, 2).toUpperCase() || "US"}
               </span>
@@ -207,11 +260,7 @@ function Dashboard() {
                   Registrar Reserva
                 </Link>
               </li>
-              <li>
-                <Link className="nav-link text-white" to="/AreasComunes">
-                  Consultar Zonas
-                </Link>
-              </li>
+           
             </ul>
           </div>
 
@@ -219,7 +268,7 @@ function Dashboard() {
             <h6 className="text-uppercase fw-bold">Gestión de Usuarios</h6>
             <ul className="nav flex-column mt-2 gap-2">
               <li>
-                <Link className="nav-link text-white" to="/Registro" state={{ abrirModal: true }}>
+                <Link className="nav-link text-white" to="/GestionUsuario" state={{ abrirModal: true }}>
                   Registrar Usuario
                 </Link>
               </li>
@@ -335,24 +384,25 @@ function Dashboard() {
         <div className="d-flex flex-wrap justify-content-center gap-4 my-4">
           <div className="dashboard-card">
             <h5>Visitas del Día</h5>
-            <div className="stat-number">9</div>
+            <div className="stat-number">{totalVisitas}</div>
             <p>Ingresos registrados hoy.</p>
             <Link to="/visitas" className="btn btn-success">
               Ver Registro
             </Link>
           </div>
+
           <div className="dashboard-card">
             <h5>Parqueaderos Ocupados</h5>
             <div className="chart-container">
               <canvas id="parqueoChart"></canvas>
             </div>
-            <Link to="/visitas" className="btn btn-success">
+            <Link to="/parqueaderos" className="btn btn-success">
               Ver Estado
             </Link>
           </div>
           <div className="dashboard-card">
             <h5>Paquetes Recibidos</h5>
-            <div className="stat-number">8</div>
+            <div className="stat-number">{totalPaquetes}</div>
             <p>Total de paquetes que llegaron al conjunto hoy.</p>
             <Link to="/Paqueteria" className="btn btn-success">
               Ver Detalles
@@ -363,5 +413,5 @@ function Dashboard() {
     </div>
   );
 }
-  
+
 export default Dashboard;
