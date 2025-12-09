@@ -7,7 +7,7 @@ import '../gestionUsuarios/gestionusuarios.dart';
 import '../areasComunes/areascomunes.dart';
 import '../../widgets/areasComunes/registrar_reserva.dart';
 import '../visitas/visitas.dart';
-import '../parqueaderos/parqueaderos.dart';
+import '../parqueaderos/parqueaderos.dart' show SeleccionarParqueaderoScreen;
 import '../reportes/reportes.dart';
 
 class Dashboardsuperadmin extends StatefulWidget {

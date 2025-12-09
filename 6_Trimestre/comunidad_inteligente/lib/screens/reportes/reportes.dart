@@ -732,46 +732,6 @@ class _ReportesScreenState extends State<ReportesScreen> {
     );
   }
 
-  Widget _buildGraficoTorta(List<MapEntry<String, dynamic>> datos) {
-    if (datos.isEmpty) return const SizedBox();
-
-    final total = datos.fold<double>(
-      0,
-      (sum, e) => sum + (e.value['valor'] as num).toDouble(),
-    );
-    if (total == 0) return const SizedBox();
-
-    return CustomPaint(
-      size: const Size(120, 120),
-      painter: _PieChartPainter(datos, total),
-    );
-  }
-
-  Widget _buildLeyendaItem(String label, Color color, int valor, int total) {
-    final porcentaje = total > 0 ? (valor / total * 100) : 0.0;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Container(
-            width: 16,
-            height: 16,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(child: Text(label, style: const TextStyle(fontSize: 13))),
-          Text(
-            '$valor (${porcentaje.toStringAsFixed(1)}%)',
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
-  }
-
   // Métodos específicos para PDF
   pw.Widget _buildPDFLeyendaItem(
     String label,
@@ -1221,51 +1181,4 @@ class _ReportesScreenState extends State<ReportesScreen> {
   String _formatearFecha(DateTime fecha) {
     return '${fecha.day.toString().padLeft(2, '0')}/${fecha.month.toString().padLeft(2, '0')}/${fecha.year}';
   }
-}
-
-// ============================================================================
-// PIE CHART PAINTER
-// ============================================================================
-class _PieChartPainter extends CustomPainter {
-  final List<MapEntry<String, dynamic>> datos;
-  final double total;
-
-  _PieChartPainter(this.datos, this.total);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-    double startAngle = -90 * (3.14159 / 180); // Empezar desde arriba
-
-    for (var entry in datos) {
-      final valor = (entry.value['valor'] as num).toDouble();
-      final color = entry.value['color'] as Color;
-      final sweepAngle = (valor / total) * 2 * 3.14159;
-
-      final paint = Paint()
-        ..color = color
-        ..style = PaintingStyle.fill;
-
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        startAngle,
-        sweepAngle,
-        true,
-        paint,
-      );
-
-      startAngle += sweepAngle;
-    }
-
-    // Círculo blanco en el centro para efecto "donut"
-    final centerPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-
-    canvas.drawCircle(center, radius * 0.5, centerPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

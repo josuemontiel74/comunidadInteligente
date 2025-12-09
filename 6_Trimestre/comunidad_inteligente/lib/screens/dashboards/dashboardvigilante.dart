@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../paqueteria/paqueteria.dart';
 import '../visitas/visitas.dart';
-import '../parqueaderos/parqueaderos.dart';
+import '../parqueaderos/parqueaderos.dart' show SeleccionarParqueaderoScreen;
 
 class Dashboardvigilante extends StatefulWidget {
   final String nombreUsuario;

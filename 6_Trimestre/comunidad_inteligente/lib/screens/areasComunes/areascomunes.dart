@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 import '../../widgets/areasComunes/detalles_reserva.dart';
 import '../../widgets/areasComunes/registrar_reserva.dart';
 import '../../widgets/areasComunes/actualizar_reserva.dart';
-import '../../utils/helpers.dart';
 
 class Areascomunes extends StatelessWidget {
   const Areascomunes({super.key, required this.token});

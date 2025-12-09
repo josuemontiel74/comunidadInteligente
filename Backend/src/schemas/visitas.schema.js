@@ -5,7 +5,7 @@ export const crearVisitanteSchema = Joi.object({
     .max(20)
     .required()
     .pattern(/^[a-zA-Z0-9]+$/),
-  nombreVisitante: Joi.string().min(20).max(100).optional(),
+  nombreVisitante: Joi.string().min(10).max(100).optional(),
   tipoDocumentoId: Joi.number().integer().min(1).optional(),
   apartamentoId: Joi.number().integer().min(1).required(),
   fechaHoraIngreso: Joi.date().required(),
@@ -20,7 +20,7 @@ export const crearVisitanteSchema = Joi.object({
     .max(10)
     .allow("", null)
     .optional(),
-}); 
+});
 
 export const obtenerVisitasSchema = Joi.object({
   idVisita: Joi.number().integer().min(1).optional(),
@@ -30,7 +30,7 @@ export const actualizarVisitanteSchema = Joi.object({
   numeroDocumento: Joi.string()
     .max(20)
     .pattern(/^[a-zA-Z0-9]+$/),
-  nombreVisitante: Joi.string().min(20).max(100).optional(),
+  nombreVisitante: Joi.string().min(10).max(100).optional(),
   tipoDocumentoId: Joi.number().integer().min(1).optional(),
   apartamentoId: Joi.number().integer().min(1).optional(),
   fechaHoraIngreso: Joi.date().optional(),
