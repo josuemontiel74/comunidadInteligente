@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../parqueaderos/parqueaderos.dart';
+import '../parqueaderos/parqueaderos.dart' show SeleccionarParqueaderoScreen;
 import '../../utils/helpers.dart';
 
 // ============================================================================
@@ -1580,7 +1580,8 @@ class DetallesVisitaDialog extends StatelessWidget {
   String _formatearFechaHora(String? fechaStr) {
     if (fechaStr == null || fechaStr.isEmpty) return 'N/A';
     try {
-      final fecha = parsearFechaDesdeBackend(fechaStr);
+      // Parsear para validar, pero usar las funciones de formato directamente
+      parsearFechaDesdeBackend(fechaStr);
       return '${formatearFechaParaMostrar(fechaStr)} ${formatearHoraParaMostrar(fechaStr)}';
     } catch (e) {
       return fechaStr;
@@ -1669,6 +1670,8 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
   String? tipoVehiculoId;
   String? codigoParqueadero;
 
+  List<Map<String, dynamic>> tiposDocumento = [];
+
   final List<String> torres = [
     'A',
     'B',
@@ -1715,6 +1718,27 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
     // Inicializar fecha y hora actual
     fechaHoraIngreso = DateTime.now();
     horaIngreso = TimeOfDay.now();
+    _cargarTiposDocumento();
+  }
+
+  Future<void> _cargarTiposDocumento() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://localhost:3001/api/tipodocumento'),
+        headers: {'Authorization': 'Bearer ${widget.token}'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['body'] != null) {
+          setState(() {
+            tiposDocumento = List<Map<String, dynamic>>.from(data['body']);
+          });
+        }
+      }
+    } catch (e) {
+      print('Error cargando tipos de documento: $e');
+    }
   }
 
   @override
@@ -1825,22 +1849,12 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                                 color: Colors.green,
                               ),
                             ),
-                            items: const [
-                              DropdownMenuItem(
-                                value: "1",
-                                child: Text("Cédula de Ciudadanía"),
-                              ),
-                              DropdownMenuItem(
-                                value: "2",
-                                child: Text("Cédula de Extranjería"),
-                              ),
-                              DropdownMenuItem(
-                                value: "3",
-                                child: Text("Pasaporte"),
-                              ),
-                              DropdownMenuItem(value: "4", child: Text("PEP")),
-                              DropdownMenuItem(value: "5", child: Text("PPT")),
-                            ],
+                            items: tiposDocumento.map((tipo) {
+                              return DropdownMenuItem(
+                                value: tipo['IdTipoDocumento'].toString(),
+                                child: Text(tipo['nombreTipoDocumento'] ?? ''),
+                              );
+                            }).toList(),
                             onChanged: (value) {
                               setState(() {
                                 tipoDocumentoId = value;
@@ -2420,6 +2434,8 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
   String? tipoVehiculoId;
   String? codigoParqueadero;
 
+  List<Map<String, dynamic>> tiposDocumento = [];
+
   final Map<String, List<String>> apartamentosPorTorre = {
     'A': ['101', '102', '103', '104', '105'],
     'B': ['201', '202', '203', '204', '205'],
@@ -2430,6 +2446,7 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
     'G': ['701', '702', '703', '704', '705'],
     'H': ['801', '802', '803', '804', '805'],
     'I': ['901', '902', '903', '904', '905'],
+    'J': ['1001', '1002', '1003', '1004', '1005'],
   };
 
   final Map<String, Map<String, int>> apartamentosConId = {
@@ -2442,12 +2459,34 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
     'G': {'701': 31, '702': 32, '703': 33, '704': 34, '705': 35},
     'H': {'801': 36, '802': 37, '803': 38, '804': 39, '805': 40},
     'I': {'901': 41, '902': 42, '903': 43, '904': 44, '905': 45},
+    'J': {'1001': 46, '1002': 47, '1003': 48, '1004': 49, '1005': 50},
   };
 
   @override
   void initState() {
     super.initState();
     _inicializarDatos();
+    _cargarTiposDocumento();
+  }
+
+  Future<void> _cargarTiposDocumento() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://localhost:3001/api/tipodocumento'),
+        headers: {'Authorization': 'Bearer ${widget.token}'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['body'] != null) {
+          setState(() {
+            tiposDocumento = List<Map<String, dynamic>>.from(data['body']);
+          });
+        }
+      }
+    } catch (e) {
+      print('Error cargando tipos de documento: $e');
+    }
   }
 
   void _inicializarDatos() {
@@ -2619,11 +2658,12 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
                       label: 'Tipo de Documento *',
                       value: tipoDocumentoId,
                       icono: Icons.credit_card,
-                      items: [
-                        DropdownMenuItem(value: '1', child: Text('Cédula')),
-                        DropdownMenuItem(value: '2', child: Text('Pasaporte')),
-                        DropdownMenuItem(value: '3', child: Text('Otro')),
-                      ],
+                      items: tiposDocumento.map((tipo) {
+                        return DropdownMenuItem(
+                          value: tipo['IdTipoDocumento'].toString(),
+                          child: Text(tipo['nombreTipoDocumento'] ?? ''),
+                        );
+                      }).toList(),
                       onChanged: (value) =>
                           setState(() => tipoDocumentoId = value),
                     ),
