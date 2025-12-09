@@ -21,13 +21,14 @@ import parqueaderosRoutes from "../routers/parqueaderos.router.js";
 import tiposVehiculo from "../routers/tiposVehiculo.router.js";
 import Vehiculo from "../routers/vehiculo.router.js";
 import dashboardRoutes from "../routers/dashboard.router.js";
+import reportesRoutes from "../routers/reportes.router.js";
 
 const app = express();
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:53030"],
+    origin: ["http://localhost:5173", "http://localhost:52945"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   })
@@ -52,6 +53,7 @@ app.use("/api/", parqueaderosRoutes);
 app.use("/api/", tiposVehiculo);
 app.use("/api/", Vehiculo);
 app.use("/api/", dashboardRoutes);
+app.use("/api/reportes", reportesRoutes);
 
 app.use((req, res, next) => {
   res.status(404).json({
@@ -60,3 +62,4 @@ app.use((req, res, next) => {
 });
 
 export default app;
+
