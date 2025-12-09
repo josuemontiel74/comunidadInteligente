@@ -13,7 +13,7 @@ router.post(
   validarRol(1, 2, 3),
   visitasController.crearVisita
 );
-
+router.get("/visitasDia",validarJWT,validarRol(1,2,3),visitasController.visitasDelDia)
 router.get("/visitaJoin", visitasController.listarVisitas);
 
 router.get(

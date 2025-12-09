@@ -7,6 +7,7 @@ import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import tiposVehiculoModel from "../models/tiposVehiculo.model.js";
 import { sequelize } from "../config/connect.db.js";
+import { fn, col, where } from "sequelize";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -578,3 +579,19 @@ export const finalizarVisita = async (req, res) => {
     });
   }
 };
+ 
+export const visitasDelDia = async(req,res)=>{
+  try {
+     const visitasDia = await Visita.count({
+
+    where: where(fn("DATE", col("fechaHoraIngreso")), "=", fn("CURDATE"))
+
+     })
+     res.status(200).json({
+      ok:true,
+      visitasDia
+     });
+  } catch (error) {
+    console.log("Lo siento esta ocurriendo un erro al trae la informacion",error.message)
+  }
+}

@@ -14,12 +14,6 @@ import Login from "./login.jsx";
 
 function Dashboard() {
   const navigate = useNavigate();
-  useEffect(() => {
-    window.history.pushState(null, "", window.location.href);
-    window.onpopstate = function () {
-      window.history.go(1);
-    };
-  }, []);
   const CERRAR = (e) => {
     e.preventDefault();
     localStorage.clear();

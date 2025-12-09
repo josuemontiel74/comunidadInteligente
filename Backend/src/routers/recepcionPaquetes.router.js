@@ -5,7 +5,7 @@ import validate from "../middlewares/user.middleware.js";
 import * as RecepcionPaquetesSchema from "../schemas/recepcionPaquetes.schema.js";
 
 const router = Router();
-
+router.get("/paquetesDia",validarJWT,validarRol(1,2,3),recepcionPaquetesController.paqueteDelDia);
 router.post(
   "/recepcionPaquetes",
   validate(RecepcionPaquetesSchema.crearRecepcionPaquete, "body", true),

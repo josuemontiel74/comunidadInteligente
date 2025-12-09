@@ -109,14 +109,6 @@ function Dashboard() {
     setRolUsuario(rol);
   }, []);
 
-  // useEffect para prevenir navegación hacia atrás
-  useEffect(() => {
-    window.history.pushState(null, "", window.location.href);
-    window.onpopstate = function () {
-      window.history.go(1);
-    };
-  }, []);
-
   // useEffect para crear el gráfico
   useEffect(() => {
     const ctx = document.getElementById("parqueoChart");
@@ -236,11 +228,6 @@ function Dashboard() {
               <li>
                 <Link className="nav-link text-white" to="/AreasComunes">
                   Consultar Eventos
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" onClick={gestionAreacomunes}>
-                  Consultar Zonas
                 </Link>
               </li>
             </ul>

@@ -5,6 +5,8 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import "../Styles/estiloVisitas.css";
 import logo from "../../img/logo.png";
 import Swal from "sweetalert2";
+import { obtenerVisitas, obtenerVisitasJoin, crearVisita, actualizarVisita, finalizarVisita } from "../services/visitas.services.jsx";
+import { obtenerParqueaderos, actualizarParqueadero } from "../services/parqueadero.services.jsx";
 
 const styles = `
   @keyframes pulse {
@@ -129,6 +131,45 @@ function Visitas() {
 
   
   const [parqueaderosDisponibles, setParqueaderosDisponibles] = useState([]);
+
+  // Persistir formulario en sessionStorage para evitar pérdida por recarga
+  useEffect(() => {
+    const saved = sessionStorage.getItem("visitaForm");
+    if (saved) {
+      try {
+        const f = JSON.parse(saved);
+        if (f.numeroDocumento) setNumeroDocumento(f.numeroDocumento);
+        if (f.nombreVisitante) setNombreVisitante(f.nombreVisitante);
+        if (f.tipoDocumentoId) setTipoDocumentoId(String(f.tipoDocumentoId));
+        if (f.apartamentoId) setApartamentoId(String(f.apartamentoId));
+        if (f.fechaHoraIngreso) setFechaHoraIngreso(f.fechaHoraIngreso);
+        if (f.observaciones) setObservaciones(f.observaciones);
+        if (f.matricula) setMatricula(f.matricula);
+        if (f.tipoVehiculoId) setTipoVehiculoId(String(f.tipoVehiculoId));
+        if (f.codigoParqueadero) setCodigoParqueadero(f.codigoParqueadero);
+        if (f.vieneEnVehiculo) setVieneEnVehiculo(f.vieneEnVehiculo);
+      } catch (e) {
+        console.warn("No se pudo parsear visitaForm de sessionStorage", e);
+      }
+    }
+  }, []);
+
+  // Guardar en sessionStorage cada vez que cambien los campos relevantes
+  useEffect(() => {
+    const f = {
+      numeroDocumento,
+      nombreVisitante,
+      tipoDocumentoId,
+      apartamentoId,
+      fechaHoraIngreso,
+      observaciones,
+      matricula,
+      tipoVehiculoId,
+      codigoParqueadero,
+      vieneEnVehiculo,
+    };
+    sessionStorage.setItem("visitaForm", JSON.stringify(f));
+  }, [numeroDocumento, nombreVisitante, tipoDocumentoId, apartamentoId, fechaHoraIngreso, observaciones, matricula, tipoVehiculoId, codigoParqueadero, vieneEnVehiculo]);
 
   
   const formatearFecha = (fechaISO) => {
@@ -465,15 +506,7 @@ switch (rolesId) {
     );
 
     try {
-      const res = await fetch("http://localhost:3001/api/visitaJoin", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-        },
-      });
+      const res = await obtenerVisitasJoin(token);
 
       if (res.status === 401) {
         console.error("Token expirado o inválido");
@@ -546,6 +579,47 @@ switch (rolesId) {
     }
   }, [vieneEnVehiculo, tipoVehiculoId]);
 
+  // Recibir el código del parqueadero seleccionado desde seleccionparqueadero.jsx
+  useEffect(() => {
+    const st = location.state;
+    if (!st) return;
+
+    // Si recibimos el formState, restaura los campos del formulario
+    if (st.formState) {
+      const f = st.formState;
+      if (f.numeroDocumento !== undefined) setNumeroDocumento(f.numeroDocumento);
+      if (f.nombreVisitante !== undefined) setNombreVisitante(f.nombreVisitante);
+      if (f.tipoDocumentoId !== undefined) setTipoDocumentoId(String(f.tipoDocumentoId));
+      if (f.apartamentoId !== undefined) setApartamentoId(String(f.apartamentoId));
+      if (f.fechaHoraIngreso !== undefined) setFechaHoraIngreso(f.fechaHoraIngreso);
+      if (f.observaciones !== undefined) setObservaciones(f.observaciones);
+      if (f.matricula !== undefined) setMatricula(f.matricula);
+      if (f.vieneEnVehiculo !== undefined) setVieneEnVehiculo(f.vieneEnVehiculo);
+      if (f.codigoParqueadero !== undefined) setCodigoParqueadero(f.codigoParqueadero);
+    }
+
+    if (st.codigoParqueaderoSeleccionado && st.tipoVehiculoId) {
+      setCodigoParqueadero(st.codigoParqueaderoSeleccionado);
+      setTipoVehiculoId(String(st.tipoVehiculoId));
+      // Mostrar confirmación breve al usuario
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: `Parqueadero ${st.codigoParqueaderoSeleccionado} seleccionado`,
+        showConfirmButton: false,
+        timer: 2000
+      });
+    }
+
+    if (st.abrirModal) {
+      abrirModal();
+    }
+
+    // Limpiar el state para evitar reutilizaciones
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }, [location.state]);
+
   const cargarParqueaderosDisponibles = async () => {
     const token = localStorage.getItem("token");
     console.log(" === INICIANDO CARGA DE PARQUEADEROS ===");
@@ -559,9 +633,13 @@ switch (rolesId) {
     }
 
     try {
-      const res = await fetch("http://localhost:3001/api/parqueadero", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await obtenerParqueaderos(token);
+      if (!res.ok) {
+        console.error("Error al obtener parqueaderos, status:", res.status);
+        setParqueaderosDisponibles([]);
+        return;
+      }
+
       const data = await res.json();
       console.log(" Total parqueaderos recibidos:", data.body?.length || 0);
       console.log(" Estructura de parqueadero ejemplo:", data.body?.[0]);
@@ -577,7 +655,6 @@ switch (rolesId) {
       console.log(" Distribución por estado:", porEstado);
       console.log(" Distribución por tipo:", porTipo);
 
-
       const disponibles =
         data.body?.filter((p) => {
           const esLibre = p.estadoId === 4;
@@ -585,9 +662,7 @@ switch (rolesId) {
 
           if (esLibre) {
             console.log(
-              `🔍 Parqueadero LIBRE ${p.codigoParqueadero}: estadoId=${
-                p.estadoId
-              }, tipoVehiculoId=${p.tipoVehiculoId} (necesario=${parseInt(
+              `🔍 Parqueadero LIBRE ${p.codigoParqueadero}: estadoId=${p.estadoId}, tipoVehiculoId=${p.tipoVehiculoId} (necesario=${parseInt(
                 tipoVehiculoId
               )}) =${esTipoCorrect}`
             );
@@ -601,7 +676,7 @@ switch (rolesId) {
       console.log(
         `   - Códigos: [${disponibles
           .map((p) => p.codigoParqueadero)
-          .join(", ")}]`
+          .join(", ")} ]`
       );
       console.log(" === FIN CARGA DE PARQUEADEROS ===");
 
@@ -810,18 +885,7 @@ switch (rolesId) {
       estadoId: 3, // Ocupado
       tipoVehiculoId: parseInt(tipoVehiculoId),
     };
-
-    const res = await fetch(
-      `http://localhost:3001/api/parqueadero/${codigoParqueadero}`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(datosAsignacion),
-      }
-    );
+    const res = await actualizarParqueadero(codigoParqueadero, datosAsignacion, token);
 
     if (!res.ok) {
       const errorText = await res.text();
@@ -858,26 +922,15 @@ switch (rolesId) {
 
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(
-        `http://localhost:3001/api/parqueadero/${codigoParqueaderoALiberar}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            estadoId: 4, // Libre
-            tipoVehiculoId: null,
-          }),
-        }
+      const res = await actualizarParqueadero(
+        codigoParqueaderoALiberar,
+        { estadoId: 4, tipoVehiculoId: null },
+        token
       );
 
       if (!res.ok) throw new Error("Error al liberar parqueadero");
 
-      console.log(
-        ` Parqueadero ${codigoParqueaderoALiberar} liberado correctamente`
-      );
+      console.log(`✅ Parqueadero ${codigoParqueaderoALiberar} liberado correctamente`);
       return true;
     } catch (error) {
       console.error("Error liberando parqueadero:", error);
@@ -1004,33 +1057,33 @@ switch (rolesId) {
     }
 
     // 🔹 Determinar método y URL
-    const url =
-      editingIndex !== null
-        ? `http://localhost:3001/api/visita/${visitas[editingIndex].idVisita}`
-        : "http://localhost:3001/api/visita";
+    // 🔹 Enviar al backend usando servicios
+    let res;
+    try {
+      if (editingIndex !== null) {
+        console.log("📤 Actualizando visita (servicio):", visitas[editingIndex].idVisita, visitaData);
+        res = await actualizarVisita(visitas[editingIndex].idVisita, visitaData, token);
+      } else {
+        console.log("📤 Creando visita (servicio):", visitaData);
+        res = await crearVisita(visitaData, token);
+      }
 
-    const method = editingIndex !== null ? "PATCH" : "POST";
+      const contentType = res.headers.get("content-type");
+      const data = contentType && contentType.includes("application/json")
+        ? await res.json()
+        : await res.text();
 
-    console.log("📤 Enviando al backend:", { url, method, visitaData });
-
-    // 🔹 Enviar al backend
-    const res = await fetch(url, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(visitaData),
-    });
-
-    const contentType = res.headers.get("content-type");
-    const data = contentType && contentType.includes("application/json")
-      ? await res.json()
-      : await res.text();
-
-    if (!res.ok) {
-      console.error("❌ Error del servidor:", data);
-      Swal.fire("Error", data.error || "No se pudo registrar la visita", "error");
+      if (!res.ok) {
+        console.error("❌ Error del servidor:", data);
+        Swal.fire("Error", data.error || "No se pudo registrar la visita", "error");
+        return;
+      }
+      
+      // mantener la variable data para el resto del flujo
+      // (el código siguiente espera que la petición haya ido bien)
+    } catch (err) {
+      console.error("❌ Error en la petición de visita:", err);
+      Swal.fire("Error", err.message || "No se pudo conectar al servidor", "error");
       return;
     }
 
@@ -1099,17 +1152,7 @@ switch (rolesId) {
           console.log(` Finalizando visita ID: ${idVisita}`);
           console.log(" Usando PATCH con payload completo");
 
-          const response = await fetch(
-            `http://localhost:3001/api/visitaFinalizar/${idVisita}`,
-            {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify(visitaPayload),
-            }
-          );
+          const response = await finalizarVisita(idVisita, token);
 
           console.log(" Response status:", response.status);
 
@@ -1258,11 +1301,6 @@ switch (rolesId) {
                   Registrar Reserva
                 </Link>
               </li>
-              <li>
-                <Link className="nav-link text-white" to="/AreasComunes">
-                  Consultar Zonas
-                </Link>
-              </li>
             </ul>
           </div>
 
@@ -1272,7 +1310,7 @@ switch (rolesId) {
               <li>
                 <Link
                   className="nav-link text-white"
-                  to="/Registro"
+                  to="/GestionUsuario"
                   state={{ abrirModal: true }}
                 >
                   Registrar Usuario
@@ -1883,8 +1921,31 @@ switch (rolesId) {
                             className="form-select"
                             value={tipoVehiculoId}
                             onChange={(e) => {
-                              setTipoVehiculoId(e.target.value);
+                              const tipoSeleccionado = e.target.value;
+                              setTipoVehiculoId(tipoSeleccionado);
                               setCodigoParqueadero("");
+                              
+                              // Si se selecciona un tipo de vehículo válido, redirigir a seleccionar parqueadero
+                              if (tipoSeleccionado === "1" || tipoSeleccionado === "2") {
+                                // Enviar el estado actual del formulario para preservarlo mientras el usuario selecciona parqueadero
+                                navigate("/parqueaderos", {
+                                  state: {
+                                    tipoVehiculoId: parseInt(tipoSeleccionado),
+                                    fromVisitas: true,
+                                    formState: {
+                                      numeroDocumento,
+                                      nombreVisitante,
+                                      tipoDocumentoId,
+                                      apartamentoId,
+                                      fechaHoraIngreso,
+                                      observaciones,
+                                      matricula,
+                                      vieneEnVehiculo,
+                                      codigoParqueadero
+                                    }
+                                  }
+                                });
+                              }
                             }}
                             required
                           >

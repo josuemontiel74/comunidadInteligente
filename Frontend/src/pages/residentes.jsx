@@ -6,12 +6,9 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button, Table, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
+import { obtenerResidentes, crearOcupante, actualizarOcupante, finalizarOcupante } from "../services/residentes.services.jsx";
 
-const API_BASE_URL = "http://localhost:3001/api";
-const getAuthToken = () => {
-  return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Impvc3VlMjAyMyIsInJvbGVzSWQiOjEsImlhdCI6MTc1OTQ5NzMzOCwiZXhwIjoxNzU5NTAwOTM4fQ.zoWZMuCBmzoyZvQ8_8OYGKHwQpkDFaB8QSMQXBQcbXA";
-};
-
+// Usamos las funciones del servicio para las llamadas a la API.
 
   const obtenerToken = () => {
     const token =
@@ -95,162 +92,7 @@ switch (rolesId) {
 }
 
   const nombreUsuario = obtenerUsuarioDelToken();
-const apiService = {
- 
-  getOcupantes: async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/ocupantes`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-          "Content-Type": "application/json",
-        },
-      });
-      const data = await response.json();
-      return data.ok ? data.body : [];
-    } catch (error) {
-      console.error("Error al obtener ocupantes:", error);
-      throw error;
-    }
-  },
 
-  createOcupante: async (ocupanteData) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/ocupante`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(ocupanteData),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error response:", errorText);
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await response.text();
-        console.error("Non-JSON response:", text);
-        throw new Error("La respuesta del servidor no es JSON válido");
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error("Error al crear ocupante:", error);
-      throw error;
-    }
-  },
-
-  updateOcupante: async (id, ocupanteData) => {
-    try {
-      console.log("=== API UPDATE DEBUG ===");
-      console.log("URL:", `${API_BASE_URL}/ocupante/${id}`);
-      console.log("Datos enviados:", JSON.stringify(ocupanteData, null, 2));
-
-      const response = await fetch(`${API_BASE_URL}/ocupante/${id}`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(ocupanteData),
-      });
-
-      console.log("Response status:", response.status);
-      console.log("Response headers:", [...response.headers.entries()]);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error response body:", errorText);
-
-      
-        try {
-          const errorJson = JSON.parse(errorText);
-          console.error("Error JSON parsed:", errorJson);
-          throw new Error(
-            `HTTP ${response.status}: ${
-              errorJson.message || response.statusText
-            }`
-          );
-        } catch (parseError) {
-          throw new Error(
-            `HTTP ${response.status}: ${response.statusText} - ${errorText}`
-          );
-        }
-      }
-
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await response.text();
-        console.error("Non-JSON response:", text);
-        throw new Error("La respuesta del servidor no es JSON válido");
-      }
-
-      const data = await response.json();
-      console.log("Response data:", data);
-      return data;
-    } catch (error) {
-      console.error("Error al actualizar ocupante:", error);
-      throw error;
-    }
-  },
-
-  finalizarOcupante: async (id) => {
-    try {
-      console.log("=== API DELETE DEBUG ===");
-      console.log("URL:", `${API_BASE_URL}/ocupante/${id}`);
-      console.log("Método: DELETE");
-
-      const response = await fetch(`${API_BASE_URL}/ocupante/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      console.log("Response status:", response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error response body:", errorText);
-
-        try {
-          const errorJson = JSON.parse(errorText);
-          console.error("Error JSON parsed:", errorJson);
-          throw new Error(
-            `HTTP ${response.status}: ${
-              errorJson.message || response.statusText
-            }`
-          );
-        } catch (parseError) {
-          throw new Error(
-            `HTTP ${response.status}: ${response.statusText} - ${errorText}`
-          );
-        }
-      }
-
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await response.text();
-        console.error("Non-JSON response:", text);
-        throw new Error("La respuesta del servidor no es JSON válido");
-      }
-
-      const data = await response.json();
-      console.log("Response data:", data);
-      return data;
-    } catch (error) {
-      console.error("Error al finalizar ocupante:", error);
-      throw error;
-    }
-  },
-};
 
 function Residentes() {
   const location = useLocation();
@@ -271,7 +113,23 @@ function Residentes() {
   const cargarResidentes = async () => {
     try {
       setLoading(true);
-      const ocupantes = await apiService.getOcupantes();
+      const res = await obtenerResidentes(token);
+
+      if (res?.status === 401) {
+        console.error("Token expirado o inválido");
+        localStorage.removeItem("token");
+        navegacion("/");
+        return;
+      }
+
+      if (!res.ok) {
+        console.error("Error al obtener residentes:", res.status, res.statusText);
+        throw new Error(`Error ${res.status}: ${res.statusText}`);
+      }
+
+      const data = await res.json();
+      const ocupantes = data.body || data;
+
       const residentesFormateados = ocupantes.map((ocupante) => ({
         idOcupante: ocupante.idOcupante,
         tipoDocumento: mapTipoDocumento(ocupante.tipoDocumentoId),
@@ -421,8 +279,22 @@ function Residentes() {
   
   const cargarApartamentos = async () => {
     try {
-   
-      const ocupantes = await apiService.getOcupantes();
+      const res = await obtenerResidentes(token);
+
+      if (res?.status === 401) {
+        console.error("Token expirado o inválido");
+        localStorage.removeItem("token");
+        navegacion("/");
+        return;
+      }
+
+      if (!res.ok) {
+        console.error("Error al obtener residentes para aptos:", res.status, res.statusText);
+        throw new Error(`Error ${res.status}: ${res.statusText}`);
+      }
+
+      const data = await res.json();
+      const ocupantes = data.body || data;
       const apartamentosUnicos = [];
       const idsVistos = new Set();
 
@@ -536,8 +408,8 @@ function Residentes() {
           formData.segundoApellido && formData.segundoApellido.trim() !== ""
             ? formData.segundoApellido
             : null,
-        telefono: formData.telefono || "0000000000", 
-        correoElectronico: formData.correo || "noemail@example.com", requerido
+        telefono: formData.telefono || "0000000000",
+        correoElectronico: formData.correo || "noemail@example.com",
       };
 
  
@@ -560,7 +432,13 @@ function Residentes() {
           console.log("ID a actualizar:", editIndex);
           console.log("Datos a enviar:", ocupanteData);
 
-          await apiService.updateOcupante(editIndex, ocupanteData);
+          const resUpdate = await actualizarOcupante(editIndex, ocupanteData, token);
+          if (!resUpdate.ok) {
+            const errText = await resUpdate.text();
+            console.error("Error actualizando ocupante:", errText);
+            throw new Error(`Error ${resUpdate.status}: ${errText}`);
+          }
+
           Swal.fire("Guardado", "Cambios guardados correctamente", "success");
           cargarResidentes();
           cerrarModal();
@@ -568,18 +446,17 @@ function Residentes() {
           Swal.fire("No guardado", "Los cambios no se aplicaron", "info");
         }
       } else {
-        const result = await apiService.createOcupante(ocupanteData);
+        const resCreate = await crearOcupante(ocupanteData, token);
+        const contentType = resCreate.headers.get("content-type");
+        const dataCreate = contentType && contentType.includes("application/json") ? await resCreate.json() : await resCreate.text();
 
-        if (result.message && result.ocupante) {
+        if (!resCreate.ok) {
+          console.error("Error creando ocupante:", dataCreate);
+          Swal.fire("Error", dataCreate.message || dataCreate || "Error al registrar residente", "error");
+        } else {
           Swal.fire("Éxito", "Residente registrado con éxito", "success");
           cargarResidentes();
           cerrarModal();
-        } else {
-          Swal.fire(
-            "Error",
-            result.message || "Error al registrar residente",
-            "error"
-          );
         }
       }
     } catch (error) {
@@ -642,7 +519,12 @@ function Residentes() {
 
     if (result.isConfirmed) {
       try {
-        await apiService.finalizarOcupante(residente.idOcupante);
+        const resFinal = await finalizarOcupante(residente.idOcupante, token);
+        if (!resFinal.ok) {
+          const errText = await resFinal.text();
+          console.error("Error finalizando ocupante:", errText);
+          throw new Error(`Error ${resFinal.status}: ${errText}`);
+        }
         Swal.fire("Finalizado", "El residente ha sido finalizado", "success");
         cargarResidentes();
       } catch (error) {

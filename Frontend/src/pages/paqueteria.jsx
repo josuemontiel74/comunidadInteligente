@@ -4,6 +4,7 @@ import logo from "../../img/logo.png";
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import { obtenerPaquetes, registrarPaquete, actualizarPaquete, eliminarPaquete } from "../services/paqueteria.services.jsx";
 
 function Paqueteria() {
   const navegacion = useNavigate();
@@ -318,17 +319,7 @@ switch (rolesId) {
     console.log("Datos a enviar para registro:", paqueteParaRegistrar);
 
     try {
-      const response = await fetch(
-        "http://localhost:3001/api/recepcionPaquetes",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(paqueteParaRegistrar),
-        }
-      );
+      const response = await registrarPaquete(paqueteParaRegistrar, token);
 
       console.log(
         "Respuesta del servidor (registro):",
@@ -398,17 +389,7 @@ switch (rolesId) {
       if (result.isConfirmed) {
         try {
           console.log(`Editando paquete ID: ${paqueteId}`);
-          const response = await fetch(
-            `http://localhost:3001/api/recepcionPaquetes/${paqueteId}`,
-            {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify(paqueteParaEditar),
-            }
-          );
+          const response = await actualizarPaquete(paqueteId, paqueteParaEditar, token);
 
           console.log(
             "Respuesta del servidor:",
@@ -442,9 +423,7 @@ switch (rolesId) {
 
   const recargarPaquetes = async () => {
     try {
-      const response = await fetch(
-        "http://localhost:3001/api/recepcion-paquetes"
-      );
+      const response = await obtenerPaquetes(token);
       const data = await response.json();
       const paquetesMapeados = data.map((item) => ({
         id: item.idPaquete,
@@ -480,15 +459,7 @@ switch (rolesId) {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const response = await fetch(
-            `http://localhost:3001/api/recepcionPaquetes/${idPaquete}`,
-            {
-              method: "DELETE",
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
+          const response = await eliminarPaquete(idPaquete, token);
 
           if (await manejarRespuestaHTTP(response)) {
             Swal.fire("¡Paquete entregado!", "", "success");
@@ -616,11 +587,6 @@ switch (rolesId) {
               <li>
                 <Link className="nav-link text-white" to="/AreasComunes">
                   Registrar Reserva
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/AreasComunes">
-                  Consultar Zonas
                 </Link>
               </li>
             </ul>
@@ -1087,7 +1053,7 @@ switch (rolesId) {
                           <option value="">Selecciona apartamento</option>
                           {formDataEditar.torre &&
                             Array.from({ length: 5 }).map((_, i) => {
-                         
+                              const num =
                                 formDataEditar.torre === "J"
                                   ? 1001 + i
                                   : (formDataEditar.torre.charCodeAt(0) -

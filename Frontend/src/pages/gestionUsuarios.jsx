@@ -154,7 +154,7 @@ function Parqueaderos() {
         telefono,
         correoElectronico
       }
-      const resUsuario = await registrarUsuario( datos, token     )
+      const resUsuario = await registrarUsuario(datos, token)
       const dataUsuario = await resUsuario.json();
       console.log("Respuesta backend:", dataUsuario);
 
@@ -480,11 +480,6 @@ function Parqueaderos() {
                   Registrar Reserva
                 </Link>
               </li>
-              <li>
-                <Link className="nav-link text-white" to="../parqueaderos=1">
-                  Consultar Zonas
-                </Link>
-              </li>
             </ul>
           </div>
 
@@ -600,81 +595,112 @@ function Parqueaderos() {
             </div>
 
             <div className="table-responsive">
-              <table className="table table-bordered table-striped">
-                <thead className="table-success">
-                  <tr>
-                    <th>Username</th>
-                    <th>Número Documento</th>
-                    <th>Rol</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {usuariosActuales.map((user) => {
-                    const rolesMap = {
-                      1: "Super Admin",
-                      2: "Admin",
-                      3: "Vigilante",
-                    };
+              <div className="row g-3">
+                {usuariosActuales.map((user) => {
+                  const rolesMap = {
+                    1: "Super Admin",
+                    2: "Admin",
+                    3: "Vigilante",
+                  };
 
-                    const estadoMap = {
-                      1: "Activo",
-                      2: "Inactivo",
-                    };
+                  const estadoMap = {
+                    1: "Activo",
+                    2: "Inactivo",
+                  };
 
-                    return (
-                      <tr key={user.username}>
-                        <td>{user.username}</td>
-                        <td>{user.numeroDocumento}</td>
-                        <td>{rolesMap[user.rolesId] || user.rolesId}</td>
-                        <td>
-                          {estadoMap[user.estadoId]}
-                          {user.estadoId === 1 && (
-                            <Lottie
-                              animationData={BIEN}
-                              loop={true}
-                              autoplay={true}
-                              style={{ width: 60, height: 40, display: "inline-block", marginLeft: "8px" }}
-                            />
-                          )}
-                          {user.estadoId === 2 && (
-                            <Lottie
-                              animationData={Inactivo}
-                              loop={true}
-                              autoplay={true}
-                              style={{ width: 40, height: 20, display: "inline-block", marginLeft: "8px" }}
-                            />
-                          )}
-                        </td>
+                  return (
+                    <div className="col-md-4" key={user.username}>
+                      <div
+                        className="card shadow-sm border-0"
+                        style={{ borderRadius: "20px" }}
+                      >
+                        {/* Cabecera con icono */}
+                        <div
+                          className="text-center p-3"
+                          style={{
+                            background: "#d1fae5",
+                            borderTopLeftRadius: "20px",
+                            borderTopRightRadius: "20px",
+                          }}
+                        >
+                          <img
+                            src="https://cdn-icons-png.flaticon.com/512/3607/3607444.png"
+                            alt="user_icon"
+                            width="60"
+                            height="60"
+                            style={{ opacity: 0.9 }}
+                          />
+                        </div>
 
-                        <td className="d-flex align-items-center justify-content-evenly">
-                          {user.estadoId === 1 ? (
-                            <>
-                              <button
-                                className="btn btn-sm btn-outline-primary"
-                                onClick={() => abrirModalEditar(user)}
-                              >
-                                Editar
-                              </button>
+                        {/* Contenido */}
+                        <div className="card-body">
 
-                              <button
-                                type="button"
-                                className="btn btn-success"
-                                onClick={() => finalizarUsuario(user.username)}
-                              >
-                                Inactivar
-                              </button>
-                            </>
-                          ) : (
-                            <span className="text-muted">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          <h5 className="card-title text-center fw-bold">
+                            {user.username}
+                          </h5>
+
+                          <p className="mb-1">
+                            <strong>Documento:</strong> {user.numeroDocumento}
+                          </p>
+
+                          <p className="mb-1">
+                            <strong>Rol:</strong> {rolesMap[user.rolesId]}
+                          </p>
+
+                          <p className="mb-1 d-flex align-items-center">
+                            <strong>Estado:</strong>
+                            <span className="ms-2">{estadoMap[user.estadoId]}</span>
+
+                            {user.estadoId === 1 && (
+                              <Lottie
+                                animationData={BIEN}
+                                loop
+                                autoplay
+                                style={{ width: 50, height: 30, marginLeft: "8px" }}
+                              />
+                            )}
+
+                            {user.estadoId === 2 && (
+                              <Lottie
+                                animationData={Inactivo}
+                                loop
+                                autoplay
+                                style={{ width: 40, height: 20, marginLeft: "8px" }}
+                              />
+                            )}
+                          </p>
+
+                          {/* Botones */}
+                          <div className="mt-3 d-flex justify-content-between">
+
+                            {user.estadoId === 1 ? (
+                              <>
+                                <button
+                                  className="btn btn-outline-primary btn-sm"
+                                  onClick={() => abrirModalEditar(user)}
+                                >
+                                  Editar
+                                </button>
+
+                                <button
+                                  className="btn btn-success btn-sm"
+                                  onClick={() => finalizarUsuario(user.username)}
+                                >
+                                  Inactivar
+                                </button>
+                              </>
+                            ) : (
+                              <span className="text-muted">Sin acciones</span>
+                            )}
+
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
             </div>
 
             {/* Paginación */}
