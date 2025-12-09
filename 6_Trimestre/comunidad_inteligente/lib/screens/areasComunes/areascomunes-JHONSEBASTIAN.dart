@@ -3,7 +3,7 @@ import 'dart:convert';
 import '../../main.dart';
 import '../gestionUsuarios/gestionusuarios.dart';
 import 'package:http/http.dart' as http;
-import '../dashboards/dashboardsuperadmin.dart';
+import '../../utils/helpers.dart';
 
 class Areascomunes extends StatelessWidget {
   const Areascomunes({super.key, required this.token});
@@ -94,25 +94,60 @@ class Areascomunes extends StatelessWidget {
             context,
             title: 'Gestión Paquetes',
             items: [
-              {'label': 'Registrar Paquete', 'route': TerceraPantalla()},
-              {'label': 'Historial de Paquetes', 'route': TerceraPantalla()},
+              {
+                'label': 'Registrar Paquete',
+                'route': Scaffold(
+                  appBar: AppBar(title: Text('En construcción')),
+                ),
+              },
+              {
+                'label': 'Historial de Paquetes',
+                'route': Scaffold(
+                  appBar: AppBar(title: Text('En construcción')),
+                ),
+              },
             ],
           ),
           _buildMenuSection(
             context,
             title: 'Gestión de Visitas',
             items: [
-              {'label': 'Crear Visitas', 'route': TerceraPantalla()},
-              {'label': 'Consultar Visitas', 'route': TerceraPantalla()},
-              {'label': 'Consultar Parqueadero', 'route': TerceraPantalla()},
+              {
+                'label': 'Crear Visitas',
+                'route': Scaffold(
+                  appBar: AppBar(title: Text('En construcción')),
+                ),
+              },
+              {
+                'label': 'Consultar Visitas',
+                'route': Scaffold(
+                  appBar: AppBar(title: Text('En construcción')),
+                ),
+              },
+              {
+                'label': 'Consultar Parqueadero',
+                'route': Scaffold(
+                  appBar: AppBar(title: Text('En construcción')),
+                ),
+              },
             ],
           ),
           _buildMenuSection(
             context,
             title: 'Gestión de Áreas Comunes',
             items: [
-              {'label': 'Registrar Reserva', 'route': TerceraPantalla()},
-              {'label': 'Consultar Zona', 'route': TerceraPantalla()},
+              {
+                'label': 'Registrar Reserva',
+                'route': Scaffold(
+                  appBar: AppBar(title: Text('En construcción')),
+                ),
+              },
+              {
+                'label': 'Consultar Zona',
+                'route': Scaffold(
+                  appBar: AppBar(title: Text('En construcción')),
+                ),
+              },
             ],
           ),
           _buildMenuSection(
@@ -133,8 +168,18 @@ class Areascomunes extends StatelessWidget {
             context,
             title: 'Gestión de Residentes',
             items: [
-              {'label': 'Registrar Residentes', 'route': TerceraPantalla()},
-              {'label': 'Consultar Residentes', 'route': TerceraPantalla()},
+              {
+                'label': 'Registrar Residentes',
+                'route': Scaffold(
+                  appBar: AppBar(title: Text('En construcción')),
+                ),
+              },
+              {
+                'label': 'Consultar Residentes',
+                'route': Scaffold(
+                  appBar: AppBar(title: Text('En construcción')),
+                ),
+              },
             ],
           ),
           const SizedBox(height: 20),
@@ -646,7 +691,9 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
         'horaFin': horaFin != null
             ? '${horaFin!.hour.toString().padLeft(2, '0')}:${horaFin!.minute.toString().padLeft(2, '0')}'
             : null,
-        'fechaReserva': fechaReserva?.toIso8601String(),
+        'fechaReserva': fechaReserva != null
+            ? formatearFechaParaBackend(fechaReserva!)
+            : null,
       }),
     );
     if (response.statusCode == 200) {
@@ -1047,7 +1094,9 @@ class _ActualizarState extends State<Actualizar> {
       datosActualizar['numeroApartamento'] = int.tryParse(numeroApartamento!);
     }
     if (fechaReserva != null) {
-      datosActualizar['fechaReserva'] = fechaReserva!.toIso8601String();
+      datosActualizar['fechaReserva'] = formatearFechaParaBackend(
+        fechaReserva!,
+      );
     }
     if (horaInicio != null) {
       datosActualizar['horaInicio'] =
