@@ -1,5 +1,16 @@
 /// Funciones auxiliares compartidas en toda la aplicación
 
+/// Formatea DateTime a string en formato YYYY-MM-DD para enviar al backend
+String formatearFechaParaBackend(DateTime fecha) {
+  return '${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')}';
+}
+
+/// Formatea DateTime a string en formato YYYY-MM-DD HH:mm:ss para enviar al backend
+String formatearFechaHoraParaBackend(DateTime fechaHora) {
+  return '${fechaHora.year}-${fechaHora.month.toString().padLeft(2, '0')}-${fechaHora.day.toString().padLeft(2, '0')} '
+      '${fechaHora.hour.toString().padLeft(2, '0')}:${fechaHora.minute.toString().padLeft(2, '0')}:${fechaHora.second.toString().padLeft(2, '0')}';
+}
+
 /// Convierte número de torre (1-10) a letra (A-J)
 String convertirTorreIdALetra(dynamic torresId) {
   if (torresId == null) return '';
@@ -48,4 +59,81 @@ Map<String, List<String>> apartamentosPorTorre = {
 /// Obtiene lista de apartamentos para una torre específica
 List<String> getApartamentosPorTorre(String torre) {
   return apartamentosPorTorre[torre] ?? [];
+}
+
+/// Parsea fecha desde el backend (formato: YYYY-MM-DD HH:mm:ss o YYYY-MM-DD HH:mm)
+/// sin aplicar conversiones de zona horaria
+DateTime parsearFechaDesdeBackend(String fechaStr) {
+  try {
+    if (fechaStr.contains('T') && fechaStr.contains('Z')) {
+      // Formato ISO UTC: 2025-10-03T21:00:00.000Z
+      // El backend guardó en UTC, necesitamos restar 5 horas para obtener hora local Colombia
+      final fechaUtc = DateTime.parse(fechaStr).toUtc();
+      // Restar 5 horas para Colombia (UTC-5)
+      return fechaUtc.subtract(const Duration(hours: 5));
+    } else if (fechaStr.contains('T')) {
+      // Formato ISO sin Z: 2024-12-09T14:30:00.000
+      final sinT = fechaStr.replaceAll('T', ' ');
+      final partes = sinT.split(' ');
+      final fechaParte = partes[0].split('-');
+      final horaParte = partes.length > 1
+          ? partes[1].split(':')
+          : ['0', '0', '0'];
+
+      return DateTime(
+        int.parse(fechaParte[0]),
+        int.parse(fechaParte[1]),
+        int.parse(fechaParte[2]),
+        int.parse(horaParte[0]),
+        int.parse(horaParte[1]),
+        horaParte.length > 2 ? int.parse(horaParte[2].split('.')[0]) : 0,
+      );
+    } else if (fechaStr.contains(' ')) {
+      // Formato MySQL: 2024-12-09 14:30:00 o 2024-12-09 14:30
+      final partes = fechaStr.split(' ');
+      final fechaParte = partes[0].split('-');
+      final horaParte = partes.length > 1
+          ? partes[1].split(':')
+          : ['0', '0', '0'];
+
+      return DateTime(
+        int.parse(fechaParte[0]), // año
+        int.parse(fechaParte[1]), // mes
+        int.parse(fechaParte[2]), // día
+        int.parse(horaParte[0]), // hora
+        int.parse(horaParte[1]), // minuto
+        horaParte.length > 2 ? int.parse(horaParte[2]) : 0, // segundo
+      );
+    } else {
+      return DateTime.now();
+    }
+  } catch (e) {
+    print('Error parseando fecha desde backend: $e');
+    return DateTime.now();
+  }
+}
+
+/// Formatea una fecha del backend para mostrar en la interfaz (solo fecha)
+String formatearFechaParaMostrar(String? fechaStr) {
+  if (fechaStr == null || fechaStr.isEmpty) return 'N/A';
+  try {
+    final fecha = parsearFechaDesdeBackend(fechaStr);
+    return '${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')}';
+  } catch (e) {
+    return fechaStr.substring(0, 10);
+  }
+}
+
+/// Formatea una fecha del backend para mostrar solo la hora (HH:mm)
+String formatearHoraParaMostrar(String? fechaStr) {
+  if (fechaStr == null || fechaStr.isEmpty) return 'N/A';
+  try {
+    final fecha = parsearFechaDesdeBackend(fechaStr);
+    return '${fecha.hour.toString().padLeft(2, '0')}:${fecha.minute.toString().padLeft(2, '0')}';
+  } catch (e) {
+    if (fechaStr.length >= 16) {
+      return fechaStr.substring(11, 16);
+    }
+    return 'N/A';
+  }
 }

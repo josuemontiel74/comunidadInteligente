@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../main.dart';
+import '../../utils/helpers.dart';
 
 class ModuloPaqueteria extends StatefulWidget {
   final bool abrirModalRegistro;
@@ -79,6 +80,12 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
 
         print('Total paquetes recibidos: ${todosPaquetes.length}'); // Debug
 
+        // Debug: Verificar formato de fechas que llegan del backend
+        if (todosPaquetes.isNotEmpty) {
+          print('DEBUG FECHA - Ejemplo de fechaRecepcion del backend:');
+          print(todosPaquetes[0]['fechaRecepcion']);
+        }
+
         // Filtrar por estado en el frontend
         List<dynamic> paquetesFiltrados = todosPaquetes;
         if (filtroEstado != 'todos') {
@@ -126,8 +133,21 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
           }).toList();
         }
 
-        // Ordenar por fecha de más reciente a más viejo
+        // Ordenar: primero los recibidos (sin entregar), luego los entregados, por fecha más reciente
         paquetesFiltrados.sort((a, b) {
+          // Determinar si están entregados
+          final estadoA =
+              a['estado']?['nombreEstado']?.toString().toLowerCase() ?? '';
+          final estadoB =
+              b['estado']?['nombreEstado']?.toString().toLowerCase() ?? '';
+          final esRecibidoA = estadoA == 'recibido';
+          final esRecibidoB = estadoB == 'recibido';
+
+          // Si uno es recibido y el otro no, el recibido va primero
+          if (esRecibidoA && !esRecibidoB) return -1;
+          if (!esRecibidoA && esRecibidoB) return 1;
+
+          // Si ambos son recibidos o ambos están entregados, ordenar por fecha más reciente
           final fechaA = DateTime.tryParse(
             a['fechaRecepcion']?.toString() ?? '',
           );
@@ -135,7 +155,9 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
             b['fechaRecepcion']?.toString() ?? '',
           );
           if (fechaA == null || fechaB == null) return 0;
-          return fechaB.compareTo(fechaA); // Orden descendente
+          return fechaB.compareTo(
+            fechaA,
+          ); // Orden descendente (más reciente primero)
         });
 
         // Implementar paginación manual
@@ -415,8 +437,9 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      paquete['fechaRecepcion']?.toString().substring(0, 10) ??
-                          '',
+                      formatearFechaParaMostrar(
+                        paquete['fechaRecepcion']?.toString(),
+                      ),
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey.shade700,
@@ -429,39 +452,60 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    Expanded(
+                    Flexible(
                       child: OutlinedButton.icon(
                         onPressed: () => _mostrarDetalles(paquete),
-                        icon: const Icon(Icons.info_outline, size: 18),
-                        label: const Text('Detalles'),
+                        icon: const Icon(Icons.info_outline, size: 16),
+                        label: const Text(
+                          'Detalles',
+                          style: TextStyle(fontSize: 12),
+                        ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.blue,
                           side: const BorderSide(color: Colors.blue),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
                         ),
                       ),
                     ),
                     if (!esEntregado) ...[
-                      const SizedBox(width: 8),
-                      Expanded(
+                      const SizedBox(width: 6),
+                      Flexible(
                         child: OutlinedButton.icon(
                           onPressed: () => _mostrarFormularioEdicion(paquete),
-                          icon: const Icon(Icons.edit, size: 18),
-                          label: const Text('Editar'),
+                          icon: const Icon(Icons.edit, size: 16),
+                          label: const Text(
+                            'Editar',
+                            style: TextStyle(fontSize: 12),
+                          ),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.orange,
                             side: const BorderSide(color: Colors.orange),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
+                      const SizedBox(width: 6),
+                      Flexible(
                         child: ElevatedButton.icon(
                           onPressed: () => _marcarComoEntregado(paquete),
-                          icon: const Icon(Icons.check_circle, size: 18),
-                          label: const Text('Entregar'),
+                          icon: const Icon(Icons.check_circle, size: 16),
+                          label: const Text(
+                            'Entregar',
+                            style: TextStyle(fontSize: 12),
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,
                             foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
                           ),
                         ),
                       ),
@@ -876,6 +920,36 @@ class FormularioRegistroPaquete extends StatefulWidget {
 
 class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
   final _formKey = GlobalKey<FormState>();
+
+  // Helper para mostrar selector de hora en formato 12 horas (AM/PM)
+  Future<TimeOfDay?> mostrarSelectorHora(
+    BuildContext context,
+    TimeOfDay horaInicial,
+  ) async {
+    return await showTimePicker(
+      context: context,
+      initialTime: horaInicial,
+      builder: (BuildContext context, Widget? child) {
+        final theme = Theme.of(context);
+
+        return Theme(
+          data: theme.copyWith(
+            useMaterial3: false,
+            timePickerTheme: const TimePickerThemeData(
+              hourMinuteShape: RoundedRectangleBorder(), // evita bordes nuevos
+              dialBackgroundColor: null,
+              hourMinuteColor: null,
+            ),
+          ),
+          child: MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+            child: child!,
+          ),
+        );
+      },
+    );
+  }
+
   final TextEditingController residenteController = TextEditingController();
   final TextEditingController transportadoraController =
       TextEditingController();
@@ -937,7 +1011,7 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
     });
 
     try {
-      // Combinar fecha y hora - asegurar que no sea anterior a la actual
+      // Combinar fecha y hora
       DateTime fechaHora = DateTime(
         fechaSeleccionada.year,
         fechaSeleccionada.month,
@@ -946,25 +1020,22 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
         horaSeleccionada.minute,
       );
 
-      // Si la fecha seleccionada es anterior a ahora, usar la fecha/hora actual
-      final ahora = DateTime.now();
-      if (fechaHora.isBefore(ahora)) {
-        fechaHora = ahora;
-      }
+      // Formatear sin segundos: YYYY-MM-DD HH:mm
+      final fechaFormateada =
+          '${fechaHora.year}-${fechaHora.month.toString().padLeft(2, '0')}-${fechaHora.day.toString().padLeft(2, '0')} '
+          '${fechaHora.hour.toString().padLeft(2, '0')}:${fechaHora.minute.toString().padLeft(2, '0')}';
 
       final body = {
         'apartamentoId': apartamentoIdSeleccionado,
         'nombreDestinatario': residenteController.text.trim(),
         'empresaMensajeria': transportadoraController.text.trim(),
-        'fechaRecepcion': fechaHora.toIso8601String(),
+        'fechaRecepcion': fechaFormateada,
       };
 
       // Solo agregar observaciones si no está vacío
       if (observacionesController.text.trim().isNotEmpty) {
         body['observaciones'] = observacionesController.text.trim();
       }
-
-      print('Enviando datos: ${json.encode(body)}'); // Debug
 
       final headers = {'Content-Type': 'application/json'};
       if (LoginServe.token != null) {
@@ -1025,11 +1096,11 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
-        width: isSmallScreen ? MediaQuery.of(context).size.width * 0.9 : 600,
+        width: isSmallScreen ? MediaQuery.of(context).size.width * 0.95 : 600,
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.85,
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
         ),
-        padding: EdgeInsets.all(isSmallScreen ? 20 : 30),
+        padding: EdgeInsets.all(isSmallScreen ? 16 : 30),
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -1040,20 +1111,24 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Registrar Nuevo Paquete',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Text(
+                        'Registrar Nuevo Paquete',
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 18 : 24,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.close),
                       onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: isSmallScreen ? 16 : 20),
                 // Residente
                 TextFormField(
                   controller: residenteController,
@@ -1348,6 +1423,36 @@ class FormularioEditarPaquete extends StatefulWidget {
 
 class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
   final _formKey = GlobalKey<FormState>();
+
+  // Helper para mostrar selector de hora en formato 12 horas (AM/PM)
+  Future<TimeOfDay?> mostrarSelectorHora(
+    BuildContext context,
+    TimeOfDay horaInicial,
+  ) async {
+    return await showTimePicker(
+      context: context,
+      initialTime: horaInicial,
+      builder: (BuildContext context, Widget? child) {
+        final theme = Theme.of(context);
+
+        return Theme(
+          data: theme.copyWith(
+            useMaterial3: false,
+            timePickerTheme: const TimePickerThemeData(
+              hourMinuteShape: RoundedRectangleBorder(), // evita bordes nuevos
+              dialBackgroundColor: null,
+              hourMinuteColor: null,
+            ),
+          ),
+          child: MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+            child: child!,
+          ),
+        );
+      },
+    );
+  }
+
   late TextEditingController residenteController;
   late TextEditingController transportadoraController;
   late TextEditingController observacionesController;
@@ -1416,16 +1521,16 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
 
     // Inicializar fecha y hora
     try {
-      final fechaRecepcion = DateTime.parse(
-        widget.paquete['fechaRecepcion']?.toString() ??
-            DateTime.now().toIso8601String(),
-      );
+      final fechaStr = widget.paquete['fechaRecepcion']?.toString() ?? '';
+      final fechaRecepcion = parsearFechaDesdeBackend(fechaStr);
+
       fechaSeleccionada = fechaRecepcion;
       horaSeleccionada = TimeOfDay(
         hour: fechaRecepcion.hour,
         minute: fechaRecepcion.minute,
       );
     } catch (e) {
+      print('Error parseando fecha: $e');
       fechaSeleccionada = DateTime.now();
       horaSeleccionada = TimeOfDay.now();
     }
@@ -1471,11 +1576,16 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
         horaSeleccionada.minute,
       );
 
+      // Formatear sin segundos: YYYY-MM-DD HH:mm
+      final fechaFormateada =
+          '${fechaHora.year}-${fechaHora.month.toString().padLeft(2, '0')}-${fechaHora.day.toString().padLeft(2, '0')} '
+          '${fechaHora.hour.toString().padLeft(2, '0')}:${fechaHora.minute.toString().padLeft(2, '0')}';
+
       final body = {
         'apartamentoId': apartamentoIdSeleccionado,
         'nombreDestinatario': residenteController.text.trim(),
         'empresaMensajeria': transportadoraController.text.trim(),
-        'fechaRecepcion': fechaHora.toIso8601String(),
+        'fechaRecepcion': fechaFormateada,
         'observaciones': observacionesController.text.trim().isEmpty
             ? null
             : observacionesController.text.trim(),
@@ -1918,13 +2028,15 @@ class DetallesPaquete extends StatelessWidget {
                   ),
                   _buildDetalle(
                     'Fecha Recepción',
-                    paquete['fechaRecepcion']?.toString().substring(0, 10) ??
-                        'N/A',
+                    formatearFechaParaMostrar(
+                      paquete['fechaRecepcion']?.toString(),
+                    ),
                   ),
                   _buildDetalle(
                     'Hora Recepción',
-                    paquete['fechaRecepcion']?.toString().substring(11, 16) ??
-                        'N/A',
+                    formatearHoraParaMostrar(
+                      paquete['fechaRecepcion']?.toString(),
+                    ),
                   ),
                   _buildDetalle(
                     'Estado',
