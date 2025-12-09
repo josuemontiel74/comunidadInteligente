@@ -1,18 +1,18 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
-import Login from "./login.jsx";
-import Vigilante from "./vigilanteDashboard.jsx";
-import VisitasAdmin from "./visitasAdmin.jsx";
-import Paqueteria from "./paqueteria.jsx";
-import Visitas from "./visitas.jsx";
-import Paqueadero from "./seleccionparqueadero.jsx";
-import Superadmin from "./dashboardSuperAdmin.jsx";
-import Registro from "./registro.jsx";
-import Residentes from "./residentes.jsx";
-import AreasComunes from "./AreasComunes.jsx";
-import GestionUsuarios from "./gestionUsuarios.jsx";
-import Admin from "./dashboardAdmin.jsx";
-import ProtectedRoute from "./ProtectedRoute.jsx";
+import Login from "./pages/login.jsx";
+import Vigilante from "./pages/vigilanteDashboard.jsx";
+import VisitasAdmin from "./pages/visitasAdmin.jsx";
+import Paqueteria from "./pages/paqueteria.jsx";
+import Visitas from "./pages/visitas.jsx";
+import Paqueadero from "./pages/seleccionparqueadero.jsx";
+import Superadmin from "./pages/dashboardSuperAdmin.jsx";
+import Registro from "./pages/registro.jsx";
+import Residentes from "./pages/residentes.jsx";
+import AreasComunes from "./pages/AreasComunes.jsx";
+import GestionUsuarios from "./pages/gestionUsuarios.jsx";
+import Admin from "./pages/dashboardAdmin.jsx";
+import ProtectedRoute from "./pages/ProtectedRoute.jsx";
 
 export default function App() {
   return (

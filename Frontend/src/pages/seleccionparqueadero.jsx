@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Link , useNavigate} from "react-router-dom";
-import "./vigilanteDashboard.css";
+import "../Styles/seleccionParqueadero.css";
+import logo from "../../img/logo.png";
+import motoVerde from "../../img/moto-verde.png";
+import motoRoja from "../../img/moto-roja.png";
+import carroVerde from "../../img/carro-verde.svg";
+import carroRojo from "../../img/carro-rojo.svg";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 
@@ -298,7 +303,7 @@ const liberar = async () => {
             <div className="logo-container text-center flex-grow-1">
               <Link to="/">
                 <img
-                  src="../img/logo.png"
+                  src={logo}
                   alt="Logo del sistema"
                   className="logo-img"
                 />
@@ -346,17 +351,17 @@ const liberar = async () => {
           <div className="container mt-4">
             <div className="d-flex gap-4 mb-3">
               <span>
-                <img src="/img/moto-verde.png" width="30" alt="Libre" /> Libre
+                <img src={motoVerde} width="30" alt="Libre" /> Libre
               </span>
                <span>
-                <img src="/img/carro-verde.svg" width="30" alt="Libre" /> Libre
+                <img src={carroVerde} width="30" alt="Libre" /> Libre
               </span>
                <span>
-                <img src="/img/moto-roja.png" width="30" alt="Ocupado" /> Ocupado
+                <img src={motoRoja} width="30" alt="Ocupado" /> Ocupado
               </span>
              
               <span>
-                <img src="/img/carro-rojo.svg" width="30" alt="Ocupado" /> Ocupado
+                <img src={carroRojo} width="30" alt="Ocupado" /> Ocupado
               </span>
             </div>
 
@@ -394,11 +399,11 @@ const liberar = async () => {
   src={
     p.estadoId === 4
       ? (p.tipoVehiculoId === 2 
-          ? "/img/moto-verde.png" 
-          : "/img/carro-verde.svg")
+          ? motoVerde
+          : carroVerde)
       : (p.tipoVehiculoId === 2 
-          ? "/img/moto-roja.png" 
-          : "/img/carro-rojo.svg")
+          ? motoRoja
+          : carroRojo)
   }
   width="50"
   alt={p.estadoId}
