@@ -10,6 +10,58 @@ import BIEN from "../animacion/celebrate.json";
 import Inactivo from "../animacion/Inactivo.json";
 import { registrarUsuario, editarUsuario, finalizarUsuarioService } from "../services/gestionUsuarios.jsx"
 
+// Traduce mensajes/estructuras de error del backend a textos amigables en español
+const campoAmigable = (field) => {
+  const map = {
+    numeroDocumento: 'Número de documento',
+    primerNombre: 'Primer nombre',
+    segundoNombre: 'Segundo nombre',
+    primerApellido: 'Primer apellido',
+    segundoApellido: 'Segundo apellido',
+    correoElectronico: 'Correo electrónico',
+    telefono: 'Teléfono',
+    username: 'Username',
+    password: 'Contraseña',
+    rolesId: 'Rol',
+  };
+  return map[field] || field;
+};
+
+const traducirMensajeBackend = (errData) => {
+  if (errData == null) return 'Datos inválidos o incompletos.';
+  if (typeof errData === 'string') {
+    const s = errData;
+    if (/required|is required|cannot be null|no puede estar vacío|cannot be empty/i.test(s)) return 'Falta información obligatoria en el formulario.';
+    if (/max.*length|no puede.*mayor|exceeds the maximum|too long|longitud máxima/i.test(s)) return 'Algún campo supera la longitud permitida.';
+    if (/min.*length|must be at least|falta.*caracter|too short|longitud mínima/i.test(s)) return 'Algún campo no cumple la longitud mínima requerida.';
+    if (/invalid|not valid|no válido|formato/i.test(s)) return 'Formato de campo inválido.';
+    if (/unique|exists|ya existe/i.test(s)) return 'Ya existe un registro con esos datos.';
+    return s;
+  }
+  if (Array.isArray(errData)) return errData.map(e => traducirMensajeBackend(e)).join(' ');
+  if (typeof errData === 'object') {
+    if (errData.message && typeof errData.message === 'string') return traducirMensajeBackend(errData.message);
+    if (errData.errors && Array.isArray(errData.errors)) {
+      return errData.errors.map(it => {
+        if (it.field || it.param) {
+          const f = it.field || it.param;
+          const msg = it.message || it.msg || it.error || JSON.stringify(it);
+          return `${campoAmigable(f)}: ${traducirMensajeBackend(msg)}`;
+        }
+        return traducirMensajeBackend(it.message || it);
+      }).join(' ');
+    }
+    const partes = [];
+    for (const k in errData) {
+      if (!Object.prototype.hasOwnProperty.call(errData, k)) continue;
+      partes.push(`${campoAmigable(k)}: ${traducirMensajeBackend(errData[k])}`);
+    }
+    if (partes.length) return partes.join(' ');
+    return JSON.stringify(errData);
+  }
+  return 'Hay un problema con los datos ingresados. Revise el formulario e intente nuevamente.';
+};
+
 function Parqueaderos() {
   const navigate = useNavigate();
   useEffect(() => {
@@ -185,14 +237,24 @@ function Parqueaderos() {
         telefono,
         correoElectronico
       }
-      const resUsuario = await registrarUsuario(datos, token)
-      const dataUsuario = await resUsuario.json();
+      const resUsuario = await registrarUsuario(datos, token);
+      const contentType = resUsuario.headers.get("content-type");
+      const dataUsuario = contentType && contentType.includes("application/json") ? await resUsuario.json() : await resUsuario.text();
       console.log("Respuesta backend:", dataUsuario);
 
       if (!resUsuario.ok) {
-        throw new Error(dataUsuario.error || dataUsuario.message || JSON.stringify(dataUsuario));
+        if (resUsuario.status === 400) {
+          const friendly = traducirMensajeBackend(dataUsuario);
+          Swal.fire({ icon: 'warning', title: 'Error de validación', text: friendly, confirmButtonText: 'Entendido' });
+          return;
+        }
+        if (resUsuario.status >= 500) {
+          Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+          return;
+        }
+        Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo crear el usuario.', confirmButtonText: 'Entendido' });
+        return;
       }
-
 
       Swal.fire({ icon: 'success', title: 'Registrado correctamente', text: `Username asignado: ${dataUsuario.usuario?.username || dataUsuario.idUsuario}`, timer: 3500, showConfirmButton: false });
       resetForm();
@@ -246,8 +308,21 @@ function Parqueaderos() {
       if (telefono) usuarioPayload.telefono = telefono;
       if (correoElectronico) usuarioPayload.correoElectronico = correoElectronico;
       const res = await editarUsuario(targetUsername, usuarioPayload, token);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Error actualizando usuario');
+      const contentType = res.headers.get("content-type");
+      const data = contentType && contentType.includes("application/json") ? await res.json() : await res.text();
+      if (!res.ok) {
+        if (res.status === 400) {
+          const friendly = traducirMensajeBackend(data);
+          Swal.fire({ icon: 'warning', title: 'Error de validación', text: friendly, confirmButtonText: 'Entendido' });
+          return;
+        }
+        if (res.status >= 500) {
+          Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+          return;
+        }
+        Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo actualizar el usuario.', confirmButtonText: 'Entendido' });
+        return;
+      }
 
       Swal.fire({ icon: 'success', title: 'Actualizado correctamente', timer: 3500, showConfirmButton: false });
       await cargarUsuarios();
@@ -358,8 +433,20 @@ function Parqueaderos() {
         try {
           const res = await finalizarUsuarioService(username, token);
           if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.message || "No se pudo actualizar el estado");
+            const contentType = res.headers.get("content-type");
+            const errorData = contentType && contentType.includes("application/json") ? await res.json() : await res.text();
+            console.error('Error al finalizar usuario:', res.status, errorData);
+            if (res.status === 400) {
+              const friendly = traducirMensajeBackend(errorData);
+              Swal.fire({ icon: 'warning', title: 'Error de validación', text: friendly, confirmButtonText: 'Entendido' });
+              return;
+            }
+            if (res.status >= 500) {
+              Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+              return;
+            }
+            Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo inactivar el usuario.', confirmButtonText: 'Entendido' });
+            return;
           }
 
           setUsuario((prev) => prev.map((u) => (u.username === username ? { ...u, estadoId: 2 } : u)));

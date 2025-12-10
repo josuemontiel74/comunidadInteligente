@@ -112,8 +112,9 @@ export async function crearOcupante(ocupanteData, token) {
 }
 
 export async function actualizarOcupante(id, ocupanteData, token) {
+  let idOcupante = id;
   if (!token) throw new Error("Token de autenticación requerido para actualizar ocupante");
-  return fetch(`${API_BASE_URL}/ocupante/${id}`, {
+  return fetch(`${API_BASE_URL}/ocupante/${idOcupante}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(ocupanteData),
@@ -165,7 +166,10 @@ export const prepararDatosOcupante = (formData, apartamentos, isEdit = false) =>
     primerApellido: formData.primerApellido,
     segundoApellido: formData.segundoApellido && formData.segundoApellido.trim() !== "" ? formData.segundoApellido : null,
     telefono: formData.telefono || "0000000000",
-    correoElectronico: formData.correo || "noemail@example.com",
+    // Si es edición y no se proporcionó correo, omitimos el campo para no enviar el placeholder
+    correoElectronico: isEdit
+      ? (formData.correo && formData.correo.trim() !== "" ? formData.correo : undefined)
+      : (formData.correo && formData.correo.trim() !== "" ? formData.correo : "noemail@example.com"),
   };
 
   // Solo agregar numeroDocumento si no es edición

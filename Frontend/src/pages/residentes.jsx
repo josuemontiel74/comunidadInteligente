@@ -202,12 +202,23 @@ function Residentes() {
   const cargarResidentes = async () => {
     try {
       setLoading(true);
-      const res = await obtenerResidentes(token);
+      const res = await obtenerResidentes(obtenerToken());
 
       if (res?.status === 401) {
-        console.error("Token expirado o inválido");
-        localStorage.removeItem("token");
-        navegacion("/");
+        // Mostrar mensaje que provea el backend si lo hay
+        let body = null;
+        try {
+          const ct = res.headers.get('content-type') || '';
+          body = ct.includes('application/json') ? await res.json() : await res.text();
+        } catch (e) {
+          body = null;
+        }
+        const backendMsg = body ? (typeof body === 'object' ? (body.message || JSON.stringify(body)) : body) : 'No autorizado. Token inválido o expirado.';
+        console.error('Token expirado o inválido', res.status, backendMsg);
+        Swal.fire({ icon: 'warning', title: 'No autorizado', text: backendMsg, confirmButtonText: 'Entendido' }).then(()=>{
+          localStorage.removeItem('token');
+          navegacion('/');
+        });
         return;
       }
 
@@ -386,7 +397,7 @@ function Residentes() {
   
   const cargarApartamentos = async () => {
     try {
-      const res = await obtenerResidentes(token);
+      const res = await obtenerResidentes(obtenerToken());
 
       if (res?.status === 401) {
         console.error("Token expirado o inválido");
@@ -516,12 +527,19 @@ function Residentes() {
             ? formData.segundoApellido
             : null,
         telefono: formData.telefono || "0000000000",
-        correoElectronico: formData.correo || "noemail@example.com",
+        // Para creación usar placeholder si no hay correo; para actualización omitir si está vacío
+        correoElectronico:
+          editIndex === null
+            ? formData.correo || "noemail@example.com"
+            : formData.correo && formData.correo.trim() !== ""
+            ? formData.correo
+            : undefined,
       };
 
  
-      if (editIndex === null) {
-        ocupanteData.numeroDocumento = formData.numeroDocumento;
+      // Incluir número de documento tanto en creación como en edición
+      if (formData.numeroDocumento && formData.numeroDocumento.trim() !== "") {
+        ocupanteData.numeroDocumento = formData.numeroDocumento.trim();
       }
 
       if (editIndex !== null) {
@@ -539,14 +557,26 @@ function Residentes() {
           console.log("ID a actualizar:", editIndex);
           console.log("Datos a enviar:", ocupanteData);
 
-          const resUpdate = await actualizarOcupante(editIndex, ocupanteData, token);
+              const resUpdate = await actualizarOcupante(editIndex, ocupanteData, obtenerToken());
+              if (resUpdate?.status === 401) {
+                let body = null;
+                try {
+                  const ct = resUpdate.headers.get('content-type') || '';
+                  body = ct.includes('application/json') ? await resUpdate.json() : await resUpdate.text();
+                } catch (e) { body = null; }
+                const backendMsg = body ? (typeof body === 'object' ? (body.message || JSON.stringify(body)) : body) : 'No autorizado. Token inválido o expirado.';
+                Swal.fire({ icon: 'warning', title: 'No autorizado', text: backendMsg, confirmButtonText: 'Entendido' }).then(()=>{ localStorage.removeItem('token'); navegacion('/'); });
+                return;
+              }
             if (!resUpdate.ok) {
               const contentType = resUpdate.headers.get("content-type");
               const errData = contentType && contentType.includes("application/json") ? await resUpdate.json() : await resUpdate.text();
               console.error("Error actualizando ocupante:", resUpdate.status, errData);
               if (resUpdate.status === 400) {
-                const friendly = traducirMensajeBackend(errData);
-                Swal.fire({ icon: 'warning', title: 'Error de validación', text: friendly, confirmButtonText: 'Entendido' });
+                // Mostrar el mensaje tal cual lo envía el backend (si lo proporciona)
+                const backendMsg = typeof errData === 'object' ? (errData.message || JSON.stringify(errData)) : errData;
+                console.error('Error de validación desde backend:', backendMsg);
+                Swal.fire({ icon: 'warning', title: 'Error de validación', text: backendMsg || 'Error de validación en los datos.', confirmButtonText: 'Entendido' });
                 return;
               }
               if (resUpdate.status >= 500) {
@@ -564,7 +594,17 @@ function Residentes() {
           Swal.fire("No guardado", "Los cambios no se aplicaron", "info");
         }
       } else {
-        const resCreate = await crearOcupante(ocupanteData, token);
+        const resCreate = await crearOcupante(ocupanteData, obtenerToken());
+        if (resCreate?.status === 401) {
+          let body = null;
+          try {
+            const ct = resCreate.headers.get('content-type') || '';
+            body = ct.includes('application/json') ? await resCreate.json() : await resCreate.text();
+          } catch (e) { body = null; }
+          const backendMsg = body ? (typeof body === 'object' ? (body.message || JSON.stringify(body)) : body) : 'No autorizado. Token inválido o expirado.';
+          Swal.fire({ icon: 'warning', title: 'No autorizado', text: backendMsg, confirmButtonText: 'Entendido' }).then(()=>{ localStorage.removeItem('token'); navegacion('/'); });
+          return;
+        }
         const contentType = resCreate.headers.get("content-type");
         const dataCreate = contentType && contentType.includes("application/json") ? await resCreate.json() : await resCreate.text();
 
@@ -640,7 +680,17 @@ function Residentes() {
 
     if (result.isConfirmed) {
       try {
-        const resFinal = await finalizarOcupante(residente.idOcupante, token);
+        const resFinal = await finalizarOcupante(residente.idOcupante, obtenerToken());
+        if (resFinal?.status === 401) {
+          let body = null;
+          try {
+            const ct = resFinal.headers.get('content-type') || '';
+            body = ct.includes('application/json') ? await resFinal.json() : await resFinal.text();
+          } catch (e) { body = null; }
+          const backendMsg = body ? (typeof body === 'object' ? (body.message || JSON.stringify(body)) : body) : 'No autorizado. Token inválido o expirado.';
+          Swal.fire({ icon: 'warning', title: 'No autorizado', text: backendMsg, confirmButtonText: 'Entendido' }).then(()=>{ localStorage.removeItem('token'); navegacion('/'); });
+          return;
+        }
         if (!resFinal.ok) {
           const contentType = resFinal.headers.get("content-type");
           const errData = contentType && contentType.includes("application/json") ? await resFinal.json() : await resFinal.text();
@@ -1357,24 +1407,16 @@ function Residentes() {
                       </div>
 
                       <div className="col-md-8 mb-2">
-                        <label className="form-label">
-                          Número Documento
-                          {editIndex !== null && (
-                            <small className="text-muted"> (No editable)</small>
-                          )}
-                        </label>
+                        <label className="form-label">Número Documento</label>
                         <input
                           type="text"
                           name="numeroDocumento"
                           className="form-control"
                           value={formData.numeroDocumento}
                           onChange={handleChange}
-                          required
-                          disabled={editIndex !== null} // Deshabilitar en edición
-                          style={{
-                            backgroundColor:
-                              editIndex !== null ? "#f8f9fa" : "",
-                          }}
+                          required={editIndex === null}
+                          disabled={editIndex !== null}
+                          style={{ backgroundColor: editIndex !== null ? "#f8f9fa" : "" }}
                         />
                       </div>
 

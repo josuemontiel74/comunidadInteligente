@@ -8,20 +8,31 @@ export const crearOcupante = async (req, res) => {
   try {
     const dataOcupante = req.body;
 
-    const [persona, created] = await Persona.findOrCreate({
-      where: { numeroDocumento: dataOcupante.numeroDocumento },
-      defaults: {
-        numeroDocumento: dataOcupante.numeroDocumento,
-        tipoDocumentoId: dataOcupante.tipoDocumentoId,
-        primerNombre: dataOcupante.primerNombre,
-        segundoNombre: dataOcupante.segundoNombre,
-        primerApellido: dataOcupante.primerApellido,
-        segundoApellido: dataOcupante.segundoApellido,
-        telefono: dataOcupante.telefono,
-        correoElectronico: dataOcupante.correoElectronico,
-      },
-      transaction: t,
-    });
+    // Si se envía numeroDocumento intentamos encontrar o crear; si no, creamos la persona
+    let persona;
+    let created = false;
+    const personaDefaults = {
+      numeroDocumento: dataOcupante.numeroDocumento,
+      tipoDocumentoId: dataOcupante.tipoDocumentoId,
+      primerNombre: dataOcupante.primerNombre,
+      segundoNombre: dataOcupante.segundoNombre,
+      primerApellido: dataOcupante.primerApellido,
+      segundoApellido: dataOcupante.segundoApellido,
+      telefono: dataOcupante.telefono,
+      correoElectronico: dataOcupante.correoElectronico,
+    };
+
+    if (dataOcupante.numeroDocumento) {
+      [persona, created] = await Persona.findOrCreate({
+        where: { numeroDocumento: dataOcupante.numeroDocumento },
+        defaults: personaDefaults,
+        transaction: t,
+      });
+    } else {
+      // Si no llegó numeroDocumento, creamos la persona para que el modelo pueda generar el valor (si aplica)
+      persona = await Persona.create(personaDefaults, { transaction: t });
+      created = true;
+    }
 
     const createOcupante = await Ocupante.create(
       {
@@ -125,6 +136,7 @@ export const obtenerOcupante = async (req, res) => {
 };
 
 export const obtenerOcupantePorId = async (req, res) => {
+
   try {
     const id = req.params.idOcupante;
     const ocupante = await Ocupante.findOne({
@@ -145,6 +157,7 @@ export const obtenerOcupantePorId = async (req, res) => {
         status: 404,
       });
     }
+    console.log(ocupante)
   } catch (error) {
     res.status(500).json({
       message: "Lo siento, no se pudo obtener el ocupante",
@@ -159,7 +172,7 @@ export const actualizarOcupante = async (req, res) => {
   try {
     const id = req.params.idOcupante;
     const dataOcupante = req.body;
-
+    console.log(dataOcupante.numeroDocumento);
     const [updated] = await Ocupante.update(
       {
         apartamentosId: dataOcupante.apartamentosId,
@@ -208,12 +221,17 @@ export const actualizarOcupante = async (req, res) => {
     res.status(200).json(updatedOcupante);
   } catch (error) {
     await t.rollback();
+
+    console.error('Detalle del error de validación:', error); 
+
     res.status(500).json({
       message: "Lo siento, no se pudo actualizar el ocupante",
       status: 500,
       error: error.message,
+    
     });
-  }
+ 
+}
 };
 
 export const finalizarOcupante = async (req, res) => {
