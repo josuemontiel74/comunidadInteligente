@@ -8,18 +8,30 @@ import Swal from "sweetalert2";
 import Lottie from 'lottie-react';
 import BIEN from "../animacion/celebrate.json";
 import Inactivo from "../animacion/Inactivo.json";
-import { registrarUsuario } from "../services/gestionUsuarios.jsx"
+import { registrarUsuario, editarUsuario, finalizarUsuarioService } from "../services/gestionUsuarios.jsx"
 
 function Parqueaderos() {
   const navigate = useNavigate();
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      Swal.fire({ icon: 'warning', title: 'Sesión expirada', text: 'La sesión expiró. Vuelva a iniciar sesión.', timer: 3500, showConfirmButton: false, timerProgressBar: true }).then(() => {
+        localStorage.clear();
+        navigate('/');
+      });
+    }
+  }, [navigate]);
 
   const CERRAR = (e) => {
     localStorage.clear();
     e.preventDefault();
     navigate("/");
   };
+  // verifia rol del usaruio
+ 
 
   // Estados de modales
+
   const [modalAbierto, setModalAbierto] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
@@ -40,6 +52,14 @@ function Parqueaderos() {
   const [rolesId, setRolesId] = useState("");
   const [estadoId, setEstadoId] = useState("");
   const [username, setUsername] = useState("");
+  const [originalUsername, setOriginalUsername] = useState("");
+
+  // Validador: sólo letras A-Z/a-z y números 0-9; no espacios, tildes, ñ ni símbolos
+  const containsInvalidChars = (value) => {
+    if (value == null) return false;
+    const re = /^[A-Za-z0-9]+$/;
+    return !re.test(value);
+  };
 
   // Estado para usuarios y búsqueda
   const [usuario, setUsuario] = useState([]);
@@ -140,6 +160,17 @@ function Parqueaderos() {
       return;
     }
 
+    // Validar nombres: no permiten espacios, tildes, ñ ni caracteres especiales
+    if (!primerNombre || containsInvalidChars(primerNombre) || !primerApellido || containsInvalidChars(primerApellido)) {
+      Swal.fire("Error", "Los campos 'Primer Nombre' y 'Primer Apellido' son obligatorios y no pueden contener espacios, tildes,numeros, ñ ni caracteres especiales.", "error");
+      return;
+    }
+
+    if ((segundoNombre && containsInvalidChars(segundoNombre)) || (segundoApellido && containsInvalidChars(segundoApellido))) {
+      Swal.fire("Error", "No se permiten espacios, tildes, numeros,ñ ni caracteres especiales en los nombres o apellidos.", "error");
+      return;
+    }
+
     try {
       const datos = {
         password,
@@ -163,17 +194,13 @@ function Parqueaderos() {
       }
 
 
-      Swal.fire(
-        "Éxito",
-        `Usuario registrado correctamente.\n Username asignado: ${dataUsuario.usuario?.username || dataUsuario.idUsuario}`,
-        "success"
-      );
+      Swal.fire({ icon: 'success', title: 'Registrado correctamente', text: `Username asignado: ${dataUsuario.usuario?.username || dataUsuario.idUsuario}`, timer: 3500, showConfirmButton: false });
       resetForm();
       await cargarUsuarios();
       cerrarModal();
     } catch (err) {
       console.error(err);
-      Swal.fire("Error", err.message || "No se pudo conectar al servidor", "error");
+      Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
     }
   };
 
@@ -184,8 +211,29 @@ function Parqueaderos() {
     if (!token) return navigate("/");
 
     try {
+      // Asegurarse de usar el username original si el campo quedó vacío
+      const targetUsername = username && username.toString().trim() ? username : originalUsername;
+
+      // Validar username final antes de enviar
+      if (targetUsername && containsInvalidChars(targetUsername)) {
+        Swal.fire("Error", "El username contiene caracteres inválidos. Solo letras y números, sin espacios ni tildes.", "error");
+        return;
+      }
+
+      // Validar nombres y apellidos (no permiten espacios, tildes, ñ ni caracteres especiales)
+      if (!primerNombre || containsInvalidChars(primerNombre) || !primerApellido || containsInvalidChars(primerApellido)) {
+        Swal.fire("Error", "Los campos 'Primer Nombre' y 'Primer Apellido' son obligatorios y no pueden contener espacios, tildes, ñ ni caracteres especiales.", "error");
+        return;
+      }
+
+      if ((segundoNombre && containsInvalidChars(segundoNombre)) || (segundoApellido && containsInvalidChars(segundoApellido))) {
+        Swal.fire("Error", "No se permiten espacios, tildes, ñ ni caracteres especiales en los nombres o apellidos.", "error");
+        return;
+      }
+
       const usuarioPayload = {};
-      if (username) usuarioPayload.username = username;
+      // Enviar siempre el username efectivo para evitar enviarlo vacío
+      if (targetUsername) usuarioPayload.username = targetUsername;
       if (password) usuarioPayload.password = password;
       if (rolesId) usuarioPayload.rolesId = parseInt(rolesId);
       if (estadoId) usuarioPayload.estadoId = parseInt(estadoId);
@@ -197,25 +245,17 @@ function Parqueaderos() {
       if (segundoApellido) usuarioPayload.segundoApellido = segundoApellido;
       if (telefono) usuarioPayload.telefono = telefono;
       if (correoElectronico) usuarioPayload.correoElectronico = correoElectronico;
-
-      const res = await fetch(`http://localhost:3001/api/usuario/${username}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(usuarioPayload),
-      });
-
+      const res = await editarUsuario(targetUsername, usuarioPayload, token);
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
+      if (!res.ok) throw new Error(data.message || 'Error actualizando usuario');
 
-      Swal.fire("Éxito", "Usuario actualizado correctamente", "success");
+      Swal.fire({ icon: 'success', title: 'Actualizado correctamente', timer: 3500, showConfirmButton: false });
       await cargarUsuarios();
       cerrarModalEditar();
     } catch (err) {
       console.error(err);
-      Swal.fire("Error", err.message || "No se pudo actualizar", "error");
+      Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+      console.log("Payload enviado:", usuarioPayload);
     }
   };
 
@@ -254,29 +294,45 @@ function Parqueaderos() {
       });
       const dataUsuario = await resUsuario.json();
 
+      let numeroDocToFetch = user.numeroDocumento || "";
+
       if (resUsuario.ok && dataUsuario) {
         const u = dataUsuario.body || dataUsuario;
         setUsername(u.username || "");
+        setOriginalUsername(u.username || "");
         setRolesId(u.rolesId || "");
         setEstadoId(u.estadoId || "");
         setNumeroDocumento(u.numeroDocumento || "");
+        // Preferir el número recuperado desde la consulta al backend
+        numeroDocToFetch = u.numeroDocumento || numeroDocToFetch;
       }
 
-      // Consultar datos de Persona
-      const resPersona = await fetch(`http://localhost:3001/api/persona/${user.numeroDocumento}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const dataPersona = await resPersona.json();
+      // Consultar datos de Persona solo si tenemos número de documento
+      if (numeroDocToFetch) {
+        const resPersona = await fetch(`http://localhost:3001/api/persona/${numeroDocToFetch}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const dataPersona = await resPersona.json();
 
-      if (resPersona.ok && dataPersona) {
-        const p = dataPersona.body || dataPersona;
-        setTipoDocumentoId(p.tipoDocumentoId || "");
-        setPrimerNombre(p.primerNombre || "");
-        setSegundoNombre(p.segundoNombre || "");
-        setPrimerApellido(p.primerApellido || "");
-        setSegundoApellido(p.segundoApellido || "");
-        setTelefono(p.telefono || "");
-        setCorreoElectronico(p.correoElectronico || "");
+        if (resPersona.ok && dataPersona) {
+          const p = dataPersona.body || dataPersona;
+          setTipoDocumentoId(p.tipoDocumentoId || "");
+          setPrimerNombre(p.primerNombre || "");
+          setSegundoNombre(p.segundoNombre || "");
+          setPrimerApellido(p.primerApellido || "");
+          setSegundoApellido(p.segundoApellido || "");
+          setTelefono(p.telefono || "");
+          setCorreoElectronico(p.correoElectronico || "");
+        }
+      } else {
+        // Limpiar campos de persona si no hay documento
+        setTipoDocumentoId("");
+        setPrimerNombre("");
+        setSegundoNombre("");
+        setPrimerApellido("");
+        setSegundoApellido("");
+        setTelefono("");
+        setCorreoElectronico("");
       }
     } catch (error) {
       console.error("Error cargando datos para editar", error);
@@ -299,41 +355,19 @@ function Parqueaderos() {
       reverseButtons: true,
     }).then(async (result) => {
       if (result.isConfirmed) {
-        const usuarioPayload = { estadoId: 2 };
-
         try {
-          const res = await fetch(`http://localhost:3001/api/usuario/${username}`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(usuarioPayload),
-          });
-
+          const res = await finalizarUsuarioService(username, token);
           if (!res.ok) {
             const errorData = await res.json();
             throw new Error(errorData.message || "No se pudo actualizar el estado");
           }
 
-          setUsuario((prev) =>
-            prev.map((u) => u.username === username ? { ...u, estadoId: 2 } : u)
-          );
+          setUsuario((prev) => prev.map((u) => (u.username === username ? { ...u, estadoId: 2 } : u)));
 
-          Swal.fire({
-            icon: "success",
-            title: "Usuario inactivado",
-            text: "El usuario ha sido inactivado correctamente",
-            timer: 2000,
-            showConfirmButton: false,
-          });
+          Swal.fire({ icon: 'success', title: 'Finalizado correctamente', timer: 3500, showConfirmButton: false });
         } catch (error) {
           console.error("Error al inactivar:", error);
-          Swal.fire({
-            icon: "error",
-            title: "Oops...",
-            text: error.message || "No se pudo inactivar el usuario",
-          });
+          Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
         }
       }
     });
@@ -410,7 +444,10 @@ function Parqueaderos() {
   }
 
   return (
+    
+
     <div className="container-fluid p-0">
+
       {/* Sidebar */}
       <aside
         id="menuTrabajador"
@@ -421,7 +458,8 @@ function Parqueaderos() {
             <div className="user-circle bg-white d-flex align-items-center justify-content-center"
               style={{ width: "50px", height: "50px", borderRadius: "50%" }}>
               <span className="fw-bold text-success">
-                {usuarioLog?.username?.substring(0, 2).toUpperCase() || "US"}
+               {(usuarioLog?.username?.substring(0, 2)?.toUpperCase()) || "US"}
+
               </span>
             </div>
             <div className="d-flex flex-column">
@@ -455,9 +493,13 @@ function Parqueaderos() {
             <h6 className="text-uppercase fw-bold">Gestión de Visitas</h6>
             <ul className="nav flex-column mt-2 gap-2">
               <li>
-                <div className="nav-link text-white" onClick={abrirModal}>
-                  Registrar Nueva Visita
-                </div>
+                <Link
+                  className="nav-link text-white"
+                  to="/visitas"
+                  state={{ abrirModal: true }}
+                >
+                  Crear Visita
+                </Link>
               </li>
               <li>
                 <Link className="nav-link text-white" to="/visitas">
@@ -955,7 +997,7 @@ function Parqueaderos() {
                             type="text"
                             className="form-control bg-light"
                             value={numeroDocumento}
-                            onChange={(e) => setnumeroDocumento(e.target.value)}
+                            onChange={(e) => setNumeroDocumento(e.target.value)}
                             readOnly
                           />
                         </div>
@@ -1049,9 +1091,9 @@ function Parqueaderos() {
                           <label className="form-label small">Username</label>
                           <input
                             type="text"
-                            className="form-control"
+                            className="form-control bg-light"
                             value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            readOnly
                           />
                         </div>
 
@@ -1110,6 +1152,7 @@ function Parqueaderos() {
 
       </div>
     </div>
+ 
   );
 }
 

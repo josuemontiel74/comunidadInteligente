@@ -13,7 +13,7 @@ import AreasComunes from "./pages/AreasComunes.jsx";
 import GestionUsuarios from "./pages/gestionUsuarios.jsx";
 import Admin from "./pages/dashboardAdmin.jsx";
 import ProtectedRoute from "./pages/ProtectedRoute.jsx";
-
+import Reportes from "./pages/reportes.jsx";
 export default function App() {
   return (
     <Routes>
@@ -31,6 +31,7 @@ export default function App() {
         <Route path="/AreasComunes" element={<AreasComunes />} />
         <Route path="/GestionUsuario" element={<GestionUsuarios />} />
         <Route path="/Admin" element={<Admin />} />
+         <Route path="/Reportes" element={<Reportes/>}/>
       </Route>
     </Routes>
   );

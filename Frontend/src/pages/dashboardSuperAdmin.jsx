@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import Swal from 'sweetalert2';
 import { Link, useNavigate } from "react-router-dom";
 import Chart from "chart.js/auto";
 import "../Styles/dashboardSuperAdmin.css";
@@ -12,48 +13,60 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { visitasDia } from "../services/visitas.services";
 import { paquetesDia } from "../services/paqueteria.services";
-import { obtenerParqueaderos} from "../services/parqueadero.services.jsx";
+import { obtenerParqueaderos } from "../services/parqueadero.services.jsx";
 function Dashboard() {
   const navigator = useNavigate();
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    
+    if (!token) {
+      Swal.fire({ icon: 'warning', title: 'Sesión expirada', text: 'La sesión expiró. Vuelva a iniciar sesión.', timer: 2000, showConfirmButton: false, timerProgressBar: true }).then(() => {
+        localStorage.clear();
+        navigator('/');
+      });
+    }
+
+  
+  }, [navigator]);
   const chartRef = useRef(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [loading, setLoading] = useState(true);
   const [usuario, setUsuario] = useState(null);
   const [totalVisitas, setTotalVisitas] = useState(0);
-   const [totalPaquetes, setTotalPaquetes] = useState(0);
-   
-     const [parqueaderos, setParqueaderos] = useState([]);
-     //obtenr paquederos
-     useEffect(() => {
-  async function fetchParqueaderos() {
-    const token = localStorage.getItem("token");
-    if (!token) return;
+  const [totalPaquetes, setTotalPaquetes] = useState(0);
 
-    try {
-      const res = await obtenerParqueaderos(token);
-      const data = await res.json();
+  const [parqueaderos, setParqueaderos] = useState([]);
+  //obtenr paquederos
+  useEffect(() => {
+    async function fetchParqueaderos() {
+      const token = localStorage.getItem("token");
+      if (!token) return;
 
-      console.log(data);
+      try {
+        const res = await obtenerParqueaderos(token);
+        const data = await res.json();
 
-      setParqueaderos(data.body);
-    } catch (error) {
-      console.error("Error cargando parqueaderos:", error);
+        console.log(data);
+
+        setParqueaderos(data.body);
+      } catch (error) {
+        console.error("Error cargando parqueaderos:", error);
+      }
     }
-  }
 
-  fetchParqueaderos();
-}, []);
+    fetchParqueaderos();
+  }, []);
 
-// para paqueaderos
+  // para paqueaderos
 
   const espaciosLibres = parqueaderos.filter((p) => p.estadoId === 4).length;
   const espaciosOcupados = parqueaderos.filter((p) => p.estadoId === 3).length;
-// visitas del dia
+  // visitas del dia
   useEffect(() => {
     async function fetchVisitas() {
-      const token = localStorage.getItem("token"); 
+      const token = localStorage.getItem("token");
       if (!token) return;
-      
+
       try {
         const res = await visitasDia(token);
         const data = await res.json();
@@ -63,23 +76,23 @@ function Dashboard() {
       }
     }
     fetchVisitas();
-  }, []); 
-// paquetes del dia 
-useEffect(()=>{
-  async function fecthpaquetesDia() {
-    const token = localStorage.getItem("token");
-    if(!token)return;
-    try {
-       const res = await paquetesDia(token);
-       const data = await res.json();
-       setTotalPaquetes(data.paqueteDia)
-    } catch (error) {
-      console.error("No se cargaron los datos")
+  }, []);
+  // paquetes del dia 
+  useEffect(() => {
+    async function fecthpaquetesDia() {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      try {
+        const res = await paquetesDia(token);
+        const data = await res.json();
+        setTotalPaquetes(data.paqueteDia)
+      } catch (error) {
+        console.error("No se cargaron los datos")
+      }
+
     }
-    
-  }
-  fecthpaquetesDia();
-},[]);
+    fecthpaquetesDia();
+  }, []);
 
   const cerrarSesión = (e) => {
     e.preventDefault();
@@ -94,6 +107,31 @@ useEffect(()=>{
   const AreasComunes = () => {
     navigator("/AreasComunes");
   };
+
+  // Token / roles helpers
+  const verificarTokenVencidoLocal = (token) => {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const exp = payload.exp * 1000;
+      return Date.now() >= exp;
+    } catch (err) {
+      return true;
+    }
+  };
+
+  const tokenLocal = localStorage.getItem('token');
+  const tokenValidoLocal = tokenLocal && !verificarTokenVencidoLocal(tokenLocal);
+  const obtenerRolFromToken = (token) => {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload.rolesId;
+    } catch (err) {
+      return null;
+    }
+  };
+  const rolesIdLocal = tokenLocal ? obtenerRolFromToken(tokenLocal) : null;
+  const showUserManagementLocal = tokenValidoLocal && rolesIdLocal === 1; // solo SuperAdmin
+  const showAreasComunesLocal = tokenValidoLocal && rolesIdLocal !== 3; // ocultar para Vigilante
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -151,42 +189,42 @@ useEffect(()=>{
     }
   }, [navigator]);
 
- useEffect(() => {
-  if (loading) return;
+  useEffect(() => {
+    if (loading) return;
 
-  const ctx = document.getElementById("parqueoChart");
-  if (!ctx) return;
+    const ctx = document.getElementById("parqueoChart");
+    if (!ctx) return;
 
-  if (chartRef.current) {
-    chartRef.current.destroy();
-  }
-
-  chartRef.current = new Chart(ctx, {
-    type: "doughnut",
-    data: {
-      labels: ["Ocupados", "Disponibles"],
-      datasets: [
-        {
-          data: [espaciosOcupados, espaciosLibres],
-          backgroundColor: ["#dc3545", "#198754"],
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: "bottom" },
-      },
-    },
-  });
-
-  return () => {
     if (chartRef.current) {
       chartRef.current.destroy();
     }
-  };
-}, [parqueaderos, loading]);
+
+    chartRef.current = new Chart(ctx, {
+      type: "doughnut",
+      data: {
+        labels: ["Ocupados", "Disponibles"],
+        datasets: [
+          {
+            data: [espaciosOcupados, espaciosLibres],
+            backgroundColor: ["#dc3545", "#198754"],
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "bottom" },
+        },
+      },
+    });
+
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.destroy();
+      }
+    };
+  }, [parqueaderos, loading]);
 
 
   if (loading) {
@@ -252,33 +290,37 @@ useEffect(()=>{
             </ul>
           </div>
 
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión de Áreas Comunes</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link className="nav-link text-white" to="/AreasComunes">
-                  Registrar Reserva
-                </Link>
-              </li>
-           
-            </ul>
-          </div>
+          {showAreasComunesLocal && (
+            <div className="mb-4">
+              <h6 className="text-uppercase fw-bold">Gestión de Áreas Comunes</h6>
+              <ul className="nav flex-column mt-2 gap-2">
+                <li>
+                  <Link className="nav-link text-white" to="/AreasComunes">
+                    Registrar Reserva
+                  </Link>
+                </li>
 
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión de Usuarios</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link className="nav-link text-white" to="/GestionUsuario" state={{ abrirModal: true }}>
-                  Registrar Usuario
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/GestionUsuario">
-                  Consultar Usuarios
-                </Link>
-              </li>
-            </ul>
-          </div>
+              </ul>
+            </div>
+          )}
+
+          {showUserManagementLocal && (
+            <div className="mb-4">
+              <h6 className="text-uppercase fw-bold">Gestión de Usuarios</h6>
+              <ul className="nav flex-column mt-2 gap-2">
+                <li>
+                  <Link className="nav-link text-white" to="/GestionUsuario" state={{ abrirModal: true }}>
+                    Registrar Usuario
+                  </Link>
+                </li>
+                <li>
+                  <Link className="nav-link text-white" to="/GestionUsuario">
+                    Consultar Usuarios
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          )}
 
           <div className="mb-4">
             <h6 className="text-uppercase fw-bold">Gestión Residentes</h6>
@@ -358,24 +400,36 @@ useEffect(()=>{
               ➜
             </Link>
           </div>
-          <div className="module-card">
-            <img src={areasImg} alt="Áreas Comunes" />
-            <h5>Áreas Comunes</h5>
-            <button onClick={AreasComunes} className="btn btn-success">
-              ➜
-            </button>
-          </div>
-          <div className="module-card">
-            <img src={gestionImg} alt="Usuarios" />
-            <h5>Gestión De Usuarios</h5>
-            <button onClick={GestionUsuarios} className="btn btn-success">
-              ➜
-            </button>
-          </div>
+          {showAreasComunesLocal && (
+            <div className="module-card">
+              <img src={areasImg} alt="Áreas Comunes" />
+              <h5>Áreas Comunes</h5>
+              <button onClick={AreasComunes} className="btn btn-success">
+                ➜
+              </button>
+            </div>
+          )}
+          {showUserManagementLocal && (
+            <div className="module-card">
+              <img src={gestionImg} alt="Usuarios" />
+              <h5>Gestión De Usuarios</h5>
+              <button onClick={GestionUsuarios} className="btn btn-success">
+                ➜
+              </button>
+            </div>
+          )}
           <div className="module-card">
             <img src={residentesImg} alt="Residentes" />
             <h5>Gestión Residentes</h5>
             <Link to="/Residentes" className="btn btn-success">
+              ➜
+            </Link>
+          </div>
+          <div className="module-card">
+            <i className="bi bi-file-earmark-text" style={{ fontSize: "80px" }}></i>
+           
+            <h5>Gestion de Reportes</h5>
+            <Link to="/Reportes" className="btn btn-success">
               ➜
             </Link>
           </div>

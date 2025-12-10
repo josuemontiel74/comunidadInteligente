@@ -7,7 +7,8 @@ import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import tiposVehiculoModel from "../models/tiposVehiculo.model.js";
 import { sequelize } from "../config/connect.db.js";
-import { fn, col, where } from "sequelize";
+import { fn, col, Op, literal, where } from "sequelize";
+
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -218,8 +219,8 @@ export const obtenerVisitas = async (req, res) => {
           .format("YYYY-MM-DD hh:mm A"),
         fechaHoraSalida: visita.fechaHoraSalida
           ? dayjs(visita.fechaHoraSalida)
-              .tz("America/Bogota")
-              .format("YYYY-MM-DD hh:mm A")
+            .tz("America/Bogota")
+            .format("YYYY-MM-DD hh:mm A")
           : null,
       })),
     });
@@ -257,8 +258,8 @@ export const obtenerVisitaPorId = async (req, res) => {
           .format("YYYY-MM-DD hh:mm A"),
         fechaHoraSalida: visita.fechaHoraSalida
           ? dayjs(visita.fechaHoraSalida)
-              .tz("America/Bogota")
-              .format("YYYY-MM-DD hh:mm A")
+            .tz("America/Bogota")
+            .format("YYYY-MM-DD hh:mm A")
           : null,
       },
     });
@@ -522,7 +523,7 @@ export const actualizarVisita = async (req, res) => {
 export const finalizarVisita = async (req, res) => {
   try {
     const { idVisita } = req.params;
-    let fechaHoraSalida =  dayjs().tz("America/Bogota").toDate();
+    let fechaHoraSalida = dayjs().tz("America/Bogota").toDate();
 
     const visita = await Visita.findByPk(idVisita);
     if (!visita) {
@@ -579,19 +580,113 @@ export const finalizarVisita = async (req, res) => {
     });
   }
 };
- 
-export const visitasDelDia = async(req,res)=>{
+
+export const visitasDelDia = async (req, res) => {
   try {
-     const visitasDia = await Visita.count({
+    const visitasDia = await Visita.count({
 
-    where: where(fn("DATE", col("fechaHoraIngreso")), "=", fn("CURDATE"))
+      where: where(fn("DATE", col("fechaHoraIngreso")), "=", fn("CURDATE"))
 
-     })
-     res.status(200).json({
-      ok:true,
+    })
+    res.status(200).json({
+      ok: true,
       visitasDia
-     });
+    });
   } catch (error) {
-    console.log("Lo siento esta ocurriendo un erro al trae la informacion",error.message)
+    console.log("Lo siento esta ocurriendo un erro al trae la informacion", error.message)
   }
 }
+function corregirFecha(fecha) {
+  const d = new Date(fecha);
+  if (isNaN(d.getTime())) return null;
+
+  // Normaliza a formato YYYY-MM-DD
+  return d.toISOString().slice(0, 10);
+}
+
+
+
+export const informeVisintante = async (req, res) => {
+  try {
+    const { por } = req.params;
+    const tipoFiltro = parseInt(por);
+
+    let { fechaInicio, fechaFin } = req.body.rango || req.body;
+
+    fechaInicio = corregirFecha(fechaInicio);
+    fechaFin = corregirFecha(fechaFin);
+
+    if (!fechaInicio || !fechaFin) {
+      return res.status(400).json({ ok: false, msg: "Fechas inválidas" });
+    }
+
+    if (new Date(fechaInicio) > new Date(fechaFin)) {
+      [fechaInicio, fechaFin] = [fechaFin, fechaInicio];
+    }
+
+    let informevisitante;
+    const commonWhere = {
+      fechaHoraIngreso: {
+        [Op.between]: [fechaInicio, fechaFin]
+      }
+    };
+    
+ 
+    if (tipoFiltro === 1) {
+      informevisitante = await Visita.findAll({
+        attributes: [
+          [literal("YEAR(fechaHoraIngreso)"), "anio"],
+          [fn("COUNT", col("idVisita")), "numeroVisitas"]
+        ],
+        where: commonWhere,
+        group: [literal("anio")],
+        order: [[literal("anio"), "ASC"]]
+      });
+    }
+
+    if (tipoFiltro === 2) {
+      informevisitante = await Visita.findAll({
+        attributes: [
+          [literal("YEAR(fechaHoraIngreso)"), "anio"],
+          [literal("MONTH(fechaHoraIngreso)"), "mes"],
+          [fn("COUNT", col("idVisita")), "numeroVisitas"]
+        ],
+        where: commonWhere,
+        group: [
+          literal("anio"),
+          literal("mes")
+        ],
+        order: [
+          [literal("anio"), "ASC"],
+          [literal("mes"), "ASC"]
+        ]
+      });
+    }
+
+    if (tipoFiltro === 3) {
+      informevisitante = await Visita.findAll({
+        attributes: [
+          [literal("YEAR(fechaHoraIngreso)"), "anio"],
+          [literal("MONTH(fechaHoraIngreso)"), "mes"], 
+          [literal("FLOOR((DAY(fechaHoraIngreso)-1)/7)+1"), "semanaMes"],
+          [fn("COUNT", col("idVisita")), "numeroVisitas"]
+        ],
+        where: commonWhere,
+        group: [
+          literal("anio"),
+          literal("mes"),
+          literal("semanaMes")
+        ],
+        order: [
+          [literal("anio"), "ASC"],
+          [literal("mes"), "ASC"],
+          [literal("semanaMes"), "ASC"]
+        ]
+      });
+    }
+    return res.json(informevisitante);
+  } catch (error) {
+    console.error("Error en informeVisintante:", error.message);
+    return res.status(500).json({ ok: false, msg: "Error interno" });
+  }
+};

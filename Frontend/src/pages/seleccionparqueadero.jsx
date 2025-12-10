@@ -13,6 +13,15 @@ import { obtenerParqueaderos, actualizarParqueadero } from "../services/parquead
 
 function SeleccioneParqueadero() {
   const navegacion = useNavigate();
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      Swal.fire({ icon: 'warning', title: 'Sesión expirada', text: 'La sesión expiró. Vuelva a iniciar sesión.', timer: 3500, showConfirmButton: false, timerProgressBar: true }).then(() => {
+        localStorage.clear();
+        navegacion('/');
+      });
+    }
+  }, [navegacion]);
   const location = useLocation();
   
   // Obtener tipoVehiculoId del estado anterior (desde visitas.jsx)
@@ -27,6 +36,14 @@ function SeleccioneParqueadero() {
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
+  const [filtroTipo, setFiltroTipo] = useState("todos");
+
+  // Si venimos desde Visitas con un tipo forzado, aplicarlo como filtro inicial
+  useEffect(() => {
+    if (tipoVehiculoId) {
+      setFiltroTipo(String(tipoVehiculoId));
+    }
+  }, [tipoVehiculoId]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -67,21 +84,10 @@ function SeleccioneParqueadero() {
         )
       );
 
-      Swal.fire({
-        title: "¡Espacio liberado!",
-        text: `El espacio ${codigoParqueadero} ahora está disponible.`,
-        icon: "success",
-        confirmButtonText: "Aceptar",
-        confirmButtonColor: "#28a745",
-      });
+      Swal.fire({ icon: 'success', title: 'Liberado correctamente', text: `El espacio ${codigoParqueadero} ahora está disponible.`, timer: 3500, showConfirmButton: false });
     } catch (error) {
       console.error("No se pudo actualizar el estado del espacio", error);
-      Swal.fire({
-        title: "Error",
-        text: "No se pudo liberar el espacio",
-        icon: "error",
-        confirmButtonColor: "#dc3545",
-      });
+      Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
     }
   };
 
@@ -119,14 +125,7 @@ function SeleccioneParqueadero() {
 
       // Si el tipo coincide, devolver el código seleccionado a la página de visitas
       const tipoVehiculoNombre = parseInt(tipoVehiculoId) === 1 ? "Carro" : "Moto";
-      Swal.fire({
-        title: "✅ Validación Exitosa",
-        text: `El tipo de parqueadero coincide correctamente con tu vehículo (${tipoVehiculoNombre}). Se volverá al formulario y se completará el parqueadero seleccionado.`,
-        icon: "success",
-        confirmButtonText: "Regresar a Visitas",
-        confirmButtonColor: "#28a745",
-      }).then(() => {
-        // Regresar a visitas enviando el código seleccionado (NO asignamos en BD aún)
+      Swal.fire({ icon: 'success', title: 'Validado correctamente', text: `El tipo de parqueadero coincide con tu vehículo (${tipoVehiculoNombre}).`, timer: 3500, showConfirmButton: false }).then(() => {
         navegacion("/visitas", {
           state: {
             codigoParqueaderoSeleccionado: codigoParqueadero,
@@ -252,7 +251,13 @@ function SeleccioneParqueadero() {
       filtroEstado === "todos" ||
       (filtroEstado === "libre" && p.estadoId === 4) ||
       (filtroEstado === "ocupado" && p.estadoId === 3);
-    return coincideBusqueda && coincideEstado;
+
+    // Determinar el tipo efectivo a filtrar: si venimos desde Visitas, usamos ese tipo;
+    // si no, usamos el filtro que el usuario eligió (filtroTipo).
+    const effectiveTipo = tipoVehiculoId ? String(tipoVehiculoId) : filtroTipo;
+    const coincideTipo = effectiveTipo === "todos" || p.tipoVehiculoId === parseInt(effectiveTipo);
+
+    return coincideBusqueda && coincideEstado && coincideTipo;
   });
 
   // Estadísticas
@@ -478,15 +483,27 @@ function SeleccioneParqueadero() {
               </div>
             </div>
             <div className="col-md-4">
-              <select
-                className="form-select shadow-sm"
-                value={filtroEstado}
-                onChange={(e) => setFiltroEstado(e.target.value)}
-              >
-                <option value="todos">📋 Todos los estados</option>
-                <option value="libre">✅ Solo libres</option>
-                <option value="ocupado">❌ Solo ocupados</option>
-              </select>
+              <div className="d-flex gap-2">
+                <select
+                  className="form-select shadow-sm"
+                  value={filtroEstado}
+                  onChange={(e) => setFiltroEstado(e.target.value)}
+                >
+                  <option value="todos">📋 Todos los estados</option>
+                  <option value="libre">✅ Solo libres</option>
+                  <option value="ocupado">❌ Solo ocupados</option>
+                </select>
+
+                <select
+                  className="form-select shadow-sm"
+                  value={filtroTipo}
+                  onChange={(e) => setFiltroTipo(e.target.value)}
+                >
+                  <option value="todos">Todos tipos</option>
+                  <option value="1">Carro</option>
+                  <option value="2">Moto</option>
+                </select>
+              </div>
             </div>
           </div>
 

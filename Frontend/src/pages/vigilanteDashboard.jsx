@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import Swal from 'sweetalert2';
 import { Routes, Route, Link, useNavigate, Outlet } from "react-router-dom";
 import Chart from "chart.js/auto";
 import VisitasAdmin from "./visitasAdmin.jsx";
@@ -11,15 +12,80 @@ import visitasImg from "../../img/visitas.jpg";
 import Visitas from "./visitas.jsx";
 import Paqueadero from "./seleccionparqueadero.jsx";
 import Login from "./login.jsx";
-
+import { visitasDia } from "../services/visitas.services";
+import { paquetesDia } from "../services/paqueteria.services";
+import { obtenerParqueaderos } from "../services/parqueadero.services.jsx";
 function Dashboard() {
   const navigate = useNavigate();
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      Swal.fire({ icon: 'warning', title: 'Sesión expirada', text: 'La sesión expiró. Vuelva a iniciar sesión.', timer: 2000, showConfirmButton: false, timerProgressBar: true }).then(() => {
+        localStorage.clear();
+        navigate('/');
+      });
+    }
+  }, [navigate]);
   const CERRAR = (e) => {
     e.preventDefault();
     localStorage.clear();
     navigate("/");
   };
+  useEffect(() => {
+      async function fetchParqueaderos() {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+  
+        try {
+          const res = await obtenerParqueaderos(token);
+          const data = await res.json();
+  
+          console.log(data);
+  
+          setParqueaderos(data.body);
+        } catch (error) {
+          console.error("Error cargando parqueaderos:", error);
+        }
+      }
+  
+      fetchParqueaderos();
+    }, []);
+   useEffect(() => {
+      async function fecthpaquetesDia() {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        try {
+          const res = await paquetesDia(token);
+          const data = await res.json();
+          setTotalPaquetes(data.paqueteDia)
+        } catch (error) {
+          console.error("No se cargaron los datos")
+        }
+  
+      }
+      fecthpaquetesDia();
+    }, []);
+   useEffect(() => {
+        async function fetchVisitas() {
+          const token = localStorage.getItem("token");
+          if (!token) return;
+    
+          try {
+            const res = await visitasDia(token);
+            const data = await res.json();
+            setTotalVisitas(data.visitasDia);
+          } catch (error) {
+            console.error("Error cargando visitas del día:", error);
+          }
+        }
+        fetchVisitas();
+      }, []);
+  const [totalVisitas, setTotalVisitas] = useState(0);
+  const [totalPaquetes, setTotalPaquetes] = useState(0);
 
+  const [parqueaderos, setParqueaderos] = useState([]);
+   const espaciosLibres = parqueaderos.filter((p) => p.estadoId === 4).length;
+  const espaciosOcupados = parqueaderos.filter((p) => p.estadoId === 3).length;
   const chartRef = useRef(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const obtenerToken = () => {
@@ -117,7 +183,7 @@ function Dashboard() {
         labels: ["Ocupados", "Disponibles"],
         datasets: [
           {
-            data: [7, 3],
+            data: [espaciosLibres, espaciosOcupados],
             backgroundColor: ["#dc3545", "#198754"], // rojo y verde
           },
         ],
@@ -130,7 +196,7 @@ function Dashboard() {
         },
       },
     });
-  }, []);
+  }, [parqueaderos]);
 
   return (
     <div className="main-dashboard dashboard-container d-flex">
@@ -196,32 +262,7 @@ function Dashboard() {
           <div className="logo-container text-center flex-grow-1">
             <Link to="/"><img src={logo} alt="Logo del sistema" className="logo-img" /></Link>
           </div>
-          <div className="position-relative">
-                 <div
-              className="btn btn-outline-success d-flex align-items-center gap-2"
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              style={{ cursor: "pointer" }}
-            >
-              {nombreUsuario}
-            </div>
-            {showUserMenu && (
-              <div
-                className="position-absolute end-0 mt-2 bg-white border rounded shadow p-3"
-                style={{ minWidth: "200px", zIndex: 1000 }}
-              >
-                <p className="mb-2">
-                  Usuario: <strong>{nombreUsuario}</strong>
-                </p>
-                <p className="mb-2">
-                  Rol: <strong>{rolUsuario}</strong>
-                </p>
-                <hr />
-                <button onClick={cerrarSesión} className="btn btn-danger w-100">
-                  Cerrar sesión
-                </button>
-              </div>
-            )}
-          </div>
+        
         </div>
 
         {/* Bienvenida */}
@@ -245,41 +286,34 @@ function Dashboard() {
         </div>
 
         {/* Dashboard */}
-     <div className="d-flex flex-wrap justify-content-center gap-4 px-4 mb-4">
-          <div className="card text-center" style={{ width: "300px" }}>
-            <div className="card-body">
-              <h5 className="card-title">Visitas del Día</h5>
-              <div className="display-4 text-success fw-bold">9</div>
-              <p className="text-muted">Ingresos registrados hoy</p>
-              <Link to="/visitas" className="btn btn-success">
-                Ver Registro
-              </Link>
-            </div>
-          </div>
-
-          <div className="card text-center" style={{ width: "300px" }}>
-            <div className="card-body">
-              <h5 className="card-title">Parqueaderos Ocupados</h5>
-              <div style={{ height: "200px", position: "relative" }}>
-                <canvas id="parqueoChart"></canvas>
+        <div className="d-flex flex-wrap justify-content-center gap-4 my-4">
+              <div className="dashboard-card">
+                <h5>Visitas del Día</h5>
+                <div className="stat-number">{totalVisitas}</div>
+                <p>Ingresos registrados hoy.</p>
+                <Link to="/visitas" className="btn btn-success">
+                  Ver Registro
+                </Link>
               </div>
-              <Link to="/visitas" className="btn btn-success mt-3">
-                Ver Estado
-              </Link>
+    
+              <div className="dashboard-card">
+                <h5>Parqueaderos Ocupados</h5>
+                <div className="chart-container">
+                  <canvas id="parqueoChart"></canvas>
+                </div>
+                <Link to="/parqueaderos" className="btn btn-success">
+                  Ver Estado
+                </Link>
+              </div>
+              <div className="dashboard-card">
+                <h5>Paquetes Recibidos</h5>
+                <div className="stat-number">{totalPaquetes}</div>
+                <p>Total de paquetes que llegaron al conjunto hoy.</p>
+                <Link to="/Paqueteria" className="btn btn-success">
+                  Ver Detalles
+                </Link>
+              </div>
             </div>
-          </div>
-
-          <div className="card text-center" style={{ width: "300px" }}>
-            <div className="card-body">
-              <h5 className="card-title">Paquetes Recibidos</h5>
-              <div className="display-4 text-success fw-bold">8</div>
-              <p className="text-muted">Total de paquetes que llegaron hoy</p>
-              <Link to="/Paqueteria" className="btn btn-success">
-                Ver Detalles
-              </Link>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

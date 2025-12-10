@@ -15,6 +15,15 @@ import Swal from "sweetalert2";
 
 function AreasComunes() {
   const navegacion = useNavigate();
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      Swal.fire({ icon: 'warning', title: 'Sesión expirada', text: 'La sesión expiró. Vuelva a iniciar sesión.', timer: 3500, showConfirmButton: false, timerProgressBar: true }).then(() => {
+        localStorage.clear();
+        navegacion('/');
+      });
+    }
+  }, [navegacion]);
   const cerrarSesión = (e) => {
     e.preventDefault();
     localStorage.clear();
@@ -38,6 +47,7 @@ function AreasComunes() {
   const [apartamentos, setApartamentos] = useState([]);
   const [areasComunes, setAreasComunes] = useState([]);
   const [tiposDocumento, setTiposDocumento] = useState([]);
+  const [verificadorRol, setVerificadorRol] = useState(null);
 
   // Funciones de manejo de token y usuario (igual que en paquetería)
   const obtenerToken = () => {
@@ -106,7 +116,10 @@ if(verificarTokenVencido(token)){
 }
   const rolesId = obtenerRolDelToken(); 
   let rolUsuario;
-
+useEffect(() => {
+  const rolesId = obtenerRolDelToken();
+  setVerificadorRol(rolesId);
+}, [token]);
 switch (rolesId) {
   case 1:
     rolUsuario = "superAdmin";
@@ -122,6 +135,9 @@ switch (rolesId) {
 }
 
   const nombreUsuario = obtenerUsuarioDelToken();
+  const tokenValido = token && !verificarTokenVencido(token);
+  const showUserManagement = tokenValido && rolesId === 1; // solo SuperAdmin gestiona usuarios
+  const showAreasComunes = tokenValido && rolesId !== 3; // ocultar áreas comunes para Vigilante
 
   const [formData, setFormData] = useState({
     torre: "",
@@ -210,11 +226,11 @@ switch (rolesId) {
         setReservas(data.body || []);
       } else {
         console.error("Error al obtener reservas:", response.statusText);
-        Swal.fire("Error", "No se pudieron cargar las reservas", "error");
+        Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
       }
     } catch (error) {
       console.error("Error en la conexión:", error);
-      Swal.fire("Error", "No se pudo conectar con el servidor", "error");
+      Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
     } finally {
       setLoading(false);
     }
@@ -491,11 +507,8 @@ switch (rolesId) {
       if (response.ok) {
         const responseData = await response.json();
         console.log("Respuesta exitosa:", responseData);
-        const mensaje =
-          editIndex !== null
-            ? "¡Reserva editada exitosamente!"
-            : "¡Reserva creada exitosamente!";
-        Swal.fire({ title: mensaje, icon: "success" });
+          const mensaje = editIndex !== null ? "Actualizado correctamente" : "Registrado correctamente";
+          Swal.fire({ icon: 'success', title: mensaje, timer: 3500, showConfirmButton: false });
 
         setFormData({
           torre: "",
@@ -524,11 +537,11 @@ switch (rolesId) {
        
         const mensajeError =
           errorData.message || errorData.error || `Error ${response.status}`;
-        Swal.fire("Error", mensajeError, "error");
+        Swal.fire({ icon: 'error', title: 'Lo siento', text: mensajeError || 'Error en la operación. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
       }
     } catch (error) {
       console.error("Error de conexión:", error);
-      Swal.fire("Error", "No se pudo conectar con el servidor", "error");
+      Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
     } finally {
       setLoading(false);
     }
@@ -556,11 +569,7 @@ switch (rolesId) {
             console.log("Respuesta del DELETE:", responseData);
             console.log("Reserva finalizada ID:", idReserva);
 
-            Swal.fire({
-              title: "¡Finalizado!",
-              text: "La reserva fue finalizada",
-              icon: "success",
-            });
+            Swal.fire({ icon: 'success', title: 'Finalizado correctamente', timer: 3500, showConfirmButton: false });
 
             console.log(
               "=== DEBUG: Recargando reservas después del DELETE ==="
@@ -569,11 +578,11 @@ switch (rolesId) {
           } else {
             const errorData = await response.text();
             console.error("Error al finalizar reserva:", errorData);
-            Swal.fire("Error", "No se pudo finalizar la reserva", "error");
+            Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
           }
         } catch (error) {
           console.error("Error al finalizar reserva:", error);
-          Swal.fire("Error", "No se pudo finalizar la reserva", "error");
+          Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
         } finally {
           setLoading(false);
         }
@@ -584,7 +593,9 @@ switch (rolesId) {
   const editarReserva = (reserva) => {
   
     setFormData({
-      torre: reserva.nombreTorre?.charAt(reserva.nombreTorre.length - 1) || "", 
+      torre: reserva.nombreTorre
+        ? reserva.nombreTorre.charAt(reserva.nombreTorre.length - 1)
+        : "",
       apartamentoId: reserva.apartamentoId,
       areaComunId: reserva.areaComunId,
       fechaReserva: reserva.fechaReserva,
@@ -623,20 +634,16 @@ switch (rolesId) {
           const response = await eliminarReserva_v2(idReserva, token);
 
           if (response.ok) {
-            Swal.fire({
-              title: "¡Eliminado!",
-              text: "La reserva fue eliminada",
-              icon: "success",
-            });
+            Swal.fire({ icon: 'success', title: 'Eliminado correctamente', timer: 3500, showConfirmButton: false });
             obtenerReservas(); 
           } else {
             const errorData = await response.text();
             console.error("Error al eliminar reserva:", errorData);
-            Swal.fire("Error", "No se pudo eliminar la reserva", "error");
+            Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
           }
         } catch (error) {
           console.error("Error al eliminar reserva:", error);
-          Swal.fire("Error", "No se pudo eliminar la reserva", "error");
+          Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
         } finally {
           setLoading(false);
         }
@@ -761,37 +768,39 @@ switch (rolesId) {
             </ul>
           </div>
 
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión de Áreas Comunes</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link className="nav-link text-white" onClick={abrirModal}>
-                  Registrar Reserva
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {showAreasComunes && (
+            <div className="mb-4">
+              <h6 className="text-uppercase fw-bold">Gestión de Áreas Comunes</h6>
+              <ul className="nav flex-column mt-2 gap-2">
+                <li>
+                  <Link className="nav-link text-white" onClick={abrirModal}>
+                    Registrar Reserva
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          )}
 
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión de Usuarios</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li
-                
-                  className="nav-link text-white"
-                 onClick={gestionUsuarios}
-                  state={{ abrirModal: true }}
+          {showUserManagement && (
+            <div className="mb-4">
               
-                >s
+              <h6 className="text-uppercase fw-bold">Gestión de Usuarios</h6>
+              <ul className="nav flex-column mt-2 gap-2">
+                {(verificadorRol === 1 || verificadorRol==="1")&& (
+                <li className="nav-link text-white" onClick={gestionUsuarios}>
                   Registrar Usuario
-                
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/GestionUsuario">
-                  Consultar Usuarios
-                </Link>
-              </li>
-            </ul>
-          </div>
+                </li>
+                )}
+                {(verificadorRol === 1 ||verificadorRol==="1") && (
+                <li>
+                  <Link className="nav-link text-white" to="/GestionUsuario">
+                    Consultar Usuarios
+                  </Link>
+                </li>
+                )}
+              </ul>
+            </div>
+          )}
 
           <div className="mb-4">
             <h6 className="text-uppercase fw-bold">Gestión Residentes</h6>
@@ -967,7 +976,7 @@ switch (rolesId) {
               alignItems: "center",
             }}
           >
-            <i class="bi bi-people-fill"></i>
+            <i className="bi bi-people-fill"></i>
 
           </div>
 

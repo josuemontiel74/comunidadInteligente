@@ -8,7 +8,7 @@ import { Button, Table, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
 import { obtenerResidentes, crearOcupante, actualizarOcupante, finalizarOcupante } from "../services/residentes.services.jsx";
 
-// Usamos las funciones del servicio para las llamadas a la API.
+  
 
   const obtenerToken = () => {
     const token =
@@ -56,6 +56,82 @@ import { obtenerResidentes, crearOcupante, actualizarOcupante, finalizarOcupante
       return "Usuario";
     }
   };
+  
+  // Traduce mensajes/estructuras de error del backend a textos amigables en español
+  const campoAmigable = (field) => {
+    const map = {
+      numeroDocumento: 'Número de documento',
+      primerNombre: 'Primer nombre',
+      segundoNombre: 'Segundo nombre',
+      primerApellido: 'Primer apellido',
+      segundoApellido: 'Segundo apellido',
+      correoElectronico: 'Correo electrónico',
+      correo: 'Correo electrónico',
+      telefono: 'Teléfono',
+      apto: 'Apartamento',
+      apartamentosId: 'Apartamento',
+      tipoOcupacion: 'Tipo de ocupación',
+      fechaInicio: 'Fecha de inicio',
+      fechaFin: 'Fecha de fin',
+      personasACargo: 'Personas a cargo',
+    };
+    return map[field] || field;
+  };
+
+  const traducirMensajeBackend = (errData) => {
+    if (errData === null || errData === undefined) return 'Datos inválidos o incompletos.';
+
+    if (typeof errData === 'string') {
+      const s = errData;
+      if (/required|is required|cannot be null|no puede estar vacío|cannot be empty/i.test(s)) return 'Falta información obligatoria en el formulario.';
+      if (/max.*length|no puede.*mayor|exceeds the maximum|too long|longitud máxima/i.test(s)) return 'Algún campo supera la longitud permitida.';
+      if (/min.*length|must be at least|falta.*caracter|too short|longitud mínima/i.test(s)) return 'Algún campo no cumple la longitud mínima requerida.';
+      if (/invalid|not valid|no válido|formato/i.test(s)) return 'Formato de campo inválido.';
+      if (/unique|exists|ya existe/i.test(s)) return 'Ya existe un registro con esos datos.';
+      // Si el mensaje ya está en español claro, devolverlo
+      if (/[áéíóúñ¿¡]/i.test(s) || /\b(error|campo|no|falta|inválid)/i.test(s)) return s;
+      // Por defecto, devolver un mensaje genérico pero útil
+      return 'Hay un problema con los datos ingresados. Revise el formulario e intente nuevamente.';
+    }
+
+    if (Array.isArray(errData)) {
+      return errData.map((e) => traducirMensajeBackend(e)).join(' ');
+    }
+
+    if (typeof errData === 'object') {
+      // Estructura común: { message: '...', errors: [...] }
+      if (errData.message && typeof errData.message === 'string') {
+        return traducirMensajeBackend(errData.message);
+      }
+
+      if (errData.errors && Array.isArray(errData.errors)) {
+        return errData.errors
+          .map((it) => {
+            if (it.field || it.param) {
+              const f = it.field || it.param;
+              const msg = it.message || it.msg || it.error || JSON.stringify(it);
+              return `${campoAmigable(f)}: ${traducirMensajeBackend(msg)}`;
+            }
+            return traducirMensajeBackend(it.message || it);
+          })
+          .join(' ');
+      }
+
+      // Si es un objeto con claves por campo
+      const partes = [];
+      for (const k in errData) {
+        if (!Object.prototype.hasOwnProperty.call(errData, k)) continue;
+        const v = errData[k];
+        const texto = traducirMensajeBackend(v);
+        partes.push(`${campoAmigable(k)}: ${texto}`);
+      }
+      if (partes.length) return partes.join(' ');
+
+      return 'Hay un problema con los datos ingresados. Revise el formulario e intente nuevamente.';
+    }
+
+    return 'Hay un problema con los datos ingresados. Revise el formulario e intente nuevamente.';
+  };
   //obtener rol 
 const obtenerRolDelToken = () => {
   try {
@@ -93,10 +169,23 @@ switch (rolesId) {
 
   const nombreUsuario = obtenerUsuarioDelToken();
 
+  const tokenValido = token && !verificarTokenVencido(token);
+  const showUserManagement = tokenValido && rolesId === 1; // solo SuperAdmin puede gestionar usuarios
+  const showAreasComunes = tokenValido && rolesId !== 3; // ocultar áreas comunes para Vigilante (3)
+
 
 function Residentes() {
   const location = useLocation();
   const navegacion = useNavigate();
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      Swal.fire({ icon: 'warning', title: 'Sesión expirada', text: 'La sesión expiró. Vuelva a iniciar sesión.', timer: 3500, showConfirmButton: false, timerProgressBar: true }).then(() => {
+        localStorage.clear();
+        navegacion('/');
+      });
+    }
+  }, [navegacion]);
   const CerraSesión = (e) => {
     e?.preventDefault();
     localStorage.clear();
@@ -123,7 +212,25 @@ function Residentes() {
       }
 
       if (!res.ok) {
-        console.error("Error al obtener residentes:", res.status, res.statusText);
+        const text = await res.text();
+        let parsed = text;
+        try {
+          parsed = JSON.parse(text);
+        } catch (e) {
+          // no es JSON
+        }
+        console.error("Error al obtener residentes:", res.status, res.statusText, parsed);
+        if (res.status === 400) {
+          const friendly = traducirMensajeBackend(parsed || text);
+          Swal.fire({ icon: 'warning', title: 'Error de validación', text: friendly, confirmButtonText: 'Entendido' });
+          setLoading(false);
+          return;
+        }
+        if (res.status >= 500) {
+          Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+          setLoading(false);
+          return;
+        }
         throw new Error(`Error ${res.status}: ${res.statusText}`);
       }
 
@@ -161,7 +268,7 @@ function Residentes() {
       setResidentes(residentesFormateados);
     } catch (error) {
       console.error("Error al cargar residentes:", error);
-      Swal.fire("Error", "No se pudieron cargar los residentes", "error");
+      Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
     } finally {
       setLoading(false);
     }
@@ -433,15 +540,26 @@ function Residentes() {
           console.log("Datos a enviar:", ocupanteData);
 
           const resUpdate = await actualizarOcupante(editIndex, ocupanteData, token);
-          if (!resUpdate.ok) {
-            const errText = await resUpdate.text();
-            console.error("Error actualizando ocupante:", errText);
-            throw new Error(`Error ${resUpdate.status}: ${errText}`);
-          }
+            if (!resUpdate.ok) {
+              const contentType = resUpdate.headers.get("content-type");
+              const errData = contentType && contentType.includes("application/json") ? await resUpdate.json() : await resUpdate.text();
+              console.error("Error actualizando ocupante:", resUpdate.status, errData);
+              if (resUpdate.status === 400) {
+                const friendly = traducirMensajeBackend(errData);
+                Swal.fire({ icon: 'warning', title: 'Error de validación', text: friendly, confirmButtonText: 'Entendido' });
+                return;
+              }
+              if (resUpdate.status >= 500) {
+                Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+                return;
+              }
+              Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo actualizar el registro.', confirmButtonText: 'Entendido' });
+              return;
+            }
 
-          Swal.fire("Guardado", "Cambios guardados correctamente", "success");
-          cargarResidentes();
-          cerrarModal();
+            Swal.fire({ icon: 'success', title: 'Guardado correctamente', timer: 3500, showConfirmButton: false });
+            cargarResidentes();
+            cerrarModal();
         } else if (result.isDenied) {
           Swal.fire("No guardado", "Los cambios no se aplicaron", "info");
         }
@@ -451,21 +569,24 @@ function Residentes() {
         const dataCreate = contentType && contentType.includes("application/json") ? await resCreate.json() : await resCreate.text();
 
         if (!resCreate.ok) {
-          console.error("Error creando ocupante:", dataCreate);
-          Swal.fire("Error", dataCreate.message || dataCreate || "Error al registrar residente", "error");
+          console.error("Error creando ocupante:", resCreate.status, dataCreate);
+          if (resCreate.status === 400) {
+            const friendly = traducirMensajeBackend(dataCreate);
+            Swal.fire({ icon: 'warning', title: 'Error de validación', text: friendly, confirmButtonText: 'Entendido' });
+          } else if (resCreate.status >= 500) {
+            Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+          } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo crear el registro.', confirmButtonText: 'Entendido' });
+          }
         } else {
-          Swal.fire("Éxito", "Residente registrado con éxito", "success");
+          Swal.fire({ icon: 'success', title: 'Registrado correctamente', timer: 3500, showConfirmButton: false });
           cargarResidentes();
           cerrarModal();
         }
       }
     } catch (error) {
       console.error("Error al guardar residente:", error);
-      Swal.fire(
-        "Error",
-        `No se pudo guardar el residente: ${error.message}`,
-        "error"
-      );
+      Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
     }
   };
 
@@ -521,15 +642,26 @@ function Residentes() {
       try {
         const resFinal = await finalizarOcupante(residente.idOcupante, token);
         if (!resFinal.ok) {
-          const errText = await resFinal.text();
-          console.error("Error finalizando ocupante:", errText);
-          throw new Error(`Error ${resFinal.status}: ${errText}`);
+          const contentType = resFinal.headers.get("content-type");
+          const errData = contentType && contentType.includes("application/json") ? await resFinal.json() : await resFinal.text();
+          console.error("Error finalizando ocupante:", resFinal.status, errData);
+          if (resFinal.status === 400) {
+            const friendly = traducirMensajeBackend(errData);
+            Swal.fire({ icon: 'warning', title: 'Error de validación', text: friendly, confirmButtonText: 'Entendido' });
+            return;
+          }
+          if (resFinal.status >= 500) {
+            Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+            return;
+          }
+          Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo finalizar el registro.', confirmButtonText: 'Entendido' });
+          return;
         }
-        Swal.fire("Finalizado", "El residente ha sido finalizado", "success");
+        Swal.fire({ icon: 'success', title: 'Finalizado correctamente', timer: 3500, showConfirmButton: false });
         cargarResidentes();
       } catch (error) {
         console.error("Error al finalizar residente:", error);
-        Swal.fire("Error", "No se pudo finalizar el residente", "error");
+        Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
       }
     }
   };
@@ -767,41 +899,45 @@ function Residentes() {
             </ul>
           </div>
 
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión de Áreas Comunes</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link className="nav-link text-white" to="/AreasComunes">
-                  Registrar Reserva
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/AreasComunes">
-                  Consultar Zonas
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {showAreasComunes && (
+            <div className="mb-4">
+              <h6 className="text-uppercase fw-bold">Gestión de Áreas Comunes</h6>
+              <ul className="nav flex-column mt-2 gap-2">
+                <li>
+                  <Link className="nav-link text-white" to="/AreasComunes">
+                    Registrar Reserva
+                  </Link>
+                </li>
+                <li>
+                  <Link className="nav-link text-white" to="/AreasComunes">
+                    Consultar Zonas
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          )}
 
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión de Usuarios</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link
-                  className="nav-link text-white"
-                  to="/Registro"
-                  state={{ abrirModal: true }}
-                >
-                  Registrar Usuario
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/GestionUsuario">
-                  Consultar Usuarios
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {showUserManagement && (
+            <div className="mb-4">
+              <h6 className="text-uppercase fw-bold">Gestión de Usuarios</h6>
+              <ul className="nav flex-column mt-2 gap-2">
+                <li>
+                  <Link
+                    className="nav-link text-white"
+                    to="/GestionUsuario"
+                    state={{ abrirModal: true }}
+                  >
+                    Registrar Usuario
+                  </Link>
+                </li>
+                <li>
+                  <Link className="nav-link text-white" to="/GestionUsuario">
+                    Consultar Usuarios
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          )}
 
           <div className="mb-4">
             <h6 className="text-uppercase fw-bold">Gestión Residentes</h6>

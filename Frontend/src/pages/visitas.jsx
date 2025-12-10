@@ -31,7 +31,6 @@ const styles = `
   .connection-indicator.online {
     background-color: #28a745 !important;
   }
-  c
   .connection-indicator.loading {
     background-color: #ffc107 !important;
     animation: pulse 1s infinite;
@@ -44,6 +43,16 @@ const styles = `
 
 function Visitas() {
   const navigate = useNavigate();
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      Swal.fire({ icon: 'warning', title: 'Sesión expirada', text: 'La sesión expiró. Vuelva a iniciar sesión.', timer: 3500, showConfirmButton: false, timerProgressBar: true }).then(() => {
+        localStorage.clear();
+        navigate('/');
+      });
+    }
+  }, [navigate]);
+
   const location = useLocation();
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -128,8 +137,8 @@ function Visitas() {
   const [tipoVehiculoId, setTipoVehiculoId] = useState("");
   const [codigoParqueadero, setCodigoParqueadero] = useState("");
   const [vieneEnVehiculo, setVieneEnVehiculo] = useState("");
+  const [verificadorRol, setVerificadorRol] = useState(null);
 
-  
   const [parqueaderosDisponibles, setParqueaderosDisponibles] = useState([]);
 
   // Persistir formulario en sessionStorage para evitar pérdida por recarga
@@ -171,7 +180,7 @@ function Visitas() {
     sessionStorage.setItem("visitaForm", JSON.stringify(f));
   }, [numeroDocumento, nombreVisitante, tipoDocumentoId, apartamentoId, fechaHoraIngreso, observaciones, matricula, tipoVehiculoId, codigoParqueadero, vieneEnVehiculo]);
 
-  
+
   const formatearFecha = (fechaISO) => {
     if (!fechaISO) return "";
     const fecha = new Date(fechaISO);
@@ -186,7 +195,7 @@ function Visitas() {
     return fecha.toLocaleDateString("es-CO", opciones).replace(",", "");
   };
 
-   const obtenerToken = () => {
+  const obtenerToken = () => {
     const token =
       localStorage.getItem("token") ||
       localStorage.getItem("authToken") ||
@@ -208,11 +217,11 @@ function Visitas() {
   const verificarTokenVencido = (token) => {
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
-      const fechaExpiracion = payload.exp * 1000; 
+      const fechaExpiracion = payload.exp * 1000;
       return Date.now() >= fechaExpiracion;
     } catch (error) {
       console.error("Error al verificar expiración del token:", error);
-      return true; 
+      return true;
     }
   };
 
@@ -231,39 +240,45 @@ function Visitas() {
     }
   };
   //obtener rol 
-const obtenerRolDelToken = () => {
-  try {
-    if (verificarTokenVencido(token)) {
-      console.warn("Token vencido, usando rol por defecto...");
-      return "RolDesconocido";
-    }
+  const obtenerRolDelToken = () => {
+    try {
+      if (verificarTokenVencido(token)) {
+        console.warn("Token vencido, usando rol por defecto...");
+        return "RolDesconocido";
+      }
 
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.rolesId || "RolNoDefinido";
-  } catch (error) {
-    console.error("Error al decodificar el token:", error);
-    return "RolNoDefinido";
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload.rolesId || "RolNoDefinido";
+    } catch (error) {
+      console.error("Error al decodificar el token:", error);
+      return "RolNoDefinido";
+    }
+  };
+  if (verificarTokenVencido(token)) {
+
   }
-};
-if(verificarTokenVencido(token)){
-  
-}
-  const rolesId = obtenerRolDelToken(); 
+
+
+  const rolesId = obtenerRolDelToken();
+  useEffect(() => {
+    const rolesId = obtenerRolDelToken();
+    setVerificadorRol(rolesId);
+  }, [token]);
   let rolUsuario;
 
-switch (rolesId) {
-  case 1:
-    rolUsuario = "superAdmin";
-    break;
-  case 2:
-    rolUsuario = "admin";
-    break;
-  case 3:
-    rolUsuario = "vigilante";
-    break;
-  default:
-    rolUsuario = "RolNoDefinido";
-}
+  switch (rolesId) {
+    case 1:
+      rolUsuario = "superAdmin";
+      break;
+    case 2:
+      rolUsuario = "admin";
+      break;
+    case 3:
+      rolUsuario = "vigilante";
+      break;
+    default:
+      rolUsuario = "RolNoDefinido";
+  }
 
   const nombreUsuario = obtenerUsuarioDelToken();
 
@@ -273,7 +288,7 @@ switch (rolesId) {
     const fecha = new Date(fechaString);
     const ahora = new Date();
 
-   
+
     if (isNaN(fecha.getTime())) {
       return { valida: false, error: "Formato de fecha inválido" };
     }
@@ -297,7 +312,7 @@ switch (rolesId) {
     return { valida: true };
   };
 
- 
+
   const obtenerEstadoReal = (estadoVisita) => {
     const estado = String(estadoVisita || "")
       .toLowerCase()
@@ -320,12 +335,12 @@ switch (rolesId) {
           return fechas[fechas.length - 1].trim();
         }
       } else if (fechaStr.includes("T")) {
-      
+
         return fechaStr;
       }
     }
     return null;
-  }; 
+  };
 
   const cargarUsuario = () => {
     const token = localStorage.getItem("token");
@@ -365,7 +380,7 @@ switch (rolesId) {
           toast: true,
           position: "top-end",
           showConfirmButton: false,
-          timer: 2000,
+          timer: 3500,
           timerProgressBar: true,
         });
 
@@ -446,7 +461,7 @@ switch (rolesId) {
     visitaEsperada = null,
     maxIntentos = 5
   ) => {
-    console.log("🔍 Verificando sincronización de datos...");
+    console.log(" Verificando sincronización de datos...");
 
     for (let intento = 1; intento <= maxIntentos; intento++) {
       console.log(`📡 Verificación ${intento}/${maxIntentos}`);
@@ -469,7 +484,7 @@ switch (rolesId) {
             return { success: true, visita: encontrada };
           }
         } else {
-        
+
           if (datos && datos.length > 0) {
             console.log(" Datos sincronizados correctamente");
             return { success: true, datos };
@@ -500,8 +515,7 @@ switch (rolesId) {
     }
 
     console.log(
-      `Iniciando carga de visitas... (intento ${reintento + 1}/${
-        maxReintentos + 1
+      `Iniciando carga de visitas... (intento ${reintento + 1}/${maxReintentos + 1
       })`
     );
 
@@ -532,30 +546,29 @@ switch (rolesId) {
         })),
       });
 
-      setVisitas(data); 
+      setVisitas(data);
       setLoading(false);
 
-      return data; 
+      return data;
     } catch (error) {
       console.error(
         ` Error cargando visitas (intento ${reintento + 1}):`,
         error
       );
 
-      
+
       if (reintento >= maxReintentos) {
         Swal.fire({
           icon: "error",
           title: "Error de conexión",
-          text: `No se pudo cargar las visitas después de ${
-            maxReintentos + 1
-          } intentos. Verifica que el servidor esté funcionando.`,
+          text: `No se pudo cargar las visitas después de ${maxReintentos + 1
+            } intentos. Verifica que el servidor esté funcionando.`,
           showCancelButton: true,
           confirmButtonText: "Reintentar",
           cancelButtonText: "Cerrar",
         }).then((result) => {
           if (result.isConfirmed) {
-            cargarVisitas(0, maxReintentos); 
+            cargarVisitas(0, maxReintentos);
           }
         });
         setVisitas([]);
@@ -565,7 +578,7 @@ switch (rolesId) {
       }
 
 
-      const delay = Math.pow(2, reintento) * 1000; 
+      const delay = Math.pow(2, reintento) * 1000;
       console.log(` Reintentando en ${delay / 1000} segundos...`);
       setTimeout(() => {
         cargarVisitas(reintento + 1, maxReintentos);
@@ -608,7 +621,7 @@ switch (rolesId) {
         icon: 'success',
         title: `Parqueadero ${st.codigoParqueaderoSeleccionado} seleccionado`,
         showConfirmButton: false,
-        timer: 2000
+        timer: 3500
       });
     }
 
@@ -734,6 +747,8 @@ switch (rolesId) {
     setCodigoParqueadero("");
     setVieneEnVehiculo("");
     setParqueaderosDisponibles([]);
+    // Limpiar el formulario persistido en sessionStorage para evitar reaparecer datos previos
+    try { sessionStorage.removeItem('visitaForm'); } catch (e) { console.warn('No se pudo limpiar visitaForm', e); }
   };
 
   const fetchConReintento = async (url, options = {}, maxReintentos = 2) => {
@@ -742,8 +757,7 @@ switch (rolesId) {
     for (let intento = 0; intento <= maxReintentos; intento++) {
       try {
         console.log(
-          `📡 Realizando request (intento ${intento + 1}/${
-            maxReintentos + 1
+          `📡 Realizando request (intento ${intento + 1}/${maxReintentos + 1
           }):`,
           url
         );
@@ -806,7 +820,7 @@ switch (rolesId) {
     setVieneEnVehiculo(visita.matricula ? "SI" : "NO");
 
     if (visita.apartamentoId) {
-  
+
       const apartamento = apartamentos.find(
         (apt) => apt.id === visita.apartamentoId
       );
@@ -815,7 +829,7 @@ switch (rolesId) {
         setApartamentoId(visita.apartamentoId.toString());
       }
     } else if (visita.nombreTorre && visita.numeroApartamento) {
-   
+
       const torreMap = {
         "Torre A": 1,
         "Torre B": 2,
@@ -860,7 +874,12 @@ switch (rolesId) {
       observaciones: visita.observaciones || " No disponible en JOIN",
     });
 
+    // Abrir modal y forzar recarga de parqueaderos disponibles para que
+    // el parqueadero previamente asignado aparezca en el select.
     abrirModal();
+    setTimeout(() => {
+      try { cargarParqueaderosDisponibles(); } catch (e) { console.warn('Error recargando parqueaderos al editar', e); }
+    }, 50);
   };
 
   const toggleMenu = () => setMenuAbierto(!menuAbierto);
@@ -872,48 +891,48 @@ switch (rolesId) {
   };
 
 
- const asignarParqueadero = async () => {
-  if (!codigoParqueadero) {
-    Swal.fire("Error", "Debes seleccionar un parqueadero", "error");
-    return null;
-  }
-
-  const token = localStorage.getItem("token");
-
-  try {
-    const datosAsignacion = {
-      estadoId: 3, // Ocupado
-      tipoVehiculoId: parseInt(tipoVehiculoId),
-    };
-    const res = await actualizarParqueadero(codigoParqueadero, datosAsignacion, token);
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`Error ${res.status}: ${errorText}`);
+  const asignarParqueadero = async () => {
+    if (!codigoParqueadero) {
+      Swal.fire("Error", "Debes seleccionar un parqueadero", "error");
+      return null;
     }
 
-    const data = await res.json();
+    const token = localStorage.getItem("token");
 
-    setParqueaderosDisponibles((prev) =>
-      prev.filter((p) => p.codigoParqueadero !== codigoParqueadero)
-    );
+    try {
+      const datosAsignacion = {
+        estadoId: 3, // Ocupado
+        tipoVehiculoId: parseInt(tipoVehiculoId),
+      };
+      const res = await actualizarParqueadero(codigoParqueadero, datosAsignacion, token);
 
-    console.log(`✅ Parqueadero ${codigoParqueadero} asignado correctamente`);
-    return data.body || { codigoParqueadero };
-  } catch (error) {
-    console.error("Error asignando parqueadero:", error);
-    Swal.fire({
-      icon: "error",
-      title: "Error al asignar parqueadero",
-      text: error.message,
-      confirmButtonText: "Entendido",
-    });
-    return null;
-  }
-};
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Error ${res.status}: ${errorText}`);
+      }
+
+      const data = await res.json();
+
+      setParqueaderosDisponibles((prev) =>
+        prev.filter((p) => p.codigoParqueadero !== codigoParqueadero)
+      );
+
+      console.log(`✅ Parqueadero ${codigoParqueadero} asignado correctamente`);
+      return data.body || { codigoParqueadero };
+    } catch (error) {
+      console.error("Error asignando parqueadero:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error al asignar parqueadero",
+        text: error.message,
+        confirmButtonText: "Entendido",
+      });
+      return null;
+    }
+  };
 
 
-  
+
   const liberarParqueadero = async (codigoParqueaderoALiberar) => {
     if (!codigoParqueaderoALiberar) {
       console.log(" No hay parqueadero para liberar");
@@ -942,176 +961,176 @@ switch (rolesId) {
   };
 
   const registrarVisita = async (e) => {
-  e.preventDefault();
-  const token = localStorage.getItem("token");
-  if (!token) {
-    navigate("/");
-    return;
-  }
-
-  // 🔹 Validaciones básicas
-  if (
-    !numeroDocumento ||
-    !tipoDocumentoId ||
-    !nombreVisitante ||
-    !torreId ||
-    !apartamentoId ||
-    !fechaHoraIngreso
-  ) {
-    Swal.fire("Error", "Por favor completa todos los campos obligatorios", "error");
-    return;
-  }
-
-  if (nombreVisitante.trim().length < 20) {
-    Swal.fire({
-      icon: "error",
-      title: "Nombre muy corto",
-      text: `El nombre debe tener al menos 20 caracteres. Actual: ${nombreVisitante.trim().length}`,
-      confirmButtonText: "Entendido",
-    });
-    return;
-  }
-
-  if (numeroDocumento.trim().length < 8) {
-    Swal.fire({
-      icon: "error",
-      title: "Documento inválido",
-      text: `El número de documento debe tener al menos 8 caracteres. Actual: ${numeroDocumento.trim().length}`,
-      confirmButtonText: "Entendido",
-    });
-    return;
-  }
-
-  const validacionFecha = validarFecha(fechaHoraIngreso);
-  if (!validacionFecha.valida) {
-    Swal.fire({
-      icon: "error",
-      title: "Fecha inválida",
-      text: validacionFecha.error,
-      confirmButtonText: "Entendido",
-    });
-    return;
-  }
-
-  if (isNaN(parseInt(tipoDocumentoId)) || parseInt(tipoDocumentoId) < 1) {
-    Swal.fire({
-      icon: "error",
-      title: "Tipo de documento inválido",
-      text: "Debes seleccionar un tipo de documento válido",
-      confirmButtonText: "Entendido",
-    });
-    return;
-  }
-
-  if (isNaN(parseInt(apartamentoId)) || parseInt(apartamentoId) < 1) {
-    Swal.fire({
-      icon: "error",
-      title: "Apartamento inválido",
-      text: "Debes seleccionar un apartamento válido",
-      confirmButtonText: "Entendido",
-    });
-    return;
-  }
-
-  // 🔹 Validación de datos del vehículo
-  if (vieneEnVehiculo === "SI") {
-    if (!matricula) {
-      Swal.fire("Error", "Debes ingresar la matrícula", "error");
+    e.preventDefault();
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/");
       return;
     }
-    if (!tipoVehiculoId) {
-      Swal.fire("Error", "Debes seleccionar el tipo de vehículo", "error");
+
+    // 🔹 Validaciones básicas
+    if (
+      !numeroDocumento ||
+      !tipoDocumentoId ||
+      !nombreVisitante ||
+      !torreId ||
+      !apartamentoId ||
+      !fechaHoraIngreso
+    ) {
+      Swal.fire("Error", "Por favor completa todos los campos obligatorios", "error");
       return;
     }
-    if (!codigoParqueadero) {
-      Swal.fire("Error", "Debes seleccionar un parqueadero", "error");
+
+    if (nombreVisitante.trim().length < 20) {
+      Swal.fire({
+        icon: "error",
+        title: "Nombre muy corto",
+        text: `El nombre debe tener al menos 20 caracteres. Actual: ${nombreVisitante.trim().length}`,
+        confirmButtonText: "Entendido",
+      });
       return;
     }
-  }
 
-  try {
-    // 🔹 Construir objeto de datos
-    const visitaData = {
-      numeroDocumento: numeroDocumento.trim(),
-      nombreVisitante: nombreVisitante.trim(),
-      tipoDocumentoId: parseInt(tipoDocumentoId),
-      apartamentoId: parseInt(apartamentoId),
-      fechaHoraIngreso: getFechaCompleta(fechaHoraIngreso),
-      observaciones: observaciones.trim() || "-",
-    };
+    if (numeroDocumento.trim().length < 8) {
+      Swal.fire({
+        icon: "error",
+        title: "Documento inválido",
+        text: `El número de documento debe tener al menos 8 caracteres. Actual: ${numeroDocumento.trim().length}`,
+        confirmButtonText: "Entendido",
+      });
+      return;
+    }
 
-    // 🔹 Datos del vehículo si aplica
+    const validacionFecha = validarFecha(fechaHoraIngreso);
+    if (!validacionFecha.valida) {
+      Swal.fire({
+        icon: "error",
+        title: "Fecha inválida",
+        text: validacionFecha.error,
+        confirmButtonText: "Entendido",
+      });
+      return;
+    }
+
+    if (isNaN(parseInt(tipoDocumentoId)) || parseInt(tipoDocumentoId) < 1) {
+      Swal.fire({
+        icon: "error",
+        title: "Tipo de documento inválido",
+        text: "Debes seleccionar un tipo de documento válido",
+        confirmButtonText: "Entendido",
+      });
+      return;
+    }
+
+    if (isNaN(parseInt(apartamentoId)) || parseInt(apartamentoId) < 1) {
+      Swal.fire({
+        icon: "error",
+        title: "Apartamento inválido",
+        text: "Debes seleccionar un apartamento válido",
+        confirmButtonText: "Entendido",
+      });
+      return;
+    }
+
+    // 🔹 Validación de datos del vehículo
     if (vieneEnVehiculo === "SI") {
-      if (!matricula || !tipoVehiculoId || !codigoParqueadero) {
-        Swal.fire("Error", "Debes ingresar todos los datos del vehículo y parqueadero", "error");
+      if (!matricula) {
+        Swal.fire("Error", "Debes ingresar la matrícula", "error");
         return;
       }
-
-      visitaData.matricula = matricula.trim().toUpperCase();
-      visitaData.tipoVehiculoId = parseInt(tipoVehiculoId);
-      visitaData.codigoParqueadero = codigoParqueadero;
-    } else {
-      visitaData.matricula = null;
-      visitaData.tipoVehiculoId = null;
-      visitaData.codigoParqueadero = null;
+      if (!tipoVehiculoId) {
+        Swal.fire("Error", "Debes seleccionar el tipo de vehículo", "error");
+        return;
+      }
+      if (!codigoParqueadero) {
+        Swal.fire("Error", "Debes seleccionar un parqueadero", "error");
+        return;
+      }
     }
 
-    // 🔹 Determinar método y URL
-    // 🔹 Enviar al backend usando servicios
-    let res;
     try {
-      if (editingIndex !== null) {
-        console.log("📤 Actualizando visita (servicio):", visitas[editingIndex].idVisita, visitaData);
-        res = await actualizarVisita(visitas[editingIndex].idVisita, visitaData, token);
+      // 🔹 Construir objeto de datos
+      const visitaData = {
+        numeroDocumento: numeroDocumento.trim(),
+        nombreVisitante: nombreVisitante.trim(),
+        tipoDocumentoId: parseInt(tipoDocumentoId),
+        apartamentoId: parseInt(apartamentoId),
+        fechaHoraIngreso: getFechaCompleta(fechaHoraIngreso),
+        observaciones: observaciones.trim() || "-",
+      };
+
+      // 🔹 Datos del vehículo si aplica
+      if (vieneEnVehiculo === "SI") {
+        if (!matricula || !tipoVehiculoId || !codigoParqueadero) {
+          Swal.fire("Error", "Debes ingresar todos los datos del vehículo y parqueadero", "error");
+          return;
+        }
+
+        visitaData.matricula = matricula.trim().toUpperCase();
+        visitaData.tipoVehiculoId = parseInt(tipoVehiculoId);
+        visitaData.codigoParqueadero = codigoParqueadero;
       } else {
-        console.log("📤 Creando visita (servicio):", visitaData);
-        res = await crearVisita(visitaData, token);
+        visitaData.matricula = null;
+        visitaData.tipoVehiculoId = null;
+        visitaData.codigoParqueadero = null;
       }
 
-      const contentType = res.headers.get("content-type");
-      const data = contentType && contentType.includes("application/json")
-        ? await res.json()
-        : await res.text();
+      // 🔹 Determinar método y URL
+      // 🔹 Enviar al backend usando servicios
+      let res;
+      try {
+        if (editingIndex !== null) {
+          console.log("📤 Actualizando visita (servicio):", visitas[editingIndex].idVisita, visitaData);
+          res = await actualizarVisita(visitas[editingIndex].idVisita, visitaData, token);
+        } else {
+          console.log("📤 Creando visita (servicio):", visitaData);
+          res = await crearVisita(visitaData, token);
+        }
 
-      if (!res.ok) {
-        console.error("❌ Error del servidor:", data);
-        Swal.fire("Error", data.error || "No se pudo registrar la visita", "error");
+        const contentType = res.headers.get("content-type");
+        const data = contentType && contentType.includes("application/json")
+          ? await res.json()
+          : await res.text();
+
+        if (!res.ok) {
+          console.error("Error del servidor:", data);
+          Swal.fire("Error", data.error || "No se pudo registrar la visita", "error");
+          return;
+        }
+
+        // mantener la variable data para el resto del flujo
+
+        } catch (err) {
+        console.error(" Error en la petición de visita:", err);
+        Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
         return;
       }
-      
-      // mantener la variable data para el resto del flujo
-      // (el código siguiente espera que la petición haya ido bien)
+
+      // 🔹 Mensaje de éxito
+      const mensaje = editingIndex !== null
+        ? "Actualizado correctamente"
+        : "Registrado correctamente";
+
+      Swal.fire({
+        icon: "success",
+        title: "Éxito",
+        text: mensaje,
+        timer: 3500,
+        showConfirmButton: false,
+      });
+
+      // 🔹 Limpiar formulario y actualizar lista
+      resetForm();
+      cerrarModal();
+
+      console.log(" Recargando visitas...");
+      await cargarVisitas(0, 5);
+
     } catch (err) {
-      console.error("❌ Error en la petición de visita:", err);
-      Swal.fire("Error", err.message || "No se pudo conectar al servidor", "error");
-      return;
+      console.error("🚨 Error registrando visita:", err);
+      Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
     }
-
-    // 🔹 Mensaje de éxito
-    const mensaje = editingIndex !== null
-      ? "Visita actualizada correctamente"
-      : "Visita registrada correctamente";
-
-    Swal.fire({
-      icon: "success",
-      title: "✅ Éxito",
-      text: mensaje,
-      timer: 2000,
-      showConfirmButton: false,
-    });
-
-    // 🔹 Limpiar formulario y actualizar lista
-    resetForm();
-    cerrarModal();
-
-    console.log("🔄 Recargando visitas...");
-    await cargarVisitas(0, 5);
-
-  } catch (err) {
-    console.error("🚨 Error registrando visita:", err);
-    Swal.fire("Error", err.message || "No se pudo conectar al servidor", "error");
-  }
-};
+  };
 
 
   const getFechaCompleta = (fechaHora) => {
@@ -1144,7 +1163,7 @@ switch (rolesId) {
       if (result.isConfirmed) {
         const ahora = new Date().toISOString();
         const visitaPayload = {
-          estadoId: 9, 
+          estadoId: 9,
           fechaHoraSalida: ahora,
         };
 
@@ -1171,25 +1190,23 @@ switch (rolesId) {
 
           Swal.fire({
             icon: "success",
-            title: "Visita finalizada",
-            text: "La visita ha sido finalizada correctamente y la lista se ha actualizado",
-            timer: 2000,
+            title: "Finalizado correctamente",
+            text: "La visita ha sido finalizada correctamente.",
+            timer: 3500,
             showConfirmButton: false,
           });
         } catch (error) {
           console.error(" Error al finalizar visita:", error);
           Swal.fire({
             icon: "error",
-            title: "Error al finalizar",
-            text:
-              error.message ||
-              "No se pudo finalizar la visita. Inténtalo de nuevo.",
+            title: "Lo siento",
+            text: "Error de conexión. Comuníquese con el área de sistemas.",
             showCancelButton: true,
             confirmButtonText: "Reintentar",
             cancelButtonText: "Cerrar",
           }).then((retryResult) => {
             if (retryResult.isConfirmed) {
-              finalizarvisita(idVisita); 
+              finalizarvisita(idVisita);
             }
           });
         }
@@ -1294,38 +1311,68 @@ switch (rolesId) {
           </div>
 
           <div className="mb-4">
+               {(
+                verificadorRol === 1 || verificadorRol === "1" ||
+                verificadorRol === 2 || verificadorRol === "2"
+              )&& (
             <h6 className="text-uppercase fw-bold">Gestión de Áreas Comunes</h6>
+              )}
             <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link className="nav-link text-white" to="/AreasComunes">
-                  Registrar Reserva
-                </Link>
-              </li>
+              {(
+                verificadorRol === 1 || verificadorRol === "1" ||
+                verificadorRol === 2 || verificadorRol === "2"
+              ) && (
+                  <li>
+                    <Link className="nav-link text-white" to="/AreasComunes">
+                      Registrar Reserva
+                    </Link>
+                  </li>
+                )}
             </ul>
           </div>
 
+
           <div className="mb-4">
+               {(
+                verificadorRol === 1 || verificadorRol === "1" 
+              )&& (
             <h6 className="text-uppercase fw-bold">Gestión de Usuarios</h6>
+              )}
+            {(
+                verificadorRol === 1 || verificadorRol === "1" 
+              )&& (
             <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link
-                  className="nav-link text-white"
-                  to="/GestionUsuario"
-                  state={{ abrirModal: true }}
-                >
-                  Registrar Usuario
-                </Link>
-              </li>
+            
+                <li>
+                  <Link
+                    className="nav-link text-white"
+                    to="/GestionUsuario"
+                    state={{ abrirModal: true }}
+                  >
+                    Registrar Usuario
+                  </Link>
+                </li>
+             
               <li>
                 <Link className="nav-link text-white" to="/GestionUsuario">
                   Consultar Usuarios
                 </Link>
               </li>
             </ul>
+        )}
           </div>
 
           <div className="mb-4">
+              {(
+                verificadorRol === 1 || verificadorRol === "1" ||
+                verificadorRol === 2 || verificadorRol === "2"
+              )&& (
             <h6 className="text-uppercase fw-bold">Gestión Residentes</h6>
+              )}
+              {(
+                verificadorRol === 1 || verificadorRol === "1" ||
+                verificadorRol === 2 || verificadorRol === "2"
+              )&& (
             <ul className="nav flex-column mt-2 gap-2">
               <li>
                 <Link
@@ -1342,6 +1389,7 @@ switch (rolesId) {
                 </Link>
               </li>
             </ul>
+              )}
           </div>
 
           <div className="mt-auto text-center logout-container">
@@ -1429,10 +1477,10 @@ switch (rolesId) {
                 <i className="bi bi-people-fill"></i> Historial de Visitas
               </h3>
               <div className="d-flex gap-2 align-items-center">
-                 <button className="btn btn-primary btn-sm" >
-                 <Link className="nav-link text-white" to="/parqueaderos">
-                  Consultar Parqueaderos
-                </Link>
+                <button className="btn btn-primary btn-sm" >
+                  <Link className="nav-link text-white" to="/parqueaderos">
+                    Consultar Parqueaderos
+                  </Link>
                 </button>
                 <button className="btn btn-success btn-sm" onClick={abrirModal}>
                   <i className="bi bi-plus-circle"></i> Registrar Nueva Visita
@@ -1482,9 +1530,8 @@ switch (rolesId) {
             <div className="d-flex justify-content-between align-items-center mb-3">
               <span className="text-muted">
                 {visitasFiltradas.length === visitas.length
-                  ? `${visitas.length} visita${
-                      visitas.length !== 1 ? "s" : ""
-                    } total${visitas.length !== 1 ? "es" : ""}`
+                  ? `${visitas.length} visita${visitas.length !== 1 ? "s" : ""
+                  } total${visitas.length !== 1 ? "es" : ""}`
                   : `${visitasFiltradas.length} de ${visitas.length} visitas`}
               </span>
               <div className="d-flex gap-2">
@@ -1663,9 +1710,8 @@ switch (rolesId) {
                 <nav>
                   <ul className="pagination mb-0">
                     <li
-                      className={`page-item ${
-                        currentPage === 1 ? "disabled" : ""
-                      }`}
+                      className={`page-item ${currentPage === 1 ? "disabled" : ""
+                        }`}
                     >
                       <button
                         className="page-link"
@@ -1680,9 +1726,8 @@ switch (rolesId) {
                       (pageNum) => (
                         <li
                           key={pageNum}
-                          className={`page-item ${
-                            currentPage === pageNum ? "active" : ""
-                          }`}
+                          className={`page-item ${currentPage === pageNum ? "active" : ""
+                            }`}
                         >
                           <button
                             className="page-link"
@@ -1695,9 +1740,8 @@ switch (rolesId) {
                     )}
 
                     <li
-                      className={`page-item ${
-                        currentPage === totalPages ? "disabled" : ""
-                      }`}
+                      className={`page-item ${currentPage === totalPages ? "disabled" : ""
+                        }`}
                     >
                       <button
                         className="page-link"
@@ -1924,7 +1968,7 @@ switch (rolesId) {
                               const tipoSeleccionado = e.target.value;
                               setTipoVehiculoId(tipoSeleccionado);
                               setCodigoParqueadero("");
-                              
+
                               // Si se selecciona un tipo de vehículo válido, redirigir a seleccionar parqueadero
                               if (tipoSeleccionado === "1" || tipoSeleccionado === "2") {
                                 // Enviar el estado actual del formulario para preservarlo mientras el usuario selecciona parqueadero
@@ -1958,43 +2002,106 @@ switch (rolesId) {
                         {/* Selección de parqueadero */}
                         {tipoVehiculoId && (
                           <div className="mb-3">
-                            <label className="form-label">
-                              Parqueadero disponible *
-                            </label>
-                            {parqueaderosDisponibles.length > 0 ? (
-                              <select
-                                className="form-select"
-                                value={codigoParqueadero}
-                                onChange={(e) =>
-                                  setCodigoParqueadero(e.target.value)
-                                }
-                                required
-                              >
-                                <option value="">
-                                  Selecciona un parqueadero
-                                </option>
-                                {parqueaderosDisponibles.map((p) => (
-                                  <option
-                                    key={p.codigoParqueadero}
-                                    value={p.codigoParqueadero}
+
+
+                            {/* Si hay un parqueadero ya seleccionado mostrarlo como información y permitir cambiarlo */}
+                            {codigoParqueadero ? (
+                              <div className="d-flex align-items-center gap-3">
+                                <div>
+                                  <div className="small text-muted">Parqueadero seleccionado</div>
+                                  <div className="fw-bold">{codigoParqueadero}</div>
+                                </div>
+
+                                <div className="ms-auto d-flex gap-2">
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline-primary"
+                                    onClick={() => {
+                                      // Navegar a selección limpiando el código actual en el formState
+                                      navigate('/parqueaderos', {
+                                        state: {
+                                          tipoVehiculoId: parseInt(tipoVehiculoId) || null,
+                                          fromVisitas: true,
+                                          formState: {
+                                            numeroDocumento,
+                                            nombreVisitante,
+                                            tipoDocumentoId,
+                                            apartamentoId,
+                                            fechaHoraIngreso,
+                                            observaciones,
+                                            matricula,
+                                            vieneEnVehiculo,
+                                            codigoParqueadero: "",
+                                            tipoVehiculoId
+                                          }
+                                        }
+                                      });
+                                    }}
                                   >
-                                    {p.codigoParqueadero}
-                                  </option>
-                                ))}
-                              </select>
-                            ) : (
-                              <div className="alert alert-warning">
-                                <strong>
-                                   No hay parqueaderos disponibles
-                                </strong>
-                                <br />
-                                Para{" "}
-                                {tipoVehiculoId === "1"
-                                  ? " carros"
-                                  : " motos"}
-                                . Todos están ocupados o no existen para este
-                                tipo de vehículo.
+                                    Cambiar parqueadero
+                                  </button>
+                                </div>
                               </div>
+                            ) : (
+                              // Si no hay parqueadero seleccionado, mostrar select con disponibles y botón para ir a la selección
+                              (parqueaderosDisponibles.length > 0 ? (
+                                <div className="d-flex gap-2 align-items-center">
+                                  <select
+                                    className="form-select"
+                                    value={codigoParqueadero}
+                                    onChange={(e) => {
+                                      const seleccion = e.target.value;
+                                      const encontrado = parqueaderosDisponibles.find(p => p.codigoParqueadero === seleccion);
+                                      if (encontrado && encontrado.disabled) {
+                                        Swal.fire('Tipo inválido', 'Este espacio no coincide con el tipo de vehículo y no puede seleccionarlo.', 'error');
+                                        return;
+                                      }
+                                      setCodigoParqueadero(seleccion);
+                                    }}
+                                    required
+                                  >
+                                    <option value="">Selecciona un parqueadero</option>
+                                    {parqueaderosDisponibles.map((p) => (
+                                      <option key={p.codigoParqueadero} value={p.codigoParqueadero} disabled={p.disabled}>
+                                        {p.codigoParqueadero}{p.disabled ? ' (no compatible)' : ''}
+                                      </option>
+                                    ))}
+                                  </select>
+
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline-primary"
+                                    onClick={() => {
+                                      navigate('/parqueaderos', {
+                                        state: {
+                                          tipoVehiculoId: parseInt(tipoVehiculoId) || null,
+                                          fromVisitas: true,
+                                          formState: {
+                                            numeroDocumento,
+                                            nombreVisitante,
+                                            tipoDocumentoId,
+                                            apartamentoId,
+                                            fechaHoraIngreso,
+                                            observaciones,
+                                            matricula,
+                                            vieneEnVehiculo,
+                                            codigoParqueadero: "",
+                                            tipoVehiculoId
+                                          }
+                                        }
+                                      });
+                                    }}
+                                  >
+                                    Seleccionar parqueadero
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="alert alert-warning">
+                                  <strong>No hay parqueaderos disponibles</strong>
+                                  <br />
+                                  Para {tipoVehiculoId === "1" ? " carros" : " motos"}. Todos están ocupados o no existen para este tipo de vehículo.
+                                </div>
+                              ))
                             )}
                           </div>
                         )}

@@ -3,7 +3,7 @@ import RecepcionPaquetes from "../models/recepcionPaquetes.model.js";
 import Estado from "../models/estados.model.js";
 import Apartamento from "../models/apartamentos.model.js";
 import { sequelize } from "../config/connect.db.js";
-import { fn, col, where } from "sequelize";
+import { fn, col, Op, literal, where } from "sequelize";
 export const crearRecepcionPaquete = async (req, res) => {
   try {
     await RecepcionPaquetes.sync();
@@ -248,16 +248,138 @@ export const FinalizarRecepcionPaquete = async (req, res) => {
   }
 };
 // informacion
-export const paqueteDelDia = async(req,res)=>{
+export const paqueteDelDia = async (req, res) => {
   try {
-     const paqueteDia = await RecepcionPaquetes.count({
-      where: where(fn("Date",col("fechaRecepcion")),"=",fn("CURDATE"))
-     })
-     res.status(200).json({
-      ok:true,
+    const paqueteDia = await RecepcionPaquetes.count({
+      where: where(fn("Date", col("fechaRecepcion")), "=", fn("CURDATE"))
+    })
+    res.status(200).json({
+      ok: true,
       paqueteDia
-     })
+    })
   } catch (error) {
-    console.log("Ocurrio un erro a la hora de trea la informacion",error.message);
+    console.log("Ocurrio un erro a la hora de trea la informacion", error.message);
   }
 }
+
+export const informePaqueteria = async (req, res) => {
+  try {
+    const reportPor = parseInt(req.params.por, 10); 
+    const rango = req.body.rango || req.body;
+    let { fechaInicio, fechaFin } = rango;
+
+  
+    if (!fechaInicio || !fechaFin) {
+      return res.status(400).json({ msg: "Las fechas de inicio y fin son obligatorias." });
+    }
+    console.log(reportPor);
+   
+    const dateInicio = new Date(fechaInicio);
+    const dateFin = new Date(fechaFin);
+
+    if (isNaN(dateInicio.getTime()) || isNaN(dateFin.getTime())) {
+      return res.status(400).json({ msg: "Formato de fecha inválido." });
+    }
+
+    // Corregir orden de fechas si están invertidas
+    if (dateInicio > dateFin) {
+      
+      [fechaInicio, fechaFin] = [fechaFin, fechaInicio];
+    } else {
+      
+      fechaInicio = dateInicio.toISOString().split('T')[0]; 
+      fechaFin = dateFin.toISOString().split('T')[0];
+    }
+    
+    const queryConfig = {
+      where: {
+        fechaRecepcion: {
+          [Op.between]: [fechaInicio, fechaFin],
+        },
+      },
+
+      raw: true, 
+    };
+
+    let informepaqueteria;
+    switch (reportPor) {
+      case 1: 
+        informepaqueteria = await RecepcionPaquetes.findAll({
+          attributes: [
+            [fn("YEAR", col("fechaRecepcion")), "anio"],
+            [fn("COUNT", col("idPaquete")), "recibidos"],
+            [literal(`SUM(CASE WHEN estadoId = 14 THEN 1 ELSE 0 END)`), "pendientes"], 
+            [literal(`SUM(CASE WHEN estadoId = 15 THEN 1 ELSE 0 END)`), "entregados"],
+          ],
+          ...queryConfig,
+          group: [fn("YEAR", col("fechaRecepcion"))],
+          order: [[fn("YEAR", col("fechaRecepcion")), 'ASC']], 
+        });
+        break;
+
+      case 2: // Agrupación por Año y Mes
+        informepaqueteria = await RecepcionPaquetes.findAll({
+          attributes: [
+            [fn("YEAR", col("fechaRecepcion")), "anio"],
+            [fn("MONTH", col("fechaRecepcion")), "mes"], 
+            [fn("COUNT", col("idPaquete")), "recibidos"],
+            [literal(`SUM(CASE WHEN estadoId = 14 THEN 1 ELSE 0 END)`), "pendientes"],
+            [literal(`SUM(CASE WHEN estadoId = 15 THEN 1 ELSE 0 END)`), "entregados"],
+          ],
+          ...queryConfig,
+          group: [
+            fn("YEAR", col("fechaRecepcion")),
+            fn("MONTH", col("fechaRecepcion")),
+          ],
+          order: [
+            [fn("YEAR", col("fechaRecepcion")), 'ASC'],
+            [fn("MONTH", col("fechaRecepcion")), 'ASC'],
+          ],
+        });
+        break;
+
+      case 3: 
+        informepaqueteria = await RecepcionPaquetes.findAll({
+          attributes: [
+            [fn("YEAR", col("fechaRecepcion")), "anio"],
+            [fn("MONTH", col("fechaRecepcion")), "mes"], 
+            [literal(`FLOOR((DAYOFMONTH(fechaRecepcion) - 1) / 7) + 1`), "semana"], 
+            [fn("COUNT", col("idPaquete")), "recibidos"],
+            [literal(`SUM(CASE WHEN estadoId = 14 THEN 1 ELSE 0 END)`), "pendientes"],
+            [literal(`SUM(CASE WHEN estadoId = 15 THEN 1 ELSE 0 END)`), "entregados"],
+          ],
+          ...queryConfig,
+          group: [
+            fn("YEAR", col("fechaRecepcion")),
+            fn("MONTH", col("fechaRecepcion")),
+            "semana", 
+          ],
+          order: [
+            [fn("YEAR", col("fechaRecepcion")), 'ASC'],
+            [fn("MONTH", col("fechaRecepcion")), 'ASC'],
+            ["semana", 'ASC'], 
+          ],
+        });
+        break;
+
+      default:
+       
+        return res.status(400).json({ msg: `El parámetro 'por' (${reportPor}) no es válido.` });
+    }
+
+   
+    return res.status(200).json({
+      ok: true,
+      informe: informepaqueteria,
+    });
+
+  } catch (error) {
+    console.error("Error al generar informe de paquetería:", error);
+
+    return res.status(500).json({
+      ok: false,
+      msg: "Lo siento, ocurrió un error al procesar el informe.",
+      error: error.message,
+    });
+  }
+};

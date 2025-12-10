@@ -6,6 +6,7 @@ import * as reservarAreasSchema from "../schemas/reservarAreas.schema.js";
 
 const router = Router();
 // Versión móvil traer usuarios
+router.post("/reportes/:por",validarJWT,validarRol(1),reservasAreasController.reportes);
 router.get(
   "/ReservasAreasComunesMovil",
   validarJWT,
