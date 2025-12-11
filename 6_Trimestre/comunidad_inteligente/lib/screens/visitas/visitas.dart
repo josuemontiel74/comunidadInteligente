@@ -1840,7 +1840,7 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                           ),
                           const SizedBox(height: 12),
                           DropdownButtonFormField<String>(
-                            value: tipoDocumentoId,
+                            value: tiposDocumento.isNotEmpty && tiposDocumento.any((tipo) => tipo['IdTipoDocumento'].toString() == tipoDocumentoId) ? tipoDocumentoId : null,
                             decoration: InputDecoration(
                               labelText: "Tipo de documento *",
                               border: border,
@@ -2903,8 +2903,11 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
     required List<DropdownMenuItem<String>> items,
     required void Function(String?) onChanged,
   }) {
+    // Validar que el value existe en los items
+    final validValue = items.any((item) => item.value == value) ? value : null;
+    
     return DropdownButtonFormField<String>(
-      value: value,
+      value: validValue,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icono, color: Colors.green),
