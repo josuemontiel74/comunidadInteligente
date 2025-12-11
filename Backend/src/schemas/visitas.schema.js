@@ -8,7 +8,9 @@ export const crearVisitanteSchema = Joi.object({
   nombreVisitante: Joi.string().min(10).max(100).optional(),
   tipoDocumentoId: Joi.number().integer().min(1).optional(),
   apartamentoId: Joi.number().integer().min(1).required(),
-  fechaHoraIngreso: Joi.date().required(),
+  fechaHoraIngreso: Joi.alternatives()
+    .try(Joi.date(), Joi.string().pattern(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/))
+    .required(),
   fechaHoraSalida: Joi.date().optional(),
   estadoId: Joi.number().integer().min(1).optional(),
   observaciones: Joi.string().max(255).allow("", null).optional(),

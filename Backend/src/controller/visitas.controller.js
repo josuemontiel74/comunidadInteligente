@@ -30,13 +30,40 @@ export const crearVisita = async (req, res) => {
 
     const fechaActual = dayjs().tz("America/Bogota");
 
-    const fechaIngreso = fechaHoraIngreso
-      ? dayjs(fechaHoraIngreso, "YYYY-MM-DD HH:mm", true).tz("America/Bogota")
-      : fechaActual;
+    // Parsear fecha con múltiples formatos posibles
+    let fechaIngreso = fechaActual;
+    if (fechaHoraIngreso) {
+      console.log("Parseando fecha:", fechaHoraIngreso);
+      // Intentar primero con formato 24h
+      fechaIngreso = dayjs(fechaHoraIngreso, "YYYY-MM-DD HH:mm", true);
+      console.log(
+        "  Intento 1 (24h):",
+        fechaIngreso.isValid() ? "VALIDO" : "INVALIDO"
+      );
+      // Si no es válido, intentar con formato AM/PM
+      if (!fechaIngreso.isValid()) {
+        fechaIngreso = dayjs(fechaHoraIngreso, "YYYY-MM-DD hh:mm A", true);
+        console.log(
+          "  Intento 2 (AM/PM):",
+          fechaIngreso.isValid() ? "VALIDO" : "INVALIDO"
+        );
+      }
+      // Aplicar timezone de Colombia
+      if (fechaIngreso.isValid()) {
+        fechaIngreso = fechaIngreso.tz("America/Bogota", true);
+        console.log(
+          "  Fecha parseada:",
+          fechaIngreso.format("YYYY-MM-DD HH:mm")
+        );
+      }
+    }
 
     // Validaciones de fecha
     if (!fechaIngreso.isValid()) {
-      return res.status(400).json({ error: "La fecha de ingreso no es válida" });
+      console.log("Fecha invalida - Rechazando peticion");
+      return res
+        .status(400)
+        .json({ error: "La fecha de ingreso no es válida" });
     }
 
     if (fechaIngreso.isBefore(fechaActual.subtract(1, "minute"))) {
@@ -101,7 +128,7 @@ export const crearVisita = async (req, res) => {
           tipoVehiculoId,
           codigoParqueadero,
         });
-        console.log(" Nuevo vehículo creado:", matricula);
+        console.log(`Nuevo vehiculo creado: ${matricula}`);
       } else {
         // Si tenía parqueadero distinto → liberarlo
         if (
@@ -119,7 +146,7 @@ export const crearVisita = async (req, res) => {
           tipoVehiculoId,
           codigoParqueadero,
         });
-        console.log(" Vehículo actualizado:", matricula);
+        console.log(`Vehiculo actualizado: ${matricula}`);
       }
 
       vehiculoMatricula = matricula;
@@ -137,10 +164,10 @@ export const crearVisita = async (req, res) => {
 
     console.log(" Visita creada exitosamente:", visita.toJSON());
 
-    // 🚧 Ocupar parqueadero SOLO si la visita fue creada correctamente
+    // Ocupar parqueadero SOLO si la visita fue creada correctamente
     if (parqueadero && vehiculoMatricula) {
       await parqueadero.update({ estadoId: 3 });
-      console.log(`🅿Parqueadero ${codigoParqueadero} ocupado`);
+      console.log(`Parqueadero ${codigoParqueadero} ocupado`);
     }
 
     res.status(201).json({
@@ -152,8 +179,6 @@ export const crearVisita = async (req, res) => {
     return res.status(400).json({ error: error.message });
   }
 };
-
-
 
 export const listarVisitas = async (req, res) => {
   try {
@@ -334,7 +359,7 @@ export const actualizarVisita = async (req, res) => {
           ...(tipoDocumentoId && { tipoDocumentoId }),
         };
         visitante = await Visitante.create(visitanteData);
-        console.log("✅ Nuevo visitante creado:", numeroDocumento);
+        console.log("Nuevo visitante creado:", numeroDocumento);
       } else if (nombreVisitante || tipoDocumentoId) {
         const visitanteUpdateData = {};
         if (nombreVisitante)
@@ -343,7 +368,7 @@ export const actualizarVisita = async (req, res) => {
           visitanteUpdateData.tipoDocumentoId = tipoDocumentoId;
 
         await visitante.update(visitanteUpdateData);
-        console.log("✅ Visitante actualizado:", numeroDocumento);
+        console.log("Visitante actualizado:", numeroDocumento);
       }
       updateData.numeroDocumento = numeroDocumento;
     } else if (nombreVisitante || tipoDocumentoId) {
@@ -357,7 +382,7 @@ export const actualizarVisita = async (req, res) => {
           visitanteUpdateData.tipoDocumentoId = tipoDocumentoId;
 
         await visitanteActual.update(visitanteUpdateData);
-        console.log("✅ Visitante actual actualizado:", visita.numeroDocumento);
+        console.log("Visitante actual actualizado:", visita.numeroDocumento);
       }
     }
 
@@ -501,7 +526,7 @@ export const actualizarVisita = async (req, res) => {
     // Actualizar la visita
     await visita.update(updateData);
 
-    console.log("✅ Visita actualizada exitosamente:", updateData);
+    console.log("Visita actualizada exitosamente:", updateData);
 
     res.status(200).json({
       ok: true,
@@ -510,7 +535,7 @@ export const actualizarVisita = async (req, res) => {
       body: visita,
     });
   } catch (error) {
-    console.error("❌ Error al actualizar visita:", error);
+    console.error("Error al actualizar visita:", error);
     res.status(500).json({
       error: error.message,
       message: "Error al actualizar la visita",
@@ -521,7 +546,7 @@ export const actualizarVisita = async (req, res) => {
 export const finalizarVisita = async (req, res) => {
   try {
     const { idVisita } = req.params;
-    let fechaHoraSalida =  dayjs().tz("America/Bogota").toDate();
+    let fechaHoraSalida = dayjs().tz("America/Bogota").toDate();
 
     const visita = await Visita.findByPk(idVisita);
     if (!visita) {
@@ -570,7 +595,7 @@ export const finalizarVisita = async (req, res) => {
       body: visitaActualizada.toJSON(),
     });
   } catch (error) {
-    console.error("❌ Error al finalizar visita:", error);
+    console.error("Error al finalizar visita:", error);
     res.status(500).json({
       error: "Error interno al finalizar visita",
       status: 500,

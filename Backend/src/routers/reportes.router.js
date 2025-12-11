@@ -26,30 +26,60 @@ router.get(
       const [porTipo] = await sequelize.query(`
         SELECT 
           tv.nombreVehiculo,
-          COUNT(p.codigoParqueadero) as cantidad
+          COUNT(p.codigoParqueadero) as totalParqueaderos,
+          SUM(CASE WHEN p.estadoId = 3 THEN 1 ELSE 0 END) as ocupados,
+          SUM(CASE WHEN p.estadoId = 4 THEN 1 ELSE 0 END) as disponibles
         FROM parqueaderos p
         INNER JOIN tiposVehiculo tv ON p.tipoVehiculoId = tv.idTipoVehiculo
         GROUP BY tv.nombreVehiculo, tv.idTipoVehiculo
         ORDER BY tv.idTipoVehiculo
       `);
 
-      // Ocupación actual por estado
-      const [ocupacion] = await sequelize.query(`
+      // Ocupación diaria en el período (visitas con vehículo por día)
+      const [ocupacionDiaria] = await sequelize.query(
+        `
         SELECT 
-          e.nombreEstado,
-          COUNT(p.codigoParqueadero) as cantidad
-        FROM parqueaderos p
-        INNER JOIN estados e ON p.estadoId = e.IdEstado
-        WHERE p.estadoId IN (3, 4)
-        GROUP BY e.nombreEstado, p.estadoId
-        ORDER BY p.estadoId
-      `);
+          DATE(v.fechaHoraIngreso) as fecha,
+          COUNT(DISTINCT v.vehiculoMatricula) as vehiculosIngresados,
+          SUM(CASE WHEN ve.tipoVehiculoId = 1 THEN 1 ELSE 0 END) as carros,
+          SUM(CASE WHEN ve.tipoVehiculoId = 2 THEN 1 ELSE 0 END) as motos
+        FROM visitas v
+        INNER JOIN vehiculo ve ON v.vehiculoMatricula = ve.matricula
+        WHERE DATE(v.fechaHoraIngreso) >= ? AND DATE(v.fechaHoraIngreso) <= ?
+          AND v.vehiculoMatricula IS NOT NULL
+        GROUP BY DATE(v.fechaHoraIngreso)
+        ORDER BY fecha DESC
+      `,
+        {
+          replacements: [fechaInicio, fechaFin],
+        }
+      );
+
+      // Pico de ocupación por hora del día (promedio en el período)
+      const [picoOcupacion] = await sequelize.query(
+        `
+        SELECT 
+          HOUR(v.fechaHoraIngreso) as hora,
+          COUNT(*) as cantidadVisitas,
+          SUM(CASE WHEN ve.tipoVehiculoId = 1 THEN 1 ELSE 0 END) as carros,
+          SUM(CASE WHEN ve.tipoVehiculoId = 2 THEN 1 ELSE 0 END) as motos
+        FROM visitas v
+        LEFT JOIN vehiculo ve ON v.vehiculoMatricula = ve.matricula
+        WHERE DATE(v.fechaHoraIngreso) >= ? AND DATE(v.fechaHoraIngreso) <= ?
+        GROUP BY HOUR(v.fechaHoraIngreso)
+        ORDER BY cantidadVisitas DESC
+      `,
+        {
+          replacements: [fechaInicio, fechaFin],
+        }
+      );
 
       res.json({
         success: true,
         data: {
-          porTipo: porTipo,
-          ocupacion: ocupacion,
+          resumenActual: porTipo,
+          ocupacionDiaria: ocupacionDiaria,
+          picoOcupacion: picoOcupacion,
         },
       });
     } catch (error) {
@@ -313,6 +343,23 @@ router.get("/reservas", validarJWT, validarRol(1, 2, 3), async (req, res) => {
       }
     );
 
+    // Día con mayor cantidad de reservas
+    const [reservasPorDia] = await sequelize.query(
+      `
+      SELECT 
+        DATE(fechaReserva) as fecha,
+        COUNT(*) as cantidad
+      FROM reservasareas
+      WHERE fechaReserva >= ? AND fechaReserva <= ?
+      GROUP BY DATE(fechaReserva)
+      ORDER BY cantidad DESC
+      LIMIT 1
+    `,
+      {
+        replacements: [fechaInicio, fechaFin],
+      }
+    );
+
     res.json({
       success: true,
       data: {
@@ -320,6 +367,7 @@ router.get("/reservas", validarJWT, validarRol(1, 2, 3), async (req, res) => {
         porArea: porArea,
         porEstado: porEstado,
         promedioAsistentes: promedioAsistentes[0].promedio || 0,
+        diaConMasReservas: reservasPorDia.length > 0 ? reservasPorDia[0] : null,
       },
     });
   } catch (error) {
