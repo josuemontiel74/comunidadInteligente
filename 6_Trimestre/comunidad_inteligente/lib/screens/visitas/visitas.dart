@@ -60,8 +60,6 @@ class VisitasApiService {
     Map<String, dynamic> data,
   ) async {
     try {
-      print('🔍 DEBUG Enviando datos al backend: $data');
-
       final response = await http
           .post(
             Uri.parse('$_baseUrl/visita'),
@@ -72,9 +70,6 @@ class VisitasApiService {
             body: json.encode(data),
           )
           .timeout(const Duration(seconds: 10));
-
-      print('🔍 DEBUG Respuesta del backend: ${response.statusCode}');
-      print('🔍 DEBUG Body de respuesta: ${response.body}');
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         return {'success': true};
@@ -95,7 +90,6 @@ class VisitasApiService {
         }
       }
     } catch (e) {
-      print('❌ Error al crear visita: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
@@ -126,8 +120,6 @@ class VisitasApiService {
 
   static Future<bool> finalizarVisita(String token, int idVisita) async {
     try {
-      print('🔍 DEBUG Finalizando visita ID: $idVisita');
-
       final response = await http
           .patch(
             Uri.parse('$_baseUrl/visitaFinalizar/$idVisita'),
@@ -138,12 +130,8 @@ class VisitasApiService {
           )
           .timeout(const Duration(seconds: 10));
 
-      print('🔍 DEBUG Respuesta finalizar visita: ${response.statusCode}');
-      print('🔍 DEBUG Body: ${response.body}');
-
       return response.statusCode == 200;
     } catch (e) {
-      print('❌ Error al finalizar visita: $e');
       return false;
     }
   }
@@ -1724,21 +1712,34 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
   Future<void> _cargarTiposDocumento() async {
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:3001/api/tipodocumento'),
+        Uri.parse('http://localhost:3001/api/documento'),
         headers: {'Authorization': 'Bearer ${widget.token}'},
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+
         if (data['body'] != null) {
+          final List<Map<String, dynamic>> loadedData =
+              List<Map<String, dynamic>>.from(data['body']);
+
           setState(() {
-            tiposDocumento = List<Map<String, dynamic>>.from(data['body']);
+            tiposDocumento = loadedData;
+
+            // Validar que el tipoDocumentoId actual existe en la lista
+            if (tipoDocumentoId != null && tipoDocumentoId!.isNotEmpty) {
+              final existe = tiposDocumento.any(
+                (tipo) => tipo['idTipoDocumento'].toString() == tipoDocumentoId,
+              );
+
+              if (!existe) {
+                tipoDocumentoId = null;
+              }
+            }
           });
         }
       }
-    } catch (e) {
-      print('Error cargando tipos de documento: $e');
-    }
+    } catch (e) {}
   }
 
   @override
@@ -1839,32 +1840,55 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                             },
                           ),
                           const SizedBox(height: 12),
-                          DropdownButtonFormField<String>(
-                            value: tiposDocumento.isNotEmpty && tiposDocumento.any((tipo) => tipo['IdTipoDocumento'].toString() == tipoDocumentoId) ? tipoDocumentoId : null,
-                            decoration: InputDecoration(
-                              labelText: "Tipo de documento *",
-                              border: border,
-                              prefixIcon: const Icon(
-                                Icons.assignment,
-                                color: Colors.green,
-                              ),
-                            ),
-                            items: tiposDocumento.map((tipo) {
-                              return DropdownMenuItem(
-                                value: tipo['IdTipoDocumento'].toString(),
-                                child: Text(tipo['nombreTipoDocumento'] ?? ''),
+                          Builder(
+                            builder: (context) {
+                              return DropdownButtonFormField<String>(
+                                value: tiposDocumento.isEmpty
+                                    ? null
+                                    : (tipoDocumentoId != null &&
+                                              tiposDocumento.any(
+                                                (t) =>
+                                                    t['idTipoDocumento']
+                                                        .toString() ==
+                                                    tipoDocumentoId,
+                                              )
+                                          ? tipoDocumentoId
+                                          : null),
+                                decoration: InputDecoration(
+                                  labelText: "Tipo de documento *",
+                                  border: border,
+                                  prefixIcon: const Icon(
+                                    Icons.assignment,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                                items: tiposDocumento.isEmpty
+                                    ? null
+                                    : tiposDocumento.map((tipo) {
+                                        final id = tipo['idTipoDocumento']
+                                            .toString();
+                                        final nombre =
+                                            tipo['nombreDocumento'] ?? '';
+                                        return DropdownMenuItem(
+                                          value: id,
+                                          child: Text(nombre),
+                                        );
+                                      }).toList(),
+                                hint: const Text(
+                                  'Seleccione tipo de documento',
+                                ),
+                                onChanged: (value) {
+                                  setState(() {
+                                    tipoDocumentoId = value;
+                                  });
+                                },
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Seleccione un tipo de documento';
+                                  }
+                                  return null;
+                                },
                               );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                tipoDocumentoId = value;
-                              });
-                            },
-                            validator: (value) {
-                              if (value == null) {
-                                return 'Seleccione un tipo de documento';
-                              }
-                              return null;
                             },
                           ),
                           const SizedBox(height: 12),
@@ -2351,12 +2375,17 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
       return;
     }
 
-    // Construir fecha y hora en formato: "2025-10-03 06:30 PM"
+    // Construir fecha y hora en formato 24h: "2025-10-03 14:30"
     final fecha = fechaHoraIngreso!;
     final hora = horaIngreso!;
+    // Convertir a formato 24 horas
+    final hora24 = hora.period == DayPeriod.pm && hora.hour != 12
+        ? hora.hour + 12
+        : (hora.period == DayPeriod.am && hora.hour == 12 ? 0 : hora.hour);
+
     final fechaHoraFormateada =
         "${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')} "
-        "${hora.hourOfPeriod.toString().padLeft(2, '0')}:${hora.minute.toString().padLeft(2, '0')} ${hora.period == DayPeriod.am ? 'AM' : 'PM'}";
+        "${hora24.toString().padLeft(2, '0')}:${hora.minute.toString().padLeft(2, '0')}";
 
     final data = {
       'numeroDocumento': numeroDocumentoController.text,
@@ -2472,21 +2501,34 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
   Future<void> _cargarTiposDocumento() async {
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:3001/api/tipodocumento'),
+        Uri.parse('http://localhost:3001/api/documento'),
         headers: {'Authorization': 'Bearer ${widget.token}'},
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+
         if (data['body'] != null) {
+          final List<Map<String, dynamic>> loadedData =
+              List<Map<String, dynamic>>.from(data['body']);
+
           setState(() {
-            tiposDocumento = List<Map<String, dynamic>>.from(data['body']);
+            tiposDocumento = loadedData;
+
+            // Validar que el tipoDocumentoId actual existe en la lista
+            if (tipoDocumentoId != null && tipoDocumentoId!.isNotEmpty) {
+              final existe = tiposDocumento.any(
+                (tipo) => tipo['idTipoDocumento'].toString() == tipoDocumentoId,
+              );
+
+              if (!existe) {
+                tipoDocumentoId = null;
+              }
+            }
           });
         }
       }
-    } catch (e) {
-      print('Error cargando tipos de documento: $e');
-    }
+    } catch (e) {}
   }
 
   void _inicializarDatos() {
@@ -2512,7 +2554,6 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
     if (visita['fechaHoraIngreso'] != null) {
       try {
         final fechaStr = visita['fechaHoraIngreso'].toString();
-        print('🔍 DEBUG Fecha recibida: $fechaStr');
 
         // Formato esperado: "2025-12-08 10:40 PM" o "2025-12-08T22:40:00"
         if (fechaStr.contains('T')) {
@@ -2520,9 +2561,6 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
           final dateTime = parsearFechaDesdeBackend(fechaStr);
           fechaHoraIngreso = dateTime;
           horaIngreso = TimeOfDay(hour: dateTime.hour, minute: dateTime.minute);
-          print(
-            '✅ Fecha parseada (ISO): $fechaHoraIngreso, Hora: $horaIngreso',
-          );
         } else {
           // Formato personalizado: "2025-12-08 10:40 PM"
           final partes = fechaStr.split(' ');
@@ -2543,20 +2581,14 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
               int.parse(fecha[2]),
             );
             horaIngreso = TimeOfDay(hour: hour, minute: minute);
-            print(
-              '✅ Fecha parseada (custom): $fechaHoraIngreso, Hora: $horaIngreso',
-            );
           }
         }
       } catch (e) {
-        print('❌ Error parseando fecha: $e');
-        print('   Fecha original: ${visita['fechaHoraIngreso']}');
         // Establecer valores por defecto para que no quede nulo
         fechaHoraIngreso = DateTime.now();
         horaIngreso = TimeOfDay.now();
       }
     } else {
-      print('⚠️ No hay fechaHoraIngreso en la visita');
       // Establecer valores por defecto
       fechaHoraIngreso = DateTime.now();
       horaIngreso = TimeOfDay.now();
@@ -2656,14 +2688,25 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
                     const SizedBox(height: 12),
                     _buildDropdown(
                       label: 'Tipo de Documento *',
-                      value: tipoDocumentoId,
+                      value: tiposDocumento.isEmpty
+                          ? null
+                          : (tipoDocumentoId != null &&
+                                    tiposDocumento.any(
+                                      (t) =>
+                                          t['idTipoDocumento'].toString() ==
+                                          tipoDocumentoId,
+                                    )
+                                ? tipoDocumentoId
+                                : null),
                       icono: Icons.credit_card,
-                      items: tiposDocumento.map((tipo) {
-                        return DropdownMenuItem(
-                          value: tipo['IdTipoDocumento'].toString(),
-                          child: Text(tipo['nombreTipoDocumento'] ?? ''),
-                        );
-                      }).toList(),
+                      items: tiposDocumento.isEmpty
+                          ? []
+                          : tiposDocumento.map((tipo) {
+                              return DropdownMenuItem(
+                                value: tipo['idTipoDocumento'].toString(),
+                                child: Text(tipo['nombreDocumento'] ?? ''),
+                              );
+                            }).toList(),
                       onChanged: (value) =>
                           setState(() => tipoDocumentoId = value),
                     ),
@@ -2903,11 +2946,8 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
     required List<DropdownMenuItem<String>> items,
     required void Function(String?) onChanged,
   }) {
-    // Validar que el value existe en los items
-    final validValue = items.any((item) => item.value == value) ? value : null;
-    
     return DropdownButtonFormField<String>(
-      value: validValue,
+      value: value,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icono, color: Colors.green),
@@ -2917,7 +2957,8 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
           borderSide: const BorderSide(color: Colors.green, width: 2),
         ),
       ),
-      items: items,
+      items: items.isEmpty ? null : items,
+      hint: items.isEmpty ? const Text('Cargando...') : null,
       onChanged: onChanged,
       validator: (value) {
         if (value == null) {
@@ -3097,12 +3138,17 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
       return;
     }
 
-    // Construir fecha y hora en formato: "2025-10-03 06:30 PM"
+    // Construir fecha y hora en formato 24h: "2025-10-03 14:30"
     final fecha = fechaHoraIngreso!;
     final hora = horaIngreso!;
+    // Convertir a formato 24 horas
+    final hora24 = hora.period == DayPeriod.pm && hora.hour != 12
+        ? hora.hour + 12
+        : (hora.period == DayPeriod.am && hora.hour == 12 ? 0 : hora.hour);
+
     final fechaHoraFormateada =
         "${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')} "
-        "${hora.hourOfPeriod.toString().padLeft(2, '0')}:${hora.minute.toString().padLeft(2, '0')} ${hora.period == DayPeriod.am ? 'AM' : 'PM'}";
+        "${hora24.toString().padLeft(2, '0')}:${hora.minute.toString().padLeft(2, '0')}";
 
     final data = {
       'numeroDocumento': numeroDocumentoController.text,
