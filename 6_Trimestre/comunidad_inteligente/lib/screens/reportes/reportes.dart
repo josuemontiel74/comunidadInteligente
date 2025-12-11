@@ -36,20 +36,6 @@ class ReportesApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('=== DATOS PARQUEADEROS ===');
-        print('Response completo: $data');
-        print('data[data]: ${data['data']}');
-        if (data['data'] != null && data['data']['porTipo'] != null) {
-          print('porTipo es List: ${data['data']['porTipo'] is List}');
-          if (data['data']['porTipo'] is List) {
-            for (var item in data['data']['porTipo']) {
-              print(
-                'Item: ${item['nombreVehiculo']} - cantidad: ${item['cantidad']} (${item['cantidad'].runtimeType})',
-              );
-            }
-          }
-        }
-        print('========================');
         return data;
       }
       return {};
@@ -204,8 +190,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
       reporteParqueaderos = results[0].isEmpty
           ? {
               'data': {
-                'totalUsos': 0,
-                'porTipo': {'carros': 0, 'motos': 0},
+                'resumenActual': [],
+                'ocupacionDiaria': [],
+                'picoOcupacion': [],
               },
             }
           : results[0];
@@ -328,6 +315,10 @@ class _ReportesScreenState extends State<ReportesScreen> {
                           ),
                         _buildReporteParqueaderos(),
                         const SizedBox(height: 24),
+                        _buildOcupacionDiaria(),
+                        const SizedBox(height: 24),
+                        _buildPicoOcupacion(),
+                        const SizedBox(height: 24),
                         _buildReporteVisitas(),
                         const SizedBox(height: 24),
                         _buildReportePaquetes(),
@@ -425,28 +416,41 @@ class _ReportesScreenState extends State<ReportesScreen> {
   Widget _buildReporteParqueaderos() {
     final data = reporteParqueaderos['data'] ?? {};
 
-    // Adaptar a la estructura del backend: array de objetos con nombreVehiculo y cantidad
-    int carros = 0;
-    int motos = 0;
+    // Nueva estructura: resumenActual con información de ocupación
+    int totalParqueaderosCarros = 0;
+    int ocupadosCarros = 0;
+    int disponiblesCarros = 0;
+    int totalParqueaderosMotos = 0;
+    int ocupadosMotos = 0;
+    int disponiblesMotos = 0;
 
     try {
-      if (data['porTipo'] != null && data['porTipo'] is List) {
-        for (var item in data['porTipo']) {
-          final nombreVehiculo = item['nombreVehiculo']?.toString() ?? '';
-          final cantidad = item['cantidad'];
+      if (data['resumenActual'] != null && data['resumenActual'] is List) {
+        for (var item in data['resumenActual']) {
+          final nombreVehiculo =
+              item['nombreVehiculo']?.toString().toLowerCase() ?? '';
+          final totalParqueaderos = _toInt(item['totalParqueaderos']);
+          final ocupados = _toInt(item['ocupados']);
+          final disponibles = _toInt(item['disponibles']);
 
           if (nombreVehiculo == 'carro') {
-            carros = _toInt(cantidad);
+            totalParqueaderosCarros = totalParqueaderos;
+            ocupadosCarros = ocupados;
+            disponiblesCarros = disponibles;
           } else if (nombreVehiculo == 'moto') {
-            motos = _toInt(cantidad);
+            totalParqueaderosMotos = totalParqueaderos;
+            ocupadosMotos = ocupados;
+            disponiblesMotos = disponibles;
           }
         }
       }
     } catch (e) {
-      print('Error procesando porTipo en UI: $e');
+      print('Error procesando resumenActual: $e');
     }
 
-    final totalUsos = carros + motos;
+    final totalOcupados = ocupadosCarros + ocupadosMotos;
+    final totalDisponibles = disponiblesCarros + disponiblesMotos;
+    final totalParqueaderos = totalParqueaderosCarros + totalParqueaderosMotos;
 
     return Card(
       elevation: 4,
@@ -472,29 +476,381 @@ class _ReportesScreenState extends State<ReportesScreen> {
             ),
             const Divider(height: 24),
             _buildStatRow(
-              'Total de usos',
-              totalUsos.toString(),
-              Icons.check_circle,
+              'Total Parqueaderos',
+              totalParqueaderos.toString(),
+              Icons.local_parking,
             ),
             const SizedBox(height: 12),
+            _buildStatRow(
+              'Ocupados',
+              '$totalOcupados (${_calcularPorcentaje(totalOcupados, totalParqueaderos)}%)',
+              Icons.lock,
+              color: Colors.red,
+            ),
+            const SizedBox(height: 12),
+            _buildStatRow(
+              'Disponibles',
+              '$totalDisponibles (${_calcularPorcentaje(totalDisponibles, totalParqueaderos)}%)',
+              Icons.lock_open,
+              color: Colors.green,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Por tipo de vehículo:',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
             _buildStatRow(
               'Carros',
-              '$carros (${_calcularPorcentaje(carros, totalUsos)}%)',
+              'Ocupados: $ocupadosCarros / $totalParqueaderosCarros',
               Icons.directions_car,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             _buildStatRow(
               'Motos',
-              '$motos (${_calcularPorcentaje(motos, totalUsos)}%)',
+              'Ocupados: $ocupadosMotos / $totalParqueaderosMotos',
               Icons.two_wheeler,
             ),
             const SizedBox(height: 16),
-            _buildProgressBar('Carros', carros, totalUsos, Colors.blue),
+            _buildProgressBar(
+              'Carros Ocupados',
+              ocupadosCarros,
+              totalParqueaderosCarros,
+              Colors.blue,
+            ),
             const SizedBox(height: 8),
-            _buildProgressBar('Motos', motos, totalUsos, Colors.orange),
+            _buildProgressBar(
+              'Motos Ocupadas',
+              ocupadosMotos,
+              totalParqueaderosMotos,
+              Colors.orange,
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildOcupacionDiaria() {
+    final data = reporteParqueaderos['data'] ?? {};
+    final ocupacionDiaria = data['ocupacionDiaria'] ?? [];
+
+    if (ocupacionDiaria.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Encontrar el máximo para escalar el gráfico
+    int maxVehiculos = 0;
+    for (var dia in ocupacionDiaria) {
+      final total = _toInt(dia['vehiculosIngresados']);
+      if (total > maxVehiculos) maxVehiculos = total;
+    }
+
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.show_chart, color: Colors.purple.shade700, size: 32),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Ocupación Diaria de Parqueaderos',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            const SizedBox(height: 16),
+            // Gráfico de barras
+            SizedBox(
+              height: 250,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: ocupacionDiaria.length,
+                itemBuilder: (context, index) {
+                  final dia = ocupacionDiaria[index];
+                  final fecha = dia['fecha']?.toString() ?? '';
+                  final vehiculosIngresados = _toInt(
+                    dia['vehiculosIngresados'],
+                  );
+                  final carros = _toInt(dia['carros']);
+                  final motos = _toInt(dia['motos']);
+
+                  // Formatear fecha (solo día/mes)
+                  String fechaCorta = '';
+                  try {
+                    final partes = fecha.split('-');
+                    if (partes.length == 3) {
+                      fechaCorta = '${partes[2]}/${partes[1]}';
+                    }
+                  } catch (e) {
+                    fechaCorta = fecha;
+                  }
+
+                  final altura = maxVehiculos > 0
+                      ? (vehiculosIngresados / maxVehiculos) * 180
+                      : 0.0;
+
+                  return Container(
+                    width: 80,
+                    margin: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        // Número de vehículos
+                        Text(
+                          vehiculosIngresados.toString(),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        // Barra apilada
+                        SizedBox(
+                          height: altura.clamp(20, 180),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              // Motos (arriba)
+                              if (motos > 0)
+                                Container(
+                                  height: vehiculosIngresados > 0
+                                      ? (motos / vehiculosIngresados) *
+                                            altura.clamp(20, 180)
+                                      : 0,
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.shade600,
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(8),
+                                      topRight: Radius.circular(8),
+                                    ),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    motos.toString(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              // Carros (abajo)
+                              if (carros > 0)
+                                Container(
+                                  height: vehiculosIngresados > 0
+                                      ? (carros / vehiculosIngresados) *
+                                            altura.clamp(20, 180)
+                                      : 0,
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade600,
+                                    borderRadius: BorderRadius.only(
+                                      bottomLeft: const Radius.circular(8),
+                                      bottomRight: const Radius.circular(8),
+                                      topLeft: motos > 0
+                                          ? Radius.zero
+                                          : const Radius.circular(8),
+                                      topRight: motos > 0
+                                          ? Radius.zero
+                                          : const Radius.circular(8),
+                                    ),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    carros.toString(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        // Fecha
+                        Text(
+                          fechaCorta,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Leyenda
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildLeyenda('Carros', Colors.blue.shade600),
+                const SizedBox(width: 24),
+                _buildLeyenda('Motos', Colors.orange.shade600),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPicoOcupacion() {
+    final data = reporteParqueaderos['data'] ?? {};
+    final picoOcupacion = data['picoOcupacion'] ?? [];
+
+    if (picoOcupacion.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Encontrar el máximo para escalar el gráfico
+    int maxVisitas = 0;
+    for (var hora in picoOcupacion) {
+      final total = _toInt(hora['cantidadVisitas']);
+      if (total > maxVisitas) maxVisitas = total;
+    }
+
+    // Tomar solo las top 10 horas
+    final topHoras = picoOcupacion.take(10).toList();
+
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.bar_chart, color: Colors.teal.shade700, size: 32),
+                const SizedBox(width: 12),
+                const Text(
+                  'Horas Pico de Ocupación',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            const Text(
+              'Top 10 horas con mayor ocupación',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            // Gráfico de barras horizontales
+            ...topHoras.map((hora) {
+              final horaNum = _toInt(hora['hora']);
+              final cantidadVisitas = _toInt(hora['cantidadVisitas']);
+              final carros = _toInt(hora['carros']);
+              final motos = _toInt(hora['motos']);
+
+              final porcentaje = maxVisitas > 0
+                  ? cantidadVisitas / maxVisitas
+                  : 0.0;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 60,
+                          child: Text(
+                            '${horaNum.toString().padLeft(2, '0')}:00',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Stack(
+                            children: [
+                              // Fondo gris
+                              Container(
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade200,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              // Barra de color
+                              Container(
+                                height: 32,
+                                width:
+                                    (MediaQuery.of(context).size.width - 200) *
+                                    porcentaje,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Colors.teal.shade400,
+                                      Colors.teal.shade700,
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              // Texto con cantidad
+                              Container(
+                                height: 32,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  '$cantidadVisitas visitas (C:$carros M:$motos)',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: porcentaje > 0.3
+                                        ? Colors.white
+                                        : Colors.black87,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLeyenda(String texto, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(texto, style: const TextStyle(fontSize: 12)),
+      ],
     );
   }
 
@@ -607,6 +963,10 @@ class _ReportesScreenState extends State<ReportesScreen> {
     final data = reporteReservas['data'] ?? {};
     final totalReservas = _toInt(data['totalReservas']);
     final porArea = data['porArea'] ?? [];
+    final porEstado = data['porEstado'] ?? [];
+    final promedioAsistentes = data['promedioAsistentes'] ?? 0.0;
+    final diaConMasReservas = data['diaConMasReservas'] ?? {};
+
     final areaMasUsada = porArea.isNotEmpty ? porArea[0] : null;
 
     return Card(
@@ -621,30 +981,153 @@ class _ReportesScreenState extends State<ReportesScreen> {
               children: [
                 Icon(Icons.event, color: Colors.teal.shade700, size: 32),
                 const SizedBox(width: 12),
-                const Text(
-                  'Reporte de Reservas',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                const Expanded(
+                  child: Text(
+                    'Reporte de Reservas',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             ),
             const Divider(height: 24),
-            _buildStatRow(
-              'Total de reservas',
-              totalReservas.toString(),
-              Icons.event_available,
+
+            // Estadísticas principales
+            Row(
+              children: [
+                Expanded(
+                  child: _buildMiniCard(
+                    'Total Reservas',
+                    totalReservas.toString(),
+                    Icons.event_available,
+                    Colors.teal.shade600,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildMiniCard(
+                    'Promedio Asistentes',
+                    promedioAsistentes is double
+                        ? promedioAsistentes.toStringAsFixed(1)
+                        : promedioAsistentes.toString(),
+                    Icons.people,
+                    Colors.purple.shade600,
+                  ),
+                ),
+              ],
             ),
-            if (areaMasUsada != null) ...[
-              const SizedBox(height: 12),
-              _buildStatRow(
-                'Área más reservada',
-                '${areaMasUsada['nombreArea']} (${_toInt(areaMasUsada['cantidad'])} reservas)',
-                Icons.star,
+
+            // Día con más reservas
+            if (diaConMasReservas.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.star, color: Colors.orange.shade700, size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Día Pico',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            _formatearFechaDia(
+                              diaConMasReservas['fecha']?.toString() ?? '',
+                            ),
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange.shade900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      '${_toInt(diaConMasReservas['cantidad'])} reservas',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange.shade700,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
-            if (porArea.length > 1) ...[
+
+            // Por Estado
+            if (porEstado.isNotEmpty) ...[
               const SizedBox(height: 16),
               const Text(
-                'Ranking de áreas:',
+                'Por Estado:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              ...porEstado.map((estado) {
+                final nombre = estado['nombreEstado']?.toString() ?? 'N/A';
+                final cantidad = _toInt(estado['cantidad']);
+                Color estadoColor = Colors.grey;
+
+                if (nombre.toLowerCase().contains('finalizada')) {
+                  estadoColor = Colors.green;
+                } else if (nombre.toLowerCase().contains('curso')) {
+                  estadoColor = Colors.blue;
+                } else if (nombre.toLowerCase().contains('pendiente')) {
+                  estadoColor = Colors.orange;
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: estadoColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(flex: 3, child: Text(nombre)),
+                      Expanded(
+                        flex: 2,
+                        child: LinearProgressIndicator(
+                          value: totalReservas > 0
+                              ? cantidad / totalReservas
+                              : 0,
+                          backgroundColor: Colors.grey.shade200,
+                          valueColor: AlwaysStoppedAnimation(estadoColor),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        '$cantidad',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ],
+
+            // Por Área
+            if (porArea.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Text(
+                'Por Área Común:',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               const SizedBox(height: 8),
@@ -686,7 +1169,83 @@ class _ReportesScreenState extends State<ReportesScreen> {
     );
   }
 
-  Widget _buildStatRow(String label, String value, IconData icon) {
+  Widget _buildMiniCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatearFechaDia(String fecha) {
+    if (fecha.isEmpty) return 'N/A';
+    try {
+      final partes = fecha.split('-');
+      if (partes.length == 3) {
+        final meses = [
+          '',
+          'Ene',
+          'Feb',
+          'Mar',
+          'Abr',
+          'May',
+          'Jun',
+          'Jul',
+          'Ago',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dic',
+        ];
+        final mes = int.parse(partes[1]);
+        return '${partes[2]} ${meses[mes]} ${partes[0]}';
+      }
+    } catch (e) {
+      return fecha;
+    }
+    return fecha;
+  }
+
+  Widget _buildStatRow(
+    String label,
+    String value,
+    IconData icon, {
+    Color? color,
+  }) {
     return Row(
       children: [
         Icon(icon, size: 20, color: Colors.grey.shade600),
@@ -699,7 +1258,11 @@ class _ReportesScreenState extends State<ReportesScreen> {
         ),
         Text(
           value,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
         ),
       ],
     );
@@ -765,29 +1328,42 @@ class _ReportesScreenState extends State<ReportesScreen> {
   Future<void> _exportarPDF() async {
     final pdf = pw.Document();
 
-    // Obtener datos de parqueaderos adaptados a la estructura del backend
+    // Obtener datos de parqueaderos con nueva estructura
     final data = reporteParqueaderos['data'] ?? {};
-    int carros = 0;
-    int motos = 0;
+    int totalParqueaderosCarros = 0;
+    int ocupadosCarros = 0;
+    int disponiblesCarros = 0;
+    int totalParqueaderosMotos = 0;
+    int ocupadosMotos = 0;
+    int disponiblesMotos = 0;
 
     try {
-      if (data['porTipo'] != null && data['porTipo'] is List) {
-        for (var item in data['porTipo']) {
-          final nombreVehiculo = item['nombreVehiculo']?.toString() ?? '';
-          final cantidad = item['cantidad'];
+      if (data['resumenActual'] != null && data['resumenActual'] is List) {
+        for (var item in data['resumenActual']) {
+          final nombreVehiculo =
+              item['nombreVehiculo']?.toString().toLowerCase() ?? '';
+          final totalParqueaderos = _toInt(item['totalParqueaderos']);
+          final ocupados = _toInt(item['ocupados']);
+          final disponibles = _toInt(item['disponibles']);
 
           if (nombreVehiculo == 'carro') {
-            carros = _toInt(cantidad);
+            totalParqueaderosCarros = totalParqueaderos;
+            ocupadosCarros = ocupados;
+            disponiblesCarros = disponibles;
           } else if (nombreVehiculo == 'moto') {
-            motos = _toInt(cantidad);
+            totalParqueaderosMotos = totalParqueaderos;
+            ocupadosMotos = ocupados;
+            disponiblesMotos = disponibles;
           }
         }
       }
     } catch (e) {
-      print('Error procesando porTipo en PDF: $e');
+      print('Error procesando resumenActual en PDF: $e');
     }
 
-    final totalUsosParq = carros + motos;
+    final totalOcupados = ocupadosCarros + ocupadosMotos;
+    final totalDisponibles = disponiblesCarros + disponiblesMotos;
+    final totalParqueaderos = totalParqueaderosCarros + totalParqueaderosMotos;
 
     final totalVisitas = _toInt(reporteVisitas['data']?['totalVisitas']);
 
@@ -852,39 +1428,63 @@ class _ReportesScreenState extends State<ReportesScreen> {
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
                       pw.Text(
-                        'Total de usos: $totalUsosParq',
+                        'Total de parqueaderos: $totalParqueaderos',
                         style: pw.TextStyle(
                           fontSize: 16,
                           fontWeight: pw.FontWeight.bold,
                         ),
                       ),
+                      pw.SizedBox(height: 8),
+                      pw.Text(
+                        'Ocupados: $totalOcupados (${_calcularPorcentaje(totalOcupados, totalParqueaderos)}%)',
+                        style: const pw.TextStyle(
+                          fontSize: 14,
+                          color: PdfColors.red700,
+                        ),
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        'Disponibles: $totalDisponibles (${_calcularPorcentaje(totalDisponibles, totalParqueaderos)}%)',
+                        style: const pw.TextStyle(
+                          fontSize: 14,
+                          color: PdfColors.green700,
+                        ),
+                      ),
                       pw.SizedBox(height: 16),
-                      if (totalUsosParq > 0) ...[
+                      if (totalParqueaderos > 0) ...[
+                        pw.Text(
+                          'Desglose por tipo de vehículo:',
+                          style: pw.TextStyle(
+                            fontSize: 12,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                        pw.SizedBox(height: 8),
                         _buildPDFLeyendaItem(
                           'Carros',
-                          carros,
-                          totalUsosParq,
+                          ocupadosCarros,
+                          totalParqueaderosCarros,
                           PdfColors.blue500,
                         ),
                         pw.SizedBox(height: 8),
                         _buildPDFLeyendaItem(
                           'Motos',
-                          motos,
-                          totalUsosParq,
+                          ocupadosMotos,
+                          totalParqueaderosMotos,
                           PdfColors.orange500,
                         ),
                         pw.SizedBox(height: 12),
                         _buildPDFBarraHorizontal(
                           'Carros',
-                          carros,
-                          totalUsosParq,
+                          ocupadosCarros,
+                          totalParqueaderosCarros,
                           PdfColors.blue500,
                         ),
                         pw.SizedBox(height: 8),
                         _buildPDFBarraHorizontal(
                           'Motos',
-                          motos,
-                          totalUsosParq,
+                          ocupadosMotos,
+                          totalParqueaderosMotos,
                           PdfColors.orange500,
                         ),
                       ] else
