@@ -38,9 +38,7 @@ class _ActualizarState extends State<Actualizar> {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
-        print('Response del servidor: $jsonResponse');
         final reservaJson = jsonResponse['mostrarAreasComunes'];
-        print('ReservaJson: $reservaJson');
 
         if (reservaJson == null) {
           setState(() {
@@ -52,12 +50,6 @@ class _ActualizarState extends State<Actualizar> {
 
         setState(() {
           reservas = [Reserva.fromJson(reservaJson)];
-
-          print('🔍 DEBUG JSON Solicitante: ${reservaJson['Solicitante']}');
-          print('🔍 DEBUG JSON tipodocumento: ${reservaJson['tipodocumento']}');
-          print(
-            '🔍 DEBUG JSON aceptaReglamento: ${reservaJson['aceptaReglamento']}',
-          );
 
           // Inicializar fecha
           if (reservas[0].fechaReserva != null) {
@@ -88,12 +80,9 @@ class _ActualizarState extends State<Actualizar> {
 
           // Inicializar tipo de documento usando el getter
           tipoDocumentoId = reservas[0].tipoDocumentoId;
-          print('🔍 DEBUG tipoDocumentoId inicializado: $tipoDocumentoId');
-          print('🔍 DEBUG tipodocumento raw: ${reservas[0].tipodocumento}');
 
           // Inicializar acepta reglamento
           aceptaReglamento = reservas[0].aceptaReglamento;
-          print('🔍 DEBUG aceptaReglamento inicializado: $aceptaReglamento');
 
           isLoading = false;
         });
@@ -234,10 +223,6 @@ class _ActualizarState extends State<Actualizar> {
       borderRadius: BorderRadius.circular(14),
       borderSide: const BorderSide(color: Colors.orange),
     );
-
-    // Debug print para ver valores en build
-    print('🔍 BUILD - tipoDocumentoId: $tipoDocumentoId');
-    print('🔍 BUILD - aceptaReglamento: $aceptaReglamento');
 
     return Scaffold(
       backgroundColor: Colors.white,

@@ -59,8 +59,6 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
 
       if (response.statusCode == 200) {
         final datos = json.decode(response.body);
-        print('Respuesta completa del GET: $datos'); // Debug
-        print('Estructura de datos: ${datos.keys}'); // Debug
 
         // Intentar diferentes estructuras de respuesta
         List<dynamic> todosPaquetes = [];
@@ -78,14 +76,6 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
           todosPaquetes = datos['recepcionPaquetes'];
         }
 
-        print('Total paquetes recibidos: ${todosPaquetes.length}'); // Debug
-
-        // Debug: Verificar formato de fechas que llegan del backend
-        if (todosPaquetes.isNotEmpty) {
-          print('DEBUG FECHA - Ejemplo de fechaRecepcion del backend:');
-          print(todosPaquetes[0]['fechaRecepcion']);
-        }
-
         // Filtrar por estado en el frontend
         List<dynamic> paquetesFiltrados = todosPaquetes;
         if (filtroEstado != 'todos') {
@@ -93,16 +83,9 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
             final estadoNombre = paquete['estado']?['nombreEstado']
                 ?.toString()
                 .toLowerCase();
-            print(
-              'Estado del paquete: $estadoNombre vs filtro: $filtroEstado',
-            ); // Debug
             return estadoNombre == filtroEstado;
           }).toList();
         }
-
-        print(
-          'Paquetes después del filtro: ${paquetesFiltrados.length}',
-        ); // Debug
 
         // Filtrar por búsqueda de nombre
         if (busquedaNombre.isNotEmpty) {
@@ -177,15 +160,11 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
           isLoading = false;
         });
       } else {
-        print(
-          'Error al cargar: ${response.statusCode} - ${response.body}',
-        ); // Debug
         setState(() {
           isLoading = false;
         });
       }
     } catch (error) {
-      print('Error en _cargarPaquetes: $error'); // Debug
       setState(() {
         isLoading = false;
       });
@@ -267,17 +246,11 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
       }
 
       final idPaquete = paquete['idPaquete'];
-      print(
-        'Intentando marcar como entregado el paquete ID: $idPaquete',
-      ); // Debug
 
       final response = await http.delete(
         Uri.parse('${LoginServe.baseUrl}/api/recepcionPaquetes/$idPaquete'),
         headers: headers,
       );
-
-      print('Status Code: ${response.statusCode}'); // Debug
-      print('Response Body: ${response.body}'); // Debug
 
       if (response.statusCode == 200 || response.statusCode == 204) {
         if (mounted) {
@@ -293,7 +266,6 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
         throw Exception('Error ${response.statusCode}: ${response.body}');
       }
     } catch (error) {
-      print('Error al marcar como entregado: $error'); // Debug
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1048,9 +1020,6 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
         body: json.encode(body),
       );
 
-      print('Status Code: ${response.statusCode}'); // Debug
-      print('Response Body: ${response.body}'); // Debug
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (mounted) {
           Navigator.pop(context);
@@ -1600,17 +1569,12 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
       }
 
       final idPaquete = widget.paquete['idPaquete'];
-      print('Editando paquete ID: $idPaquete'); // Debug
-      print('Body: ${json.encode(body)}'); // Debug
 
       final response = await http.patch(
         Uri.parse('${LoginServe.baseUrl}/api/recepcionPaquetes/$idPaquete'),
         headers: headers,
         body: json.encode(body),
       );
-
-      print('Status Code: ${response.statusCode}'); // Debug
-      print('Response Body: ${response.body}'); // Debug
 
       if (response.statusCode == 200 || response.statusCode == 204) {
         if (mounted) {

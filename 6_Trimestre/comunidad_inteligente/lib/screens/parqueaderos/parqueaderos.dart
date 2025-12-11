@@ -50,11 +50,6 @@ class _SeleccionarParqueaderoScreenState
         final data = json.decode(response.body);
         final List<dynamic> body = data['body'];
 
-        // Debug: Ver qué valores llegan
-        if (body.isNotEmpty) {
-          print('🔍 DEBUG Ejemplo de parqueadero: ${body[0]}');
-        }
-
         setState(() {
           parqueaderos = body
               .map((json) => Parqueadero.fromJson(json))
@@ -64,17 +59,6 @@ class _SeleccionarParqueaderoScreenState
                     p.tipoVehiculoId == widget.tipoVehiculoId,
               )
               .toList();
-
-          // Debug: Ver estadoId
-          print('🔍 DEBUG Total parqueaderos: ${parqueaderos.length}');
-          if (parqueaderos.isNotEmpty) {
-            print('🔍 DEBUG Estados encontrados:');
-            for (var p in parqueaderos.take(5)) {
-              print(
-                '  ${p.codigoParqueadero}: estadoId=${p.estadoId} → ${p.estaDisponible ? "Disponible" : "Ocupado"}',
-              );
-            }
-          }
 
           aplicarFiltros();
           isLoading = false;
