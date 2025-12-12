@@ -62,32 +62,40 @@ export const listarOcupantes = async (req, res) => {
   try {
     const [results] = await sequelize.query(`
       SELECT 
-    oc.idOcupante,
-    oc.apartamentosId,
-    oc.numeroDocumento,
-    oc.tipoOcupacion,
-    oc.personasACargo,
-    oc.fechaInicio,
-    oc.fechaFin,
-    es.nombreEstado,
-    ap.idApartamento,
-    ap.torresId,
-    pe.tipoDocumentoId,
-    pe.primerNombre,
-    pe.segundoNombre,
-    pe.primerApellido,
-    pe.segundoApellido,
-    pe.telefono,
-    pe.correoElectronico
-FROM ocupante AS oc
-JOIN apartamentos AS ap 
-    ON oc.apartamentosId = ap.idApartamento
-JOIN personas AS pe 
-    ON oc.numeroDocumento = pe.numeroDocumento
-JOIN estados AS es
-    ON oc.estadoId = es.idEstado;
+        oc.idOcupante, 
+        oc.apartamentosId, 
+        oc.numeroDocumento, 
+        oc.tipoOcupacion, 
+        oc.personasACargo, 
+        oc.fechaInicio, 
+        oc.fechaFin, 
+        oc.estadoId,
+        es.nombreEstado, 
+        ap.idApartamento, 
+        ap.numeroApartamento,
+        ap.torresId, 
+        pe.tipoDocumentoId, 
+        pe.primerNombre, 
+        pe.segundoNombre, 
+        pe.primerApellido, 
+        pe.segundoApellido, 
+        pe.telefono, 
+        pe.correoElectronico 
+      FROM ocupante AS oc 
+      LEFT JOIN apartamentos AS ap ON oc.apartamentosId = ap.idApartamento 
+      LEFT JOIN personas AS pe ON TRIM(oc.numeroDocumento) = TRIM(pe.numeroDocumento)
+      LEFT JOIN estados AS es ON oc.estadoId = es.idEstado
+      ORDER BY oc.idOcupante
     `);
-
+    
+    console.log('Total resultados:', results.length);
+    if (results.length > 0) {
+      console.log('Primer resultado:', JSON.stringify(results[0], null, 2));
+      const conPersona = results.filter(r => r.primerNombre !== null).length;
+      const sinPersona = results.filter(r => r.primerNombre === null).length;
+      console.log(`Con persona: ${conPersona}, Sin persona: ${sinPersona}`);
+    }
+    
     res.status(200).json({
       ok: true,
       status: 200,
@@ -241,6 +249,55 @@ export const finalizarOcupante = async (req, res) => {
       message: "Lo siento, no se pudo finalizar el ocupante",
       status: 500,
       error: error.message,
+    });
+  }
+};
+
+// FUNCIÓN ADICIONAL PARA DIAGNÓSTICO
+export const verificarDocumentos = async (req, res) => {
+  try {
+    // Ocupantes sin persona
+    const [ocupantesSinPersona] = await sequelize.query(`
+      SELECT 
+        oc.idOcupante,
+        oc.numeroDocumento as doc_ocupante,
+        oc.tipoOcupacion,
+        pe.numeroDocumento as doc_persona
+      FROM ocupante AS oc 
+      LEFT JOIN personas AS pe ON TRIM(oc.numeroDocumento) = TRIM(pe.numeroDocumento)
+      WHERE pe.numeroDocumento IS NULL
+    `);
+
+    // Personas sin ocupante
+    const [personasSinOcupante] = await sequelize.query(`
+      SELECT 
+        pe.numeroDocumento,
+        pe.primerNombre,
+        pe.primerApellido
+      FROM personas AS pe
+      LEFT JOIN ocupante AS oc ON TRIM(pe.numeroDocumento) = TRIM(oc.numeroDocumento)
+      WHERE oc.numeroDocumento IS NULL
+    `);
+
+    res.status(200).json({
+      ok: true,
+      status: 200,
+      message: "Verificación de documentos",
+      ocupantesSinPersona: {
+        cantidad: ocupantesSinPersona.length,
+        datos: ocupantesSinPersona
+      },
+      personasSinOcupante: {
+        cantidad: personasSinOcupante.length,
+        datos: personasSinOcupante
+      }
+    });
+  } catch (error) {
+    console.error("Error al verificar documentos:", error);
+    res.status(500).json({
+      error: "Error interno",
+      status: 500,
+      details: error.message
     });
   }
 };
