@@ -84,7 +84,7 @@ export const obtenerUsuario = async (req, res) => {
 export const obtenerUsuarioPorId = async (req, res) => {
   try {
     await User.sync();
-    const username = req.params.username;
+    const username = decodeURIComponent(req.params.username);
     const usuario = await User.findByPk(username);
     if (!usuario) {
       return res.status(404).json({
@@ -109,9 +109,9 @@ export const obtenerUsuarioPorId = async (req, res) => {
 export const actualizarUsuario = async (req, res) => {
   try {
     const dataUser = req.body;
-    const username = req.params.username;
+    const username = decodeURIComponent(req.params.username);
     const requester = req.user;
-
+    console.log("actualizarUsuario - params:", req.params, "body:", dataUser, "requester:", requester);
     const usuario = await User.findByPk(username, {
       include: [{ model: Persona, as: "persona" }],
     });
@@ -255,7 +255,7 @@ export const loginUsuario = async (req, res) => {
 export const buscarUsuarios = async (req, res) => {
   try {
     await User.sync();
-    const estadoId = req.params.estadoId;
+    const estadoId = decodeURIComponent( req.params.estadoId);
     const usuario = await User.findAll({ where: { estadoId } });
     if (!usuario) {
       return res.status(404).json({

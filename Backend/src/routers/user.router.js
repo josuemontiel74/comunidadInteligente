@@ -43,8 +43,7 @@ router.patch(
   "/usuario/:username",
   validarJWT,
   validarRol(1),
-  validate(userSchema.updateUserSchema, "body", true),
-  validate(userSchema.getUserSchema, "params", true),
+
   userController.actualizarUsuario
 );
 

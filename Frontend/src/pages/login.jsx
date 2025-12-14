@@ -10,6 +10,7 @@ import ingresar from "../animacion/Unlocked.json";
 import Error from "../animacion/Error.json";
 import { handleSubmit as loginService } from "../services/login.serves.jsx";
 function Login() {
+  
   const navigate = useNavigate();
 
   // Bloquear navegación hacia atrás y adelante en login
@@ -43,15 +44,17 @@ function Login() {
 
     try {
     const data  = await loginService(username,password);
-     
-      if (!data.ok) {
+      // Validar que la respuesta contenga los datos esperados antes de usarlos
+      if (!data || !data.usuario || !data.token) {
         setErrorAnim(true);
         setTimeout(() => setErrorAnim(false), 3000);
         return;
       }
+      // Guardar datos en localStorage solo cuando la autenticación fue exitosa
       localStorage.clear();
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.usuario));
+      localStorage.setItem("rol", data.usuario.rolesId);
       console.log(" Token guardado:", localStorage.getItem("token"));
       if (data.usuario.estadoId != 2) {
         setExito(true);
@@ -72,7 +75,7 @@ function Login() {
         Swal.fire({
           icon: "error",
           title: "Si Acceso",
-          text: "Te quitaron el acceso a la aplicacion :(",
+          text: "No tienes acceso a la aplicacion :(",
         });
       }
 

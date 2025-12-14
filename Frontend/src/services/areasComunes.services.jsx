@@ -29,14 +29,6 @@ export async function crearReserva(datos, token) {
   });
 }
 
-export async function actualizarReserva(id, datos, token) {
-  return fetch(`${BASE}/reservas-areas/${id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify(datos),
-  });
-}
-
 export async function eliminarReserva(id, token) {
   return fetch(`${BASE}/reservas-areas/${id}`, {
     method: "DELETE",
@@ -54,7 +46,8 @@ export async function crearReserva_v2(datos, token) {
 }
 
 export async function actualizarReserva_v2(id, datos, token) {
-  return fetch(`${BASE}/reservarAreas/${id}`, {
+ let idReservas=id;
+  return fetch(`${BASE}/ActualizarReserva/${idReservas}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(datos),

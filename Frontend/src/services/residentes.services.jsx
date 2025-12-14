@@ -1,26 +1,7 @@
 const API_BASE_URL = "http://localhost:3001/api";
 
-
-export const getAuthToken = () => {
-  return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Impvc3VlMjAyMyIsInJvbGVzSWQiOjEsImlhdCI6MTc1OTQ5NzMzOCwiZXhwIjoxNzU5NTAwOTM4fQ.zoWZMuCBmzoyZvQ8_8OYGKHwQpkDFaB8QSMQXBQcbXA";
-};
-
-export const obtenerToken = () => {
-  const token =
-    localStorage.getItem("token") ||
-    localStorage.getItem("authToken") ||
-    sessionStorage.getItem("token") ||
-    sessionStorage.getItem("authToken");
-
-  if (!token) {
-    console.warn(
-      "No se encontró token de autenticación, usando token de desarrollo"
-    );
-    return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Impvc3VlMjAyMyIsInJvbGVzSWQiOjEsImlhdCI6MTc1OTUxNTQwMCwiZXhwIjoxNzU5NTE5MDAwfQ.wKzrnUttdHRGkHnnZL1LR1amxt2ZQ4PZR85khZauShQ";
-  }
-
-  return token;
-};
+// NOTE: this module no longer reads token from storage.
+// The caller must pass a valid `token` string to each API function.
 
 
 export const verificarTokenVencido = (token) => {
@@ -105,47 +86,47 @@ export const mapTorreId = (torre) => {
 };
 
 
-export async function obtenerResidentes(token = null) {
-  const t = token || obtenerToken();
+export async function obtenerResidentes(token) {
+  if (!token) throw new Error("Token de autenticación requerido para obtener residentes");
   return fetch(`${API_BASE_URL}/ocupantes`, {
     method: "GET",
-    headers: { Authorization: `Bearer ${t}` },
+    headers: { Authorization: `Bearer ${token}` },
   });
 }
 
-export async function obtenerOcupantePorId(id, token = null) {
-  const t = token || obtenerToken();
+export async function obtenerOcupantePorId(id, token) {
+  if (!token) throw new Error("Token de autenticación requerido para obtener ocupante");
   return fetch(`${API_BASE_URL}/ocupante/${id}`, {
     method: "GET",
-    headers: { Authorization: `Bearer ${t}` },
+    headers: { Authorization: `Bearer ${token}` },
   });
 }
 
-export async function crearOcupante(ocupanteData, token = null) {
-  const t = token || obtenerToken();
+export async function crearOcupante(ocupanteData, token) {
+  if (!token) throw new Error("Token de autenticación requerido para crear ocupante");
   return fetch(`${API_BASE_URL}/ocupante`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(ocupanteData),
   });
 }
 
-export async function actualizarOcupante(id, ocupanteData, token = null) {
-  const t = token || obtenerToken();
-  return fetch(`${API_BASE_URL}/ocupante/${id}`, {
+export async function actualizarOcupante(id, ocupanteData, token) {
+  let idOcupante = id;
+  if (!token) throw new Error("Token de autenticación requerido para actualizar ocupante");
+  return fetch(`${API_BASE_URL}/ocupante/${idOcupante}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(ocupanteData),
   });
 }
 
-export async function finalizarOcupante(id, token = null) {
- 
-  const t = token || obtenerToken();
+export async function finalizarOcupante(id, token) {
+  if (!token) throw new Error("Token de autenticación requerido para finalizar ocupante");
   return fetch(`${API_BASE_URL}/ocupante/${id}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
-    body: JSON.stringify({ estadoId: 9,fechaFin: new Date }),
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ estadoId: 9, fechaFin: new Date() }),
   });
 }
 
@@ -185,7 +166,10 @@ export const prepararDatosOcupante = (formData, apartamentos, isEdit = false) =>
     primerApellido: formData.primerApellido,
     segundoApellido: formData.segundoApellido && formData.segundoApellido.trim() !== "" ? formData.segundoApellido : null,
     telefono: formData.telefono || "0000000000",
-    correoElectronico: formData.correo || "noemail@example.com",
+    // Si es edición y no se proporcionó correo, omitimos el campo para no enviar el placeholder
+    correoElectronico: isEdit
+      ? (formData.correo && formData.correo.trim() !== "" ? formData.correo : undefined)
+      : (formData.correo && formData.correo.trim() !== "" ? formData.correo : "noemail@example.com"),
   };
 
   // Solo agregar numeroDocumento si no es edición

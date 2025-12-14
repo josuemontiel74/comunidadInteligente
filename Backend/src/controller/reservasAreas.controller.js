@@ -7,7 +7,7 @@ import Estado from "../models/estados.model.js";
 import { sequelize } from "../config/connect.db.js";
 import Tipodocumentos from "../models/tipoDocumento.model.js";
 import Torre from "../models/torres.model.js";
-
+import { fn, col, Op, literal } from "sequelize";
 /**
  * Función auxiliar para actualizar automáticamente los estados de las reservas
  * según la fecha y hora actual
@@ -111,6 +111,7 @@ export const CrearReservaArea = async (req, res) => {
     await solicitantesModel.sync();
 
     const dataReserva = req.body;
+   console.log(dataReserva);
 
     const hoy = dayjs().startOf("day");
     // Parsear la fecha sin conversión de zona horaria
@@ -122,14 +123,12 @@ export const CrearReservaArea = async (req, res) => {
         status: 400,
       });
     }
-
     if (fechaReserva.isBefore(hoy)) {
       return res.status(400).json({
         message: "No se puede crear una reserva en el pasado",
         status: 400,
       });
     }
-
     const [solicitante, created] = await solicitantesModel.findOrCreate({
       where: { documentoSolicitante: dataReserva.documentoSolicitante },
       defaults: {
@@ -636,5 +635,86 @@ export const ActualizarReservaAreaParaMovil = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ ok: false, error: error.message });
+  }
+};
+//
+export const reportes = async (req, res) => {
+  try {
+    const reportPor = parseInt(req.params.por);
+
+    const rango = req.body.rango || req.body;
+
+    let { fechaInicio, fechaFin } = rango;
+
+    // Verifica si las fechas vienen invertidas
+    if (new Date(fechaInicio) > new Date(fechaFin)) {
+      console.log("Fechas invertidas, corrigiendo...");
+      [fechaInicio, fechaFin] = [fechaFin, fechaInicio];
+    }
+
+    const queryConfig = {
+      where: {
+        fechaReserva: {
+          [Op.between]: [fechaInicio, fechaFin]
+        }
+      }
+    };
+
+    let areascomunesReporte = [];
+
+    switch(reportPor) {
+      // POR AÑO
+      case  1:
+      areascomunesReporte = await reservasAreasModel.findAll({
+        attributes: [
+          "areaComunId",
+          [fn("YEAR", col("fechaReserva")), "anio"],
+          [fn("COUNT", col("idReservas")), "totalVisitas"]
+        ],
+        ...queryConfig,
+        group: ["areaComunId", "anio"],
+        order: [["anio", "ASC"]]
+      });
+      break;
+     case 2:
+      // POR MES
+      areascomunesReporte = await reservasAreasModel.findAll({
+        attributes: [
+          "areaComunId",
+          [fn("YEAR", col("fechaReserva")), "anio"],
+          [fn("MONTH", col("fechaReserva")), "mes"],
+          [fn("COUNT", col("idReservas")), "totalVisitas"]
+        ],
+        ...queryConfig,
+        group: ["areaComunId", "anio", "mes"],
+        order: [["anio", "ASC"], ["mes", "ASC"]]
+      });
+        break;
+    case 3:
+      // POR SEMANA
+      areascomunesReporte = await reservasAreasModel.findAll({
+        attributes: [
+          "areaComunId",
+          [fn("YEAR", col("fechaReserva")), "anio"],
+          [literal("FLOOR((DAY(fechaReserva)-1)/7)+1"), "semanaMes"],
+          [fn("COUNT", col("idReservas")), "totalVisitas"]
+        ],
+        ...queryConfig,
+        group: ["areaComunId", "anio", "semanaMes"],
+        order: [["anio", "ASC"], ["semanaMes", "ASC"]]
+      });
+      break;
+    }
+    res.status(200).json({
+      ok: true,
+      areascomunesReporte
+    });
+
+  } catch (error) {
+    console.log("Lo siento salió un error:", error.message);
+    res.status(500).json({
+      ok: false,
+      message: error.message
+    });
   }
 };
