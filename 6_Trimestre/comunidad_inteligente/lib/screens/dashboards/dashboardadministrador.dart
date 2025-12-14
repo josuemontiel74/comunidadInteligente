@@ -5,6 +5,9 @@ import 'dart:convert';
 import '../paqueteria/paqueteria.dart';
 import '../areasComunes/areascomunes.dart';
 import '../../widgets/areasComunes/registrar_reserva.dart';
+import '../visitas/visitas.dart';
+import '../parqueaderos/parqueaderos.dart' show SeleccionarParqueaderoScreen;
+import '../reportes/reportes.dart';
 
 class Dashboardadministrador extends StatefulWidget {
   final String nombreUsuario;
@@ -21,8 +24,8 @@ class Dashboardadministrador extends StatefulWidget {
 class _DashboardadministradorState extends State<Dashboardadministrador> {
   int paquetesEntregados = 0;
   int paquetesPendientes = 0;
-  int parqueosResidentes = 0;
-  int parqueosVisitantes = 0;
+  int parqueosCarros = 0;
+  int parqueosMotos = 0;
   int parqueosLibres = 0;
   bool isLoading = true;
 
@@ -44,11 +47,15 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
         setState(() {
           paquetesEntregados = datos['paquetes']?['entregados'] ?? 0;
           paquetesPendientes = datos['paquetes']?['pendientes'] ?? 0;
-          parqueosResidentes =
-              datos['parqueaderos']?['ocupadosResidentes'] ?? 0;
-          parqueosVisitantes =
-              datos['parqueaderos']?['ocupadosVisitantes'] ?? 0;
-          parqueosLibres = datos['parqueaderos']?['disponibles'] ?? 0;
+          parqueosCarros = (datos['parqueaderos']?['ocupadosCarros'] ?? 0)
+              .clamp(0, double.infinity)
+              .toInt();
+          parqueosMotos = (datos['parqueaderos']?['ocupadosMotos'] ?? 0)
+              .clamp(0, double.infinity)
+              .toInt();
+          parqueosLibres = (datos['parqueaderos']?['disponibles'] ?? 0)
+              .clamp(0, double.infinity)
+              .toInt();
           isLoading = false;
         });
       } else {
@@ -138,20 +145,17 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
                       ),
                     ]),
                     _buildMenuSection('Gestión de Visitas', [
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
-                        Icons.person_add,
-                        'Crear Visitas',
+                        Icons.event,
+                        'Gestión de Visitas',
+                        HomeScreen(token: LoginServe.token),
                       ),
-                      _buildMenuItem(
-                        context,
-                        Icons.search,
-                        'Consultar Visitas',
-                      ),
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
                         Icons.local_parking,
                         'Consultar Parquedero',
+                        SeleccionarParqueaderoScreen(token: LoginServe.token),
                       ),
                     ]),
                     _buildMenuSection('Gestión de Áreas Comunes', [
@@ -166,6 +170,14 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
                         Icons.location_on,
                         'Consultar Áreas Comunes',
                         Areascomunes(token: LoginServe.token),
+                      ),
+                    ]),
+                    _buildMenuSection('Reportes', [
+                      _buildMenuItemNav(
+                        context,
+                        Icons.bar_chart,
+                        'Ver Reportes',
+                        ReportesScreen(token: LoginServe.token ?? ''),
                       ),
                     ]),
                     _buildMenuSection('Gestión de Residentes', [
@@ -432,7 +444,9 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => TerceraPantalla()),
+            MaterialPageRoute(
+              builder: (context) => HomeScreen(token: LoginServe.token),
+            ),
           );
         },
       ),
@@ -456,10 +470,9 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
         title: 'Gestión de Residentes',
         color: Colors.teal,
         onTap: () {
-          Navigator.push(
+          ScaffoldMessenger.of(
             context,
-            MaterialPageRoute(builder: (context) => TerceraPantalla()),
-          );
+          ).showSnackBar(SnackBar(content: Text('Módulo en construcción')));
         },
       ),
     ];
@@ -597,10 +610,9 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
       trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
       onTap: () {
         Navigator.pop(context); // Cerrar el drawer
-        Navigator.push(
+        ScaffoldMessenger.of(
           context,
-          MaterialPageRoute(builder: (context) => TerceraPantalla()),
-        );
+        ).showSnackBar(SnackBar(content: Text('Módulo en construcción')));
       },
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       hoverColor: Colors.orange.shade50,
@@ -780,71 +792,85 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
   // Tarjeta de parqueaderos ocupados con gráfico de torta
   Widget _buildParqueaderosCard() {
     // Usar datos dinámicos
-    int totalParqueos = parqueosResidentes + parqueosVisitantes;
+    int totalOcupados = parqueosCarros + parqueosMotos;
+    int totalParqueos = totalOcupados + parqueosLibres;
 
-    return Card(
-      elevation: 6,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Icon(Icons.local_parking, color: Colors.purple, size: 32),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Parqueaderos Ocupados',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                SeleccionarParqueaderoScreen(token: LoginServe.token),
+          ),
+        );
+      },
+      child: Card(
+        elevation: 6,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.local_parking, color: Colors.purple, size: 32),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Parqueaderos Visitantes',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: 30),
-            // Gráfico de torta simplificado
-            SizedBox(
-              height: 180,
-              child: CustomPaint(
-                size: Size(180, 180),
-                painter: PieChartPainter(
-                  residentes: parqueosResidentes,
-                  visitantes: parqueosVisitantes,
-                  libres: parqueosLibres,
+                  Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 18),
+                ],
+              ),
+              SizedBox(height: 30),
+              // Gráfico de torta simplificado
+              SizedBox(
+                height: 180,
+                child: CustomPaint(
+                  size: Size(180, 180),
+                  painter: PieChartPainter(
+                    residentes: parqueosCarros,
+                    visitantes: parqueosMotos,
+                    libres: parqueosLibres,
+                  ),
                 ),
               ),
-            ),
-            SizedBox(height: 25),
-            // Leyenda
-            Column(
-              children: [
-                _buildLeyendaItem(
-                  Colors.teal,
-                  'Residentes',
-                  parqueosResidentes,
-                  totalParqueos,
-                ),
-                SizedBox(height: 8),
-                _buildLeyendaItem(
-                  Colors.orange,
-                  'Visitantes',
-                  parqueosVisitantes,
-                  totalParqueos,
-                ),
-                SizedBox(height: 8),
-                _buildLeyendaItem(
-                  Colors.grey.shade300,
-                  'Libres',
-                  parqueosLibres,
-                  60,
-                ),
-              ],
-            ),
-          ],
+              SizedBox(height: 25),
+              // Leyenda
+              Column(
+                children: [
+                  _buildLeyendaItem(
+                    Colors.teal,
+                    'Carros',
+                    parqueosCarros,
+                    totalParqueos > 0 ? totalParqueos : 1,
+                  ),
+                  SizedBox(height: 8),
+                  _buildLeyendaItem(
+                    Colors.orange,
+                    'Motos',
+                    parqueosMotos,
+                    totalParqueos > 0 ? totalParqueos : 1,
+                  ),
+                  SizedBox(height: 8),
+                  _buildLeyendaItem(
+                    Colors.grey.shade300,
+                    'Libres',
+                    parqueosLibres,
+                    totalParqueos > 0 ? totalParqueos : 1,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -906,7 +932,11 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
 
   // Item de leyenda para el gráfico de torta
   Widget _buildLeyendaItem(Color color, String label, int valor, int total) {
-    double porcentaje = (valor / total) * 100;
+    // Validar que los valores sean positivos y el total no sea cero
+    int valorSeguro = valor < 0 ? 0 : valor;
+    int totalSeguro = total > 0 ? total : 1;
+    double porcentaje = (valorSeguro / totalSeguro) * 100;
+
     return Row(
       children: [
         Container(
@@ -922,7 +952,7 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
           ),
         ),
         Text(
-          '$valor (${porcentaje.toStringAsFixed(0)}%)',
+          '$valorSeguro (${porcentaje.toStringAsFixed(0)}%)',
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.bold,
@@ -1039,13 +1069,5 @@ class PieChartPainter extends CustomPainter {
     return oldDelegate.residentes != residentes ||
         oldDelegate.visitantes != visitantes ||
         oldDelegate.libres != libres;
-  }
-}
-
-class TerceraPantalla extends StatelessWidget {
-  const TerceraPantalla({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: Text('Pantalla en construcción')));
   }
 }

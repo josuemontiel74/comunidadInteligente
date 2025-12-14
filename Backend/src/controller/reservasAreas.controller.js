@@ -23,7 +23,7 @@ const actualizarEstadosReservas = async () => {
     const horaActual = ahora.format("HH:mm:ss");
 
     console.log(
-      "🔄 Actualizando estados - Fecha hoy:",
+      "Actualizando estados - Fecha hoy:",
       fechaHoy,
       "Hora actual:",
       horaActual
@@ -36,7 +36,7 @@ const actualizarEstadosReservas = async () => {
       },
     });
 
-    console.log(`📋 Encontradas ${reservas.length} reservas para revisar`);
+    console.log(`Encontradas ${reservas.length} reservas para revisar`);
 
     for (const reserva of reservas) {
       // Extraer solo la parte de la fecha sin conversión de zona horaria
@@ -55,7 +55,7 @@ const actualizarEstadosReservas = async () => {
       const horaInicio = reserva.horaInicio;
       const horaFin = reserva.horaFin;
 
-      console.log(`\n📌 Reserva ID ${reserva.idReservas}:`);
+      console.log(`\nReserva ID ${reserva.idReservas}:`);
       console.log(`   Fecha reserva (raw):`, reserva.fechaReserva);
       console.log(`   Fecha reserva (tipo):`, typeof reserva.fechaReserva);
       console.log(`   Fecha reserva (procesada): ${fechaReservaStr}`);
@@ -68,16 +68,16 @@ const actualizarEstadosReservas = async () => {
 
       if (fechaReservaDayjs.isBefore(hoyDayjs, "day")) {
         // La fecha ya pasó (días anteriores) -> Finalizada
-        console.log(`   ❌ Fecha pasada - Cambiando a Finalizada`);
+        console.log(`   Fecha pasada - Cambiando a Finalizada`);
         if (reserva.estadoId !== 9) {
           await reserva.update({ estadoId: 9 });
         }
       } else if (fechaReservaDayjs.isSame(hoyDayjs, "day")) {
         // Es hoy, verificar la hora
-        console.log(`   ✅ Es hoy - Verificando horas`);
+        console.log(`   Es hoy - Verificando horas`);
         if (horaFin && horaActual > horaFin) {
           // Ya pasó la hora de fin -> Finalizada
-          console.log(`   ⏰ Hora fin pasada - Cambiando a Finalizada`);
+          console.log(`   Hora fin pasada - Cambiando a Finalizada`);
           if (reserva.estadoId !== 9) {
             await reserva.update({ estadoId: 9 });
           }
@@ -87,16 +87,16 @@ const actualizarEstadosReservas = async () => {
           (!horaFin || horaActual <= horaFin)
         ) {
           // Está entre hora inicio y hora fin -> En curso
-          console.log(`   ⏰ Dentro del horario - Cambiando a En curso`);
+          console.log(`   Dentro del horario - Cambiando a En curso`);
           if (reserva.estadoId !== 8) {
             await reserva.update({ estadoId: 8 });
           }
         } else {
-          console.log(`   ⏰ Aún no inicia - Mantiene Pendiente`);
+          console.log(`   Aun no inicia - Mantiene Pendiente`);
         }
         // Si aún no llega la hora de inicio, se mantiene en estado 7
       } else {
-        console.log(`   📅 Fecha futura - Mantiene Pendiente`);
+        console.log(`   Fecha futura - Mantiene Pendiente`);
       }
       // Si la fecha es futura (después de hoy), se mantiene en estado 7 (Pendiente)
     }
@@ -486,9 +486,9 @@ export const crearReservasParaMovil = async (req, res) => {
     }
 
     console.log("Body recibido:", req.body);
-    console.log("📅 Fecha recibida:", dataReserva.fechaReserva);
-    console.log("📅 Fecha parseada:", fechaReserva.format("YYYY-MM-DD"));
-    console.log("📅 Fecha de hoy:", hoy.format("YYYY-MM-DD"));
+    console.log("Fecha recibida:", dataReserva.fechaReserva);
+    console.log("Fecha parseada:", fechaReserva.format("YYYY-MM-DD"));
+    console.log("Fecha de hoy:", hoy.format("YYYY-MM-DD"));
 
     [solicitante, created] = await solicitantesModel.findOrCreate({
       where: { documentoSolicitante: dataReserva.documentoSolicitante },
@@ -515,8 +515,8 @@ export const crearReservasParaMovil = async (req, res) => {
       documentoSolicitante: solicitante.documentoSolicitante,
     });
 
-    console.log("✅ Reserva creada con fecha:", nuevaReservaArea.fechaReserva);
-    console.log("✅ Estado inicial:", nuevaReservaArea.estadoId);
+    console.log("Reserva creada con fecha:", nuevaReservaArea.fechaReserva);
+    console.log("Estado inicial:", nuevaReservaArea.estadoId);
 
     return res.status(200).json({
       ok: true,

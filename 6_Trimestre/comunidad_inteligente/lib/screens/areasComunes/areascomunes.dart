@@ -47,6 +47,54 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
   String? filtroApartamento;
   final TextEditingController _searchController = TextEditingController();
 
+  void _mostrarFormularioRegistro() {
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.all(isSmallScreen ? 8 : 16),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: isSmallScreen
+                ? MediaQuery.of(context).size.width * 0.95
+                : 800,
+            maxHeight: MediaQuery.of(context).size.height * 0.92,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: RegistrarReserva(token: widget.token),
+          ),
+        ),
+      ),
+    ).then((_) => cargarReservas());
+  }
+
+  void _mostrarFormularioEdicion(int? idReservas) {
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.all(isSmallScreen ? 8 : 16),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: isSmallScreen
+                ? MediaQuery.of(context).size.width * 0.95
+                : 800,
+            maxHeight: MediaQuery.of(context).size.height * 0.92,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Actualizar(token: widget.token, idReservas: idReservas),
+          ),
+        ),
+      ),
+    ).then((_) => cargarReservas());
+  }
+
   @override
   void initState() {
     super.initState();
@@ -189,12 +237,91 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
           }).toList();
         }
 
-        // Ordenar por fecha de más reciente a más vieja
+        // Ordenar: primero las activas (en curso y registradas), luego por fecha/hora más reciente
         reservasFiltradas.sort((a, b) {
-          final fechaA = DateTime.tryParse(a.fechaReserva ?? '');
-          final fechaB = DateTime.tryParse(b.fechaReserva ?? '');
-          if (fechaA == null || fechaB == null) return 0;
-          return fechaB.compareTo(fechaA);
+          try {
+            // Determinar si son activas
+            final estadoA = a.nombreEstado?.toLowerCase() ?? '';
+            final estadoB = b.nombreEstado?.toLowerCase() ?? '';
+            final esActivaA = estadoA == 'en curso' || estadoA == 'registrada';
+            final esActivaB = estadoB == 'en curso' || estadoB == 'registrada';
+
+            // Si una es activa y la otra no, la activa va primero
+            if (esActivaA && !esActivaB) return -1;
+            if (!esActivaA && esActivaB) return 1;
+
+            // Si ambas son activas o ambas no son activas, ordenar por fecha/hora
+            final fechaStrA = a.fechaReserva ?? '';
+            final fechaStrB = b.fechaReserva ?? '';
+            final horaA = a.horaInicio ?? '00:00';
+            final horaB = b.horaInicio ?? '00:00';
+
+            if (fechaStrA.isEmpty && fechaStrB.isEmpty) return 0;
+            if (fechaStrA.isEmpty) return 1;
+            if (fechaStrB.isEmpty) return -1;
+
+            // Parsear fecha sin conversión de timezone (son fechas locales YYYY-MM-DD)
+            DateTime _parsearFechaSinTimezone(String fechaStr) {
+              // Formato: YYYY-MM-DD
+              final partes = fechaStr.split('-');
+              return DateTime(
+                int.parse(partes[0]), // año
+                int.parse(partes[1]), // mes
+                int.parse(partes[2]), // día
+              );
+            }
+
+            final fechaBaseA = _parsearFechaSinTimezone(fechaStrA);
+            final fechaBaseB = _parsearFechaSinTimezone(fechaStrB);
+
+            // Parsear hora correctamente manejando formato AM/PM
+            int _parsearHora(String horaStr) {
+              final horaUpper = horaStr.toUpperCase();
+              final esPM = horaUpper.contains('PM');
+              final esAM = horaUpper.contains('AM');
+
+              final horaLimpia = horaStr.replaceAll(RegExp(r'[^0-9:]'), '');
+              final partes = horaLimpia.split(':');
+              int hora = int.tryParse(partes[0]) ?? 0;
+
+              if (esPM && hora != 12) {
+                hora += 12;
+              } else if (esAM && hora == 12) {
+                hora = 0;
+              }
+
+              return hora;
+            }
+
+            int _parsearMinutos(String horaStr) {
+              final horaLimpia = horaStr.replaceAll(RegExp(r'[^0-9:]'), '');
+              final partes = horaLimpia.split(':');
+              return partes.length > 1 ? (int.tryParse(partes[1]) ?? 0) : 0;
+            }
+
+            final fechaCompletaA = DateTime(
+              fechaBaseA.year,
+              fechaBaseA.month,
+              fechaBaseA.day,
+              _parsearHora(horaA),
+              _parsearMinutos(horaA),
+            );
+
+            final fechaCompletaB = DateTime(
+              fechaBaseB.year,
+              fechaBaseB.month,
+              fechaBaseB.day,
+              _parsearHora(horaB),
+              _parsearMinutos(horaB),
+            );
+
+            return fechaCompletaB.compareTo(fechaCompletaA);
+          } catch (e) {
+            // Si hay error en el parseo, intentar comparación de strings
+            final strA = a.fechaReserva ?? '';
+            final strB = b.fechaReserva ?? '';
+            return strB.compareTo(strA);
+          }
         });
 
         // Implementar paginación
@@ -371,42 +498,48 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    Expanded(
+                    Flexible(
                       child: OutlinedButton.icon(
                         onPressed: () => _mostrarDetalles(r),
-                        icon: const Icon(Icons.info_outline, size: 18),
-                        label: const Text('Detalles'),
+                        icon: const Icon(Icons.info_outline, size: 16),
+                        label: const Text(
+                          'Detalles',
+                          style: TextStyle(fontSize: 12),
+                        ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.orange,
                           side: const BorderSide(color: Colors.orange),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
                         ),
                       ),
                     ),
                     if (!estaFinalizada) ...[
-                      const SizedBox(width: 8),
-                      Expanded(
+                      const SizedBox(width: 6),
+                      Flexible(
                         child: OutlinedButton.icon(
                           onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => Actualizar(
-                                  token: widget.token,
-                                  idReservas: r.idReservas,
-                                ),
-                              ),
-                            ).then((_) => cargarReservas());
+                            _mostrarFormularioEdicion(r.idReservas);
                           },
-                          icon: const Icon(Icons.edit, size: 18),
-                          label: const Text('Editar'),
+                          icon: const Icon(Icons.edit, size: 16),
+                          label: const Text(
+                            'Editar',
+                            style: TextStyle(fontSize: 12),
+                          ),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.blue,
                             side: const BorderSide(color: Colors.blue),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
+                      const SizedBox(width: 6),
+                      Flexible(
                         child: ElevatedButton.icon(
                           onPressed: () async {
                             final confirm = await showDialog<bool>(
@@ -435,11 +568,18 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                               await finalizarReserva(r.idReservas!);
                             }
                           },
-                          icon: const Icon(Icons.check_circle, size: 18),
-                          label: const Text('Finalizar'),
+                          icon: const Icon(Icons.check_circle, size: 16),
+                          label: const Text(
+                            'Finalizar',
+                            style: TextStyle(fontSize: 12),
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,
                             foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
                           ),
                         ),
                       ),
@@ -559,15 +699,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                           icon: const Icon(Icons.edit),
                           color: Colors.blue,
                           onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => Actualizar(
-                                  token: widget.token,
-                                  idReservas: r.idReservas,
-                                ),
-                              ),
-                            ).then((_) => cargarReservas());
+                            _mostrarFormularioEdicion(r.idReservas);
                           },
                           tooltip: 'Editar',
                         ),
@@ -635,15 +767,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
           child: Column(
             children: [
               ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          RegistrarReserva(token: widget.token),
-                    ),
-                  ).then((_) => cargarReservas());
-                },
+                onPressed: _mostrarFormularioRegistro,
                 icon: const Icon(Icons.add),
                 label: Text(
                   MediaQuery.of(context).size.width < 600
@@ -958,7 +1082,8 @@ class Reserva {
       correoSolicitante: json['Solicitante']?['correoSolicitante'] as String?,
       telefonoSolicitante:
           json['Solicitante']?['telefonoSolicitante'] as String?,
-      tipodocumento: json['tipodocumento']?['nombreDocumento'] as String?,
+      tipodocumento:
+          json['Solicitante']?['tipodocumento']?['nombreDocumento'] as String?,
       areaComun: json['areaComun']?['nombreArea'] as String?,
       areaComunId: idAreaComun,
       aceptaReglamento: json['aceptaReglamento'] as int?,

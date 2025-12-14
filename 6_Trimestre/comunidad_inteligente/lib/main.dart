@@ -5,6 +5,7 @@ import 'screens/dashboards/dashboardadministrador.dart';
 import 'screens/dashboards/dashboardvigilante.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() {
   runApp(const MyApp());
@@ -41,6 +42,13 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('es', 'ES'), Locale('en', 'US')],
+      locale: const Locale('es', 'ES'),
       home: SafeArea(
         child: Scaffold(
           backgroundColor: Colors.white,
@@ -170,7 +178,9 @@ class Loginstate extends State<Login> {
         await Future.delayed(const Duration(seconds: 2));
 
         if (!mounted) return;
-        Navigator.pop(context);
+
+        // Cerrar el diálogo primero
+        Navigator.of(context, rootNavigator: true).pop();
 
         // Navegar según el rol
         print('Rol recibido del backend: $rol'); // Debug
@@ -190,9 +200,10 @@ class Loginstate extends State<Login> {
           dashboard = Dashboardsuperadmin(nombreUsuario: username);
         }
 
-        Navigator.pushReplacement(
-          context,
+        // Usar pushAndRemoveUntil para limpiar toda la pila de navegación
+        Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => dashboard),
+          (route) => false,
         );
       } else {
         final errorBody = jsonDecode(response.body);

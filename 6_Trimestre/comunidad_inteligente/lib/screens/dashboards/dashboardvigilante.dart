@@ -3,6 +3,8 @@ import '../../main.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../paqueteria/paqueteria.dart';
+import '../visitas/visitas.dart';
+import '../parqueaderos/parqueaderos.dart' show SeleccionarParqueaderoScreen;
 
 class Dashboardvigilante extends StatefulWidget {
   final String nombreUsuario;
@@ -123,15 +125,17 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                       ),
                     ]),
                     _buildMenuSection('Gestión de Visitas', [
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
-                        Icons.person_add,
-                        'Crear Visitas',
+                        Icons.event,
+                        'Gestión de Visitas',
+                        HomeScreen(token: LoginServe.token),
                       ),
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
-                        Icons.search,
-                        'Consultar Visitas',
+                        Icons.local_parking,
+                        'Consultar Parqueadero',
+                        SeleccionarParqueaderoScreen(token: LoginServe.token),
                       ),
                     ]),
                   ],
@@ -379,7 +383,9 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => TerceraPantalla()),
+            MaterialPageRoute(
+              builder: (context) => HomeScreen(token: LoginServe.token),
+            ),
           );
         },
       ),
@@ -507,23 +513,6 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
     );
   }
 
-  Widget _buildMenuItem(BuildContext context, IconData icon, String title) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.blue.shade600, size: 24),
-      title: Text(title, style: TextStyle(fontSize: 15, color: Colors.black87)),
-      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-      onTap: () {
-        Navigator.pop(context);
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => TerceraPantalla()),
-        );
-      },
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      hoverColor: Colors.blue.shade50,
-    );
-  }
-
   // Construir item del menú con navegación específica
   Widget _buildMenuItemNav(
     BuildContext context,
@@ -647,121 +636,126 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
     return Card(
       elevation: 6,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Icon(Icons.local_parking, color: Colors.green, size: 32),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Parqueaderos Libres',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  SeleccionarParqueaderoScreen(token: LoginServe.token),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.local_parking, color: Colors.green, size: 32),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Parqueaderos Libres',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: 30),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Column(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.check_circle,
-                        size: 50,
-                        color: Colors.green,
-                      ),
-                    ),
-                    SizedBox(height: 15),
-                    Text(
-                      '$parqueosLibres',
-                      style: TextStyle(
-                        fontSize: 42,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ),
-                    Text(
-                      'Libres',
-                      style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                    ),
-                  ],
-                ),
-                Container(width: 2, height: 120, color: Colors.grey.shade300),
-                Column(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.cancel, size: 50, color: Colors.red),
-                    ),
-                    SizedBox(height: 15),
-                    Text(
-                      '$parqueosOcupados',
-                      style: TextStyle(
-                        fontSize: 42,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
-                      ),
-                    ),
-                    Text(
-                      'Ocupados',
-                      style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            SizedBox(height: 25),
-            Container(
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(12),
+                  Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+                ],
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              SizedBox(height: 30),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  Icon(Icons.info_outline, color: Colors.blue),
-                  SizedBox(width: 10),
-                  Text(
-                    '${porcentajeLibres.toStringAsFixed(0)}% de disponibilidad',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                    ),
+                  Column(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.check_circle,
+                          size: 50,
+                          color: Colors.green,
+                        ),
+                      ),
+                      SizedBox(height: 15),
+                      Text(
+                        '$parqueosLibres',
+                        style: TextStyle(
+                          fontSize: 42,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                      Text(
+                        'Libres',
+                        style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                      ),
+                    ],
+                  ),
+                  Container(width: 2, height: 120, color: Colors.grey.shade300),
+                  Column(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.cancel, size: 50, color: Colors.red),
+                      ),
+                      SizedBox(height: 15),
+                      Text(
+                        '$parqueosOcupados',
+                        style: TextStyle(
+                          fontSize: 42,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                        ),
+                      ),
+                      Text(
+                        'Ocupados',
+                        style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ),
-          ],
+              SizedBox(height: 25),
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue),
+                    SizedBox(width: 10),
+                    Text(
+                      '${porcentajeLibres.toStringAsFixed(0)}% de disponibilidad',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
-  }
-}
-
-class TerceraPantalla extends StatelessWidget {
-  const TerceraPantalla({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: Text('Pantalla en construcción')));
   }
 }
