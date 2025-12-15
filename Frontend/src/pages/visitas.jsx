@@ -917,7 +917,7 @@ function Visitas() {
         prev.filter((p) => p.codigoParqueadero !== codigoParqueadero)
       );
 
-      console.log(`✅ Parqueadero ${codigoParqueadero} asignado correctamente`);
+      console.log(` Parqueadero ${codigoParqueadero} asignado correctamente`);
       return data.body || { codigoParqueadero };
     } catch (error) {
       console.error("Error asignando parqueadero:", error);
@@ -949,7 +949,7 @@ function Visitas() {
 
       if (!res.ok) throw new Error("Error al liberar parqueadero");
 
-      console.log(`✅ Parqueadero ${codigoParqueaderoALiberar} liberado correctamente`);
+      console.log(` Parqueadero ${codigoParqueaderoALiberar} liberado correctamente`);
       return true;
     } catch (error) {
       console.error("Error liberando parqueadero:", error);
@@ -981,11 +981,11 @@ function Visitas() {
       return;
     }
 
-    if (nombreVisitante.trim().length < 20) {
+    if (nombreVisitante.trim().length < 10) {
       Swal.fire({
         icon: "error",
         title: "Nombre muy corto",
-        text: `El nombre debe tener al menos 20 caracteres. Actual: ${nombreVisitante.trim().length}`,
+        text: `El nombre debe tener al menos 10 aracteres. Actual: ${nombreVisitante.trim().length}`,
         confirmButtonText: "Entendido",
       });
       return;
@@ -1840,7 +1840,7 @@ function Visitas() {
                       <label className="form-label">
                         Nombre Visitante *{" "}
                         <small className="text-muted">
-                          (mín. 20 caracteres)
+                          (mín. 10 caracteres)
                         </small>
                       </label>
                       <input
@@ -1849,12 +1849,12 @@ function Visitas() {
                         value={nombreVisitante}
                         onChange={(e) => setNombreVisitante(e.target.value)}
                         placeholder="Ej: Juan Carlos Rodriguez Gonzalez"
-                        minLength={20}
+                        minLength={10}
                         required
                       />
-                      {nombreVisitante && nombreVisitante.length < 20 && (
+                      {nombreVisitante && nombreVisitante.length < 10 && (
                         <small className="text-warning">
-                          Faltan {20 - nombreVisitante.length} caracteres
+                          Faltan {10 - nombreVisitante.length} caracteres
                         </small>
                       )}
                     </div>

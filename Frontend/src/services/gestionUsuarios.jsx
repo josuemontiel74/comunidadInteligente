@@ -47,3 +47,21 @@ export const finalizarUsuarioService = async (username, token) => {
         throw err;
     }
 }
+
+export const reactivarUsuario = async (numeroDocumento, token) => {
+    try {
+        const payload = {volverActivar: 1 };
+        const usernameAtivar = numeroDocumento;
+        const res = await fetch(`http://localhost:3001/api/usuario/reactivar/${usernameAtivar}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+        });
+        return res;
+    } catch (err) {
+        throw err;
+    }
+}

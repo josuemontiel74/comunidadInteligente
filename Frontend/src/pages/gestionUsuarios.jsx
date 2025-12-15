@@ -8,7 +8,7 @@ import Swal from "sweetalert2";
 import Lottie from 'lottie-react';
 import BIEN from "../animacion/celebrate.json";
 import Inactivo from "../animacion/Inactivo.json";
-import { registrarUsuario, editarUsuario, finalizarUsuarioService } from "../services/gestionUsuarios.jsx"
+import { registrarUsuario, editarUsuario, finalizarUsuarioService , reactivarUsuario} from "../services/gestionUsuarios.jsx"
 
 // Traduce mensajes/estructuras de error del backend a textos amigables en español
 const campoAmigable = (field) => {
@@ -247,6 +247,61 @@ function Parqueaderos() {
           const friendly = traducirMensajeBackend(dataUsuario);
           Swal.fire({ icon: 'warning', title: 'Error de validación', text: friendly, confirmButtonText: 'Entendido' });
           return;
+        }
+        // Si el backend responde 409 y devuelve información del usuario existente,
+        // ofrecer reactivar al SuperAdmin
+        if (resUsuario.status === 409) {
+          try {
+            const verif = dataUsuario?.verficacions || dataUsuario?.verficaciones || dataUsuario?.verificaciones || null;
+            const backendMsg = dataUsuario?.message || dataUsuario?.mensaje || '';
+            if (verif && verif.numeroDocumento) {
+              const nombre = verif?.Persona?.primerNombre || verif?.primerNombre || '';
+              const apellido = verif?.Persona?.primerApellido || verif?.primerApellido || '';
+              const doc = verif?.numeroDocumento || dataUsuario?.numeroDocumento || numeroDocumento || '';
+              const result = await Swal.fire({
+                title: 'Usuario existente',
+                html: `<strong>${nombre} ${apellido}</strong><br/>Documento: <strong>${doc}</strong><br/><br/>${backendMsg || 'Este usuario ya existe y se encuentra inactivo.'}<br/><br/>¿Desea reactivar este usuario?`,
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, reactivar',
+                cancelButtonText: 'No, cancelar',
+                reverseButtons: true,
+              });
+
+              if (result.isConfirmed) {
+                try {
+                  const token = localStorage.getItem('token');
+                  const resAct = await reactivarUsuario(verif.numeroDocumento, token);
+                  const contentTypeAct = resAct.headers.get('content-type');
+                  const dataAct = contentTypeAct && contentTypeAct.includes('application/json') ? await resAct.json() : await resAct.text();
+                  const codigoAct = dataAct?.code || dataAct?.status || null;
+                  if (codigoAct === 2001 || resAct.ok) {
+                    Swal.fire({ icon: 'success', title: 'Usuario reactivado', text: 'Actualización exitosa', timer: 3000, showConfirmButton: false });
+                    await cargarUsuarios();
+                    cerrarModal();
+                    return;
+                  } else {
+                    console.error('Error reactivando usuario:', resAct.status, dataAct);
+                    const friendly = traducirMensajeBackend(dataAct);
+                    Swal.fire({ icon: 'error', title: 'Error', text: friendly || 'Hubo un error al activar este usuario. Lo siento.' });
+                    return;
+                  }
+                } catch (errReact) {
+                  console.error('Error reactivando usuario:', errReact);
+                  Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión al intentar reactivar el usuario.' });
+                  return;
+                }
+              } else {
+                // Usuario canceló reactivación: cerrar modal sin más acciones
+                cerrarModal();
+                return;
+              }
+            }
+          } catch (errReact) {
+            console.error('Error manejando reactivación:', errReact);
+            Swal.fire({ icon: 'error', title: 'Lo siento', text: 'No se pudo procesar la reactivación. Intente más tarde.' });
+            return;
+          }
         }
         if (resUsuario.status >= 500) {
           Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
