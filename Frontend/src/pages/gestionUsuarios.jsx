@@ -8,7 +8,7 @@ import Swal from "sweetalert2";
 import Lottie from 'lottie-react';
 import BIEN from "../animacion/celebrate.json";
 import Inactivo from "../animacion/Inactivo.json";
-import { registrarUsuario, editarUsuario, finalizarUsuarioService , reactivarUsuario} from "../services/gestionUsuarios.jsx"
+import { registrarUsuario, editarUsuario, finalizarUsuarioService } from "../services/gestionUsuarios.jsx"
 
 // Traduce mensajes/estructuras de error del backend a textos amigables en español
 const campoAmigable = (field) => {
@@ -255,12 +255,9 @@ function Parqueaderos() {
             const verif = dataUsuario?.verficacions || dataUsuario?.verficaciones || dataUsuario?.verificaciones || null;
             const backendMsg = dataUsuario?.message || dataUsuario?.mensaje || '';
             if (verif && verif.numeroDocumento) {
-              const nombre = verif?.Persona?.primerNombre || verif?.primerNombre || '';
-              const apellido = verif?.Persona?.primerApellido || verif?.primerApellido || '';
-              const doc = verif?.numeroDocumento || dataUsuario?.numeroDocumento || numeroDocumento || '';
               const result = await Swal.fire({
                 title: 'Usuario existente',
-                html: `<strong>${nombre} ${apellido}</strong><br/>Documento: <strong>${doc}</strong><br/><br/>${backendMsg || 'Este usuario ya existe y se encuentra inactivo.'}<br/><br/>¿Desea reactivar este usuario?`,
+                html: `${backendMsg || 'Ya existe un usuario con ese documento.'}<br/><br/>¿Desea reactivar este usuario?`,
                 icon: 'info',
                 showCancelButton: true,
                 confirmButtonText: 'Sí, reactivar',
@@ -269,26 +266,30 @@ function Parqueaderos() {
               });
 
               if (result.isConfirmed) {
-                try {
-                  const token = localStorage.getItem('token');
-                  const resAct = await reactivarUsuario(verif.numeroDocumento, token);
-                  const contentTypeAct = resAct.headers.get('content-type');
-                  const dataAct = contentTypeAct && contentTypeAct.includes('application/json') ? await resAct.json() : await resAct.text();
-                  const codigoAct = dataAct?.code || dataAct?.status || null;
-                  if (codigoAct === 2001 || resAct.ok) {
-                    Swal.fire({ icon: 'success', title: 'Usuario reactivado', text: 'Actualización exitosa', timer: 3000, showConfirmButton: false });
-                    await cargarUsuarios();
-                    cerrarModal();
-                    return;
-                  } else {
-                    console.error('Error reactivando usuario:', resAct.status, dataAct);
-                    const friendly = traducirMensajeBackend(dataAct);
-                    Swal.fire({ icon: 'error', title: 'Error', text: friendly || 'Hubo un error al activar este usuario. Lo siento.' });
-                    return;
-                  }
-                } catch (errReact) {
-                  console.error('Error reactivando usuario:', errReact);
-                  Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión al intentar reactivar el usuario.' });
+                // Enviar petición de reactivación al backend
+                const token = localStorage.getItem('token');
+                const payload = { numeroDocumento: verif.numeroDocumento, volverActivar: 1 };
+                const resAct = await fetch('http://localhost:3001/api/usuario', {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify(payload),
+                });
+
+                const contentTypeAct = resAct.headers.get('content-type');
+                const dataAct = contentTypeAct && contentTypeAct.includes('application/json') ? await resAct.json() : await resAct.text();
+
+                if (resAct.ok) {
+                  Swal.fire({ icon: 'success', title: 'Usuario reactivado', text: 'El usuario fue reactivado correctamente.', timer: 3000, showConfirmButton: false });
+                  await cargarUsuarios();
+                  cerrarModal();
+                  return;
+                } else {
+                  console.error('Error reactivando usuario:', resAct.status, dataAct);
+                  const friendly = traducirMensajeBackend(dataAct);
+                  Swal.fire({ icon: 'error', title: 'Error', text: friendly || 'Hubo un error al activar este usuario. Lo siento.' });
                   return;
                 }
               } else {
