@@ -381,17 +381,17 @@ switch (rolesId) {
   }, []);
 
   useEffect(() => {
-    if (location.state?.abrirModal) abrirModal();
+    if (location.state?.abrirModal) abrirModal(location.state?.prefill || null);
   }, [location.state]);
 
-  const abrirModal = () => {
+  const abrirModal = (prefill = null) => {
     setFormData({
       torre: "",
       apartamentoId: "",
-      areaComunId: "",
-      fechaReserva: "",
-      horaInicio: "",
-      horaFin: "",
+      areaComunId: prefill?.areaComunId || "",
+      fechaReserva: prefill?.fechaReserva || "",
+      horaInicio: prefill?.horaInicio || "",
+      horaFin: prefill?.horaFin || "",
       motivoReserva: "",
       cantidadAsistentes: "",
       invitadosExternos: false,
@@ -531,13 +531,47 @@ switch (rolesId) {
         cerrarModal();
         obtenerReservas();
       } else {
-        const errorData = await response.json(); 
-        console.error("Error del servidor:", errorData);
+        // Manejo explícito para conflicto (409) u otros errores
+        if (response.status === 409) {
+          try {
+            const errorData = await response.json();
+            const mensaje409 =
+              errorData?.message || errorData?.mensaje || errorData?.error || errorData?.body?.message || JSON.stringify(errorData);
+            Swal.fire({ icon: 'error', title: 'Lo siento', text: mensaje409 || 'El área ya está reservada en la fecha y horario indicados.', confirmButtonText: 'Entendido' });
+          } catch (e) {
+            const texto = await response.text().catch(() => null);
+            Swal.fire({ icon: 'error', title: 'Lo siento', text: texto || 'El área ya está reservada en la fecha y horario indicados.', confirmButtonText: 'Entendido' });
+          }
+          return;
+        }
 
-       
-        const mensajeError =
-          errorData.message || errorData.error || `Error ${response.status}`;
-        Swal.fire({ icon: 'error', title: 'Lo siento', text: mensajeError || 'Error en la operación. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+        let mensajeError = `Error ${response.status}`;
+        try {
+          const errorData = await response.json();
+          console.error("Error del servidor:", errorData);
+
+          mensajeError =
+            errorData?.message ||
+            errorData?.mensaje ||
+            errorData?.error ||
+            errorData?.body?.message ||
+            mensajeError;
+        } catch (parseError) {
+          console.error("No se pudo parsear el body de error:", parseError);
+          try {
+            const texto = await response.text();
+            if (texto) mensajeError = texto;
+          } catch (e) {
+            /* ignorar */
+          }
+        }
+
+        Swal.fire({
+          icon: 'error',
+          title: 'Lo siento',
+          text: mensajeError || 'Error en la operación. Comuníquese con el área de sistemas.',
+          confirmButtonText: 'Entendido',
+        });
       }
     } catch (error) {
       console.error("Error de conexión:", error);
@@ -776,6 +810,13 @@ switch (rolesId) {
                   <Link className="nav-link text-white" onClick={abrirModal}>
                     Registrar Reserva
                   </Link>
+                </li>
+                <li>
+                   {(verificadorRol === 1 || verificadorRol==="1" || verificadorRol ===2)&& (
+                  <Link className="nav-link text-white" to="/CalendarioReservas">
+                    Ver Calendario
+                  </Link>
+                    )}
                 </li>
               </ul>
             </div>

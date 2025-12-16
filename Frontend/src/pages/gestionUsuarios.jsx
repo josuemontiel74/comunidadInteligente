@@ -248,6 +248,62 @@ function Parqueaderos() {
           Swal.fire({ icon: 'warning', title: 'Error de validación', text: friendly, confirmButtonText: 'Entendido' });
           return;
         }
+        // Si el backend responde 409 y devuelve información del usuario existente,
+        // ofrecer reactivar al SuperAdmin
+        if (resUsuario.status === 409) {
+          try {
+            const verif = dataUsuario?.verficacions || dataUsuario?.verficaciones || dataUsuario?.verificaciones || null;
+            const backendMsg = dataUsuario?.message || dataUsuario?.mensaje || '';
+            if (verif && verif.numeroDocumento) {
+              const result = await Swal.fire({
+                title: 'Usuario existente',
+                html: `${backendMsg || 'Ya existe un usuario con ese documento.'}<br/><br/>¿Desea reactivar este usuario?`,
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, reactivar',
+                cancelButtonText: 'No, cancelar',
+                reverseButtons: true,
+              });
+
+              if (result.isConfirmed) {
+                // Enviar petición de reactivación al backend
+                const token = localStorage.getItem('token');
+                const payload = { numeroDocumento: verif.numeroDocumento, volverActivar: 1 };
+                const resAct = await fetch('http://localhost:3001/api/usuario', {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify(payload),
+                });
+
+                const contentTypeAct = resAct.headers.get('content-type');
+                const dataAct = contentTypeAct && contentTypeAct.includes('application/json') ? await resAct.json() : await resAct.text();
+
+                if (resAct.ok) {
+                  Swal.fire({ icon: 'success', title: 'Usuario reactivado', text: 'El usuario fue reactivado correctamente.', timer: 3000, showConfirmButton: false });
+                  await cargarUsuarios();
+                  cerrarModal();
+                  return;
+                } else {
+                  console.error('Error reactivando usuario:', resAct.status, dataAct);
+                  const friendly = traducirMensajeBackend(dataAct);
+                  Swal.fire({ icon: 'error', title: 'Error', text: friendly || 'Hubo un error al activar este usuario. Lo siento.' });
+                  return;
+                }
+              } else {
+                // Usuario canceló reactivación: cerrar modal sin más acciones
+                cerrarModal();
+                return;
+              }
+            }
+          } catch (errReact) {
+            console.error('Error manejando reactivación:', errReact);
+            Swal.fire({ icon: 'error', title: 'Lo siento', text: 'No se pudo procesar la reactivación. Intente más tarde.' });
+            return;
+          }
+        }
         if (resUsuario.status >= 500) {
           Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
           return;

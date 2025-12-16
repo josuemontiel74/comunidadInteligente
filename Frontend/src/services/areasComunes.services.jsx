@@ -60,3 +60,19 @@ export async function eliminarReserva_v2(id, token) {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
+
+// Obtener calendario de reservas (backend: caledriosReservas)
+export async function obtenerCalendarioReservas(token) {
+  return fetch(`${BASE}/calendariodereservas`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+  });
+}
+
+// CALENDARIO DE RESERVAS
+export async function calendario(token) {
+ return fecth(`${BASE}/calendariodereservas`, {
+   method: "GET",
+   headers: { Authorization: `Bearer ${token}` },
+ });
+}

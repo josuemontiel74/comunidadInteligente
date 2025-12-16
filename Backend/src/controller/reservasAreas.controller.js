@@ -7,7 +7,7 @@ import Estado from "../models/estados.model.js";
 import { sequelize } from "../config/connect.db.js";
 import Tipodocumentos from "../models/tipoDocumento.model.js";
 import Torre from "../models/torres.model.js";
-import { fn, col, Op, literal } from "sequelize";
+import { fn, col, Op, literal, where } from "sequelize";
 /**
  * Función auxiliar para actualizar automáticamente los estados de las reservas
  * según la fecha y hora actual
@@ -128,6 +128,24 @@ export const CrearReservaArea = async (req, res) => {
         message: "No se puede crear una reserva en el pasado",
         status: 400,
       });
+    }
+
+
+    const verficarReserva = await reservasAreasModel.findOne({
+
+      where: {
+        areaComunId: dataReserva.areaComunId,
+        fechaReserva: fechaReserva.format("YYYY-MM-DD"),
+        [Op.and]: [
+          { horaInicio: { [Op.lt]: dataReserva.horaFin } },
+          { horaFin: { [Op.gt]: dataReserva.horaInicio } }
+        ]
+      }
+
+
+    });
+    if (verficarReserva != null) {
+      return res.status(409).json({ ok: false, message: "Lo sentimos, el área ya está reservada en la fecha y horario indicados." })
     }
     const [solicitante, created] = await solicitantesModel.findOrCreate({
       where: { documentoSolicitante: dataReserva.documentoSolicitante },
@@ -273,6 +291,9 @@ export const ActualizarReservaArea = async (req, res) => {
     const { idReservas } = req.params;
     const dataActualizada = req.body;
     await reservasAreasModel.sync();
+
+
+
     const reservaArea = await reservasAreasModel.findByPk(idReservas);
     if (!reservaArea) {
       return res.status(404).json({ message: "Reserva de área no encontrada" });
@@ -543,7 +564,27 @@ export const ActualizarReservaAreaParaMovil = async (req, res) => {
         .status(400)
         .json({ ok: false, message: "Falta idReserva en la URL" });
     }
+    const verficarReserva = await reservasAreasModel.findOne({
 
+        where: {
+    areaComunId: data.areaComunId,
+    fechaReserva: data.fechaReserva,
+
+    
+    idReservas: {
+      [Op.ne]: idReservas
+    },
+
+   
+    [Op.and]: [
+      { horaInicio: { [Op.lt]: data.horaFin } },
+      { horaFin: { [Op.gt]: data.horaInicio } }
+    ]
+  }
+    });
+    if (verficarReserva != null) {
+      return res.status(409).json({ ok: false, message: "Lo sentimos, el área ya está reservada en la fecha y horario indicados." })
+    }
     const reservaExistente = await reservasAreasModel.findOne({
       where: { idReservas: idReservas },
     });
@@ -662,48 +703,48 @@ export const reportes = async (req, res) => {
 
     let areascomunesReporte = [];
 
-    switch(reportPor) {
+    switch (reportPor) {
       // POR AÑO
-      case  1:
-      areascomunesReporte = await reservasAreasModel.findAll({
-        attributes: [
-          "areaComunId",
-          [fn("YEAR", col("fechaReserva")), "anio"],
-          [fn("COUNT", col("idReservas")), "totalVisitas"]
-        ],
-        ...queryConfig,
-        group: ["areaComunId", "anio"],
-        order: [["anio", "ASC"]]
-      });
-      break;
-     case 2:
-      // POR MES
-      areascomunesReporte = await reservasAreasModel.findAll({
-        attributes: [
-          "areaComunId",
-          [fn("YEAR", col("fechaReserva")), "anio"],
-          [fn("MONTH", col("fechaReserva")), "mes"],
-          [fn("COUNT", col("idReservas")), "totalVisitas"]
-        ],
-        ...queryConfig,
-        group: ["areaComunId", "anio", "mes"],
-        order: [["anio", "ASC"], ["mes", "ASC"]]
-      });
+      case 1:
+        areascomunesReporte = await reservasAreasModel.findAll({
+          attributes: [
+            "areaComunId",
+            [fn("YEAR", col("fechaReserva")), "anio"],
+            [fn("COUNT", col("idReservas")), "totalVisitas"]
+          ],
+          ...queryConfig,
+          group: ["areaComunId", "anio"],
+          order: [["anio", "ASC"]]
+        });
         break;
-    case 3:
-      // POR SEMANA
-      areascomunesReporte = await reservasAreasModel.findAll({
-        attributes: [
-          "areaComunId",
-          [fn("YEAR", col("fechaReserva")), "anio"],
-          [literal("FLOOR((DAY(fechaReserva)-1)/7)+1"), "semanaMes"],
-          [fn("COUNT", col("idReservas")), "totalVisitas"]
-        ],
-        ...queryConfig,
-        group: ["areaComunId", "anio", "semanaMes"],
-        order: [["anio", "ASC"], ["semanaMes", "ASC"]]
-      });
-      break;
+      case 2:
+        // POR MES
+        areascomunesReporte = await reservasAreasModel.findAll({
+          attributes: [
+            "areaComunId",
+            [fn("YEAR", col("fechaReserva")), "anio"],
+            [fn("MONTH", col("fechaReserva")), "mes"],
+            [fn("COUNT", col("idReservas")), "totalVisitas"]
+          ],
+          ...queryConfig,
+          group: ["areaComunId", "anio", "mes"],
+          order: [["anio", "ASC"], ["mes", "ASC"]]
+        });
+        break;
+      case 3:
+        // POR SEMANA
+        areascomunesReporte = await reservasAreasModel.findAll({
+          attributes: [
+            "areaComunId",
+            [fn("YEAR", col("fechaReserva")), "anio"],
+            [literal("FLOOR((DAY(fechaReserva)-1)/7)+1"), "semanaMes"],
+            [fn("COUNT", col("idReservas")), "totalVisitas"]
+          ],
+          ...queryConfig,
+          group: ["areaComunId", "anio", "semanaMes"],
+          order: [["anio", "ASC"], ["semanaMes", "ASC"]]
+        });
+        break;
     }
     res.status(200).json({
       ok: true,
@@ -715,6 +756,50 @@ export const reportes = async (req, res) => {
     res.status(500).json({
       ok: false,
       message: error.message
+    });
+  }
+};
+
+
+export const calendariosReservas = async (req, res) => {
+  try {
+    const caledarioreservas = await reservasAreasModel.findAll({
+      attributes: [
+        "areaComunId",
+        "fechaReserva",
+        "horaInicio",
+        "horaFin"
+      ],
+      include: [
+        {
+          model: solicitantesModel,
+          attributes: [
+            ["documentoSolicitante", "documentoSolicitante"],
+            ["nombreSolicitante", "nombreSolicitante"],
+          ]
+        }
+      ],
+      where: {
+        estadoId: {
+          [Op.in]: [7, 8]
+        },
+        [Op.and]: [
+          where(fn('MONTH', col('fechaReserva')), fn('MONTH', fn('CURDATE'))),
+          where(fn('YEAR', col('fechaReserva')), fn('YEAR', fn('CURDATE')))
+        ]
+      }
+    });
+
+    return res.status(200).json({
+      ok: true,
+      caledarioreservas
+    });
+
+  } catch (error) {
+    console.error("Lo siento, está ocurriendo un error", error);
+    return res.status(500).json({
+      ok: false,
+      message: "Error interno del servidor"
     });
   }
 };

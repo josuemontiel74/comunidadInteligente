@@ -4,12 +4,73 @@ import jwt from "jsonwebtoken";
 import Persona from "../models/personas.model.js";
 import Rol from "../models/rol.model.js";
 import { where } from "sequelize";
+export const reactivarUsuario = async (req, res) => {
+  try {
+    const { volverActivar } = req.body;
+    const numeroDocumento = req.params.usernameAtivar;
+
+    if (volverActivar !== 1) {
+      return res.status(400).json({
+        ok: false,
+        message: "Acción inválida"
+      });
+    }
+
+    const [actualizado] = await User.update(
+      { estadoId: 1 },
+      { where: { numeroDocumento } }
+    );
+
+    if (actualizado === 0) {
+      return res.status(404).json({
+        ok: false,
+        message: "Usuario no encontrado"
+      });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      message: "Usuario reactivado correctamente"
+    });
+
+  } catch (error) {
+    console.error("Error reactivando usuario:", error);
+    return res.status(500).json({
+      ok: false,
+      message: "Error interno del servidor"
+    });
+  }
+};
 
 export const crearUsuario = async (req, res) => {
   try {
     const dataUser = req.body;
 
+    const verficacions = await User.findOne({
+      attributes: [
+        "numeroDocumento"
+      ],
+      include: [
+        {
+          model: Persona,
+          attributes: [
+            ["primerNombre", "primerNombre"],
+            ["primerApellido", "primerApellido"]
+          ]
+        }
+      ],
+      where: {
+        numeroDocumento: dataUser.numeroDocumento
+      }
+    });
+    if (verficacions != null) {
+      return res.status(409).json({
+        ok: false,
+        verficacions,
+        message: "Este usuario ya existe y se encuentra inactivo. ¿Desea reactivarlo?"
+      });
 
+    }
     const nuevaPersona = await Persona.create({
       numeroDocumento: dataUser.numeroDocumento,
       tipoDocumentoId: dataUser.tipoDocumentoId,
@@ -21,20 +82,20 @@ export const crearUsuario = async (req, res) => {
       correoElectronico: dataUser.correoElectronico,
     });
 
-   
-    let crearUser = (dataUser.primerNombre?.substring(0, 5) || "") +
-                    (dataUser.primerApellido?.substring(0, 2) || "");
 
-   
+    let crearUser = (dataUser.primerNombre?.substring(0, 5) || "") +
+      (dataUser.primerApellido?.substring(0, 2) || "");
+
+
     const buscarUsername = await User.findOne({ where: { username: crearUser } });
     if (buscarUsername) {
       crearUser = `${crearUser}${Math.floor(Math.random() * 99999)}`;
     }
 
-    
+
     const hashedPassword = await bcrypt.hash(dataUser.password, 10);
 
- 
+
     const createUser = await User.create({
       username: crearUser,
       numeroDocumento: nuevaPersona.numeroDocumento,
@@ -55,6 +116,7 @@ export const crearUsuario = async (req, res) => {
         numeroDocumento: nuevaPersona.numeroDocumento,
       },
     });
+
   } catch (error) {
     res.status(500).json({
       message: "Algo salió mal en la petición :(",
@@ -111,10 +173,14 @@ export const actualizarUsuario = async (req, res) => {
     const dataUser = req.body;
     const username = decodeURIComponent(req.params.username);
     const requester = req.user;
+    // activar
+
     console.log("actualizarUsuario - params:", req.params, "body:", dataUser, "requester:", requester);
     const usuario = await User.findByPk(username, {
       include: [{ model: Persona, as: "persona" }],
     });
+    // volver activar
+
 
     if (!usuario) {
       return res.status(404).json({ error: "Usuario no encontrado" });
@@ -255,7 +321,7 @@ export const loginUsuario = async (req, res) => {
 export const buscarUsuarios = async (req, res) => {
   try {
     await User.sync();
-    const estadoId = decodeURIComponent( req.params.estadoId);
+    const estadoId = decodeURIComponent(req.params.estadoId);
     const usuario = await User.findAll({ where: { estadoId } });
     if (!usuario) {
       return res.status(404).json({
