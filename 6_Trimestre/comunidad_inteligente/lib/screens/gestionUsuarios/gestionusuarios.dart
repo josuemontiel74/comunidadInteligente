@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../main.dart';
-import '../dashboards/dashboardsuperadmin.dart';
 import '../paqueteria/paqueteria.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -111,25 +110,60 @@ class _MostradoState extends State<MostrarUsuario> {
             context,
             title: 'Gestión de Visitas',
             items: [
-              {'label': 'Crear Visitas', 'route': TerceraPantalla()},
-              {'label': 'Consultar Visitas', 'route': TerceraPantalla()},
-              {'label': 'Consultar Parqueadero', 'route': TerceraPantalla()},
+              {
+                'label': 'Crear Visitas',
+                'route': Scaffold(
+                  appBar: AppBar(title: Text('En construcción')),
+                ),
+              },
+              {
+                'label': 'Consultar Visitas',
+                'route': Scaffold(
+                  appBar: AppBar(title: Text('En construcción')),
+                ),
+              },
+              {
+                'label': 'Consultar Parqueadero',
+                'route': Scaffold(
+                  appBar: AppBar(title: Text('En construcción')),
+                ),
+              },
             ],
           ),
           _buildMenuSection(
             context,
             title: 'Gestión de Áreas Comunes',
             items: [
-              {'label': 'Registrar Reserva', 'route': TerceraPantalla()},
-              {'label': 'Consultar Zona', 'route': TerceraPantalla()},
+              {
+                'label': 'Registrar Reserva',
+                'route': Scaffold(
+                  appBar: AppBar(title: Text('En construcción')),
+                ),
+              },
+              {
+                'label': 'Consultar Zona',
+                'route': Scaffold(
+                  appBar: AppBar(title: Text('En construcción')),
+                ),
+              },
             ],
           ),
           _buildMenuSection(
             context,
             title: 'Gestión de Residentes',
             items: [
-              {'label': 'Registrar Residentes', 'route': TerceraPantalla()},
-              {'label': 'Consultar Residentes', 'route': TerceraPantalla()},
+              {
+                'label': 'Registrar Residentes',
+                'route': Scaffold(
+                  appBar: AppBar(title: Text('En construcción')),
+                ),
+              },
+              {
+                'label': 'Consultar Residentes',
+                'route': Scaffold(
+                  appBar: AppBar(title: Text('En construcción')),
+                ),
+              },
             ],
           ),
           SizedBox(height: 20),

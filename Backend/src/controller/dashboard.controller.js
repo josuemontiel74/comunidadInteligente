@@ -195,15 +195,29 @@ export const getResumenDashboard = async (req, res) => {
 
     // Estadísticas de parqueaderos
     const totalParqueaderos = await Parqueadero.count();
-    const parqueaderosConVehiculo = await Vehiculo.count();
-    const parqueaderosVisitantes = await Visitas.count({
+
+    // Contar parqueaderos ocupados por tipo de vehículo
+    // estadoId: 3 = Ocupado, 4 = Disponible
+    // tipoVehiculoId: 1 = Carro, 2 = Moto
+    const parqueaderosCarros = await Parqueadero.count({
       where: {
-        vehiculoMatricula: { [Op.ne]: null },
-        fechaHoraSalida: null, // Solo visitas activas
+        tipoVehiculoId: 1,
+        estadoId: 3,
       },
     });
-    const parqueaderosDisponibles =
-      totalParqueaderos - parqueaderosConVehiculo - parqueaderosVisitantes;
+
+    const parqueaderosMotos = await Parqueadero.count({
+      where: {
+        tipoVehiculoId: 2,
+        estadoId: 3,
+      },
+    });
+
+    const parqueaderosDisponibles = await Parqueadero.count({
+      where: {
+        estadoId: 4,
+      },
+    });
 
     // Estadísticas de paquetes
     const paquetesRecibidos = await RecepcionPaquetes.count({
@@ -229,49 +243,14 @@ export const getResumenDashboard = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        fecha: new Date().toISOString().split("T")[0],
         parqueaderos: {
-          total: totalParqueaderos,
-          ocupadosResidentes: parqueaderosConVehiculo,
-          ocupadosVisitantes: parqueaderosVisitantes,
+          ocupadosCarros: parqueaderosCarros,
+          ocupadosMotos: parqueaderosMotos,
           disponibles: parqueaderosDisponibles,
-          porcentajes: {
-            residentes:
-              totalParqueaderos > 0
-                ? parseFloat(
-                    (
-                      (parqueaderosConVehiculo / totalParqueaderos) *
-                      100
-                    ).toFixed(2)
-                  )
-                : 0,
-            visitantes:
-              totalParqueaderos > 0
-                ? parseFloat(
-                    (
-                      (parqueaderosVisitantes / totalParqueaderos) *
-                      100
-                    ).toFixed(2)
-                  )
-                : 0,
-            disponibles:
-              totalParqueaderos > 0
-                ? parseFloat(
-                    (
-                      (parqueaderosDisponibles / totalParqueaderos) *
-                      100
-                    ).toFixed(2)
-                  )
-                : 0,
-          },
         },
         paquetes: {
-          recibidos: paquetesRecibidos,
           entregados: paquetesEntregados,
           pendientes: paquetesRecibidos - paquetesEntregados,
-        },
-        reservas: {
-          total: reservasHoy,
         },
       },
     });
