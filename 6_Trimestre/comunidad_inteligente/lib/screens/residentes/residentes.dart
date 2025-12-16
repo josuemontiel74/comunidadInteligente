@@ -67,7 +67,6 @@ class Residente {
           ? DateTime.parse(json['fechaFin'].toString().split('T')[0]) 
           : null,
       estadoId: json['estadoId'],
-      // Datos de persona
       tipoDocumentoId: json['tipoDocumentoId'],
       primerNombre: json['primerNombre']?.toString().trim(),
       segundoNombre: json['segundoNombre']?.toString().trim(),
@@ -75,18 +74,15 @@ class Residente {
       segundoApellido: json['segundoApellido']?.toString().trim(),
       telefono: json['telefono']?.toString().trim(),
       correoElectronico: json['correoElectronico']?.toString().trim(),
-      // Datos de apartamento
       idApartamento: json['idApartamento'],
       numeroApartamento: json['numeroApartamento']?.toString().trim(),
       torresId: json['torresId'],
-      // Datos de estado
       nombreEstado: json['nombreEstado']?.toString().trim(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      // Datos del ocupante
       'apartamentosId': apartamentosId,
       'numeroDocumento': numeroDocumento,
       'tipoOcupacion': tipoOcupacion,
@@ -94,8 +90,6 @@ class Residente {
       'fechaInicio': DateFormat('yyyy-MM-dd').format(fechaInicio),
       'fechaFin': fechaFin != null ? DateFormat('yyyy-MM-dd').format(fechaFin!) : null,
       'estadoId': estadoId ?? 5,
-      
-      // Datos de la persona (para crear/actualizar)
       if (tipoDocumentoId != null) 'tipoDocumentoId': tipoDocumentoId,
       if (primerNombre != null) 'primerNombre': primerNombre,
       if (segundoNombre != null) 'segundoNombre': segundoNombre,
@@ -106,7 +100,6 @@ class Residente {
     };
   }
 
-  // Método helper para obtener el nombre completo
   String get nombreCompleto {
     final partes = [
       primerNombre?.trim(),
@@ -122,7 +115,6 @@ class Residente {
     return partes.join(' ');
   }
 
-  // Método helper para obtener las iniciales
   String get iniciales {
     if (primerNombre != null && primerNombre!.isNotEmpty) {
       String inicial = primerNombre![0].toUpperCase();
@@ -134,7 +126,6 @@ class Residente {
     return numeroDocumento.isNotEmpty ? numeroDocumento[0].toUpperCase() : '?';
   }
 
-  // Método helper para obtener el display del apartamento
   String get apartamentoDisplay {
     if (numeroApartamento != null && numeroApartamento!.isNotEmpty) {
       return '$numeroApartamento (ID: ${idApartamento ?? apartamentosId})';
@@ -142,7 +133,6 @@ class Residente {
     return 'Apto ID: ${idApartamento ?? apartamentosId}';
   }
 
-  // Método para verificar si está finalizado
   bool get estaFinalizado {
     return nombreEstado?.toLowerCase() == 'finalizada' || 
            nombreEstado?.toLowerCase() == 'inactivo' ||
@@ -195,7 +185,7 @@ class ResidentesService {
 
   Future<Residente> crearResidente(Residente residente) async {
     try {
-      print('Enviando datos: ${json.encode(residente.toJson())}'); // Debug
+      print('Enviando datos: ${json.encode(residente.toJson())}');
       
       final response = await http.post(
         Uri.parse('$baseUrl/ocupante'),
@@ -203,8 +193,8 @@ class ResidentesService {
         body: json.encode(residente.toJson()),
       );
 
-      print('Status Code: ${response.statusCode}'); // Debug
-      print('Response Body: ${response.body}'); // Debug
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
 
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
@@ -215,7 +205,6 @@ class ResidentesService {
         }
         return residente;
       } else if (response.statusCode == 401) {
-        // Token expirado o inválido
         final errorData = json.decode(response.body);
         throw Exception('Sesión expirada: ${errorData['message'] ?? 'Por favor, inicia sesión nuevamente'}');
       } else {
@@ -254,6 +243,19 @@ class ResidentesService {
     }
   }
 
+  // Método para activar un residente (cambiar estado a activo)
+  Future<void> activarResidente(int id) async {
+    final response = await http.patch(
+      Uri.parse('$baseUrl/ocupante/$id'),
+      headers: headers,
+      body: json.encode({'estadoId': 5}), // 5 = Activo
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al activar residente');
+    }
+  }
+
   Future<void> finalizarResidente(int id) async {
     final response = await http.delete(
       Uri.parse('$baseUrl/ocupante/$id'),
@@ -282,7 +284,7 @@ class _ResidentesScreenState extends State<ResidentesScreen> {
   List<Residente> _residentesFiltrados = [];
   bool _isLoading = false;
   final TextEditingController _searchController = TextEditingController();
-  String _filtroEstado = 'todos'; // 'todos', 'activos', 'finalizados'
+  String _filtroEstado = 'todos';
 
   @override
   void initState() {
@@ -302,14 +304,11 @@ class _ResidentesScreenState extends State<ResidentesScreen> {
     final query = _searchController.text.toLowerCase();
     setState(() {
       _residentesFiltrados = _residentes.where((residente) {
-        // Filtro por estado
         if (_filtroEstado == 'activos' && residente.estaFinalizado) return false;
         if (_filtroEstado == 'finalizados' && !residente.estaFinalizado) return false;
         
-        // Si no hay búsqueda, mostrar todos (según filtro de estado)
         if (query.isEmpty) return true;
         
-        // Búsqueda por múltiples campos
         final nombre = residente.nombreCompleto.toLowerCase();
         final documento = residente.numeroDocumento.toLowerCase();
         final apartamentoId = residente.apartamentosId.toString();
@@ -339,7 +338,7 @@ class _ResidentesScreenState extends State<ResidentesScreen> {
         _residentes = residentes;
         _residentesFiltrados = residentes;
       });
-      _filtrarResidentes(); // Aplicar filtros después de cargar
+      _filtrarResidentes();
     } catch (e) {
       _mostrarError('Error al cargar residentes: $e');
     } finally {
@@ -359,6 +358,37 @@ class _ResidentesScreenState extends State<ResidentesScreen> {
     );
   }
 
+  Future<void> _activarResidente(int id) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar Activación'),
+        content: const Text('¿Desea activar este residente?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.green),
+            child: const Text('Activar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar == true) {
+      try {
+        await _service.activarResidente(id);
+        _mostrarExito('Residente activado correctamente');
+        _cargarResidentes();
+      } catch (e) {
+        _mostrarError('Error al activar residente: $e');
+      }
+    }
+  }
+
   Future<void> _finalizarResidente(int id) async {
     final confirmar = await showDialog<bool>(
       context: context,
@@ -372,6 +402,7 @@ class _ResidentesScreenState extends State<ResidentesScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Finalizar'),
           ),
         ],
@@ -399,7 +430,6 @@ class _ResidentesScreenState extends State<ResidentesScreen> {
           preferredSize: const Size.fromHeight(120),
           child: Column(
             children: [
-              // Barra de búsqueda
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: TextField(
@@ -427,7 +457,6 @@ class _ResidentesScreenState extends State<ResidentesScreen> {
                   style: const TextStyle(color: Colors.white),
                 ),
               ),
-              // Filtros por estado
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
                 child: Row(
@@ -655,28 +684,38 @@ class _ResidentesScreenState extends State<ResidentesScreen> {
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  IconButton(
-                                    icon: Icon(
-                                      Icons.edit,
-                                      color: estaFinalizado ? Colors.orange : Colors.blue,
-                                    ),
-                                    onPressed: () async {
-                                      final result = await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => FormularioResidenteScreen(
-                                            service: _service,
-                                            residente: residente,
+                                  // Si está finalizado, mostrar botón de activar
+                                  if (estaFinalizado)
+                                    IconButton(
+                                      icon: const Icon(Icons.check_circle, color: Colors.green),
+                                      tooltip: 'Activar',
+                                      onPressed: () => _activarResidente(
+                                        residente.idOcupante!,
+                                      ),
+                                    )
+                                  // Si está activo, mostrar botón de editar
+                                  else
+                                    IconButton(
+                                      icon: const Icon(Icons.edit, color: Colors.blue),
+                                      tooltip: 'Editar',
+                                      onPressed: () async {
+                                        final result = await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => FormularioResidenteScreen(
+                                              service: _service,
+                                              residente: residente,
+                                            ),
                                           ),
-                                        ),
-                                      );
-                                      if (result == true) _cargarResidentes();
-                                    },
-                                  ),
+                                        );
+                                        if (result == true) _cargarResidentes();
+                                      },
+                                    ),
                                   // Solo mostrar el botón de finalizar si NO está finalizado
                                   if (!estaFinalizado)
                                     IconButton(
                                       icon: const Icon(Icons.close, color: Colors.red),
+                                      tooltip: 'Finalizar',
                                       onPressed: () => _finalizarResidente(
                                         residente.idOcupante!,
                                       ),
@@ -715,7 +754,7 @@ class _ResidentesScreenState extends State<ResidentesScreen> {
   }
 }
 
-// Pantalla de Detalle actualizada
+// Pantalla de Detalle
 class DetalleResidenteScreen extends StatelessWidget {
   final Residente residente;
 
@@ -755,7 +794,6 @@ class DetalleResidenteScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Información Personal
             _buildSection('Información Personal', [
               _buildInfoRow('Nombre Completo', residente.nombreCompleto),
               _buildInfoRow('Número Documento', residente.numeroDocumento),
@@ -766,7 +804,6 @@ class DetalleResidenteScreen extends StatelessWidget {
             ]),
             const SizedBox(height: 20),
             
-            // Información de Ocupación
             _buildSection('Información de Ocupación', [
               _buildInfoRow('Tipo Ocupación', residente.tipoOcupacion),
               _buildInfoRow('Personas a cargo',
@@ -781,7 +818,6 @@ class DetalleResidenteScreen extends StatelessWidget {
             ]),
             const SizedBox(height: 20),
             
-            // Información del Apartamento
             _buildSection('Información del Apartamento', [
               _buildInfoRow('Apartamento', residente.apartamentoDisplay),
               if (residente.torresId != null)
@@ -858,12 +894,9 @@ class FormularioResidenteScreen extends StatefulWidget {
 class _FormularioResidenteScreenState extends State<FormularioResidenteScreen> {
   final _formKey = GlobalKey<FormState>();
   
-  // Controladores para ocupante
   final _numeroDocumentoCtrl = TextEditingController();
   final _personasACargoCtrl = TextEditingController();
   final _apartamentoIdCtrl = TextEditingController();
-  
-  // Controladores para datos de persona
   final _primerNombreCtrl = TextEditingController();
   final _segundoNombreCtrl = TextEditingController();
   final _primerApellidoCtrl = TextEditingController();
@@ -873,34 +906,34 @@ class _FormularioResidenteScreenState extends State<FormularioResidenteScreen> {
 
   String _tipoOcupacion = 'propietario';
   int _tipoDocumentoId = 1;
-  int _estadoId = 5; // Variable numérica en lugar de TextEditingController
+  int _estadoId = 5;
   DateTime _fechaInicio = DateTime.now();
   bool _isLoading = false;
+  bool _esEdicion = false;
 
   @override
   void initState() {
     super.initState();
-    if (widget.residente != null) {
+    _esEdicion = widget.residente != null;
+    if (_esEdicion) {
       _cargarDatos();
     }
   }
 
   void _cargarDatos() {
     final r = widget.residente!;
-    // Datos de ocupante
     _numeroDocumentoCtrl.text = r.numeroDocumento;
     _personasACargoCtrl.text = r.personasACargo?.toString() ?? '';
     _apartamentoIdCtrl.text = r.apartamentosId.toString();
-    _estadoId = r.estadoId ?? 5; // Usar variable numérica
+    _estadoId = r.estadoId ?? 5;
     _tipoOcupacion = r.tipoOcupacion;
     _fechaInicio = r.fechaInicio;
     
-    // Datos de persona - validar que el tipoDocumentoId esté en el rango válido
     final tipoDoc = r.tipoDocumentoId;
     if (tipoDoc != null && tipoDoc >= 1 && tipoDoc <= 5) {
       _tipoDocumentoId = tipoDoc;
     } else {
-      _tipoDocumentoId = 1; // Default a CC si no es válido
+      _tipoDocumentoId = 1;
     }
     
     _primerNombreCtrl.text = r.primerNombre ?? '';
@@ -925,8 +958,7 @@ class _FormularioResidenteScreenState extends State<FormularioResidenteScreen> {
             ? int.parse(_personasACargoCtrl.text)
             : null,
         fechaInicio: _fechaInicio,
-        estadoId: _estadoId, // Usar variable numérica directamente
-        // Datos de persona
+        estadoId: _estadoId,
         tipoDocumentoId: _tipoDocumentoId,
         primerNombre: _primerNombreCtrl.text.isNotEmpty ? _primerNombreCtrl.text : null,
         segundoNombre: _segundoNombreCtrl.text.isNotEmpty ? _segundoNombreCtrl.text : null,
@@ -960,7 +992,7 @@ class _FormularioResidenteScreenState extends State<FormularioResidenteScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.residente == null ? 'Nuevo Residente' : 'Editar Residente'),
+        title: Text(_esEdicion ? 'Editar Residente' : 'Nuevo Residente'),
         backgroundColor: Colors.blue,
       ),
       body: _isLoading
@@ -982,12 +1014,15 @@ class _FormularioResidenteScreenState extends State<FormularioResidenteScreen> {
                   const Divider(thickness: 2),
                   const SizedBox(height: 8),
                   
+                  // Tipo de documento - BLOQUEADO en edición
                   DropdownButtonFormField<int>(
                     value: _tipoDocumentoId,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Tipo de Documento *',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.badge),
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.badge),
+                      filled: _esEdicion,
+                      fillColor: _esEdicion ? Colors.grey[200] : null,
                     ),
                     items: const [
                       DropdownMenuItem(value: 1, child: Text('Cédula de Ciudadanía')),
@@ -996,18 +1031,22 @@ class _FormularioResidenteScreenState extends State<FormularioResidenteScreen> {
                       DropdownMenuItem(value: 4, child: Text('Permiso Especial de Permanencia (PEP)')),
                       DropdownMenuItem(value: 5, child: Text('Permiso por Protección Temporal (PPT)')),
                     ],
-                    onChanged: (v) => setState(() => _tipoDocumentoId = v!),
+                    onChanged: _esEdicion ? null : (v) => setState(() => _tipoDocumentoId = v!),
                   ),
                   const SizedBox(height: 16),
                   
+                  // Número de documento - BLOQUEADO en edición
                   TextFormField(
                     controller: _numeroDocumentoCtrl,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Número de Documento *',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.fingerprint),
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.fingerprint),
+                      filled: _esEdicion,
+                      fillColor: _esEdicion ? Colors.grey[200] : null,
                     ),
                     validator: (v) => v?.isEmpty ?? true ? 'Campo requerido' : null,
+                    enabled: !_esEdicion,
                   ),
                   const SizedBox(height: 24),
                   
@@ -1201,7 +1240,7 @@ class _FormularioResidenteScreenState extends State<FormularioResidenteScreen> {
                       backgroundColor: Colors.blue,
                     ),
                     child: Text(
-                      widget.residente == null ? 'Crear Residente' : 'Actualizar',
+                      _esEdicion ? 'Actualizar' : 'Crear Residente',
                       style: const TextStyle(fontSize: 16, color: Colors.white),
                     ),
                   ),
