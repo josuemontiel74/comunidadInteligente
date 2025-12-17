@@ -3,6 +3,8 @@ import RecepcionPaquetes from "../models/recepcionPaquetes.model.js";
 import Estado from "../models/estados.model.js";
 import Apartamento from "../models/apartamentos.model.js";
 import { sequelize } from "../config/connect.db.js";
+import { registrarAuditoria } from "../services/auditorias.service.js";
+import { registrarFallo } from "../services/logger.service.js";
 
 export const crearRecepcionPaquete = async (req, res) => {
   try {
@@ -41,6 +43,15 @@ export const crearRecepcionPaquete = async (req, res) => {
 
     const nuevoPaquete = await RecepcionPaquetes.create(dataPaquete);
 
+    // Registrar en auditoría
+    const usuarioActual = req.user?.username || "desconocido";
+    await registrarAuditoria(
+      usuarioActual,
+      "recepcionpaquetes",
+      "INSERT",
+      nuevoPaquete.idPaquete
+    );
+
     res.status(201).json({
       ok: true,
       status: 201,
@@ -48,6 +59,11 @@ export const crearRecepcionPaquete = async (req, res) => {
       body: nuevoPaquete,
     });
   } catch (error) {
+    const username = req.user?.username || "desconocido";
+    const ruta = "POST /recepcionpaquetes";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     res.status(500).json({ error: error.message });
   }
 };
@@ -73,6 +89,11 @@ export const obtenerRecepcionPaquetesSQL = async (req, res) => {
 
     res.json(results);
   } catch (error) {
+    const username = req.user?.username || "desconocido";
+    const ruta = "GET /recepcionpaquetes";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     console.error(error);
     res.status(500).json({ error: "Error al obtener los paquetes" });
   }
@@ -91,6 +112,11 @@ export const obtenerRecepcionesPaquetes = async (req, res) => {
       body: recepcionesPaquetes,
     });
   } catch (error) {
+    const username = req.user?.username || "desconocido";
+    const ruta = "GET /recepcionpaquetes";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     return res.status(500).json({
       message: "Algo salió mal en la peticion :(",
       status: 500,
@@ -121,6 +147,11 @@ export const obtenerRecepcionPaquetePorId = async (req, res) => {
       });
     }
   } catch (error) {
+    const username = req.user?.username || "desconocido";
+    const ruta = "GET /recepcionpaquetes/:id";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     return res.status(500).json({
       message: "Algo salió mal en la peticion :(",
       status: 500,
@@ -193,6 +224,15 @@ export const actualizarRecepcionPaquete = async (req, res) => {
         where: { idPaquete },
       });
 
+      // Registrar en auditoría
+      const usuarioActual = req.user?.username || "desconocido";
+      await registrarAuditoria(
+        usuarioActual,
+        "recepcionpaquetes",
+        "UPDATE",
+        idPaquete
+      );
+
       res.status(200).json({
         ok: true,
         status: 200,
@@ -207,6 +247,11 @@ export const actualizarRecepcionPaquete = async (req, res) => {
       });
     }
   } catch (error) {
+    const username = req.user?.username || "desconocido";
+    const ruta = "PATCH /recepcionpaquetes/:id";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     return res.status(500).json({
       message: "Algo salió mal en la petición :(",
       status: 500,
@@ -233,12 +278,26 @@ export const FinalizarRecepcionPaquete = async (req, res) => {
       fechaEntrega: dayjs().format("YYYY-MM-DD HH:mm"),
     });
 
+    // Registrar en auditoría
+    const usuarioActual = req.user?.username || "desconocido";
+    await registrarAuditoria(
+      usuarioActual,
+      "recepcionpaquetes",
+      "DELETE",
+      idPaquete
+    );
+
     res.status(200).json({
       ok: true,
       status: 200,
       message: "Recepcion de Paquete finalizado exitosamente",
     });
   } catch (error) {
+    const username = req.user?.username || "desconocido";
+    const ruta = "DELETE /recepcionpaquetes/:id";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     return res.status(500).json({
       ok: false,
       status: 500,

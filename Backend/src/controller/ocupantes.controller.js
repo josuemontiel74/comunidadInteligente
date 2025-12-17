@@ -2,6 +2,8 @@ import dayjs from "dayjs";
 import Ocupante from "../models/ocupante.model.js";
 import Persona from "../models/personas.model.js";
 import { sequelize } from "../config/connect.db.js";
+import { registrarAuditoria } from "../services/auditorias.service.js";
+import { registrarFallo } from "../services/logger.service.js";
 
 export const crearOcupante = async (req, res) => {
   const t = await sequelize.transaction();
@@ -35,12 +37,24 @@ export const crearOcupante = async (req, res) => {
         fechaFin: dataOcupante.fechaFin
           ? dayjs(dataOcupante.fechaFin).format("YYYY-MM-DD")
           : null,
+        tieneNinos: dataOcupante.tieneNinos,
+        tieneAdultoMayor: dataOcupante.tieneAdultoMayor,
+        tieneDiscapacidad: dataOcupante.tieneDiscapacidad,
         estadoId: 5,
       },
       { transaction: t }
     );
 
     await t.commit();
+
+    // Registrar en auditoría
+    const usuarioActual = req.user?.username || "desconocido";
+    await registrarAuditoria(
+      usuarioActual,
+      "ocupantes",
+      "INSERT",
+      createOcupante.idOcupante
+    );
 
     res.status(201).json({
       message: "Ocupante creado correctamente",
@@ -49,7 +63,14 @@ export const crearOcupante = async (req, res) => {
       personaNueva: created,
     });
   } catch (error) {
+    const username = req.user?.username || "desconocido";
+    const ruta = "POST /ocupantes";
+
     await t.rollback();
+
+    // Registrar el error en el logger
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     res.status(500).json({
       message: "Lo siento, no se pudo registrar el ocupante",
       status: 500,
@@ -61,7 +82,7 @@ export const crearOcupante = async (req, res) => {
 export const listarOcupantes = async (req, res) => {
   try {
     const [results] = await sequelize.query(`
-      SELECT 
+     SELECT 
     oc.idOcupante,
     oc.apartamentosId,
     oc.numeroDocumento,
@@ -69,8 +90,13 @@ export const listarOcupantes = async (req, res) => {
     oc.personasACargo,
     oc.fechaInicio,
     oc.fechaFin,
+    oc.tieneNinos,
+    oc.tieneAdultoMayor,
+    oc.tieneDiscapacidad,
+    oc.estadoId,
     es.nombreEstado,
     ap.idApartamento,
+    ap.numeroApartamento,
     ap.torresId,
     pe.tipoDocumentoId,
     pe.primerNombre,
@@ -95,6 +121,11 @@ JOIN estados AS es
       body: results,
     });
   } catch (error) {
+    const username = req.user?.username || "desconocido";
+    const ruta = "GET /ocupantes";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     console.error("Error al listar ocupantes:", error);
     res.status(500).json({
       error: "Error interno al listar ocupantes",
@@ -116,6 +147,11 @@ export const obtenerOcupante = async (req, res) => {
     });
     res.status(200).json(ocupantes);
   } catch (error) {
+    const username = req.user?.username || "desconocido";
+    const ruta = "GET /ocupantes";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     res.status(500).json({
       message: "Lo siento, no se pudo obtener la lista de ocupantes",
       status: 500,
@@ -146,6 +182,11 @@ export const obtenerOcupantePorId = async (req, res) => {
       });
     }
   } catch (error) {
+    const username = req.user?.username || "desconocido";
+    const ruta = "GET /ocupantes/:id";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     res.status(500).json({
       message: "Lo siento, no se pudo obtener el ocupante",
       status: 500,
@@ -167,6 +208,9 @@ export const actualizarOcupante = async (req, res) => {
         personasACargo: dataOcupante.personasACargo,
         fechaInicio: dataOcupante.fechaInicio,
         fechaFin: dataOcupante.fechaFin,
+        tieneNinos: dataOcupante.tieneNinos,
+        tieneAdultoMayor: dataOcupante.tieneAdultoMayor,
+        tieneDiscapacidad: dataOcupante.tieneDiscapacidad,
         estadoId: dataOcupante.estadoId,
       },
       { where: { idOcupante: id }, transaction: t }
@@ -205,9 +249,20 @@ export const actualizarOcupante = async (req, res) => {
     });
 
     await t.commit();
+
+    // Registrar en auditoría
+    const usuarioActual = req.user?.username || "desconocido";
+    await registrarAuditoria(usuarioActual, "ocupantes", "UPDATE", id);
+
     res.status(200).json(updatedOcupante);
   } catch (error) {
+    const username = req.user?.username || "desconocido";
+    const ruta = "PATCH /ocupantes/:id";
+
     await t.rollback();
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     res.status(500).json({
       message: "Lo siento, no se pudo actualizar el ocupante",
       status: 500,
@@ -227,6 +282,10 @@ export const finalizarOcupante = async (req, res) => {
       { where: { idOcupante: id } }
     );
     if (updated) {
+      // Registrar en auditoría
+      const usuarioActual = req.user?.username || "desconocido";
+      await registrarAuditoria(usuarioActual, "ocupantes", "DELETE", id);
+
       res
         .status(200)
         .json({ message: "Ocupante se ha finalizado correctamente" });
@@ -237,6 +296,11 @@ export const finalizarOcupante = async (req, res) => {
       });
     }
   } catch (error) {
+    const username = req.user?.username || "desconocido";
+    const ruta = "DELETE /ocupantes/:id";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     res.status(500).json({
       message: "Lo siento, no se pudo finalizar el ocupante",
       status: 500,

@@ -20,7 +20,7 @@ export const obtenerSolicitantes = async (req, res) => {
   try {
     await SolicitanteModel.sync();
     const solicitantes = await SolicitanteModel.findAll({
-      include: [tipoDocumento],
+      include: [{ model: tipoDocumento, as: "TipoDocumento" }],
     });
     res.status(200).json({
       ok: true,
@@ -42,7 +42,7 @@ export const obtenerSolicitantePorId = async (req, res) => {
     await SolicitanteModel.sync();
     const { documentoSolicitante } = req.params;
     const solicitante = await SolicitanteModel.findByPk(documentoSolicitante, {
-      include: [tipoDocumento],
+      include: [{ model: tipoDocumento, as: "TipoDocumento" }],
     });
     if (solicitante) {
       res.status(200).json({

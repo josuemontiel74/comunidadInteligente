@@ -47,6 +47,18 @@ class Ocupante extends Model {
           allowNull: false,
           defaultValue: 1,
         },
+        tieneNinos: {
+          type: DataTypes.TINYINT(1),
+          allowNull: true,
+        },
+        tieneAdultoMayor: {
+          type: DataTypes.TINYINT(1),
+          allowNull: true,
+        },
+        tieneDiscapacidad: {
+          type: DataTypes.TINYINT(1),
+          allowNull: true,
+        },
       },
       {
         sequelize,

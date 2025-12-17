@@ -18,6 +18,8 @@ import RecepcionPaquetes from "./recepcionPaquetes.model.js";
 import Solicitante from "./solicitante.model.js";
 import AreaComun from "./areaComun.model.js";
 import ReservaArea from "./reservasAreas.model.js";
+import Auditorias from "./auditorias.model.js";
+import logErrores from "./logErrores.model.js";
 
 export function initModels(sequelize) {
   const EstadoModel = Estado.initModel(sequelize);
@@ -38,6 +40,8 @@ export function initModels(sequelize) {
   const SolicitanteModel = Solicitante.initModel(sequelize);
   const AreasModel = AreaComun.initModel(sequelize);
   const ReservasAreasModel = ReservaArea.initModel(sequelize);
+  const AuditoriasModel = Auditorias.initModel(sequelize);
+  const LogErroresModel = logErrores.initModel(sequelize);
 
   const RolesPermisosModel = initRolesPermisos(
     sequelize,
@@ -53,26 +57,32 @@ export function initModels(sequelize) {
   ApartamentoModel.belongsTo(TorreModel, { foreignKey: "torresId" });
 
   EstadoModel.hasMany(UsuarioModel, { foreignKey: "estadoId" });
-  UsuarioModel.belongsTo(EstadoModel, { foreignKey: "estadoId" });
+  UsuarioModel.belongsTo(EstadoModel, { foreignKey: "estadoId", as: "Estado" });
 
   ApartamentoModel.hasMany(OcupanteModel, { foreignKey: "apartamentosId" });
   OcupanteModel.belongsTo(ApartamentoModel, { foreignKey: "apartamentosId" });
 
   PersonasModel.hasMany(OcupanteModel, { foreignKey: "numeroDocumento" });
-  OcupanteModel.belongsTo(PersonasModel, { foreignKey: "numeroDocumento" });
+  OcupanteModel.belongsTo(PersonasModel, {
+    foreignKey: "numeroDocumento",
+    as: "persona",
+  });
 
   OcupanteModel.belongsTo(EstadoModel, { foreignKey: "estadoId" });
   EstadoModel.hasMany(OcupanteModel, { foreignKey: "estadoId" });
 
   RolModel.hasMany(UsuarioModel, { foreignKey: "rolesId" });
-  UsuarioModel.belongsTo(RolModel, { foreignKey: "rolesId" });
+  UsuarioModel.belongsTo(RolModel, { foreignKey: "rolesId", as: "Rol" });
 
   PersonasModel.hasMany(UsuarioModel, {
     foreignKey: "numeroDocumento",
     onDelete: "RESTRICT",
   });
 
-  UsuarioModel.belongsTo(PersonasModel, { foreignKey: "numeroDocumento" });
+  UsuarioModel.belongsTo(PersonasModel, {
+    foreignKey: "numeroDocumento",
+    as: "Persona",
+  });
 
   tiposVehiculoModel.hasMany(ParqueaderoModel, {
     foreignKey: "tipoVehiculoId",
@@ -88,6 +98,7 @@ export function initModels(sequelize) {
   tipodocumentoModel.hasMany(PersonasModel, { foreignKey: "tipoDocumentoId" });
   PersonasModel.belongsTo(tipodocumentoModel, {
     foreignKey: "tipoDocumentoId",
+    as: "TipoDocumento",
   });
 
   EstadoModel.hasMany(ParqueaderoModel, { foreignKey: "estadoId" });
@@ -101,6 +112,7 @@ export function initModels(sequelize) {
   tipodocumentoModel.hasMany(VisitanteModel, { foreignKey: "tipoDocumentoId" });
   VisitanteModel.belongsTo(tipodocumentoModel, {
     foreignKey: "tipoDocumentoId",
+    as: "TipoDocumento",
   });
 
   VisitanteModel.hasMany(VisitaModel, { foreignKey: "numeroDocumento" });
@@ -131,6 +143,7 @@ export function initModels(sequelize) {
     foreignKey: "tipoDocumentoId",
   });
   SolicitanteModel.belongsTo(tipodocumentoModel, {
+    as: "TipoDocumento",
     foreignKey: "tipoDocumentoId",
   });
   EstadoModel.hasMany(AreasModel, { foreignKey: "estadoId" });
@@ -149,10 +162,18 @@ export function initModels(sequelize) {
 
   SolicitanteModel.hasMany(ReservasAreasModel, {
     foreignKey: "documentoSolicitante",
+    onDelete: "CASCADE",
   });
   ReservasAreasModel.belongsTo(SolicitanteModel, {
     foreignKey: "documentoSolicitante",
+    onDelete: "CASCADE",
   });
+
+  UsuarioModel.hasMany(AuditoriasModel, { foreignKey: "username" });
+  AuditoriasModel.belongsTo(UsuarioModel, { foreignKey: "username" });
+
+  UsuarioModel.hasMany(LogErroresModel, { foreignKey: "username" });
+  LogErroresModel.belongsTo(UsuarioModel, { foreignKey: "username" });
 
   return {
     Estado: EstadoModel,
@@ -174,5 +195,7 @@ export function initModels(sequelize) {
     Solicitante: SolicitanteModel,
     Areas: AreasModel,
     ReservasAreas: ReservasAreasModel,
+    Auditorias: AuditoriasModel,
+    LogErrores: LogErroresModel,
   };
 }
