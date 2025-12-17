@@ -3,12 +3,16 @@ import '../../main.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../paqueteria/paqueteria.dart';
-import '../gestionUsuarios/gestionusuarios.dart';
+import '../gestionUsuarios/gestion_usuarios.dart';
 import '../areasComunes/areascomunes.dart';
+import '../areasComunes/gestion_areas.dart';
 import '../../widgets/areasComunes/registrar_reserva.dart';
 import '../visitas/visitas.dart';
 import '../parqueaderos/parqueaderos.dart' show SeleccionarParqueaderoScreen;
 import '../reportes/reportes.dart';
+import '../residentes/residentes.dart';
+import '../auditorias/auditoria_screen.dart';
+import '../../utils/helpers.dart';
 
 class Dashboardsuperadmin extends StatefulWidget {
   final String nombreUsuario;
@@ -38,6 +42,12 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
       final response = await http.get(
         Uri.parse('${LoginServe.baseUrl}/api/dashboard/resumen'),
       );
+
+      // Validar si el token expiró
+      if (manejarTokenExpirado(context, response.statusCode, response.body)) {
+        setState(() => isLoading = false);
+        return;
+      }
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
@@ -161,6 +171,12 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                     _buildMenuSection('Gestión de Áreas Comunes', [
                       _buildMenuItemNav(
                         context,
+                        Icons.settings,
+                        'Gestionar Áreas',
+                        GestionAreas(token: LoginServe.token),
+                      ),
+                      _buildMenuItemNav(
+                        context,
                         Icons.event,
                         'Registrar Reserva',
                         RegistrarReserva(token: LoginServe.token),
@@ -181,27 +197,39 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                       ),
                     ]),
                     _buildMenuSection('Gestión de Usuarios', [
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
                         Icons.person_add_alt,
                         'Registrar Usuario',
+                        GestionUsuarios(openCreateDialog: true),
                       ),
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
                         Icons.people_outline,
                         'Consultar Usuario',
+                        GestionUsuarios(),
                       ),
                     ]),
                     _buildMenuSection('Gestión de Residentes', [
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
                         Icons.home_work,
                         'Registrar Residentes',
+                        const Residentes(openCreateDialog: true),
                       ),
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
                         Icons.list_alt,
                         'Consultar Residentes',
+                        const Residentes(),
+                      ),
+                    ]),
+                    _buildMenuSection('Auditorías', [
+                      _buildMenuItemNav(
+                        context,
+                        Icons.history,
+                        'Ver Auditorías',
+                        const AuditoriaScreen(),
                       ),
                     ]),
                   ],
@@ -499,9 +527,7 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => MostrarUsuario(token: LoginServe.token),
-            ),
+            MaterialPageRoute(builder: (context) => GestionUsuarios()),
           );
         },
       ),
@@ -511,9 +537,22 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
         title: 'Gestión de Residentes',
         color: Colors.teal,
         onTap: () {
-          ScaffoldMessenger.of(
+          Navigator.push(
             context,
-          ).showSnackBar(SnackBar(content: Text('Módulo en construcción')));
+            MaterialPageRoute(builder: (context) => const Residentes()),
+          );
+        },
+      ),
+      _buildModuleCard(
+        context,
+        icon: Icons.history,
+        title: 'Auditorías',
+        color: Colors.indigo,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AuditoriaScreen()),
+          );
         },
       ),
     ];
