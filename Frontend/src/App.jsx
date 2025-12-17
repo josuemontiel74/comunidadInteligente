@@ -10,10 +10,11 @@ import Superadmin from "./pages/dashboardSuperAdmin.jsx";
 import Registro from "./pages/registro.jsx";
 import Residentes from "./pages/residentes.jsx";
 import AreasComunes from "./pages/AreasComunes.jsx";
+import CalendarioReservas from "./pages/caledario.jsx";
 import GestionUsuarios from "./pages/gestionUsuarios.jsx";
 import Admin from "./pages/dashboardAdmin.jsx";
 import ProtectedRoute from "./pages/ProtectedRoute.jsx";
-
+import Reportes from "./pages/reportes.jsx";
 export default function App() {
   return (
     <Routes>
@@ -29,8 +30,10 @@ export default function App() {
         <Route path="/Registro" element={<Registro />} />
         <Route path="/Residentes" element={<Residentes />} />
         <Route path="/AreasComunes" element={<AreasComunes />} />
+        <Route path="/CalendarioReservas" element={<CalendarioReservas />} />
         <Route path="/GestionUsuario" element={<GestionUsuarios />} />
         <Route path="/Admin" element={<Admin />} />
+         <Route path="/Reportes" element={<Reportes/>}/>
       </Route>
     </Routes>
   );

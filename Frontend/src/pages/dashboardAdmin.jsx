@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import Swal from 'sweetalert2';
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import Chart from "chart.js/auto";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -8,12 +9,90 @@ import paquetesImg from "../../img/paquetes.jpeg";
 import visitasImg from "../../img/visitas.jpg";
 import areasImg from "../../img/areascomunes.jpg";
 import modoluresidenteImg from "../../img/modoluresidente.jpg";
+import { visitasDia } from "../services/visitas.services";
+import { paquetesDia } from "../services/paqueteria.services";
+import { obtenerParqueaderos } from "../services/parqueadero.services.jsx";
 function Dashboard() {
   const chartRef = useRef(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [nombreUsuario, setNombreUsuario] = useState("Usuario");
   const [rolUsuario, setRolUsuario] = useState("Admin");
+  const [rolesId, setRolesId] = useState(null);
+  const [tokenValid, setTokenValid] = useState(false);
   const navigate = useNavigate();
+  const [totalVisitas, setTotalVisitas] = useState(0);
+    const [totalPaquetes, setTotalPaquetes] = useState(0);
+  
+    const [parqueaderos, setParqueaderos] = useState([]);
+    //obtenr paquederos
+    useEffect(() => {
+      async function fetchParqueaderos() {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+  
+        try {
+          const res = await obtenerParqueaderos(token);
+          const data = await res.json();
+  
+          console.log(data);
+  
+          setParqueaderos(data.body);
+        } catch (error) {
+          console.error("Error cargando parqueaderos:", error);
+        }
+      }
+  
+      fetchParqueaderos();
+    }, []);
+  
+    // para paqueaderos
+  
+    const espaciosLibres = parqueaderos.filter((p) => p.estadoId === 4).length;
+    const espaciosOcupados = parqueaderos.filter((p) => p.estadoId === 3).length;
+    // visitas del dia
+    useEffect(() => {
+      async function fetchVisitas() {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+  
+        try {
+          const res = await visitasDia(token);
+          const data = await res.json();
+          setTotalVisitas(data.visitasDia);
+        } catch (error) {
+          console.error("Error cargando visitas del día:", error);
+        }
+      }
+      fetchVisitas();
+    }, []);
+    // paquetes del dia 
+    useEffect(() => {
+      async function fecthpaquetesDia() {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        try {
+          const res = await paquetesDia(token);
+          const data = await res.json();
+          setTotalPaquetes(data.paqueteDia)
+        } catch (error) {
+          console.error("No se cargaron los datos")
+        }
+  
+      }
+      fecthpaquetesDia();
+    }, []);
+  useEffect(() => {
+  
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      Swal.fire({ icon: 'warning', title: 'Sesión expirada', text: 'La sesión expiró. Vuelva a iniciar sesión.', timer: 2000, showConfirmButton: false, timerProgressBar: true }).then(() => {
+        localStorage.clear();
+        navigate('/');
+      });
+    
+  }
+  }, [navigate]);
 
   const verificarTokenVencido = (token) => {
     try {
@@ -102,20 +181,20 @@ function Dashboard() {
   useEffect(() => {
     const token = obtenerToken();
     const usuario = obtenerUsuarioDelToken(token);
-    const rolesId = obtenerRolDelToken(token);
-    const rol = obtenerNombreRol(rolesId);
+    const rId = obtenerRolDelToken(token);
+    const rol = obtenerNombreRol(rId);
 
     setNombreUsuario(usuario);
     setRolUsuario(rol);
+    setRolesId(rId);
+    setTokenValid(!!token && !verificarTokenVencido(token));
   }, []);
 
-  // useEffect para prevenir navegación hacia atrás
-  useEffect(() => {
-    window.history.pushState(null, "", window.location.href);
-    window.onpopstate = function () {
-      window.history.go(1);
-    };
-  }, []);
+  const hasAccess = (allowedRoles = []) => {
+    if (!tokenValid) return false;
+    if (!rolesId) return false;
+    return allowedRoles.includes(rolesId);
+  };
 
   // useEffect para crear el gráfico
   useEffect(() => {
@@ -132,7 +211,7 @@ function Dashboard() {
         labels: ["Ocupados", "Disponibles"],
         datasets: [
           {
-            data: [7, 3],
+            data: [espaciosOcupados, espaciosLibres],
             backgroundColor: ["#dc3545", "#198754"],
           },
         ],
@@ -146,12 +225,12 @@ function Dashboard() {
       },
     });
 
-    return () => {
+     return () => {
       if (chartRef.current) {
         chartRef.current.destroy();
       }
     };
-  }, []);
+  }, [parqueaderos]);
 
   return (
     <div className="d-flex" style={{ minHeight: "100vh" }}>
@@ -186,14 +265,18 @@ function Dashboard() {
             <h6 className="text-uppercase fw-bold">Gestión Paquetería</h6>
             <ul className="nav flex-column mt-2 gap-2">
               <li>
-                <Link className="nav-link text-white" to="/Paqueteria">
-                  Registrar Paquete
-                </Link>
+                {hasAccess([1,2]) && (
+                  <Link className="nav-link text-white" to="/Paqueteria">
+                    Registrar Paquete
+                  </Link>
+                )}
               </li>
               <li>
-                <Link className="nav-link text-white" to="/Paqueteria">
-                  Consultar Paquete
-                </Link>
+                {hasAccess([1,2]) && (
+                  <Link className="nav-link text-white" to="/Paqueteria">
+                    Consultar Paquete
+                  </Link>
+                )}
               </li>
             </ul>
           </div>
@@ -203,19 +286,25 @@ function Dashboard() {
             <h6 className="text-uppercase fw-bold">Gestión de Visitas</h6>
             <ul className="nav flex-column mt-2 gap-2">
               <li>
-                <Link className="nav-link text-white" to="/visitas">
-                  Registrar Visita
-                </Link>
+                {hasAccess([1,2,3]) && (
+                  <Link className="nav-link text-white" to="/visitas">
+                    Registrar Visita
+                  </Link>
+                )}
               </li>
               <li>
-                <Link className="nav-link text-white" to="/visitas">
-                  Consultar Visitas
-                </Link>
+                {hasAccess([1,2,3]) && (
+                  <Link className="nav-link text-white" to="/visitas">
+                    Consultar Visitas
+                  </Link>
+                )}
               </li>
               <li>
-                <Link className="nav-link text-white" to="/parqueaderos">
-                  Consultar Parqueaderos
-                </Link>
+                {hasAccess([1,2,3]) && (
+                  <Link className="nav-link text-white" to="/parqueaderos">
+                    Consultar Parqueaderos
+                  </Link>
+                )}
               </li>
             </ul>
           </div>
@@ -225,23 +314,22 @@ function Dashboard() {
             <h6 className="text-uppercase fw-bold">Gestión de Áreas Comunes</h6>
             <ul className="nav flex-column mt-2 gap-2">
               <li>
-                <button
-                  className="nav-link text-white bg-transparent border-0 text-start w-100"
-                  onClick={gestionAreacomunes}
-                  style={{ cursor: "pointer" }}
-                >
-                  Registrar Reserva
-                </button>
+                {hasAccess([1,2]) && (
+                  <button
+                    className="nav-link text-white bg-transparent border-0 text-start w-100"
+                    onClick={gestionAreacomunes}
+                    style={{ cursor: "pointer" }}
+                  >
+                    Registrar Reserva
+                  </button>
+                )}
               </li>
               <li>
-                <Link className="nav-link text-white" to="/AreasComunes">
-                  Consultar Eventos
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" onClick={gestionAreacomunes}>
-                  Consultar Zonas
-                </Link>
+                {hasAccess([1,2]) && (
+                  <Link className="nav-link text-white" to="/AreasComunes">
+                    Consultar Eventos
+                  </Link>
+                )}
               </li>
             </ul>
           </div>
@@ -251,14 +339,18 @@ function Dashboard() {
             <h6 className="text-uppercase fw-bold">Gestión Residentes</h6>
             <ul className="nav flex-column mt-2 gap-2">
               <li>
-                <Link className="nav-link text-white" to="/residentes?crear=1">
-                  Crear Residente
-                </Link>
+                {hasAccess([1,2]) && (
+                  <Link className="nav-link text-white" to="/residentes?crear=1">
+                    Crear Residente
+                  </Link>
+                )}
               </li>
               <li>
-                <Link className="nav-link text-white" to="/residentes">
-                  Consultar Residente
-                </Link>
+                {hasAccess([1,2]) && (
+                  <Link className="nav-link text-white" to="/residentes">
+                    Consultar Residente
+                  </Link>
+                )}
               </li>
             </ul>
           </div>
@@ -333,102 +425,116 @@ function Dashboard() {
 
         {/* Tarjetas principales */}
         <div className="d-flex flex-wrap justify-content-center gap-4 px-4 mb-4">
-          <div className="card text-center" style={{ width: "250px" }}>
-            <img
-              src={paquetesImg}
-              className="card-img-top"
-              alt="Paquetería"
-              style={{ height: "150px", objectFit: "cover" }}
-            />
-            <div className="card-body">
-              <h5 className="card-title">Gestión de Paquetería</h5>
-              <Link to="/Paqueteria" className="btn btn-success">
-                Acceder ➜
-              </Link>
+          {hasAccess([1,2]) && (
+            <div className="card text-center" style={{ width: "250px" }}>
+              <img
+                src={paquetesImg}
+                className="card-img-top"
+                alt="Paquetería"
+                style={{ height: "150px", objectFit: "cover" }}
+              />
+              <div className="card-body">
+                <h5 className="card-title">Gestión de Paquetería</h5>
+                <Link to="/Paqueteria" className="btn btn-success">
+                  Acceder ➜
+                </Link>
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="card text-center" style={{ width: "250px" }}>
-            <img
-              src={visitasImg}
-              className="card-img-top"
-              alt="Visitas"
-              style={{ height: "150px", objectFit: "cover" }}
-            />
-            <div className="card-body">
-              <h5 className="card-title">Gestión de Visitas</h5>
-              <Link to="/visitas" className="btn btn-success">
-                Acceder ➜
-              </Link>
+          {hasAccess([1,2,3]) && (
+            <div className="card text-center" style={{ width: "250px" }}>
+              <img
+                src={visitasImg}
+                className="card-img-top"
+                alt="Visitas"
+                style={{ height: "150px", objectFit: "cover" }}
+              />
+              <div className="card-body">
+                <h5 className="card-title">Gestión de Visitas</h5>
+                <Link to="/visitas" className="btn btn-success">
+                  Acceder ➜
+                </Link>
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="card text-center" style={{ width: "250px" }}>
-            <img
-              src={areasImg}
-              className="card-img-top"
-              alt="Áreas Comunes"
-              style={{ height: "150px", objectFit: "cover" }}
-            />
-            <div className="card-body">
-              <h5 className="card-title">Gestión Áreas Comunes</h5>
-              <Link to="/AreasComunes" className="btn btn-success">
-                Acceder ➜
-              </Link>
+          {hasAccess([1,2]) && (
+            <div className="card text-center" style={{ width: "250px" }}>
+              <img
+                src={areasImg}
+                className="card-img-top"
+                alt="Áreas Comunes"
+                style={{ height: "150px", objectFit: "cover" }}
+              />
+              <div className="card-body">
+                <h5 className="card-title">Gestión Áreas Comunes</h5>
+                <Link to="/AreasComunes" className="btn btn-success">
+                  Acceder ➜
+                </Link>
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="card text-center" style={{ width: "250px" }}>
-            <img
-              src={modoluresidenteImg}
-              className="card-img-top"
-              alt="Residentes"
-              style={{ height: "150px", objectFit: "cover" }}
-            />
-            <div className="card-body">
-              <h5 className="card-title">Gestión Residentes</h5>
-              <Link to="/residentes" className="btn btn-success">
-                Acceder ➜
-              </Link>
+          {hasAccess([1,2]) && (
+            <div className="card text-center" style={{ width: "250px" }}>
+              <img
+                src={modoluresidenteImg}
+                className="card-img-top"
+                alt="Residentes"
+                style={{ height: "150px", objectFit: "cover" }}
+              />
+              <div className="card-body">
+                <h5 className="card-title">Gestión Residentes</h5>
+                <Link to="/residentes" className="btn btn-success">
+                  Acceder ➜
+                </Link>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Dashboard con estadísticas */}
         <div className="d-flex flex-wrap justify-content-center gap-4 px-4 mb-4">
-          <div className="card text-center" style={{ width: "300px" }}>
-            <div className="card-body">
-              <h5 className="card-title">Visitas del Día</h5>
-              <div className="display-4 text-success fw-bold">9</div>
-              <p className="text-muted">Ingresos registrados hoy</p>
-              <Link to="/Visitas" className="btn btn-success">
-                Ver Registro
-              </Link>
-            </div>
-          </div>
-
-          <div className="card text-center" style={{ width: "300px" }}>
-            <div className="card-body">
-              <h5 className="card-title">Parqueaderos Ocupados</h5>
-              <div style={{ height: "200px", position: "relative" }}>
-                <canvas id="parqueoChart"></canvas>
+          {hasAccess([1,2,3]) && (
+            <div className="card text-center" style={{ width: "300px" }}>
+              <div className="card-body">
+                <h5 className="card-title">Visitas del Día</h5>
+                <div className="display-4 text-success fw-bold">{totalVisitas}</div>
+                <p className="text-muted">Ingresos registrados hoy</p>
+                <Link to="/Visitas" className="btn btn-success">
+                  Ver Registro
+                </Link>
               </div>
-              <Link to="/visitas" className="btn btn-success mt-3">
-                Ver Estado
-              </Link>
             </div>
-          </div>
+          )}
 
-          <div className="card text-center" style={{ width: "300px" }}>
-            <div className="card-body">
-              <h5 className="card-title">Paquetes Recibidos</h5>
-              <div className="display-4 text-success fw-bold">8</div>
-              <p className="text-muted">Total de paquetes que llegaron hoy</p>
-              <Link to="/Paqueteria" className="btn btn-success">
-                Ver Detalles
-              </Link>
+          {hasAccess([1,2,3]) && (
+            <div className="card text-center" style={{ width: "300px" }}>
+              <div className="card-body">
+                <h5 className="card-title">Parqueaderos Ocupados</h5>
+                <div style={{ height: "200px", position: "relative" }}>
+                  <canvas id="parqueoChart"></canvas>
+                </div>
+                <Link to="/visitas" className="btn btn-success mt-3">
+                  Ver Estado
+                </Link>
+              </div>
             </div>
-          </div>
+          )}
+
+          {hasAccess([1,2]) && (
+            <div className="card text-center" style={{ width: "300px" }}>
+              <div className="card-body">
+                <h5 className="card-title">Paquetes Recibidos</h5>
+                <div className="display-4 text-success fw-bold">{totalPaquetes}</div>
+                <p className="text-muted">Total de paquetes que llegaron hoy</p>
+                <Link to="/Paqueteria" className="btn btn-success">
+                  Ver Detalles
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

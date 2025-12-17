@@ -3,6 +3,9 @@ import '../../main.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../paqueteria/paqueteria.dart';
+import '../visitas/visitas.dart';
+import '../parqueaderos/parqueaderos.dart' show SeleccionarParqueaderoScreen;
+import '../../utils/helpers.dart';
 
 class Dashboardvigilante extends StatefulWidget {
   final String nombreUsuario;
@@ -15,8 +18,9 @@ class Dashboardvigilante extends StatefulWidget {
 
 class _DashboardvigilanteState extends State<Dashboardvigilante> {
   int paquetesRecibidosHoy = 0;
+  int parqueosCarros = 0;
+  int parqueosMotos = 0;
   int parqueosLibres = 0;
-  int parqueosOcupados = 0;
   bool isLoading = true;
 
   @override
@@ -31,15 +35,35 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
         Uri.parse('${LoginServe.baseUrl}/api/dashboard/resumen'),
       );
 
+      // Validar si el token expiró
+      if (manejarTokenExpirado(context, response.statusCode, response.body)) {
+        setState(() => isLoading = false);
+        return;
+      }
+
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
         final datos = responseData['data'];
         setState(() {
-          paquetesRecibidosHoy = datos['paquetes']?['recibidos'] ?? 0;
-          parqueosLibres = datos['parqueaderos']?['disponibles'] ?? 0;
-          parqueosOcupados =
-              (datos['parqueaderos']?['ocupadosResidentes'] ?? 0) +
-              (datos['parqueaderos']?['ocupadosVisitantes'] ?? 0);
+          // pendientes = paquetes recibidos hoy que aún no se han entregado
+          paquetesRecibidosHoy = datos['paquetes']?['pendientes'] ?? 0;
+          // Obtener parqueaderos por tipo de vehículo y validar que no sean negativos
+          final carrosRaw = datos['parqueaderos']?['ocupadosCarros'];
+          final motosRaw = datos['parqueaderos']?['ocupadosMotos'];
+          final libresRaw = datos['parqueaderos']?['disponibles'];
+
+          parqueosCarros = (carrosRaw is num ? carrosRaw.toInt() : 0).clamp(
+            0,
+            9999,
+          );
+          parqueosMotos = (motosRaw is num ? motosRaw.toInt() : 0).clamp(
+            0,
+            9999,
+          );
+          parqueosLibres = (libresRaw is num ? libresRaw.toInt() : 0).clamp(
+            0,
+            9999,
+          );
           isLoading = false;
         });
       } else {
@@ -123,15 +147,17 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                       ),
                     ]),
                     _buildMenuSection('Gestión de Visitas', [
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
-                        Icons.person_add,
-                        'Crear Visitas',
+                        Icons.event,
+                        'Gestión de Visitas',
+                        HomeScreen(token: LoginServe.token),
                       ),
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
-                        Icons.search,
-                        'Consultar Visitas',
+                        Icons.local_parking,
+                        'Consultar Parqueadero',
+                        SeleccionarParqueaderoScreen(token: LoginServe.token),
                       ),
                     ]),
                   ],
@@ -379,7 +405,9 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => TerceraPantalla()),
+            MaterialPageRoute(
+              builder: (context) => HomeScreen(token: LoginServe.token),
+            ),
           );
         },
       ),
@@ -507,23 +535,6 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
     );
   }
 
-  Widget _buildMenuItem(BuildContext context, IconData icon, String title) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.blue.shade600, size: 24),
-      title: Text(title, style: TextStyle(fontSize: 15, color: Colors.black87)),
-      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-      onTap: () {
-        Navigator.pop(context);
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => TerceraPantalla()),
-        );
-      },
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      hoverColor: Colors.blue.shade50,
-    );
-  }
-
   // Construir item del menú con navegación específica
   Widget _buildMenuItemNav(
     BuildContext context,
@@ -638,130 +649,242 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
     );
   }
 
+  // Tarjeta de parqueaderos con gráfico de torta
   Widget _buildParqueaderosLibresCard() {
-    int totalParqueos = parqueosLibres + parqueosOcupados;
-    double porcentajeLibres = totalParqueos > 0
-        ? (parqueosLibres / totalParqueos) * 100
-        : 0;
+    int totalOcupados = parqueosCarros + parqueosMotos;
+    int totalParqueos = totalOcupados + parqueosLibres;
 
     return Card(
       elevation: 6,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Icon(Icons.local_parking, color: Colors.green, size: 32),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Parqueaderos Libres',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  SeleccionarParqueaderoScreen(token: LoginServe.token),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.local_parking, color: Colors.green, size: 32),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Estado Parqueaderos',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: 30),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Column(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.check_circle,
-                        size: 50,
-                        color: Colors.green,
-                      ),
-                    ),
-                    SizedBox(height: 15),
-                    Text(
-                      '$parqueosLibres',
-                      style: TextStyle(
-                        fontSize: 42,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ),
-                    Text(
-                      'Libres',
-                      style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                    ),
-                  ],
-                ),
-                Container(width: 2, height: 120, color: Colors.grey.shade300),
-                Column(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.cancel, size: 50, color: Colors.red),
-                    ),
-                    SizedBox(height: 15),
-                    Text(
-                      '$parqueosOcupados',
-                      style: TextStyle(
-                        fontSize: 42,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
-                      ),
-                    ),
-                    Text(
-                      'Ocupados',
-                      style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            SizedBox(height: 25),
-            Container(
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(12),
+                  Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+                ],
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              SizedBox(height: 30),
+              // Gráfico de torta
+              SizedBox(
+                height: 180,
+                child: CustomPaint(
+                  size: Size(180, 180),
+                  painter: PieChartPainterVigilante(
+                    carros: parqueosCarros,
+                    motos: parqueosMotos,
+                    libres: parqueosLibres,
+                  ),
+                ),
+              ),
+              SizedBox(height: 25),
+              // Leyenda
+              Column(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.blue),
-                  SizedBox(width: 10),
-                  Text(
-                    '${porcentajeLibres.toStringAsFixed(0)}% de disponibilidad',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                    ),
+                  _buildLeyendaItem(
+                    Colors.teal,
+                    'Carros',
+                    parqueosCarros,
+                    totalParqueos > 0 ? totalParqueos : 1,
+                  ),
+                  SizedBox(height: 8),
+                  _buildLeyendaItem(
+                    Colors.orange,
+                    'Motos',
+                    parqueosMotos,
+                    totalParqueos > 0 ? totalParqueos : 1,
+                  ),
+                  SizedBox(height: 8),
+                  _buildLeyendaItem(
+                    Colors.grey.shade300,
+                    'Libres',
+                    parqueosLibres,
+                    totalParqueos > 0 ? totalParqueos : 1,
                   ),
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
+
+  // Item de leyenda para el gráfico de torta
+  Widget _buildLeyendaItem(Color color, String label, int valor, int total) {
+    int valorSeguro = valor < 0 ? 0 : valor;
+    int totalSeguro = total > 0 ? total : 1;
+    double porcentaje = (valorSeguro / totalSeguro) * 100;
+
+    return Row(
+      children: [
+        Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 15, color: Colors.black87),
+          ),
+        ),
+        Text(
+          '$valorSeguro (${porcentaje.toStringAsFixed(0)}%)',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
-class TerceraPantalla extends StatelessWidget {
-  const TerceraPantalla({super.key});
+// Painter personalizado para el gráfico de torta
+class PieChartPainterVigilante extends CustomPainter {
+  final int carros;
+  final int motos;
+  final int libres;
+
+  PieChartPainterVigilante({
+    required this.carros,
+    required this.motos,
+    required this.libres,
+  });
+
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: Text('Pantalla en construcción')));
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    final total = carros + motos + libres;
+
+    if (total == 0) {
+      // Si no hay datos, dibujar un círculo gris
+      final emptyPaint = Paint()
+        ..color = Colors.grey.shade300
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(center, radius, emptyPaint);
+      final innerCirclePaint = Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(center, radius * 0.5, innerCirclePaint);
+      return;
+    }
+
+    double startAngle = -90 * 3.14159 / 180; // Comenzar desde arriba
+
+    // Dibujar sección de carros
+    final carrosAngle = (carros / total) * 2 * 3.14159;
+    final carrosPaint = Paint()
+      ..color = Colors.teal
+      ..style = PaintingStyle.fill;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      startAngle,
+      carrosAngle,
+      true,
+      carrosPaint,
+    );
+    startAngle += carrosAngle;
+
+    // Dibujar sección de motos
+    final motosAngle = (motos / total) * 2 * 3.14159;
+    final motosPaint = Paint()
+      ..color = Colors.orange
+      ..style = PaintingStyle.fill;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      startAngle,
+      motosAngle,
+      true,
+      motosPaint,
+    );
+    startAngle += motosAngle;
+
+    // Dibujar sección de libres
+    final libresAngle = (libres / total) * 2 * 3.14159;
+    final libresPaint = Paint()
+      ..color = Colors.grey.shade300
+      ..style = PaintingStyle.fill;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      startAngle,
+      libresAngle,
+      true,
+      libresPaint,
+    );
+
+    // Dibujar círculo blanco en el centro para efecto de dona
+    final innerCirclePaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center, radius * 0.5, innerCirclePaint);
+
+    // Dibujar texto en el centro
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: '${carros + motos}',
+        style: TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+          color: Colors.black87,
+        ),
+        children: [
+          TextSpan(
+            text: '\nOcupados',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.normal,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+      textAlign: TextAlign.center,
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset(
+        center.dx - textPainter.width / 2,
+        center.dy - textPainter.height / 2,
+      ),
+    );
+  }
+
+  @override
+  bool shouldRepaint(PieChartPainterVigilante oldDelegate) {
+    return oldDelegate.carros != carros ||
+        oldDelegate.motos != motos ||
+        oldDelegate.libres != libres;
   }
 }

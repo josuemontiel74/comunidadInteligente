@@ -43,11 +43,15 @@ router.patch(
   "/usuario/:username",
   validarJWT,
   validarRol(1),
-  validate(userSchema.updateUserSchema, "body", true),
-  validate(userSchema.getUserSchema, "params", true),
+
   userController.actualizarUsuario
 );
-
+router.patch(
+  "/usuario/reactivar/:usernameAtivar",
+  validarJWT,
+  validarRol(1),
+  userController.reactivarUsuario
+);
 router.delete(
   "/usuario/:username",
   validarJWT,

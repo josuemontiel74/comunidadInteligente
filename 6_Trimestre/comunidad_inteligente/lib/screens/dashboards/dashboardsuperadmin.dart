@@ -3,9 +3,16 @@ import '../../main.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../paqueteria/paqueteria.dart';
-import '../gestionUsuarios/gestionusuarios.dart';
+import '../gestionUsuarios/gestion_usuarios.dart';
 import '../areasComunes/areascomunes.dart';
+import '../areasComunes/gestion_areas.dart';
 import '../../widgets/areasComunes/registrar_reserva.dart';
+import '../visitas/visitas.dart';
+import '../parqueaderos/parqueaderos.dart' show SeleccionarParqueaderoScreen;
+import '../reportes/reportes.dart';
+import '../residentes/residentes.dart';
+import '../auditorias/auditoria_screen.dart';
+import '../../utils/helpers.dart';
 
 class Dashboardsuperadmin extends StatefulWidget {
   final String nombreUsuario;
@@ -19,8 +26,8 @@ class Dashboardsuperadmin extends StatefulWidget {
 class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
   int paquetesEntregados = 0;
   int paquetesPendientes = 0;
-  int parqueosResidentes = 0;
-  int parqueosVisitantes = 0;
+  int parqueosCarros = 0;
+  int parqueosMotos = 0;
   int parqueosLibres = 0;
   bool isLoading = true;
 
@@ -36,17 +43,29 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
         Uri.parse('${LoginServe.baseUrl}/api/dashboard/resumen'),
       );
 
+      // Validar si el token expiró
+      if (manejarTokenExpirado(context, response.statusCode, response.body)) {
+        setState(() => isLoading = false);
+        return;
+      }
+
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
         final datos = responseData['data'];
+
         setState(() {
           paquetesEntregados = datos['paquetes']?['entregados'] ?? 0;
           paquetesPendientes = datos['paquetes']?['pendientes'] ?? 0;
-          parqueosResidentes =
-              datos['parqueaderos']?['ocupadosResidentes'] ?? 0;
-          parqueosVisitantes =
-              datos['parqueaderos']?['ocupadosVisitantes'] ?? 0;
-          parqueosLibres = datos['parqueaderos']?['disponibles'] ?? 0;
+          // Obtener parqueaderos por tipo de vehículo y validar que no sean negativos
+          parqueosCarros = (datos['parqueaderos']?['ocupadosCarros'] ?? 0)
+              .clamp(0, double.infinity)
+              .toInt();
+          parqueosMotos = (datos['parqueaderos']?['ocupadosMotos'] ?? 0)
+              .clamp(0, double.infinity)
+              .toInt();
+          parqueosLibres = (datos['parqueaderos']?['disponibles'] ?? 0)
+              .clamp(0, double.infinity)
+              .toInt();
           isLoading = false;
         });
       } else {
@@ -136,23 +155,26 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                       ),
                     ]),
                     _buildMenuSection('Gestión de Visitas', [
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
-                        Icons.person_add,
-                        'Crear Visitas',
+                        Icons.event,
+                        'Gestión de Visitas',
+                        HomeScreen(token: LoginServe.token),
                       ),
-                      _buildMenuItem(
-                        context,
-                        Icons.search,
-                        'Consultar Visitas',
-                      ),
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
                         Icons.local_parking,
                         'Consultar Parquedero',
+                        SeleccionarParqueaderoScreen(token: LoginServe.token),
                       ),
                     ]),
                     _buildMenuSection('Gestión de Áreas Comunes', [
+                      _buildMenuItemNav(
+                        context,
+                        Icons.settings,
+                        'Gestionar Áreas',
+                        GestionAreas(token: LoginServe.token),
+                      ),
                       _buildMenuItemNav(
                         context,
                         Icons.event,
@@ -166,28 +188,48 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                         Areascomunes(token: LoginServe.token),
                       ),
                     ]),
+                    _buildMenuSection('Reportes', [
+                      _buildMenuItemNav(
+                        context,
+                        Icons.bar_chart,
+                        'Ver Reportes',
+                        ReportesScreen(token: LoginServe.token ?? ''),
+                      ),
+                    ]),
                     _buildMenuSection('Gestión de Usuarios', [
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
                         Icons.person_add_alt,
                         'Registrar Usuario',
+                        GestionUsuarios(openCreateDialog: true),
                       ),
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
                         Icons.people_outline,
                         'Consultar Usuario',
+                        GestionUsuarios(),
                       ),
                     ]),
                     _buildMenuSection('Gestión de Residentes', [
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
                         Icons.home_work,
                         'Registrar Residentes',
+                        const Residentes(openCreateDialog: true),
                       ),
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
                         Icons.list_alt,
                         'Consultar Residentes',
+                        const Residentes(),
+                      ),
+                    ]),
+                    _buildMenuSection('Auditorías', [
+                      _buildMenuItemNav(
+                        context,
+                        Icons.history,
+                        'Ver Auditorías',
+                        const AuditoriaScreen(),
                       ),
                     ]),
                   ],
@@ -442,7 +484,9 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => TerceraPantalla()),
+            MaterialPageRoute(
+              builder: (context) => HomeScreen(token: LoginServe.token),
+            ),
           );
         },
       ),
@@ -454,7 +498,10 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => TerceraPantalla()),
+            MaterialPageRoute(
+              builder: (context) =>
+                  SeleccionarParqueaderoScreen(token: LoginServe.token),
+            ),
           );
         },
       ),
@@ -480,9 +527,7 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => MostrarUsuario(token: LoginServe.token),
-            ),
+            MaterialPageRoute(builder: (context) => GestionUsuarios()),
           );
         },
       ),
@@ -494,7 +539,19 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => TerceraPantalla()),
+            MaterialPageRoute(builder: (context) => const Residentes()),
+          );
+        },
+      ),
+      _buildModuleCard(
+        context,
+        icon: Icons.history,
+        title: 'Auditorías',
+        color: Colors.indigo,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AuditoriaScreen()),
           );
         },
       ),
@@ -633,10 +690,9 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
       trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
       onTap: () {
         Navigator.pop(context); // Cerrar el drawer
-        Navigator.push(
+        ScaffoldMessenger.of(
           context,
-          MaterialPageRoute(builder: (context) => TerceraPantalla()),
-        );
+        ).showSnackBar(SnackBar(content: Text('Módulo en construcción')));
       },
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       hoverColor: Colors.green.shade50,
@@ -816,71 +872,85 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
   // Tarjeta de parqueaderos ocupados con gráfico de torta
   Widget _buildParqueaderosCard() {
     // Usar datos dinámicos
-    int totalParqueos = parqueosResidentes + parqueosVisitantes;
+    int totalOcupados = parqueosCarros + parqueosMotos;
+    int totalParqueos = totalOcupados + parqueosLibres;
 
     return Card(
       elevation: 6,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Icon(Icons.local_parking, color: Colors.purple, size: 32),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Parqueaderos Ocupados',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  SeleccionarParqueaderoScreen(token: LoginServe.token),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.local_parking, color: Colors.purple, size: 32),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Parqueaderos Visitantes',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: 30),
-            // Gráfico de torta simplificado
-            SizedBox(
-              height: 180,
-              child: CustomPaint(
-                size: Size(180, 180),
-                painter: PieChartPainter(
-                  residentes: parqueosResidentes,
-                  visitantes: parqueosVisitantes,
-                  libres: parqueosLibres,
+                  Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+                ],
+              ),
+              SizedBox(height: 30),
+              // Gráfico de torta simplificado
+              SizedBox(
+                height: 180,
+                child: CustomPaint(
+                  size: Size(180, 180),
+                  painter: PieChartPainter(
+                    residentes: parqueosCarros,
+                    visitantes: parqueosMotos,
+                    libres: parqueosLibres,
+                  ),
                 ),
               ),
-            ),
-            SizedBox(height: 25),
-            // Leyenda
-            Column(
-              children: [
-                _buildLeyendaItem(
-                  Colors.teal,
-                  'Residentes',
-                  parqueosResidentes,
-                  totalParqueos,
-                ),
-                SizedBox(height: 8),
-                _buildLeyendaItem(
-                  Colors.orange,
-                  'Visitantes',
-                  parqueosVisitantes,
-                  totalParqueos,
-                ),
-                SizedBox(height: 8),
-                _buildLeyendaItem(
-                  Colors.grey.shade300,
-                  'Libres',
-                  parqueosLibres,
-                  60,
-                ),
-              ],
-            ),
-          ],
+              SizedBox(height: 25),
+              // Leyenda
+              Column(
+                children: [
+                  _buildLeyendaItem(
+                    Colors.teal,
+                    'Carros',
+                    parqueosCarros,
+                    totalParqueos > 0 ? totalParqueos : 1,
+                  ),
+                  SizedBox(height: 8),
+                  _buildLeyendaItem(
+                    Colors.orange,
+                    'Motos',
+                    parqueosMotos,
+                    totalParqueos > 0 ? totalParqueos : 1,
+                  ),
+                  SizedBox(height: 8),
+                  _buildLeyendaItem(
+                    Colors.grey.shade300,
+                    'Libres',
+                    parqueosLibres,
+                    totalParqueos > 0 ? totalParqueos : 1,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -942,7 +1012,11 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
 
   // Item de leyenda para el gráfico de torta
   Widget _buildLeyendaItem(Color color, String label, int valor, int total) {
-    double porcentaje = (valor / total) * 100;
+    // Validar que los valores sean positivos y el total no sea cero
+    int valorSeguro = valor < 0 ? 0 : valor;
+    int totalSeguro = total > 0 ? total : 1;
+    double porcentaje = (valorSeguro / totalSeguro) * 100;
+
     return Row(
       children: [
         Container(
@@ -958,7 +1032,7 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
           ),
         ),
         Text(
-          '$valor (${porcentaje.toStringAsFixed(0)}%)',
+          '$valorSeguro (${porcentaje.toStringAsFixed(0)}%)',
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.bold,
@@ -1075,13 +1149,5 @@ class PieChartPainter extends CustomPainter {
     return oldDelegate.residentes != residentes ||
         oldDelegate.visitantes != visitantes ||
         oldDelegate.libres != libres;
-  }
-}
-
-class TerceraPantalla extends StatelessWidget {
-  const TerceraPantalla({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: Text('Pantalla en construcción')));
   }
 }

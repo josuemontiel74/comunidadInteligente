@@ -8,18 +8,82 @@ import Swal from "sweetalert2";
 import Lottie from 'lottie-react';
 import BIEN from "../animacion/celebrate.json";
 import Inactivo from "../animacion/Inactivo.json";
-import { registrarUsuario } from "../services/gestionUsuarios.jsx"
+import { registrarUsuario, editarUsuario, finalizarUsuarioService } from "../services/gestionUsuarios.jsx"
+
+// Traduce mensajes/estructuras de error del backend a textos amigables en español
+const campoAmigable = (field) => {
+  const map = {
+    numeroDocumento: 'Número de documento',
+    primerNombre: 'Primer nombre',
+    segundoNombre: 'Segundo nombre',
+    primerApellido: 'Primer apellido',
+    segundoApellido: 'Segundo apellido',
+    correoElectronico: 'Correo electrónico',
+    telefono: 'Teléfono',
+    username: 'Username',
+    password: 'Contraseña',
+    rolesId: 'Rol',
+  };
+  return map[field] || field;
+};
+
+const traducirMensajeBackend = (errData) => {
+  if (errData == null) return 'Datos inválidos o incompletos.';
+  if (typeof errData === 'string') {
+    const s = errData;
+    if (/required|is required|cannot be null|no puede estar vacío|cannot be empty/i.test(s)) return 'Falta información obligatoria en el formulario.';
+    if (/max.*length|no puede.*mayor|exceeds the maximum|too long|longitud máxima/i.test(s)) return 'Algún campo supera la longitud permitida.';
+    if (/min.*length|must be at least|falta.*caracter|too short|longitud mínima/i.test(s)) return 'Algún campo no cumple la longitud mínima requerida.';
+    if (/invalid|not valid|no válido|formato/i.test(s)) return 'Formato de campo inválido.';
+    if (/unique|exists|ya existe/i.test(s)) return 'Ya existe un registro con esos datos.';
+    return s;
+  }
+  if (Array.isArray(errData)) return errData.map(e => traducirMensajeBackend(e)).join(' ');
+  if (typeof errData === 'object') {
+    if (errData.message && typeof errData.message === 'string') return traducirMensajeBackend(errData.message);
+    if (errData.errors && Array.isArray(errData.errors)) {
+      return errData.errors.map(it => {
+        if (it.field || it.param) {
+          const f = it.field || it.param;
+          const msg = it.message || it.msg || it.error || JSON.stringify(it);
+          return `${campoAmigable(f)}: ${traducirMensajeBackend(msg)}`;
+        }
+        return traducirMensajeBackend(it.message || it);
+      }).join(' ');
+    }
+    const partes = [];
+    for (const k in errData) {
+      if (!Object.prototype.hasOwnProperty.call(errData, k)) continue;
+      partes.push(`${campoAmigable(k)}: ${traducirMensajeBackend(errData[k])}`);
+    }
+    if (partes.length) return partes.join(' ');
+    return JSON.stringify(errData);
+  }
+  return 'Hay un problema con los datos ingresados. Revise el formulario e intente nuevamente.';
+};
 
 function Parqueaderos() {
   const navigate = useNavigate();
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      Swal.fire({ icon: 'warning', title: 'Sesión expirada', text: 'La sesión expiró. Vuelva a iniciar sesión.', timer: 3500, showConfirmButton: false, timerProgressBar: true }).then(() => {
+        localStorage.clear();
+        navigate('/');
+      });
+    }
+  }, [navigate]);
 
   const CERRAR = (e) => {
     localStorage.clear();
     e.preventDefault();
     navigate("/");
   };
+  // verifia rol del usaruio
+ 
 
   // Estados de modales
+
   const [modalAbierto, setModalAbierto] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
@@ -40,6 +104,14 @@ function Parqueaderos() {
   const [rolesId, setRolesId] = useState("");
   const [estadoId, setEstadoId] = useState("");
   const [username, setUsername] = useState("");
+  const [originalUsername, setOriginalUsername] = useState("");
+
+  // Validador: sólo letras A-Z/a-z y números 0-9; no espacios, tildes, ñ ni símbolos
+  const containsInvalidChars = (value) => {
+    if (value == null) return false;
+    const re = /^[A-Za-z0-9]+$/;
+    return !re.test(value);
+  };
 
   // Estado para usuarios y búsqueda
   const [usuario, setUsuario] = useState([]);
@@ -140,6 +212,17 @@ function Parqueaderos() {
       return;
     }
 
+    // Validar nombres: no permiten espacios, tildes, ñ ni caracteres especiales
+    if (!primerNombre || containsInvalidChars(primerNombre) || !primerApellido || containsInvalidChars(primerApellido)) {
+      Swal.fire("Error", "Los campos 'Primer Nombre' y 'Primer Apellido' son obligatorios y no pueden contener espacios, tildes,numeros, ñ ni caracteres especiales.", "error");
+      return;
+    }
+
+    if ((segundoNombre && containsInvalidChars(segundoNombre)) || (segundoApellido && containsInvalidChars(segundoApellido))) {
+      Swal.fire("Error", "No se permiten espacios, tildes, numeros,ñ ni caracteres especiales en los nombres o apellidos.", "error");
+      return;
+    }
+
     try {
       const datos = {
         password,
@@ -154,26 +237,88 @@ function Parqueaderos() {
         telefono,
         correoElectronico
       }
-      const resUsuario = await registrarUsuario( datos, token     )
-      const dataUsuario = await resUsuario.json();
+      const resUsuario = await registrarUsuario(datos, token);
+      const contentType = resUsuario.headers.get("content-type");
+      const dataUsuario = contentType && contentType.includes("application/json") ? await resUsuario.json() : await resUsuario.text();
       console.log("Respuesta backend:", dataUsuario);
 
       if (!resUsuario.ok) {
-        throw new Error(dataUsuario.error || dataUsuario.message || JSON.stringify(dataUsuario));
+        if (resUsuario.status === 400) {
+          const friendly = traducirMensajeBackend(dataUsuario);
+          Swal.fire({ icon: 'warning', title: 'Error de validación', text: friendly, confirmButtonText: 'Entendido' });
+          return;
+        }
+        // Si el backend responde 409 y devuelve información del usuario existente,
+        // ofrecer reactivar al SuperAdmin
+        if (resUsuario.status === 409) {
+          try {
+            const verif = dataUsuario?.verficacions || dataUsuario?.verficaciones || dataUsuario?.verificaciones || null;
+            const backendMsg = dataUsuario?.message || dataUsuario?.mensaje || '';
+            if (verif && verif.numeroDocumento) {
+              const result = await Swal.fire({
+                title: 'Usuario existente',
+                html: `${backendMsg || 'Ya existe un usuario con ese documento.'}<br/><br/>¿Desea reactivar este usuario?`,
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, reactivar',
+                cancelButtonText: 'No, cancelar',
+                reverseButtons: true,
+              });
+
+              if (result.isConfirmed) {
+                // Enviar petición de reactivación al backend
+                const token = localStorage.getItem('token');
+                const payload = { numeroDocumento: verif.numeroDocumento, volverActivar: 1 };
+                const resAct = await fetch('http://localhost:3001/api/usuario', {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify(payload),
+                });
+
+                const contentTypeAct = resAct.headers.get('content-type');
+                const dataAct = contentTypeAct && contentTypeAct.includes('application/json') ? await resAct.json() : await resAct.text();
+
+                if (resAct.ok) {
+                  Swal.fire({ icon: 'success', title: 'Usuario reactivado', text: 'El usuario fue reactivado correctamente.', timer: 3000, showConfirmButton: false });
+                  await cargarUsuarios();
+                  cerrarModal();
+                  return;
+                } else {
+                  console.error('Error reactivando usuario:', resAct.status, dataAct);
+                  const friendly = traducirMensajeBackend(dataAct);
+                  Swal.fire({ icon: 'error', title: 'Error', text: friendly || 'Hubo un error al activar este usuario. Lo siento.' });
+                  return;
+                }
+              } else {
+                // Usuario canceló reactivación: cerrar modal sin más acciones
+                cerrarModal();
+                return;
+              }
+            }
+          } catch (errReact) {
+            console.error('Error manejando reactivación:', errReact);
+            Swal.fire({ icon: 'error', title: 'Lo siento', text: 'No se pudo procesar la reactivación. Intente más tarde.' });
+            return;
+          }
+        }
+        if (resUsuario.status >= 500) {
+          Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+          return;
+        }
+        Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo crear el usuario.', confirmButtonText: 'Entendido' });
+        return;
       }
 
-
-      Swal.fire(
-        "Éxito",
-        `Usuario registrado correctamente.\n Username asignado: ${dataUsuario.usuario?.username || dataUsuario.idUsuario}`,
-        "success"
-      );
+      Swal.fire({ icon: 'success', title: 'Registrado correctamente', text: `Username asignado: ${dataUsuario.usuario?.username || dataUsuario.idUsuario}`, timer: 3500, showConfirmButton: false });
       resetForm();
       await cargarUsuarios();
       cerrarModal();
     } catch (err) {
       console.error(err);
-      Swal.fire("Error", err.message || "No se pudo conectar al servidor", "error");
+      Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
     }
   };
 
@@ -184,8 +329,29 @@ function Parqueaderos() {
     if (!token) return navigate("/");
 
     try {
+      // Asegurarse de usar el username original si el campo quedó vacío
+      const targetUsername = username && username.toString().trim() ? username : originalUsername;
+
+      // Validar username final antes de enviar
+      if (targetUsername && containsInvalidChars(targetUsername)) {
+        Swal.fire("Error", "El username contiene caracteres inválidos. Solo letras y números, sin espacios ni tildes.", "error");
+        return;
+      }
+
+      // Validar nombres y apellidos (no permiten espacios, tildes, ñ ni caracteres especiales)
+      if (!primerNombre || containsInvalidChars(primerNombre) || !primerApellido || containsInvalidChars(primerApellido)) {
+        Swal.fire("Error", "Los campos 'Primer Nombre' y 'Primer Apellido' son obligatorios y no pueden contener espacios, tildes, ñ ni caracteres especiales.", "error");
+        return;
+      }
+
+      if ((segundoNombre && containsInvalidChars(segundoNombre)) || (segundoApellido && containsInvalidChars(segundoApellido))) {
+        Swal.fire("Error", "No se permiten espacios, tildes, ñ ni caracteres especiales en los nombres o apellidos.", "error");
+        return;
+      }
+
       const usuarioPayload = {};
-      if (username) usuarioPayload.username = username;
+      // Enviar siempre el username efectivo para evitar enviarlo vacío
+      if (targetUsername) usuarioPayload.username = targetUsername;
       if (password) usuarioPayload.password = password;
       if (rolesId) usuarioPayload.rolesId = parseInt(rolesId);
       if (estadoId) usuarioPayload.estadoId = parseInt(estadoId);
@@ -197,25 +363,30 @@ function Parqueaderos() {
       if (segundoApellido) usuarioPayload.segundoApellido = segundoApellido;
       if (telefono) usuarioPayload.telefono = telefono;
       if (correoElectronico) usuarioPayload.correoElectronico = correoElectronico;
+      const res = await editarUsuario(targetUsername, usuarioPayload, token);
+      const contentType = res.headers.get("content-type");
+      const data = contentType && contentType.includes("application/json") ? await res.json() : await res.text();
+      if (!res.ok) {
+        if (res.status === 400) {
+          const friendly = traducirMensajeBackend(data);
+          Swal.fire({ icon: 'warning', title: 'Error de validación', text: friendly, confirmButtonText: 'Entendido' });
+          return;
+        }
+        if (res.status >= 500) {
+          Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+          return;
+        }
+        Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo actualizar el usuario.', confirmButtonText: 'Entendido' });
+        return;
+      }
 
-      const res = await fetch(`http://localhost:3001/api/usuario/${username}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(usuarioPayload),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-
-      Swal.fire("Éxito", "Usuario actualizado correctamente", "success");
+      Swal.fire({ icon: 'success', title: 'Actualizado correctamente', timer: 3500, showConfirmButton: false });
       await cargarUsuarios();
       cerrarModalEditar();
     } catch (err) {
       console.error(err);
-      Swal.fire("Error", err.message || "No se pudo actualizar", "error");
+      Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+      console.log("Payload enviado:", usuarioPayload);
     }
   };
 
@@ -254,29 +425,45 @@ function Parqueaderos() {
       });
       const dataUsuario = await resUsuario.json();
 
+      let numeroDocToFetch = user.numeroDocumento || "";
+
       if (resUsuario.ok && dataUsuario) {
         const u = dataUsuario.body || dataUsuario;
         setUsername(u.username || "");
+        setOriginalUsername(u.username || "");
         setRolesId(u.rolesId || "");
         setEstadoId(u.estadoId || "");
         setNumeroDocumento(u.numeroDocumento || "");
+        // Preferir el número recuperado desde la consulta al backend
+        numeroDocToFetch = u.numeroDocumento || numeroDocToFetch;
       }
 
-      // Consultar datos de Persona
-      const resPersona = await fetch(`http://localhost:3001/api/persona/${user.numeroDocumento}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const dataPersona = await resPersona.json();
+      // Consultar datos de Persona solo si tenemos número de documento
+      if (numeroDocToFetch) {
+        const resPersona = await fetch(`http://localhost:3001/api/persona/${numeroDocToFetch}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const dataPersona = await resPersona.json();
 
-      if (resPersona.ok && dataPersona) {
-        const p = dataPersona.body || dataPersona;
-        setTipoDocumentoId(p.tipoDocumentoId || "");
-        setPrimerNombre(p.primerNombre || "");
-        setSegundoNombre(p.segundoNombre || "");
-        setPrimerApellido(p.primerApellido || "");
-        setSegundoApellido(p.segundoApellido || "");
-        setTelefono(p.telefono || "");
-        setCorreoElectronico(p.correoElectronico || "");
+        if (resPersona.ok && dataPersona) {
+          const p = dataPersona.body || dataPersona;
+          setTipoDocumentoId(p.tipoDocumentoId || "");
+          setPrimerNombre(p.primerNombre || "");
+          setSegundoNombre(p.segundoNombre || "");
+          setPrimerApellido(p.primerApellido || "");
+          setSegundoApellido(p.segundoApellido || "");
+          setTelefono(p.telefono || "");
+          setCorreoElectronico(p.correoElectronico || "");
+        }
+      } else {
+        // Limpiar campos de persona si no hay documento
+        setTipoDocumentoId("");
+        setPrimerNombre("");
+        setSegundoNombre("");
+        setPrimerApellido("");
+        setSegundoApellido("");
+        setTelefono("");
+        setCorreoElectronico("");
       }
     } catch (error) {
       console.error("Error cargando datos para editar", error);
@@ -299,41 +486,31 @@ function Parqueaderos() {
       reverseButtons: true,
     }).then(async (result) => {
       if (result.isConfirmed) {
-        const usuarioPayload = { estadoId: 2 };
-
         try {
-          const res = await fetch(`http://localhost:3001/api/usuario/${username}`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(usuarioPayload),
-          });
-
+          const res = await finalizarUsuarioService(username, token);
           if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.message || "No se pudo actualizar el estado");
+            const contentType = res.headers.get("content-type");
+            const errorData = contentType && contentType.includes("application/json") ? await res.json() : await res.text();
+            console.error('Error al finalizar usuario:', res.status, errorData);
+            if (res.status === 400) {
+              const friendly = traducirMensajeBackend(errorData);
+              Swal.fire({ icon: 'warning', title: 'Error de validación', text: friendly, confirmButtonText: 'Entendido' });
+              return;
+            }
+            if (res.status >= 500) {
+              Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+              return;
+            }
+            Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo inactivar el usuario.', confirmButtonText: 'Entendido' });
+            return;
           }
 
-          setUsuario((prev) =>
-            prev.map((u) => u.username === username ? { ...u, estadoId: 2 } : u)
-          );
+          setUsuario((prev) => prev.map((u) => (u.username === username ? { ...u, estadoId: 2 } : u)));
 
-          Swal.fire({
-            icon: "success",
-            title: "Usuario inactivado",
-            text: "El usuario ha sido inactivado correctamente",
-            timer: 2000,
-            showConfirmButton: false,
-          });
+          Swal.fire({ icon: 'success', title: 'Finalizado correctamente', timer: 3500, showConfirmButton: false });
         } catch (error) {
           console.error("Error al inactivar:", error);
-          Swal.fire({
-            icon: "error",
-            title: "Oops...",
-            text: error.message || "No se pudo inactivar el usuario",
-          });
+          Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
         }
       }
     });
@@ -410,7 +587,10 @@ function Parqueaderos() {
   }
 
   return (
+    
+
     <div className="container-fluid p-0">
+
       {/* Sidebar */}
       <aside
         id="menuTrabajador"
@@ -421,7 +601,8 @@ function Parqueaderos() {
             <div className="user-circle bg-white d-flex align-items-center justify-content-center"
               style={{ width: "50px", height: "50px", borderRadius: "50%" }}>
               <span className="fw-bold text-success">
-                {usuarioLog?.username?.substring(0, 2).toUpperCase() || "US"}
+               {(usuarioLog?.username?.substring(0, 2)?.toUpperCase()) || "US"}
+
               </span>
             </div>
             <div className="d-flex flex-column">
@@ -455,9 +636,13 @@ function Parqueaderos() {
             <h6 className="text-uppercase fw-bold">Gestión de Visitas</h6>
             <ul className="nav flex-column mt-2 gap-2">
               <li>
-                <div className="nav-link text-white" onClick={abrirModal}>
-                  Registrar Nueva Visita
-                </div>
+                <Link
+                  className="nav-link text-white"
+                  to="/visitas"
+                  state={{ abrirModal: true }}
+                >
+                  Crear Visita
+                </Link>
               </li>
               <li>
                 <Link className="nav-link text-white" to="/visitas">
@@ -478,11 +663,6 @@ function Parqueaderos() {
               <li>
                 <Link className="nav-link text-white" to="../visitas?abrirModal=1">
                   Registrar Reserva
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="../parqueaderos=1">
-                  Consultar Zonas
                 </Link>
               </li>
             </ul>
@@ -600,81 +780,112 @@ function Parqueaderos() {
             </div>
 
             <div className="table-responsive">
-              <table className="table table-bordered table-striped">
-                <thead className="table-success">
-                  <tr>
-                    <th>Username</th>
-                    <th>Número Documento</th>
-                    <th>Rol</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {usuariosActuales.map((user) => {
-                    const rolesMap = {
-                      1: "Super Admin",
-                      2: "Admin",
-                      3: "Vigilante",
-                    };
+              <div className="row g-3">
+                {usuariosActuales.map((user) => {
+                  const rolesMap = {
+                    1: "Super Admin",
+                    2: "Admin",
+                    3: "Vigilante",
+                  };
 
-                    const estadoMap = {
-                      1: "Activo",
-                      2: "Inactivo",
-                    };
+                  const estadoMap = {
+                    1: "Activo",
+                    2: "Inactivo",
+                  };
 
-                    return (
-                      <tr key={user.username}>
-                        <td>{user.username}</td>
-                        <td>{user.numeroDocumento}</td>
-                        <td>{rolesMap[user.rolesId] || user.rolesId}</td>
-                        <td>
-                          {estadoMap[user.estadoId]}
-                          {user.estadoId === 1 && (
-                            <Lottie
-                              animationData={BIEN}
-                              loop={true}
-                              autoplay={true}
-                              style={{ width: 60, height: 40, display: "inline-block", marginLeft: "8px" }}
-                            />
-                          )}
-                          {user.estadoId === 2 && (
-                            <Lottie
-                              animationData={Inactivo}
-                              loop={true}
-                              autoplay={true}
-                              style={{ width: 40, height: 20, display: "inline-block", marginLeft: "8px" }}
-                            />
-                          )}
-                        </td>
+                  return (
+                    <div className="col-md-4" key={user.username}>
+                      <div
+                        className="card shadow-sm border-0"
+                        style={{ borderRadius: "20px" }}
+                      >
+                        {/* Cabecera con icono */}
+                        <div
+                          className="text-center p-3"
+                          style={{
+                            background: "#d1fae5",
+                            borderTopLeftRadius: "20px",
+                            borderTopRightRadius: "20px",
+                          }}
+                        >
+                          <img
+                            src="https://cdn-icons-png.flaticon.com/512/3607/3607444.png"
+                            alt="user_icon"
+                            width="60"
+                            height="60"
+                            style={{ opacity: 0.9 }}
+                          />
+                        </div>
 
-                        <td className="d-flex align-items-center justify-content-evenly">
-                          {user.estadoId === 1 ? (
-                            <>
-                              <button
-                                className="btn btn-sm btn-outline-primary"
-                                onClick={() => abrirModalEditar(user)}
-                              >
-                                Editar
-                              </button>
+                        {/* Contenido */}
+                        <div className="card-body">
 
-                              <button
-                                type="button"
-                                className="btn btn-success"
-                                onClick={() => finalizarUsuario(user.username)}
-                              >
-                                Inactivar
-                              </button>
-                            </>
-                          ) : (
-                            <span className="text-muted">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          <h5 className="card-title text-center fw-bold">
+                            {user.username}
+                          </h5>
+
+                          <p className="mb-1">
+                            <strong>Documento:</strong> {user.numeroDocumento}
+                          </p>
+
+                          <p className="mb-1">
+                            <strong>Rol:</strong> {rolesMap[user.rolesId]}
+                          </p>
+
+                          <p className="mb-1 d-flex align-items-center">
+                            <strong>Estado:</strong>
+                            <span className="ms-2">{estadoMap[user.estadoId]}</span>
+
+                            {user.estadoId === 1 && (
+                              <Lottie
+                                animationData={BIEN}
+                                loop
+                                autoplay
+                                style={{ width: 50, height: 30, marginLeft: "8px" }}
+                              />
+                            )}
+
+                            {user.estadoId === 2 && (
+                              <Lottie
+                                animationData={Inactivo}
+                                loop
+                                autoplay
+                                style={{ width: 40, height: 20, marginLeft: "8px" }}
+                              />
+                            )}
+                          </p>
+
+                          {/* Botones */}
+                          <div className="mt-3 d-flex justify-content-between">
+
+                            {user.estadoId === 1 ? (
+                              <>
+                                <button
+                                  className="btn btn-outline-primary btn-sm"
+                                  onClick={() => abrirModalEditar(user)}
+                                >
+                                  Editar
+                                </button>
+
+                                <button
+                                  className="btn btn-success btn-sm"
+                                  onClick={() => finalizarUsuario(user.username)}
+                                >
+                                  Inactivar
+                                </button>
+                              </>
+                            ) : (
+                              <span className="text-muted">Sin acciones</span>
+                            )}
+
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
             </div>
 
             {/* Paginación */}
@@ -929,7 +1140,7 @@ function Parqueaderos() {
                             type="text"
                             className="form-control bg-light"
                             value={numeroDocumento}
-                            onChange={(e) => setnumeroDocumento(e.target.value)}
+                            onChange={(e) => setNumeroDocumento(e.target.value)}
                             readOnly
                           />
                         </div>
@@ -1023,9 +1234,9 @@ function Parqueaderos() {
                           <label className="form-label small">Username</label>
                           <input
                             type="text"
-                            className="form-control"
+                            className="form-control bg-light"
                             value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            readOnly
                           />
                         </div>
 
@@ -1084,6 +1295,7 @@ function Parqueaderos() {
 
       </div>
     </div>
+ 
   );
 }
 

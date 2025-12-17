@@ -17,7 +17,7 @@ const sequelize = new Sequelize(
   }
 );
 
-// 🔹 inicializa los modelos aquí
+// inicializa los modelos aquí
 const models = initModels(sequelize);
 
 async function testConnection() {
@@ -31,5 +31,5 @@ async function testConnection() {
 
 testConnection();
 
-// 🔹 exporta ambos: sequelize y models
+// exporta ambos: sequelize y models
 export { sequelize, models };

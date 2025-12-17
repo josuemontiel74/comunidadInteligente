@@ -3,6 +3,8 @@ import RecepcionPaquetes from "../models/recepcionPaquetes.model.js";
 import Estado from "../models/estados.model.js";
 import Apartamento from "../models/apartamentos.model.js";
 import { sequelize } from "../config/connect.db.js";
+import { registrarAuditoria } from "../services/auditorias.service.js";
+import { registrarFallo } from "../services/logger.service.js";
 
 export const crearRecepcionPaquete = async (req, res) => {
   try {
@@ -41,6 +43,15 @@ export const crearRecepcionPaquete = async (req, res) => {
 
     const nuevoPaquete = await RecepcionPaquetes.create(dataPaquete);
 
+    // Registrar en auditoría
+    const usuarioActual = req.user?.username || "desconocido";
+    await registrarAuditoria(
+      usuarioActual,
+      "recepcionpaquetes",
+      "INSERT",
+      nuevoPaquete.idPaquete
+    );
+
     res.status(201).json({
       ok: true,
       status: 201,
@@ -48,6 +59,11 @@ export const crearRecepcionPaquete = async (req, res) => {
       body: nuevoPaquete,
     });
   } catch (error) {
+    const username = req.user?.username || "desconocido";
+    const ruta = "POST /recepcionpaquetes";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     res.status(500).json({ error: error.message });
   }
 };
@@ -73,6 +89,11 @@ export const obtenerRecepcionPaquetesSQL = async (req, res) => {
 
     res.json(results);
   } catch (error) {
+    const username = req.user?.username || "desconocido";
+    const ruta = "GET /recepcionpaquetes";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     console.error(error);
     res.status(500).json({ error: "Error al obtener los paquetes" });
   }
@@ -91,6 +112,11 @@ export const obtenerRecepcionesPaquetes = async (req, res) => {
       body: recepcionesPaquetes,
     });
   } catch (error) {
+    const username = req.user?.username || "desconocido";
+    const ruta = "GET /recepcionpaquetes";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     return res.status(500).json({
       message: "Algo salió mal en la peticion :(",
       status: 500,
@@ -121,6 +147,11 @@ export const obtenerRecepcionPaquetePorId = async (req, res) => {
       });
     }
   } catch (error) {
+    const username = req.user?.username || "desconocido";
+    const ruta = "GET /recepcionpaquetes/:id";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     return res.status(500).json({
       message: "Algo salió mal en la peticion :(",
       status: 500,
@@ -193,6 +224,15 @@ export const actualizarRecepcionPaquete = async (req, res) => {
         where: { idPaquete },
       });
 
+      // Registrar en auditoría
+      const usuarioActual = req.user?.username || "desconocido";
+      await registrarAuditoria(
+        usuarioActual,
+        "recepcionpaquetes",
+        "UPDATE",
+        idPaquete
+      );
+
       res.status(200).json({
         ok: true,
         status: 200,
@@ -207,6 +247,11 @@ export const actualizarRecepcionPaquete = async (req, res) => {
       });
     }
   } catch (error) {
+    const username = req.user?.username || "desconocido";
+    const ruta = "PATCH /recepcionpaquetes/:id";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     return res.status(500).json({
       message: "Algo salió mal en la petición :(",
       status: 500,
@@ -233,16 +278,166 @@ export const FinalizarRecepcionPaquete = async (req, res) => {
       fechaEntrega: dayjs().format("YYYY-MM-DD HH:mm"),
     });
 
+    // Registrar en auditoría
+    const usuarioActual = req.user?.username || "desconocido";
+    await registrarAuditoria(
+      usuarioActual,
+      "recepcionpaquetes",
+      "DELETE",
+      idPaquete
+    );
+
     res.status(200).json({
       ok: true,
       status: 200,
       message: "Recepcion de Paquete finalizado exitosamente",
     });
   } catch (error) {
+    const username = req.user?.username || "desconocido";
+    const ruta = "DELETE /recepcionpaquetes/:id";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     return res.status(500).json({
       ok: false,
       status: 500,
       message: "Algo salió mal en la petición :(",
+      error: error.message,
+    });
+  }
+};
+// informacion
+export const paqueteDelDia = async (req, res) => {
+  try {
+    const paqueteDia = await RecepcionPaquetes.count({
+      where: where(fn("Date", col("fechaRecepcion")), "=", fn("CURDATE"))
+    })
+    res.status(200).json({
+      ok: true,
+      paqueteDia
+    })
+  } catch (error) {
+    console.log("Ocurrio un erro a la hora de trea la informacion", error.message);
+  }
+}
+
+export const informePaqueteria = async (req, res) => {
+  try {
+    const reportPor = parseInt(req.params.por, 10); 
+    const rango = req.body.rango || req.body;
+    let { fechaInicio, fechaFin } = rango;
+
+  
+    if (!fechaInicio || !fechaFin) {
+      return res.status(400).json({ msg: "Las fechas de inicio y fin son obligatorias." });
+    }
+    console.log(reportPor);
+   
+    const dateInicio = new Date(fechaInicio);
+    const dateFin = new Date(fechaFin);
+
+    if (isNaN(dateInicio.getTime()) || isNaN(dateFin.getTime())) {
+      return res.status(400).json({ msg: "Formato de fecha inválido." });
+    }
+
+    // Corregir orden de fechas si están invertidas
+    if (dateInicio > dateFin) {
+      
+      [fechaInicio, fechaFin] = [fechaFin, fechaInicio];
+    } else {
+      
+      fechaInicio = dateInicio.toISOString().split('T')[0]; 
+      fechaFin = dateFin.toISOString().split('T')[0];
+    }
+    
+    const queryConfig = {
+      where: {
+        fechaRecepcion: {
+          [Op.between]: [fechaInicio, fechaFin],
+        },
+      },
+
+      raw: true, 
+    };
+
+    let informepaqueteria;
+    switch (reportPor) {
+      case 1: 
+        informepaqueteria = await RecepcionPaquetes.findAll({
+          attributes: [
+            [fn("YEAR", col("fechaRecepcion")), "anio"],
+            [fn("COUNT", col("idPaquete")), "recibidos"],
+            [literal(`SUM(CASE WHEN estadoId = 14 THEN 1 ELSE 0 END)`), "pendientes"], 
+            [literal(`SUM(CASE WHEN estadoId = 15 THEN 1 ELSE 0 END)`), "entregados"],
+          ],
+          ...queryConfig,
+          group: [fn("YEAR", col("fechaRecepcion"))],
+          order: [[fn("YEAR", col("fechaRecepcion")), 'ASC']], 
+        });
+        break;
+
+      case 2: // Agrupación por Año y Mes
+        informepaqueteria = await RecepcionPaquetes.findAll({
+          attributes: [
+            [fn("YEAR", col("fechaRecepcion")), "anio"],
+            [fn("MONTH", col("fechaRecepcion")), "mes"], 
+            [fn("COUNT", col("idPaquete")), "recibidos"],
+            [literal(`SUM(CASE WHEN estadoId = 14 THEN 1 ELSE 0 END)`), "pendientes"],
+            [literal(`SUM(CASE WHEN estadoId = 15 THEN 1 ELSE 0 END)`), "entregados"],
+          ],
+          ...queryConfig,
+          group: [
+            fn("YEAR", col("fechaRecepcion")),
+            fn("MONTH", col("fechaRecepcion")),
+          ],
+          order: [
+            [fn("YEAR", col("fechaRecepcion")), 'ASC'],
+            [fn("MONTH", col("fechaRecepcion")), 'ASC'],
+          ],
+        });
+        break;
+
+      case 3: 
+        informepaqueteria = await RecepcionPaquetes.findAll({
+          attributes: [
+            [fn("YEAR", col("fechaRecepcion")), "anio"],
+            [fn("MONTH", col("fechaRecepcion")), "mes"], 
+            [literal(`FLOOR((DAYOFMONTH(fechaRecepcion) - 1) / 7) + 1`), "semana"], 
+            [fn("COUNT", col("idPaquete")), "recibidos"],
+            [literal(`SUM(CASE WHEN estadoId = 14 THEN 1 ELSE 0 END)`), "pendientes"],
+            [literal(`SUM(CASE WHEN estadoId = 15 THEN 1 ELSE 0 END)`), "entregados"],
+          ],
+          ...queryConfig,
+          group: [
+            fn("YEAR", col("fechaRecepcion")),
+            fn("MONTH", col("fechaRecepcion")),
+            "semana", 
+          ],
+          order: [
+            [fn("YEAR", col("fechaRecepcion")), 'ASC'],
+            [fn("MONTH", col("fechaRecepcion")), 'ASC'],
+            ["semana", 'ASC'], 
+          ],
+        });
+        break;
+
+      default:
+       
+        return res.status(400).json({ msg: `El parámetro 'por' (${reportPor}) no es válido.` });
+    }
+
+   
+    return res.status(200).json({
+      ok: true,
+      informe: informepaqueteria,
+    });
+
+  } catch (error) {
+    console.error("Error al generar informe de paquetería:", error);
+
+    return res.status(500).json({
+      ok: false,
+      msg: "Lo siento, ocurrió un error al procesar el informe.",
       error: error.message,
     });
   }

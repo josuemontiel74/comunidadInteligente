@@ -7,6 +7,7 @@ import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import tiposVehiculoModel from "../models/tiposVehiculo.model.js";
 import { sequelize } from "../config/connect.db.js";
+import { registrarAuditoria } from "../services/auditorias.service.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -30,18 +31,47 @@ export const crearVisita = async (req, res) => {
 
     const fechaActual = dayjs().tz("America/Bogota");
 
-    const fechaIngreso = fechaHoraIngreso
-      ? dayjs(fechaHoraIngreso, "YYYY-MM-DD HH:mm", true).tz("America/Bogota")
-      : fechaActual;
+    // Parsear fecha con múltiples formatos posibles
+    let fechaIngreso = fechaActual;
+    if (fechaHoraIngreso) {
+      console.log("Parseando fecha:", fechaHoraIngreso);
+      // Intentar primero con formato 24h
+      fechaIngreso = dayjs(fechaHoraIngreso, "YYYY-MM-DD HH:mm", true);
+      console.log(
+        "  Intento 1 (24h):",
+        fechaIngreso.isValid() ? "VALIDO" : "INVALIDO"
+      );
+      // Si no es válido, intentar con formato AM/PM
+      if (!fechaIngreso.isValid()) {
+        fechaIngreso = dayjs(fechaHoraIngreso, "YYYY-MM-DD hh:mm A", true);
+        console.log(
+          "  Intento 2 (AM/PM):",
+          fechaIngreso.isValid() ? "VALIDO" : "INVALIDO"
+        );
+      }
+      // Aplicar timezone de Colombia
+      if (fechaIngreso.isValid()) {
+        fechaIngreso = fechaIngreso.tz("America/Bogota", true);
+        console.log(
+          "  Fecha parseada:",
+          fechaIngreso.format("YYYY-MM-DD HH:mm")
+        );
+      }
+    }
 
     // Validaciones de fecha
     if (!fechaIngreso.isValid()) {
-      return res.status(400).json({ error: "La fecha de ingreso no es válida" });
+      console.log("Fecha invalida - Rechazando peticion");
+      return res
+        .status(400)
+        .json({ error: "La fecha de ingreso no es válida" });
     }
 
-    if (fechaIngreso.isBefore(fechaActual.subtract(1, "minute"))) {
+    // Período de gracia: permitir hasta 2 horas antes de la hora actual
+    if (fechaIngreso.isBefore(fechaActual.subtract(2, "hour"))) {
       return res.status(400).json({
-        error: "La fecha y hora de ingreso no puede ser anterior a la actual",
+        error:
+          "La fecha y hora de ingreso no puede ser anterior a 2 horas de la actual",
       });
     }
 
@@ -101,7 +131,7 @@ export const crearVisita = async (req, res) => {
           tipoVehiculoId,
           codigoParqueadero,
         });
-        console.log(" Nuevo vehículo creado:", matricula);
+        console.log(`Nuevo vehiculo creado: ${matricula}`);
       } else {
         // Si tenía parqueadero distinto → liberarlo
         if (
@@ -119,7 +149,7 @@ export const crearVisita = async (req, res) => {
           tipoVehiculoId,
           codigoParqueadero,
         });
-        console.log(" Vehículo actualizado:", matricula);
+        console.log(`Vehiculo actualizado: ${matricula}`);
       }
 
       vehiculoMatricula = matricula;
@@ -137,10 +167,19 @@ export const crearVisita = async (req, res) => {
 
     console.log(" Visita creada exitosamente:", visita.toJSON());
 
-    // 🚧 Ocupar parqueadero SOLO si la visita fue creada correctamente
+    // Registrar en auditoría
+    const usuarioActual = req.user?.username || "desconocido";
+    await registrarAuditoria(
+      usuarioActual,
+      "visitas",
+      "INSERT",
+      visita.idVisita
+    );
+
+    // Ocupar parqueadero SOLO si la visita fue creada correctamente
     if (parqueadero && vehiculoMatricula) {
       await parqueadero.update({ estadoId: 3 });
-      console.log(`🅿Parqueadero ${codigoParqueadero} ocupado`);
+      console.log(`Parqueadero ${codigoParqueadero} ocupado`);
     }
 
     res.status(201).json({
@@ -152,8 +191,6 @@ export const crearVisita = async (req, res) => {
     return res.status(400).json({ error: error.message });
   }
 };
-
-
 
 export const listarVisitas = async (req, res) => {
   try {
@@ -217,8 +254,8 @@ export const obtenerVisitas = async (req, res) => {
           .format("YYYY-MM-DD hh:mm A"),
         fechaHoraSalida: visita.fechaHoraSalida
           ? dayjs(visita.fechaHoraSalida)
-              .tz("America/Bogota")
-              .format("YYYY-MM-DD hh:mm A")
+            .tz("America/Bogota")
+            .format("YYYY-MM-DD hh:mm A")
           : null,
       })),
     });
@@ -256,8 +293,8 @@ export const obtenerVisitaPorId = async (req, res) => {
           .format("YYYY-MM-DD hh:mm A"),
         fechaHoraSalida: visita.fechaHoraSalida
           ? dayjs(visita.fechaHoraSalida)
-              .tz("America/Bogota")
-              .format("YYYY-MM-DD hh:mm A")
+            .tz("America/Bogota")
+            .format("YYYY-MM-DD hh:mm A")
           : null,
       },
     });
@@ -334,7 +371,7 @@ export const actualizarVisita = async (req, res) => {
           ...(tipoDocumentoId && { tipoDocumentoId }),
         };
         visitante = await Visitante.create(visitanteData);
-        console.log("✅ Nuevo visitante creado:", numeroDocumento);
+        console.log("Nuevo visitante creado:", numeroDocumento);
       } else if (nombreVisitante || tipoDocumentoId) {
         const visitanteUpdateData = {};
         if (nombreVisitante)
@@ -343,7 +380,7 @@ export const actualizarVisita = async (req, res) => {
           visitanteUpdateData.tipoDocumentoId = tipoDocumentoId;
 
         await visitante.update(visitanteUpdateData);
-        console.log("✅ Visitante actualizado:", numeroDocumento);
+        console.log("Visitante actualizado:", numeroDocumento);
       }
       updateData.numeroDocumento = numeroDocumento;
     } else if (nombreVisitante || tipoDocumentoId) {
@@ -357,7 +394,7 @@ export const actualizarVisita = async (req, res) => {
           visitanteUpdateData.tipoDocumentoId = tipoDocumentoId;
 
         await visitanteActual.update(visitanteUpdateData);
-        console.log("✅ Visitante actual actualizado:", visita.numeroDocumento);
+        console.log("Visitante actual actualizado:", visita.numeroDocumento);
       }
     }
 
@@ -501,7 +538,11 @@ export const actualizarVisita = async (req, res) => {
     // Actualizar la visita
     await visita.update(updateData);
 
-    console.log("✅ Visita actualizada exitosamente:", updateData);
+    console.log("Visita actualizada exitosamente:", updateData);
+
+    // Registrar en auditoría
+    const usuarioActual = req.user?.username || "desconocido";
+    await registrarAuditoria(usuarioActual, "visitas", "UPDATE", idVisita);
 
     res.status(200).json({
       ok: true,
@@ -510,7 +551,7 @@ export const actualizarVisita = async (req, res) => {
       body: visita,
     });
   } catch (error) {
-    console.error("❌ Error al actualizar visita:", error);
+    console.error("Error al actualizar visita:", error);
     res.status(500).json({
       error: error.message,
       message: "Error al actualizar la visita",
@@ -521,7 +562,7 @@ export const actualizarVisita = async (req, res) => {
 export const finalizarVisita = async (req, res) => {
   try {
     const { idVisita } = req.params;
-    let fechaHoraSalida =  dayjs().tz("America/Bogota").toDate();
+    let fechaHoraSalida = dayjs().tz("America/Bogota").toDate();
 
     const visita = await Visita.findByPk(idVisita);
     if (!visita) {
@@ -553,6 +594,10 @@ export const finalizarVisita = async (req, res) => {
       fechaHoraSalida,
     });
 
+    // Registrar en auditoría
+    const usuarioActual = req.user?.username || "desconocido";
+    await registrarAuditoria(usuarioActual, "visitas", "DELETE", idVisita);
+
     // Recargar la visita con sus relaciones
     const visitaActualizada = await Visita.findByPk(idVisita, {
       include: [
@@ -570,11 +615,121 @@ export const finalizarVisita = async (req, res) => {
       body: visitaActualizada.toJSON(),
     });
   } catch (error) {
-    console.error("❌ Error al finalizar visita:", error);
+    console.error("Error al finalizar visita:", error);
     res.status(500).json({
       error: "Error interno al finalizar visita",
       status: 500,
       details: error.message,
     });
+  }
+};
+
+export const visitasDelDia = async (req, res) => {
+  try {
+    const visitasDia = await Visita.count({
+
+      where: where(fn("DATE", col("fechaHoraIngreso")), "=", fn("CURDATE"))
+
+    })
+    res.status(200).json({
+      ok: true,
+      visitasDia
+    });
+  } catch (error) {
+    console.log("Lo siento esta ocurriendo un erro al trae la informacion", error.message)
+  }
+}
+function corregirFecha(fecha) {
+  const d = new Date(fecha);
+  if (isNaN(d.getTime())) return null;
+
+  // Normaliza a formato YYYY-MM-DD
+  return d.toISOString().slice(0, 10);
+}
+
+
+
+export const informeVisintante = async (req, res) => {
+  try {
+    const { por } = req.params;
+    const tipoFiltro = parseInt(por);
+
+    let { fechaInicio, fechaFin } = req.body.rango || req.body;
+
+    fechaInicio = corregirFecha(fechaInicio);
+    fechaFin = corregirFecha(fechaFin);
+
+    if (!fechaInicio || !fechaFin) {
+      return res.status(400).json({ ok: false, msg: "Fechas inválidas" });
+    }
+
+    if (new Date(fechaInicio) > new Date(fechaFin)) {
+      [fechaInicio, fechaFin] = [fechaFin, fechaInicio];
+    }
+
+    let informevisitante;
+    const commonWhere = {
+      fechaHoraIngreso: {
+        [Op.between]: [fechaInicio, fechaFin]
+      }
+    };
+    
+ 
+    if (tipoFiltro === 1) {
+      informevisitante = await Visita.findAll({
+        attributes: [
+          [literal("YEAR(fechaHoraIngreso)"), "anio"],
+          [fn("COUNT", col("idVisita")), "numeroVisitas"]
+        ],
+        where: commonWhere,
+        group: [literal("anio")],
+        order: [[literal("anio"), "ASC"]]
+      });
+    }
+
+    if (tipoFiltro === 2) {
+      informevisitante = await Visita.findAll({
+        attributes: [
+          [literal("YEAR(fechaHoraIngreso)"), "anio"],
+          [literal("MONTH(fechaHoraIngreso)"), "mes"],
+          [fn("COUNT", col("idVisita")), "numeroVisitas"]
+        ],
+        where: commonWhere,
+        group: [
+          literal("anio"),
+          literal("mes")
+        ],
+        order: [
+          [literal("anio"), "ASC"],
+          [literal("mes"), "ASC"]
+        ]
+      });
+    }
+
+    if (tipoFiltro === 3) {
+      informevisitante = await Visita.findAll({
+        attributes: [
+          [literal("YEAR(fechaHoraIngreso)"), "anio"],
+          [literal("MONTH(fechaHoraIngreso)"), "mes"], 
+          [literal("FLOOR((DAY(fechaHoraIngreso)-1)/7)+1"), "semanaMes"],
+          [fn("COUNT", col("idVisita")), "numeroVisitas"]
+        ],
+        where: commonWhere,
+        group: [
+          literal("anio"),
+          literal("mes"),
+          literal("semanaMes")
+        ],
+        order: [
+          [literal("anio"), "ASC"],
+          [literal("mes"), "ASC"],
+          [literal("semanaMes"), "ASC"]
+        ]
+      });
+    }
+    return res.json(informevisitante);
+  } catch (error) {
+    console.error("Error en informeVisintante:", error.message);
+    return res.status(500).json({ ok: false, msg: "Error interno" });
   }
 };
