@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import '../../widgets/areasComunes/detalles_reserva.dart';
 import '../../widgets/areasComunes/registrar_reserva.dart';
 import '../../widgets/areasComunes/actualizar_reserva.dart';
+import '../../widgets/areasComunes/calendario_reservas.dart';
+import '../../utils/helpers.dart';
 
 class Areascomunes extends StatelessWidget {
   const Areascomunes({super.key, required this.token});
@@ -144,6 +146,54 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
   }
 
   Future<void> finalizarReserva(int idReservas) async {
+    // Mostrar alerta de confirmación
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.event_available, color: Colors.orange, size: 28),
+            const SizedBox(width: 8),
+            const Flexible(
+              child: Text('Finalizar Reserva', overflow: TextOverflow.ellipsis),
+            ),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '¿Está seguro de finalizar esta reserva?',
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'La reserva será marcada como completada.',
+              style: TextStyle(color: Colors.grey, fontSize: 13),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Finalizar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true) return;
+
     final url = Uri.parse(
       '${LoginServe.baseUrl}/api/ActualizarReserva/$idReservas',
     );
@@ -156,6 +206,11 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
       },
       body: jsonEncode({'estadoId': 9}),
     );
+
+    // Validar si el token expiró
+    if (manejarTokenExpirado(context, response.statusCode, response.body)) {
+      return;
+    }
 
     if (response.statusCode == 200) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -193,6 +248,12 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
           'Cache-Control': 'no-store',
         },
       );
+
+      // Validar si el token expiró
+      if (manejarTokenExpirado(context, response.statusCode, response.body)) {
+        setState(() => isLoading = false);
+        return;
+      }
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
@@ -766,25 +827,62 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
           color: Colors.grey.shade50,
           child: Column(
             children: [
-              ElevatedButton.icon(
-                onPressed: _mostrarFormularioRegistro,
-                icon: const Icon(Icons.add),
-                label: Text(
-                  MediaQuery.of(context).size.width < 600
-                      ? 'Registrar Reserva'
-                      : 'Registrar Nueva Reserva',
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(
-                    vertical: MediaQuery.of(context).size.width < 600 ? 12 : 15,
-                    horizontal: 20,
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _mostrarFormularioRegistro,
+                      icon: const Icon(Icons.add),
+                      label: Text(
+                        MediaQuery.of(context).size.width < 600
+                            ? 'Registrar'
+                            : 'Registrar Nueva Reserva',
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(
+                          vertical: MediaQuery.of(context).size.width < 600
+                              ? 12
+                              : 15,
+                          horizontal: 20,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) =>
+                            CalendarioReservas(token: widget.token),
+                      );
+                    },
+                    icon: const Icon(Icons.calendar_month),
+                    label: MediaQuery.of(context).size.width < 600
+                        ? const SizedBox.shrink()
+                        : const Text('Calendario'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange.shade700,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(
+                        vertical: MediaQuery.of(context).size.width < 600
+                            ? 12
+                            : 15,
+                        horizontal: MediaQuery.of(context).size.width < 600
+                            ? 16
+                            : 20,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
               const SizedBox(height: 15),
               // Barra de búsqueda
