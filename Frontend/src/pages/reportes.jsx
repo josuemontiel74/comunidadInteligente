@@ -7,10 +7,9 @@ import logo from "../../img/logo.png";
 import * as echarts from "echarts";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
-import { visitasDia } from "../services/visitas.services";
-import { paquetesDia } from "../services/paqueteria.services";
-import { obtenerParqueaderos } from "../services/parqueadero.services.jsx";
-import { reportes, reportesvisitas ,reportepaqueteria} from "../services/reportes.services.jsx";
+
+// URL base del backend
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 function Reportes() {
     const navigator = useNavigate();
@@ -25,6 +24,7 @@ function Reportes() {
     const [totalVisitas, setTotalVisitas] = useState(0);
     const [totalPaquetes, setTotalPaquetes] = useState(0);
     const [parqueaderos, setParqueaderos] = useState([]);
+    
     // Token y roles
     const verificarTokenVencido = (token) => {
         try {
@@ -55,6 +55,7 @@ function Reportes() {
     useEffect(() => {
         setVerificadorRol(rolesId || null);
     }, [rolesId]);
+
     const [reporte, setReporte] = useState([]);
     const [paqueteriaRecords, setPaqueteriaRecords] = useState([]);
     const [tipoReporte, setTipoReporte] = useState(3);
@@ -121,9 +122,7 @@ function Reportes() {
         return { fechaInicio: null, fechaFin: null };
     };
 
-
-
-    // Descargar como PDF (
+    // Descargar como PDF
     const downloadPDF = () => {
         const container = document.getElementById('report-container');
         if (!container) {
@@ -131,187 +130,27 @@ function Reportes() {
             return;
         }
 
-        // Activar modo de impresión para ocultar controles en la UI inmediatamente
         setPrintingMode(true);
 
-        // Crear reglas temporales para impresión en la misma ventana
-        const style = document.createElement('style');
-        style.id = 'print-only-report-container';
-        style.type = 'text/css';
-        let cssText = `
-
-
-@media print {
- 
-    /* Ocultar todo y mostrar solo el reporte */
-    body * { visibility: hidden !important; }
-    #report-container, #report-container * { 
-        visibility: visible !important; 
-        font-family: Arial, sans-serif !important;
-    }
-    
-    #report-container { 
-    
-        position: absolute !important; 
-        left: 0; 
-        top: 0; 
-        width: 100% !important; 
-        padding: 40px !important; 
-        font-size: 12pt !important;
-    }
-
-    /* LOGO CENTRADO Y GRANDE */
-    .report-print-header { 
-        text-align: center !important;
-        margin-bottom: 20px !important; 
-        padding-bottom: 10px !important;
-        border-bottom: 2px solid #000 !important;
-    }
-
-    .report-print-header img.print-logo {
-        height: 110px !important;
-        max-width: 260px !important;
-        margin-bottom: 10px !important;
-    }
-
-    .report-print-header h1 {
-        font-size: 22pt !important;
-        margin: 0 !important;
-        font-weight: bold !important;
-        text-transform: uppercase !important;
-    }
-
-    /* SUBTÍTULOS PROFESIONALES */
-    .report-section-title {
-        font-size: 18pt !important;
-        font-weight: bold !important;
-        margin-top: 30px !important;
-        margin-bottom: 12px !important;
-        text-transform: uppercase !important;
-        border-left: 5px solid #198754 !important;
-        padding-left: 10px !important;
-    }
-
-    /* LIMPIAR TARJETAS Y AUMENTAR ESPACIADO PARA IMPRESIÓN */
-    #report-container .card { 
-        box-shadow: none !important; 
-        border: none !important; 
-        background: transparent !important; 
-        margin: 28px 0 !important;
-        padding-bottom: 12px !important;
-        page-break-inside: avoid !important;
-    }
-
-    /* Cuerpo de tarjetas */
-    #report-container .card-body { 
-        padding: 8px 0 !important; 
-        /* Anular cualquier max-height inline para impresión */
-        max-height: none !important;
-        overflow: visible !important;
-    }
-
-    /* Gráficos a ancho completo y con mayor altura para evitar solapamientos en PDF */
-    #report-container canvas, 
-    #report-container svg,
-    #report-container .card-body > div {
-        width: 100% !important; 
-        height: auto !important; 
-        max-height: none !important;
-        min-height: 520px !important;
-    }
-
-    /* Asegurar separación entre columnas cuando se apilan */
-    #report-container .row.g-4 { 
-        display: block !important; 
-    }
-
-    #report-container .row.g-4 > .col-md-6 {
-        width: 100% !important; 
-        display: block !important;
-        margin-bottom: 18px !important;
-    }
-
-    /* Filas de Bootstrap: una columna debajo de otra */
-    #report-container .row.g-4 { 
-        display: block !important; 
-    }
-
-    #report-container .row.g-4 > .col-md-6 {
-        width: 100% !important; 
-        display: block !important;
-    }
-
-    /* Mostrar bloques exclusivos de impresión */
-    .print-only { display: block !important; }
-`;
-
-        // Si el usuario pidió métricas en páginas separadas añadir regla
-        if (separateMetricPages) {
-            cssText += `
-    /* Forzar salto de página entre métricas */
-    .metric-card { page-break-after: always !important; }
-`;
-        }
-
-        cssText += `
-}
-
-/* En pantalla normal ocultar los elementos print-only */
-.print-only { display: none; }
-`;
-
-        style.appendChild(document.createTextNode(cssText));
-
-
-        document.head.appendChild(style);
-
-        // Esperar que React actualice el DOM y que los gráficos se redibujen.
-        // Despachamos un resize para que ECharts vuelva a ajustar tamaños,
-        // luego esperamos antes de abrir la ventana de impresión.
         setTimeout(() => {
             try {
-                // Forzar redimensionado de gráficos registrados
                 window.dispatchEvent(new Event('resize'));
             } catch (err) {
                 console.warn('No se pudo despachar resize:', err);
             }
 
-            // Dar tiempo a que ECharts re-renderice antes de imprimir
             setTimeout(() => {
                 try {
                     window.print();
                 } catch (err) {
                     console.error('Error al imprimir:', err);
-                    alert('Error al intentar imprimir. Revisa la consola para más detalles.');
+                    alert('Error al intentar imprimir.');
                 } finally {
-                    const existing = document.getElementById('print-only-report-container');
-                    if (existing) existing.parentNode.removeChild(existing);
                     setPrintingMode(false);
                 }
             }, 700);
         }, 600);
     };
-
-    // Obtener parqueaderos
-    useEffect(() => {
-        async function fetchParqueaderos() {
-            const token = localStorage.getItem("token");
-            if (!token) return;
-
-            try {
-                const res = await obtenerParqueaderos(token);
-                const data = await res.json();
-                setParqueaderos(data.body);
-            } catch (error) {
-                console.error("Error cargando parqueaderos:", error);
-            }
-        }
-        fetchParqueaderos();
-    }, []);
-
-
-
-
 
     // Verificar usuario
     useEffect(() => {
@@ -319,7 +158,14 @@ function Reportes() {
         const userGuardado = localStorage.getItem("user");
 
         if (!token) {
-            Swal.fire({ icon: 'warning', title: 'Sesión expirada', text: 'La sesión expiró. Vuelva a iniciar sesión.', timer: 2000, showConfirmButton: false, timerProgressBar: true }).then(() => {
+            Swal.fire({ 
+                icon: 'warning', 
+                title: 'Sesión expirada', 
+                text: 'La sesión expiró. Vuelva a iniciar sesión.', 
+                timer: 2000, 
+                showConfirmButton: false, 
+                timerProgressBar: true 
+            }).then(() => {
                 localStorage.clear();
                 navigator('/');
             });
@@ -339,52 +185,88 @@ function Reportes() {
         }
     }, [navigator]);
 
-    //Obtner datos de paqueteria
+    // Obtener reporte de parqueaderos
+    useEffect(() => {
+        async function fetchParqueaderos() {
+            const token = localStorage.getItem("token");
+            if (!token) return;
 
-    // Obtener datos de áreas comunes
+            try {
+                const rango = construirRango();
+                console.log("🚗 Fetching parqueaderos con rango:", rango);
+                const res = await fetch(
+                    `${API_URL}/api/reportes/parqueaderos?fechaInicio=${rango.fechaInicio}&fechaFin=${rango.fechaFin}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+                const data = await res.json();
+                console.log("🚗 Respuesta parqueaderos:", data);
+                if (data.success && data.data) {
+                    setParqueaderos(data.data.resumenActual || []);
+                    console.log("🚗 Parqueaderos seteados:", data.data.resumenActual);
+                } else {
+                    console.warn("⚠️ No hay datos de parqueaderos");
+                }
+            } catch (error) {
+                console.error("❌ Error cargando parqueaderos:", error);
+            }
+        }
+        fetchParqueaderos();
+    }, [tipoReporte, anioInicio, anioFin, mesInicio, mesFin, mesSemana, anioSemana]);
+
+    // Obtener datos de áreas comunes (reservas)
     useEffect(() => {
         async function fetchAreacomunes() {
             const token = localStorage.getItem("token");
             if (!token) return;
+            
             try {
                 const rango = construirRango();
-                const res = await reportes(token, tipoReporte, rango);
+                console.log("🏢 Fetching reservas con rango:", rango);
+                const res = await fetch(
+                    `${API_URL}/api/reportes/reservas?fechaInicio=${rango.fechaInicio}&fechaFin=${rango.fechaFin}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
                 const data = await res.json();
-                console.log("=== RESPUESTA COMPLETA ===");
-                console.log("Datos:", data);
-                console.log("Reporte:", data.areascomunesReporte);
-                console.log("Tipo de reporte:", tipoReporte);
-                console.log("Rango:", rango);
+                console.log("🏢 Respuesta reservas:", data);
 
-                if (data.ok && data.areascomunesReporte) {
-                    setReporte(data.areascomunesReporte);
+                if (data.success && data.data && data.data.porArea) {
+                    setReporte(data.data.porArea);
+                    console.log("🏢 Reservas seteadas:", data.data.porArea);
                 } else {
-                    console.error("No hay datos en el reporte");
+                    console.warn("⚠️ No hay datos en el reporte de reservas");
                     setReporte([]);
                 }
             } catch (error) {
-                console.error("Error cargando áreas comunes:", error);
+                console.error("❌ Error cargando áreas comunes:", error);
                 setReporte([]);
             }
         }
         fetchAreacomunes();
     }, [tipoReporte, anioInicio, anioFin, mesInicio, mesFin, mesSemana, anioSemana]);
 
-    // Log para depurar lo que llega del backend
-    useEffect(() => {
-        console.log('DEBUG - datos recibidos en `reporte`:', reporte);
-    }, [reporte]);
-
-    // Gráfico de Áreas Comunes (líneas separadas por cada área para comparar)
+    // Gráfico de Áreas Comunes
     useEffect(() => {
         if (!areasChartRef.current) {
-            console.log("No hay referencia al chart");
+            console.log("⚠️ No hay referencia al chart de áreas");
             return;
         }
 
+        console.log("📊 Iniciando gráfico de áreas comunes con datos:", reporte);
+
         const myChart = echarts.init(areasChartRef.current);
 
-        if (reporte.length === 0) {
+        if (!reporte || reporte.length === 0) {
+            console.log("⚠️ Sin datos para graficar áreas comunes");
             myChart.clear();
             myChart.setOption({
                 title: { text: 'Áreas Comunes (Sin información en la fecha elegida.)', left: 'center' }
@@ -392,95 +274,32 @@ function Reportes() {
             return () => myChart.dispose();
         }
 
-
-        console.log("Datos del reporte:", reporte);
-
-        // Mapear nombres legibles para las áreas
-        const nombresAreas = {
-            1: "Salón Comunal 1",
-            2: "Salón Comunal 2",
-            3: "BBQ"
-        };
-
-        // Construir un conjunto de claves ordenables y su etiqueta legible
-        const keysMap = new Map();
-        reporte.forEach(r => {
-            const anio = r.anio !== undefined ? String(r.anio) : '';
-            const mesNum = r.mes !== undefined ? Number(r.mes) : null;
-            const semana = r.semanaMes ?? r.semana ?? r.week ?? null;
-            let key = '';
-            let label = '';
-            let sortValue = 0;
-            if (tipoReporte === 1) {
-                key = anio;
-                label = anio;
-                sortValue = Number(anio) || 0;
-            } else if (tipoReporte === 2) {
-                key = `${anio}-${String(mesNum).padStart(2, '0')}`;
-                const mesName = meses.find(m => m.valor === mesNum)?.nombre || (mesNum || '');
-                label = `${mesName} ${anio}`;
-                sortValue = Number(anio) * 100 + (mesNum || 0);
-            } else {
-                key = `${anio}-W${String(semana).padStart(2, '0')}`;
-                label = `Sem ${semana} ${anio}`;
-                sortValue = Number(anio) * 100 + (Number(semana) || 0);
-            }
-
-            if (!keysMap.has(key)) keysMap.set(key, { label, sortValue });
-        });
-
-        // Ordenar por sortValue
-        const orderedKeys = Array.from(keysMap.entries())
-            .sort((a, b) => a[1].sortValue - b[1].sortValue)
-            .map(([k, v]) => ({ key: k, label: v.label }));
-
-        const ejeXArray = orderedKeys.map(k => k.label);
-
-        // Obtener lista de áreas únicas
-        const areasIds = [...new Set(reporte.map(r => r.areaComunId))];
-
-        // Paleta de colores
-        const colores = ['#198754', '#0d6efd', '#fd7e14', '#6f42c1', '#20c997', '#dc3545'];
-
-        // Construir series: una línea por área, con suma por cada key
-        const seriesData = areasIds.map((id, idx) => {
-            const name = nombresAreas[id] || `Área ${id}`;
-            const data = orderedKeys.map(k => {
-                const sum = reporte.reduce((acc, r) => {
-                    // reconstruir key del registro
-                    let recordKey = '';
-                    if (tipoReporte === 1) recordKey = String(r.anio);
-                    else if (tipoReporte === 2) recordKey = `${String(r.anio)}-${String(r.mes).padStart(2, '0')}`;
-                    else recordKey = `${String(r.anio)}-W${String((r.semanaMes ?? r.semana ?? r.week) || '').padStart(2, '0')}`;
-                    return acc + ((r.areaComunId === id && recordKey === k.key) ? parseInt(r.totalVisitas || 0) : 0);
-                }, 0);
-                return sum;
-            });
-
-            return {
-                name,
-                type: 'line',
-                smooth: true,
-                data,
-                itemStyle: { color: colores[idx % colores.length] },
-                areaStyle: { color: colores[idx % colores.length], opacity: 0.15 }
-            };
-        });
+        const areas = reporte.map(r => r.nombreArea);
+        const cantidades = reporte.map(r => parseInt(r.cantidad || 0));
+        
+        console.log("📊 Áreas:", areas);
+        console.log("📊 Cantidades:", cantidades);
 
         const option = {
             title: {
-                text: tipoReporte === 1 ? 'Áreas Comunes por Año' : tipoReporte === 2 ? 'Áreas Comunes por Mes' : 'Áreas Comunes por Semana',
+                text: 'Reservas por Área Común',
                 left: 'center'
             },
             tooltip: { trigger: 'axis' },
             legend: { top: 'bottom' },
             grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
-            xAxis: { type: 'category', data: ejeXArray, axisLabel: { rotate: 45 } },
+            xAxis: { type: 'category', data: areas, axisLabel: { rotate: 45 } },
             yAxis: { type: 'value', name: 'Reservas' },
-            series: seriesData
+            series: [{
+                data: cantidades,
+                type: 'bar',
+                barMaxWidth: '60%',
+                itemStyle: { color: '#198754' }
+            }]
         };
 
         myChart.setOption(option, true);
+        console.log("✅ Gráfico de áreas comunes renderizado");
 
         const resizeChart = () => myChart.resize();
         window.addEventListener('resize', resizeChart);
@@ -491,7 +310,7 @@ function Reportes() {
         };
     }, [reporte, tipoReporte]);
 
-    // Gráfico de Visitas (datos reales desde backend)
+    // Gráfico de Visitas
     useEffect(() => {
         async function fetchVisitasReporte() {
             const token = localStorage.getItem('token');
@@ -499,78 +318,40 @@ function Reportes() {
 
             const rango = construirRango();
             try {
-                // Enviar el tipo de reporte seleccionado al backend (1=año,2=mes,3=semana)
-                console.log('Llamando a reportesvisitas con por=', tipoReporte, 'y rango:', rango);
-                const res = await reportesvisitas(token, tipoReporte, rango);
-                console.log('Respuesta reportesvisitas status:', res.status);
+                console.log('Llamando a reportes/visitas con rango:', rango);
+                const res = await fetch(
+                    `${API_URL}/api/reportes/visitas?fechaInicio=${rango.fechaInicio}&fechaFin=${rango.fechaFin}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+                console.log('Respuesta reportes/visitas status:', res.status);
                 const data = await res.json();
-
-                // Normalizar posibles formas de respuesta: array, { body: [...] } o Sequelize rows ({ dataValues })
-                const registrosRaw = Array.isArray(data) ? data : (data.body || []);
-                const registros = registrosRaw.map(r => (r && r.dataValues) ? r.dataValues : r);
-                console.log('Registros normalizados para graficar (registros):', registros);
+                console.log('Datos visitas:', data);
 
                 const myChart = echarts.init(visitasChartRef.current);
 
-                if (!registros || registros.length === 0) {
+                if (!data.success || !data.data || !data.data.porDia || data.data.porDia.length === 0) {
                     myChart.clear();
                     myChart.setOption({ title: { text: 'Visitas (sin datos)', left: 'center' } });
                     return;
                 }
 
-                // Construir eje X ordenado y mapear valores
-                const keysMap = new Map();
-                registros.forEach(r => {
-                    const anio = r.anio !== undefined ? String(r.anio) : '';
-                    const mesNum = r.mes !== undefined ? Number(r.mes) : null;
-                    const semana = r.semana ?? r.week ?? r.semanaMes ?? null;
-                    let key = '';
-                    let label = '';
-                    let sortValue = 0;
-
-                    if (tipoReporte === 1) {
-                        key = anio;
-                        label = anio;
-                        sortValue = Number(anio) || 0;
-                    } else if (tipoReporte === 2) {
-                        key = `${anio}-${String(mesNum).padStart(2, '0')}`;
-                        const mesName = meses.find(m => m.valor === mesNum)?.nombre || (mesNum || '');
-                        label = `${mesName} ${anio}`;
-                        sortValue = Number(anio) * 100 + (mesNum || 0);
-                    } else {
-                        key = `${anio}-W${String(semana).padStart(2, '0')}`;
-                        label = `Sem ${semana} ${anio}`;
-                        sortValue = Number(anio) * 100 + (Number(semana) || 0);
-                    }
-
-                    if (!keysMap.has(key)) keysMap.set(key, { label, sortValue });
+                const registros = data.data.porDia;
+                const fechas = registros.map(d => {
+                    const fecha = new Date(d.fecha);
+                    return fecha.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
                 });
-
-                const orderedKeys = Array.from(keysMap.entries())
-                    .sort((a, b) => a[1].sortValue - b[1].sortValue)
-                    .map(([k, v]) => ({ key: k, label: v.label }));
-
-                const ejeXArray = orderedKeys.map(k => k.label);
-
-                // Mapear numeroVisitas a cada key
-                const valores = orderedKeys.map(k => {
-                    const registro = registros.find(r => {
-                        let recordKey = '';
-                        if (tipoReporte === 1) recordKey = String(r.anio);
-                        else if (tipoReporte === 2) recordKey = `${String(r.anio)}-${String(r.mes).padStart(2, '0')}`;
-                        else {
-                            const sem = r.semana ?? r.week ?? r.semanaMes ?? '';
-                            recordKey = `${String(r.anio)}-W${String(sem).padStart(2, '0')}`;
-                        }
-                        return recordKey === k.key;
-                    });
-                    return registro ? Number(registro.numeroVisitas ?? registro.numero ?? registro.numero_visitas ?? 0) : 0;
-                });
-
-                const titulo = tipoReporte === 1 ? 'Visitas por Año' : tipoReporte === 2 ? 'Visitas por Mes' : 'Visitas por Semana';
+                const cantidades = registros.map(d => parseInt(d.cantidad || 0));
 
                 const option = {
-                    title: { text: titulo, left: 'center' },
+                    title: {
+                        text: 'Visitas por Día',
+                        left: 'center'
+                    },
                     tooltip: {
                         trigger: 'axis',
                         axisPointer: { type: 'shadow' },
@@ -579,9 +360,9 @@ function Reportes() {
                             return `${p.axisValueLabel}<br/>Visitas: <strong>${p.data}</strong>`;
                         }
                     },
-                    xAxis: { type: 'category', data: ejeXArray, axisLabel: { rotate: 45 } },
+                    xAxis: { type: 'category', data: fechas, axisLabel: { rotate: 45 } },
                     yAxis: { type: 'value', name: 'Visitas' },
-                    series: [{ data: valores, type: 'bar', barMaxWidth: '48%', itemStyle: { color: '#0d6efd' } }]
+                    series: [{ data: cantidades, type: 'bar', barMaxWidth: '48%', itemStyle: { color: '#0d6efd' } }]
                 };
 
                 myChart.setOption(option, true);
@@ -602,7 +383,7 @@ function Reportes() {
         fetchVisitasReporte();
     }, [loading, tipoReporte, anioInicio, anioFin, mesInicio, mesFin, mesSemana, anioSemana]);
 
-    // Gráfico de Paquetería (datos reales desde backend)
+    // Gráfico de Paquetería
     useEffect(() => {
         async function fetchPaqueteriaReporte() {
             const token = localStorage.getItem('token');
@@ -610,177 +391,58 @@ function Reportes() {
 
             const rango = construirRango();
             try {
-                console.log('Llamando a reportepaqueteria (paqueteria) con por=', tipoReporte, 'rango:', rango);
-                const res = await reportepaqueteria(token, tipoReporte, rango);
-                console.log('Respuesta reportes(paquete) status:', res.status);
+                console.log('Llamando a reportes/paquetes con rango:', rango);
+                const res = await fetch(
+                    `${API_URL}/api/reportes/paquetes?fechaInicio=${rango.fechaInicio}&fechaFin=${rango.fechaFin}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+                console.log('Respuesta reportes/paquetes status:', res.status);
                 const data = await res.json();
-                console.log('Datos crudos paqueteria:', data);
+                console.log('Datos paquetería:', data);
 
-                // Normalizar posibles formas de respuesta: array, { informe: [...] }, { body: [...] }
-                const registrosRaw = Array.isArray(data) ? data : (data.informe || data.body || data.paqueteria || []);
-                const registros = registrosRaw.map(r => (r && r.dataValues) ? r.dataValues : r);
-                setPaqueteriaRecords(registros);
-
-                // Guardar registros
-                setPaqueteriaRecords(registros);
-
-                // Construir eje X (año/mes/semana)
-                const keysMap = new Map();
-                registros.forEach(r => {
-                    const anio = r.anio !== undefined ? String(r.anio) : '';
-                    const mesNum = r.mes !== undefined ? Number(r.mes) : null;
-                    const semana = r.semana ?? r.semanaMes ?? r.week ?? null;
-                    let key = '';
-                    let label = '';
-                    let sortValue = 0;
-
-                    if (tipoReporte === 1) {
-                        key = anio;
-                        label = anio;
-                        sortValue = Number(anio) || 0;
-                    } else if (tipoReporte === 2) {
-                        key = `${anio}-${String(mesNum).padStart(2, '0')}`;
-                        const mesName = meses.find(m => m.valor === mesNum)?.nombre || (mesNum || '');
-                        label = `${mesName} ${anio}`;
-                        sortValue = Number(anio) * 100 + (mesNum || 0);
-                    } else {
-                        key = `${anio}-W${String(semana).padStart(2, '0')}`;
-                        label = `Sem ${semana} ${anio}`;
-                        sortValue = Number(anio) * 100 + (Number(semana) || 0);
-                    }
-
-                    if (!keysMap.has(key)) keysMap.set(key, { label, sortValue });
-                });
-
-                const orderedKeys = Array.from(keysMap.entries())
-                    .sort((a, b) => a[1].sortValue - b[1].sortValue)
-                    .map(([k, v]) => ({ key: k, label: v.label }));
-
-                const ejeXArray = orderedKeys.map(k => k.label);
-
-                // Mapear 3 series: recibidos, pendientes, entregados
-                const recibidos = orderedKeys.map(k => {
-                    const reg = registros.find(r => {
-                        let rk = '';
-                        if (tipoReporte === 1) rk = String(r.anio);
-                        else if (tipoReporte === 2) rk = `${String(r.anio)}-${String(r.mes).padStart(2, '0')}`;
-                        else {
-                            const sem = r.semana ?? r.semanaMes ?? r.week ?? '';
-                            rk = `${String(r.anio)}-W${String(sem).padStart(2, '0')}`;
-                        }
-                        return rk === k.key;
-                    });
-                    return reg ? Number(reg.recibidos ?? reg.recibido ?? reg.count ?? 0) : 0;
-                });
-
-                const pendientes = orderedKeys.map(k => {
-                    const reg = registros.find(r => {
-                        let rk = '';
-                        if (tipoReporte === 1) rk = String(r.anio);
-                        else if (tipoReporte === 2) rk = `${String(r.anio)}-${String(r.mes).padStart(2, '0')}`;
-                        else {
-                            const sem = r.semana ?? r.semanaMes ?? r.week ?? '';
-                            rk = `${String(r.anio)}-W${String(sem).padStart(2, '0')}`;
-                        }
-                        return rk === k.key;
-                    });
-                    return reg ? Number(reg.pendientes ?? reg.pendiente ?? reg.pendientes_count ?? 0) : 0;
-                });
-
-                const entregados = orderedKeys.map(k => {
-                    const reg = registros.find(r => {
-                        let rk = '';
-                        if (tipoReporte === 1) rk = String(r.anio);
-                        else if (tipoReporte === 2) rk = `${String(r.anio)}-${String(r.mes).padStart(2, '0')}`;
-                        else {
-                            const sem = r.semana ?? r.semanaMes ?? r.week ?? '';
-                            rk = `${String(r.anio)}-W${String(sem).padStart(2, '0')}`;
-                        }
-                        return rk === k.key;
-                    });
-                    return reg ? Number(reg.entregados ?? reg.entregado ?? reg.entregados_count ?? 0) : 0;
-                });
-
-                // Si el usuario quiere métricas separadas, dibujar 3 charts individuales
-                if (separateMetricPages) {
-                    // limpiar chart combinado si existe
-                    try { if (paqueteriaChartRef.current) echarts.dispose(paqueteriaChartRef.current); } catch(e){}
-
-                    // Recibidos
-                    if (paqRecChartInstance.current) { paqRecChartInstance.current.dispose(); paqRecChartInstance.current = null; }
-                    if (paqRecRef.current) {
-                        paqRecChartInstance.current = echarts.init(paqRecRef.current);
-                        paqRecChartInstance.current.setOption({
-                            title: { text: 'Recibidos', left: 'center' },
-                            xAxis: { type: 'category', data: ejeXArray, axisLabel: { rotate: 45 } },
-                            yAxis: { type: 'value' },
-                            tooltip: { trigger: 'axis' },
-                            series: [{ data: recibidos, type: 'line', smooth: true, itemStyle: { color: '#0d6efd' }, areaStyle: { color: 'rgba(13,110,253,0.12)' } }]
-                        }, true);
-                    }
-
-                    // Pendientes
-                    if (paqPendChartInstance.current) { paqPendChartInstance.current.dispose(); paqPendChartInstance.current = null; }
-                    if (paqPendRef.current) {
-                        paqPendChartInstance.current = echarts.init(paqPendRef.current);
-                        paqPendChartInstance.current.setOption({
-                            title: { text: 'Pendientes', left: 'center' },
-                            xAxis: { type: 'category', data: ejeXArray, axisLabel: { rotate: 45 } },
-                            yAxis: { type: 'value' },
-                            tooltip: { trigger: 'axis' },
-                            series: [{ data: pendientes, type: 'line', smooth: true, itemStyle: { color: '#ffc107' }, areaStyle: { color: 'rgba(255,193,7,0.12)' } }]
-                        }, true);
-                    }
-
-                    // Entregados
-                    if (paqEntChartInstance.current) { paqEntChartInstance.current.dispose(); paqEntChartInstance.current = null; }
-                    if (paqEntRef.current) {
-                        paqEntChartInstance.current = echarts.init(paqEntRef.current);
-                        paqEntChartInstance.current.setOption({
-                            title: { text: 'Entregados', left: 'center' },
-                            xAxis: { type: 'category', data: ejeXArray, axisLabel: { rotate: 45 } },
-                            yAxis: { type: 'value' },
-                            tooltip: { trigger: 'axis' },
-                            series: [{ data: entregados, type: 'line', smooth: true, itemStyle: { color: '#198754' }, areaStyle: { color: 'rgba(25,135,84,0.12)' } }]
-                        }, true);
-                    }
-
-                    const resizeRec = () => { if (paqRecChartInstance.current) paqRecChartInstance.current.resize(); };
-                    const resizePend = () => { if (paqPendChartInstance.current) paqPendChartInstance.current.resize(); };
-                    const resizeEnt = () => { if (paqEntChartInstance.current) paqEntChartInstance.current.resize(); };
-                    window.addEventListener('resize', resizeRec);
-                    window.addEventListener('resize', resizePend);
-                    window.addEventListener('resize', resizeEnt);
-
-                    return () => {
-                        window.removeEventListener('resize', resizeRec);
-                        window.removeEventListener('resize', resizePend);
-                        window.removeEventListener('resize', resizeEnt);
-                        if (paqRecChartInstance.current) { paqRecChartInstance.current.dispose(); paqRecChartInstance.current = null; }
-                        if (paqPendChartInstance.current) { paqPendChartInstance.current.dispose(); paqPendChartInstance.current = null; }
-                        if (paqEntChartInstance.current) { paqEntChartInstance.current.dispose(); paqEntChartInstance.current = null; }
-                    };
-                }
-
-                // Si no separamos métricas, dibujar gráfico combinado
                 const myChart = echarts.init(paqueteriaChartRef.current);
 
-                if (!registros || registros.length === 0) {
+                if (!data.success || !data.data || !data.data.porDia || data.data.porDia.length === 0) {
                     myChart.clear();
                     myChart.setOption({ title: { text: 'Paquetería (sin datos)', left: 'center' } });
                     return;
                 }
 
+                const registros = data.data.porDia;
+                const fechas = registros.map(d => {
+                    const fecha = new Date(d.fecha);
+                    return fecha.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
+                });
+                const cantidades = registros.map(d => parseInt(d.cantidad || 0));
+
+                // Construir datos para las tres series (esto es una aproximación, ajusta según tu backend)
+                const recibidos = cantidades;
+                const pendientes = registros.map(() => data.data.pendientes || 0);
+                const entregados = registros.map(() => data.data.entregados || 0);
+
                 const option = {
-                    title: { text: tipoReporte === 1 ? 'Paquetería por Año' : tipoReporte === 2 ? 'Paquetería por Mes' : 'Paquetería por Semana', left: 'center' },
+                    title: { 
+                        text: 'Paquetería por Día', 
+                        left: 'center' 
+                    },
                     tooltip: { trigger: 'axis' },
                     legend: { top: 'bottom' },
-                    xAxis: { type: 'category', data: ejeXArray, axisLabel: { rotate: 45 } },
+                    xAxis: { type: 'category', data: fechas, axisLabel: { rotate: 45 } },
                     yAxis: { type: 'value', name: 'Paquetes' },
                     series: [
-                        { name: 'Recibidos', data: recibidos, type: 'line', smooth: true, itemStyle: { color: '#0d6efd' }, areaStyle: { color: 'rgba(13,110,253,0.12)' } },
-                        { name: 'Pendientes', data: pendientes, type: 'line', smooth: true, itemStyle: { color: '#ffc107' }, areaStyle: { color: 'rgba(255,193,7,0.12)' } },
-                        { name: 'Entregados', data: entregados, type: 'line', smooth: true, itemStyle: { color: '#198754' }, areaStyle: { color: 'rgba(25,135,84,0.12)' } }
+                        { 
+                            name: 'Recibidos', 
+                            data: recibidos, 
+                            type: 'line', 
+                            smooth: true, 
+                            itemStyle: { color: '#0d6efd' }, 
+                            areaStyle: { color: 'rgba(13,110,253,0.12)' } 
+                        }
                     ]
                 };
 
@@ -813,8 +475,8 @@ function Reportes() {
             chartRef.current.destroy();
         }
 
-        const espaciosLibres = parqueaderos.filter((p) => p.estadoId === 4).length;
-        const espaciosOcupados = parqueaderos.filter((p) => p.estadoId === 3).length;
+        const espaciosLibres = parqueaderos.reduce((sum, p) => sum + parseInt(p.disponibles || 0), 0);
+        const espaciosOcupados = parqueaderos.reduce((sum, p) => sum + parseInt(p.ocupados || 0), 0);
 
         chartRef.current = new Chart(ctx, {
             type: "doughnut",
@@ -1218,45 +880,11 @@ function Reportes() {
                                 <div className="card-header bg-primary text-white">
                                     <h5 className="mb-0">
                                         <i className="bi bi-box-seam me-2"></i>
-                                        Paquetería Semanal
+                                        Paquetería
                                     </h5>
                                 </div>
                                 <div className="card-body">
-                                    {!separateMetricPages ? (
-                                        <>
-                                            <div ref={paqueteriaChartRef} style={{ width: '100%', height: '300px' }}></div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="metric-card card shadow-sm mb-3">
-                                                <div className="card-header bg-light">
-                                                    <strong>Recibidos</strong>
-                                                </div>
-                                                <div className="card-body">
-                                                    <div ref={paqRecRef} style={{ width: '100%', height: '520px' }}></div>
-                                                </div>
-                                            </div>
-
-                                            <div className="metric-card card shadow-sm mb-3">
-                                                <div className="card-header bg-light">
-                                                    <strong>Pendientes</strong>
-                                                </div>
-                                                <div className="card-body">
-                                                    <div ref={paqPendRef} style={{ width: '100%', height: '520px' }}></div>
-                                                </div>
-                                            </div>
-
-                                            <div className="metric-card card shadow-sm mb-3">
-                                                <div className="card-header bg-light">
-                                                    <strong>Entregados</strong>
-                                                </div>
-                                                <div className="card-body">
-                                                    <div ref={paqEntRef} style={{ width: '100%', height: '520px' }}></div>
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
-
+                                    <div ref={paqueteriaChartRef} style={{ width: '100%', height: '300px' }}></div>
                                 </div>
                             </div>
                         </div>
