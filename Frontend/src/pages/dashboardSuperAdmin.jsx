@@ -14,29 +14,39 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import { visitasDia } from "../services/visitas.services";
 import { paquetesDia } from "../services/paqueteria.services";
 import { obtenerParqueaderos } from "../services/parqueadero.services.jsx";
+
+const API_URL = 'http://localhost:3001';
+
 function Dashboard() {
   const navigator = useNavigate();
+  
   useEffect(() => {
     const token = localStorage.getItem("token");
     
     if (!token) {
-      Swal.fire({ icon: 'warning', title: 'Sesión expirada', text: 'La sesión expiró. Vuelva a iniciar sesión.', timer: 2000, showConfirmButton: false, timerProgressBar: true }).then(() => {
+      Swal.fire({ 
+        icon: 'warning', 
+        title: 'Sesión expirada', 
+        text: 'La sesión expiró. Vuelva a iniciar sesión.', 
+        timer: 2000, 
+        showConfirmButton: false, 
+        timerProgressBar: true 
+      }).then(() => {
         localStorage.clear();
         navigator('/');
       });
     }
-
-  
   }, [navigator]);
+
   const chartRef = useRef(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [loading, setLoading] = useState(true);
   const [usuario, setUsuario] = useState(null);
   const [totalVisitas, setTotalVisitas] = useState(0);
   const [totalPaquetes, setTotalPaquetes] = useState(0);
-
   const [parqueaderos, setParqueaderos] = useState([]);
-  //obtenr paquederos
+
+  // Obtener parqueaderos
   useEffect(() => {
     async function fetchParqueaderos() {
       const token = localStorage.getItem("token");
@@ -45,53 +55,65 @@ function Dashboard() {
       try {
         const res = await obtenerParqueaderos(token);
         const data = await res.json();
-
-        console.log(data);
-
+        console.log("🚗 Parqueaderos:", data);
         setParqueaderos(data.body);
       } catch (error) {
-        console.error("Error cargando parqueaderos:", error);
+        console.error("❌ Error cargando parqueaderos:", error);
       }
     }
 
     fetchParqueaderos();
   }, []);
 
-  // para paqueaderos
-
   const espaciosLibres = parqueaderos.filter((p) => p.estadoId === 4).length;
   const espaciosOcupados = parqueaderos.filter((p) => p.estadoId === 3).length;
-  // visitas del dia
+
+  // Visitas del día
   useEffect(() => {
     async function fetchVisitas() {
       const token = localStorage.getItem("token");
       if (!token) return;
 
       try {
+        console.log("👥 Fetching visitas del día...");
         const res = await visitasDia(token);
         const data = await res.json();
-        setTotalVisitas(data.visitasDia);
+        console.log("👥 Respuesta visitas:", data);
+        
+        // Intentar múltiples formas de acceder al dato
+        const visitas = data.visitasDia || data.total || data.count || data.data?.visitasDia || 0;
+        setTotalVisitas(visitas);
+        console.log("✅ Visitas seteadas:", visitas);
       } catch (error) {
-        console.error("Error cargando visitas del día:", error);
+        console.error("❌ Error cargando visitas del día:", error);
+        setTotalVisitas(0);
       }
     }
     fetchVisitas();
   }, []);
-  // paquetes del dia 
+
+  // Paquetes del día
   useEffect(() => {
-    async function fecthpaquetesDia() {
+    async function fetchPaquetesDia() {
       const token = localStorage.getItem("token");
       if (!token) return;
+      
       try {
+        console.log("📦 Fetching paquetes del día...");
         const res = await paquetesDia(token);
         const data = await res.json();
-        setTotalPaquetes(data.paqueteDia)
+        console.log("📦 Respuesta paquetes:", data);
+        
+        // Intentar múltiples formas de acceder al dato
+        const paquetes = data.paqueteDia || data.total || data.count || data.data?.paqueteDia || 0;
+        setTotalPaquetes(paquetes);
+        console.log("✅ Paquetes seteados:", paquetes);
       } catch (error) {
-        console.error("No se cargaron los datos")
+        console.error("❌ Error cargando paquetes del día:", error);
+        setTotalPaquetes(0);
       }
-
     }
-    fecthpaquetesDia();
+    fetchPaquetesDia();
   }, []);
 
   const cerrarSesión = (e) => {
@@ -121,6 +143,7 @@ function Dashboard() {
 
   const tokenLocal = localStorage.getItem('token');
   const tokenValidoLocal = tokenLocal && !verificarTokenVencidoLocal(tokenLocal);
+  
   const obtenerRolFromToken = (token) => {
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
@@ -129,6 +152,7 @@ function Dashboard() {
       return null;
     }
   };
+  
   const rolesIdLocal = tokenLocal ? obtenerRolFromToken(tokenLocal) : null;
   const showUserManagementLocal = tokenValidoLocal && rolesIdLocal === 1; // solo SuperAdmin
   const showAreasComunesLocal = tokenValidoLocal && rolesIdLocal !== 3; // ocultar para Vigilante
@@ -157,7 +181,7 @@ function Dashboard() {
         navigator("/");
       }
     } else {
-      fetch("http://localhost:3001/api/usuario", {
+      fetch(`${API_URL}/api/usuario`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -224,8 +248,7 @@ function Dashboard() {
         chartRef.current.destroy();
       }
     };
-  }, [parqueaderos, loading]);
-
+  }, [parqueaderos, loading, espaciosOcupados, espaciosLibres]);
 
   if (loading) {
     return <h2 className="text-center text-success mt-5">Verificando sesión...</h2>;
@@ -299,7 +322,6 @@ function Dashboard() {
                     Registrar Reserva
                   </Link>
                 </li>
-
               </ul>
             </div>
           )}
@@ -427,8 +449,7 @@ function Dashboard() {
           </div>
           <div className="module-card">
             <i className="bi bi-file-earmark-text" style={{ fontSize: "80px" }}></i>
-           
-            <h5>Gestion de Reportes</h5>
+            <h5>Gestión de Reportes</h5>
             <Link to="/Reportes" className="btn btn-success">
               ➜
             </Link>
@@ -454,6 +475,7 @@ function Dashboard() {
               Ver Estado
             </Link>
           </div>
+          
           <div className="dashboard-card">
             <h5>Paquetes Recibidos</h5>
             <div className="stat-number">{totalPaquetes}</div>
