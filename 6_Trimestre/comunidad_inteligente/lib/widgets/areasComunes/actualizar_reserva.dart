@@ -48,6 +48,48 @@ class _ActualizarState extends State<Actualizar> {
           return;
         }
 
+        // Debug: Imprimir el JSON para ver la estructura
+        print('=== DEBUG RESERVA JSON ===');
+        print(reservaJson);
+
+        // Extraer el tipoDocumentoId directamente del JSON
+        String? tipoDocIdFromJson;
+
+        // Intentar obtener de diferentes estructuras posibles
+        if (reservaJson['Solicitante'] != null) {
+          // Estructura con Solicitante anidado
+          final solicitante = reservaJson['Solicitante'];
+          if (solicitante['tipoDocumentoId'] != null) {
+            tipoDocIdFromJson = solicitante['tipoDocumentoId'].toString();
+          } else if (solicitante['TipoDocumento'] != null) {
+            // Si viene el objeto TipoDocumento con nombreDocumento (T mayúscula)
+            final tipoDoc = solicitante['TipoDocumento'];
+            if (tipoDoc is Map) {
+              final nombre =
+                  tipoDoc['nombreDocumento']?.toString().toLowerCase() ?? '';
+              tipoDocIdFromJson = _mapTipoDocumento(nombre);
+            }
+          } else if (solicitante['tipodocumento'] != null) {
+            // Si viene el objeto tipodocumento con nombreDocumento (t minúscula)
+            final tipoDoc = solicitante['tipodocumento'];
+            if (tipoDoc is Map) {
+              final nombre =
+                  tipoDoc['nombreDocumento']?.toString().toLowerCase() ?? '';
+              tipoDocIdFromJson = _mapTipoDocumento(nombre);
+            }
+          }
+        } else if (reservaJson['tipoDocumentoId'] != null) {
+          // Estructura plana
+          tipoDocIdFromJson = reservaJson['tipoDocumentoId'].toString();
+        } else if (reservaJson['nombreDocumento'] != null) {
+          // Si viene el nombre directamente
+          tipoDocIdFromJson = _mapTipoDocumento(
+            reservaJson['nombreDocumento'].toString().toLowerCase(),
+          );
+        }
+
+        print('tipoDocIdFromJson extraído: $tipoDocIdFromJson');
+
         setState(() {
           reservas = [Reserva.fromJson(reservaJson)];
 
@@ -78,8 +120,9 @@ class _ActualizarState extends State<Actualizar> {
             }
           }
 
-          // Inicializar tipo de documento usando el getter
-          tipoDocumentoId = reservas[0].tipoDocumentoId;
+          // Inicializar tipo de documento - usar el extraído del JSON o del getter
+          tipoDocumentoId = tipoDocIdFromJson ?? reservas[0].tipoDocumentoId;
+          print('tipoDocumentoId final: $tipoDocumentoId');
 
           // Inicializar acepta reglamento
           aceptaReglamento = reservas[0].aceptaReglamento;
@@ -100,6 +143,22 @@ class _ActualizarState extends State<Actualizar> {
     }
   }
 
+  // Helper para mapear nombre de tipo de documento a ID
+  String? _mapTipoDocumento(String nombre) {
+    if (nombre.contains('cédula') ||
+        nombre.contains('cedula') ||
+        nombre == 'cc')
+      return '1';
+    if (nombre.contains('extranjería') ||
+        nombre.contains('extranjeria') ||
+        nombre == 'ce')
+      return '2';
+    if (nombre.contains('pasaporte') || nombre == 'pp') return '3';
+    if (nombre == 'pep') return '4';
+    if (nombre == 'ppt') return '5';
+    return null;
+  }
+
   final _formKey = GlobalKey<FormState>();
   String? nombreSolicitante;
   String? documentoSolicitante;
@@ -118,6 +177,57 @@ class _ActualizarState extends State<Actualizar> {
 
   // ignore: non_constant_identifier_names
   Future<void> Actualizar() async {
+    // Mostrar alerta de confirmación
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.edit_calendar, color: Colors.orange, size: 28),
+            const SizedBox(width: 8),
+            const Flexible(
+              child: Text(
+                'Confirmar Actualización',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '¿Está seguro de actualizar esta reserva?',
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Los cambios se guardarán permanentemente.',
+              style: TextStyle(color: Colors.grey, fontSize: 13),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Actualizar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true) return;
+
     final url = Uri.parse(
       '${LoginServe.baseUrl}/api/ActualizarReserva/${widget.idReservas}',
     );
@@ -194,8 +304,9 @@ class _ActualizarState extends State<Actualizar> {
       body: jsonEncode(datosActualizar),
     );
 
+    if (!mounted) return; // Verificar si el widget sigue montado
+
     if (response.statusCode == 200) {
-      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Reserva actualizada correctamente"),
@@ -203,8 +314,8 @@ class _ActualizarState extends State<Actualizar> {
           showCloseIcon: true,
         ),
       );
-      await Future.delayed(const Duration(seconds: 1));
-      Navigator.pop(context);
+      Navigator.pop(context); // Cerrar modal de actualización
+      Navigator.pop(context); // Volver a la pantalla anterior
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
