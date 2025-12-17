@@ -25,6 +25,36 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
   String? filtroApartamento;
   final TextEditingController _searchController = TextEditingController();
 
+  // Método helper para mostrar SnackBar de forma segura
+  void _mostrarSnackBar(String mensaje, {Color? backgroundColor}) {
+    if (!mounted) return;
+
+    try {
+      _mostrarSnackBarSafe(
+        SnackBar(
+          content: Text(mensaje),
+          backgroundColor: backgroundColor ?? Colors.green,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      // Si falla, solo imprime en consola
+      print('SnackBar: $mensaje');
+    }
+  }
+
+  // Método para mostrar SnackBar con widget personalizado
+  void _mostrarSnackBarSafe(SnackBar snackBar) {
+    if (!mounted) return;
+
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    } catch (e) {
+      // Si falla, solo imprime en consola
+      print('SnackBar no disponible');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +86,12 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
         Uri.parse('${LoginServe.baseUrl}/api/recepcionPaquetes'),
         headers: headers,
       );
+
+      // Validar si el token expiró
+      if (manejarTokenExpirado(context, response.statusCode, response.body)) {
+        setState(() => isLoading = false);
+        return;
+      }
 
       if (response.statusCode == 200) {
         final datos = json.decode(response.body);
@@ -169,7 +205,7 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
         isLoading = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        _mostrarSnackBarSafe(
           SnackBar(
             content: Text('Error al cargar paquetes: $error'),
             backgroundColor: Colors.red,
@@ -239,6 +275,74 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
   }
 
   Future<void> _marcarComoEntregado(dynamic paquete) async {
+    // Mostrar alerta de confirmación
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.local_shipping, color: Colors.blue, size: 28),
+            const SizedBox(width: 8),
+            const Flexible(
+              child: Text('Confirmar Entrega', overflow: TextOverflow.ellipsis),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '¿Está seguro de marcar este paquete como entregado?',
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Destinatario: ${paquete['nombreDestinatario'] ?? 'N/A'}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    'Apartamento: ${paquete['apartamento']?['numeroApartamento'] ?? 'N/A'}',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Esta acción no se puede deshacer.',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Entregar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true) return;
+
     try {
       final headers = {'Content-Type': 'application/json'};
       if (LoginServe.token != null) {
@@ -252,9 +356,14 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
         headers: headers,
       );
 
+      // Validar si el token expiró
+      if (manejarTokenExpirado(context, response.statusCode, response.body)) {
+        return;
+      }
+
       if (response.statusCode == 200 || response.statusCode == 204) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          _mostrarSnackBarSafe(
             const SnackBar(
               content: Text('Paquete marcado como entregado'),
               backgroundColor: Colors.green,
@@ -267,7 +376,7 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        _mostrarSnackBarSafe(
           SnackBar(
             content: Text(
               'Error: ${error.toString().replaceAll('Exception: ', '')}',
@@ -1020,10 +1129,15 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
         body: json.encode(body),
       );
 
+      // Validar si el token expiró
+      if (manejarTokenExpirado(context, response.statusCode, response.body)) {
+        return;
+      }
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (mounted) {
           Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
+          _mostrarSnackBarSafe(
             const SnackBar(
               content: Text('Paquete registrado exitosamente'),
               backgroundColor: Colors.green,
@@ -1040,7 +1154,7 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        _mostrarSnackBarSafe(
           SnackBar(
             content: Text(
               'Error: ${error.toString().replaceAll('Exception: ', '')}',
@@ -1056,6 +1170,15 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
           isSubmitting = false;
         });
       }
+    }
+  }
+
+  void _mostrarSnackBarSafe(SnackBar snackBar) {
+    if (!mounted) return;
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    } catch (e) {
+      print('SnackBar no disponible');
     }
   }
 
@@ -1576,10 +1699,15 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
         body: json.encode(body),
       );
 
+      // Validar si el token expiró
+      if (manejarTokenExpirado(context, response.statusCode, response.body)) {
+        return;
+      }
+
       if (response.statusCode == 200 || response.statusCode == 204) {
         if (mounted) {
           Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
+          _mostrarSnackBarSafe(
             const SnackBar(
               content: Text('Paquete actualizado exitosamente'),
               backgroundColor: Colors.green,
@@ -1595,7 +1723,7 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        _mostrarSnackBarSafe(
           SnackBar(
             content: Text(
               'Error: ${error.toString().replaceAll('Exception: ', '')}',
@@ -1611,6 +1739,15 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
           isSubmitting = false;
         });
       }
+    }
+  }
+
+  void _mostrarSnackBarSafe(SnackBar snackBar) {
+    if (!mounted) return;
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    } catch (e) {
+      print('SnackBar no disponible');
     }
   }
 

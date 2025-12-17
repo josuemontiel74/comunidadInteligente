@@ -11,7 +11,7 @@ export const crearReservarAreasSchema = Joi.object({
     .pattern(/^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/)
     .required(),
   motivoReserva: Joi.string().max(100).required(),
-  cantidadAsistentes: Joi.number().integer().required(),
+  cantidadAsistentes: Joi.number().integer().required().max(50),
   invitadosExternos: Joi.boolean().required(),
   aceptaReglamento: Joi.boolean().required(),
   estadoId: Joi.number().integer().optional(),
@@ -36,7 +36,7 @@ export const actualizarReservarAreasSchema = Joi.object({
     .pattern(/^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/)
     .optional(),
   motivoReserva: Joi.string().max(100).optional(),
-  cantidadAsistentes: Joi.number().integer().optional(),
+  cantidadAsistentes: Joi.number().integer().optional().max(50),
   invitadosExternos: Joi.boolean().optional(),
   aceptaReglamento: Joi.boolean().optional(),
   estadoId: Joi.number().integer().optional(),

@@ -7,8 +7,7 @@ import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import tiposVehiculoModel from "../models/tiposVehiculo.model.js";
 import { sequelize } from "../config/connect.db.js";
-import { fn, col, Op, literal, where } from "sequelize";
-
+import { registrarAuditoria } from "../services/auditorias.service.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -68,9 +67,11 @@ export const crearVisita = async (req, res) => {
         .json({ error: "La fecha de ingreso no es válida" });
     }
 
-    if (fechaIngreso.isBefore(fechaActual.subtract(1, "minute"))) {
+    // Período de gracia: permitir hasta 2 horas antes de la hora actual
+    if (fechaIngreso.isBefore(fechaActual.subtract(2, "hour"))) {
       return res.status(400).json({
-        error: "La fecha y hora de ingreso no puede ser anterior a la actual",
+        error:
+          "La fecha y hora de ingreso no puede ser anterior a 2 horas de la actual",
       });
     }
 
@@ -165,6 +166,15 @@ export const crearVisita = async (req, res) => {
     });
 
     console.log(" Visita creada exitosamente:", visita.toJSON());
+
+    // Registrar en auditoría
+    const usuarioActual = req.user?.username || "desconocido";
+    await registrarAuditoria(
+      usuarioActual,
+      "visitas",
+      "INSERT",
+      visita.idVisita
+    );
 
     // Ocupar parqueadero SOLO si la visita fue creada correctamente
     if (parqueadero && vehiculoMatricula) {
@@ -530,6 +540,10 @@ export const actualizarVisita = async (req, res) => {
 
     console.log("Visita actualizada exitosamente:", updateData);
 
+    // Registrar en auditoría
+    const usuarioActual = req.user?.username || "desconocido";
+    await registrarAuditoria(usuarioActual, "visitas", "UPDATE", idVisita);
+
     res.status(200).json({
       ok: true,
       status: 200,
@@ -579,6 +593,10 @@ export const finalizarVisita = async (req, res) => {
       estadoId: 9,
       fechaHoraSalida,
     });
+
+    // Registrar en auditoría
+    const usuarioActual = req.user?.username || "desconocido";
+    await registrarAuditoria(usuarioActual, "visitas", "DELETE", idVisita);
 
     // Recargar la visita con sus relaciones
     const visitaActualizada = await Visita.findByPk(idVisita, {

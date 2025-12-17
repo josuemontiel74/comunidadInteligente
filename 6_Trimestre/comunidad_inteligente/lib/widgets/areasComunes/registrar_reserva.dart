@@ -30,6 +30,8 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
   TimeOfDay? horaFin;
   DateTime? fechaReserva;
   int? aceptaReglamento;
+  List<dynamic> areasDisponibles = [];
+  bool cargandoAreas = true;
 
   final List<String> torres = [
     'A',
@@ -70,6 +72,44 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
     'I': ['901', '902', '903', '904', '905'],
     'J': ['1001', '1002', '1003', '1004', '1005'],
   };
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarAreasDisponibles();
+  }
+
+  Future<void> _cargarAreasDisponibles() async {
+    try {
+      final headers = <String, String>{'Content-Type': 'application/json'};
+      if (widget.token != null) {
+        headers['Authorization'] = 'Bearer ${widget.token}';
+      }
+
+      final response = await http.get(
+        Uri.parse('${LoginServe.baseUrl}/api/areaComunes'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final areas = data['data'] ?? [];
+
+        setState(() {
+          // Filtrar solo las áreas con estadoId: 4 (Disponible)
+          areasDisponibles = areas
+              .where((area) => area['estadoId'] == 4)
+              .toList();
+          cargandoAreas = false;
+        });
+      } else {
+        setState(() => cargandoAreas = false);
+      }
+    } catch (e) {
+      setState(() => cargandoAreas = false);
+    }
+  }
+
   Future<void> crearReserva() async {
     final url = Uri.parse('${LoginServe.baseUrl}/api/ReservarAreaMovil');
     final response = await http.post(
@@ -101,6 +141,7 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
             : null,
       }),
     );
+
     if (response.statusCode == 200) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -111,6 +152,50 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
       );
       await Future.delayed(const Duration(seconds: 1));
       Navigator.pop(context);
+    } else if (response.statusCode == 409) {
+      // Conflicto: ya existe una reserva en el mismo horario
+      final errorData = jsonDecode(response.body);
+      final mensaje =
+          errorData['message'] ??
+          'El área ya está reservada en la fecha y horario indicados.';
+
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+            title: Row(
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.orange.shade700,
+                  size: 28,
+                ),
+                const SizedBox(width: 10),
+                const Flexible(
+                  child: Text(
+                    'Horario No Disponible',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            content: Text(mensaje, style: const TextStyle(fontSize: 15)),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Entendido'),
+              ),
+            ],
+          ),
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -377,27 +462,53 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
                         padding: const EdgeInsets.all(16),
                         child: Column(
                           children: [
-                            DropdownButtonFormField<String>(
-                              decoration: InputDecoration(
-                                labelText: "Área común",
-                                border: border,
-                              ),
-                              items: const [
-                                DropdownMenuItem(
-                                  value: "1",
-                                  child: Text("Salón comunal 1"),
-                                ),
-                                DropdownMenuItem(
-                                  value: "2",
-                                  child: Text("Salón comunal 2"),
-                                ),
-                                DropdownMenuItem(
-                                  value: "3",
-                                  child: Text("Zona BBQ"),
-                                ),
-                              ],
-                              onChanged: (v) => areaComunId = v,
-                            ),
+                            cargandoAreas
+                                ? const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(16.0),
+                                      child: CircularProgressIndicator(
+                                        color: Colors.orange,
+                                      ),
+                                    ),
+                                  )
+                                : DropdownButtonFormField<String>(
+                                    decoration: InputDecoration(
+                                      labelText: "Área común",
+                                      border: border,
+                                    ),
+                                    items: areasDisponibles.isEmpty
+                                        ? [
+                                            const DropdownMenuItem(
+                                              value: null,
+                                              enabled: false,
+                                              child: Text(
+                                                "No hay áreas disponibles",
+                                                style: TextStyle(
+                                                  color: Colors.red,
+                                                ),
+                                              ),
+                                            ),
+                                          ]
+                                        : areasDisponibles
+                                              .map<DropdownMenuItem<String>>((
+                                                area,
+                                              ) {
+                                                return DropdownMenuItem<String>(
+                                                  value: area['idAreaComun']
+                                                      .toString(),
+                                                  child: Text(
+                                                    area['nombreArea'] ??
+                                                        'Sin nombre',
+                                                  ),
+                                                );
+                                              })
+                                              .toList(),
+                                    onChanged: areasDisponibles.isEmpty
+                                        ? null
+                                        : (v) => areaComunId = v,
+                                    validator: (v) =>
+                                        v == null ? 'Seleccione un área' : null,
+                                  ),
                             const SizedBox(height: 12),
 
                             // Fecha

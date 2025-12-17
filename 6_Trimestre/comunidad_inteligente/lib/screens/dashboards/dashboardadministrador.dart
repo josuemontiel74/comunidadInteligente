@@ -8,6 +8,8 @@ import '../../widgets/areasComunes/registrar_reserva.dart';
 import '../visitas/visitas.dart';
 import '../parqueaderos/parqueaderos.dart' show SeleccionarParqueaderoScreen;
 import '../reportes/reportes.dart';
+import '../residentes/residentes.dart';
+import '../../utils/helpers.dart';
 
 class Dashboardadministrador extends StatefulWidget {
   final String nombreUsuario;
@@ -40,6 +42,12 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
       final response = await http.get(
         Uri.parse('${LoginServe.baseUrl}/api/dashboard/resumen'),
       );
+
+      // Validar si el token expiró
+      if (manejarTokenExpirado(context, response.statusCode, response.body)) {
+        setState(() => isLoading = false);
+        return;
+      }
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
@@ -181,15 +189,17 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
                       ),
                     ]),
                     _buildMenuSection('Gestión de Residentes', [
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
                         Icons.home_work,
                         'Registrar Residentes',
+                        Residentes(openCreateDialog: true),
                       ),
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
                         Icons.list_alt,
                         'Consultar Residentes',
+                        Residentes(),
                       ),
                     ]),
                   ],
@@ -470,9 +480,10 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
         title: 'Gestión de Residentes',
         color: Colors.teal,
         onTap: () {
-          ScaffoldMessenger.of(
+          Navigator.push(
             context,
-          ).showSnackBar(SnackBar(content: Text('Módulo en construcción')));
+            MaterialPageRoute(builder: (context) => const Residentes()),
+          );
         },
       ),
     ];
