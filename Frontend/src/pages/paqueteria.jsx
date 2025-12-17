@@ -4,16 +4,26 @@ import logo from "../../img/logo.png";
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import { obtenerPaquetes, registrarPaquete, actualizarPaquete, eliminarPaquete } from "../services/paqueteria.services.jsx";
 
 function Paqueteria() {
   const navegacion = useNavigate();
-  
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      Swal.fire({ icon: 'warning', title: 'Sesión expirada', text: 'La sesión expiró. Vuelva a iniciar sesión.', timer: 3500, showConfirmButton: false, timerProgressBar: true }).then(() => {
+        localStorage.clear();
+        navegacion('/');
+      });
+    }
+  }, [navegacion]);
+
   const cerrarSesión = (e) => {
     e.preventDefault();
     localStorage.clear();
     navegacion("/");
   };
- 
+
   const location = useLocation();
 
   const obtenerToken = () => {
@@ -45,7 +55,7 @@ function Paqueteria() {
   const verificarTokenVencido = (token) => {
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
-      const fechaExpiracion = payload.exp * 1000; 
+      const fechaExpiracion = payload.exp * 1000;
       return Date.now() >= fechaExpiracion;
     } catch (error) {
       console.error("Error al verificar expiración del token:", error);
@@ -72,39 +82,39 @@ function Paqueteria() {
 
 
   //obtener rol 
-const obtenerRolDelToken = () => {
-  try {
-    if (verificarTokenVencido(token)) {
-      console.warn("Token vencido, usando rol por defecto...");
-      return "RolDesconocido";
-    }
+  const obtenerRolDelToken = () => {
+    try {
+      if (verificarTokenVencido(token)) {
+        console.warn("Token vencido, usando rol por defecto...");
+        return "RolDesconocido";
+      }
 
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.rolesId || "RolNoDefinido";
-  } catch (error) {
-    console.error("Error al decodificar el token:", error);
-    return "RolNoDefinido";
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload.rolesId || "RolNoDefinido";
+    } catch (error) {
+      console.error("Error al decodificar el token:", error);
+      return "RolNoDefinido";
+    }
+  };
+  if (verificarTokenVencido(token)) {
+
   }
-};
-if(verificarTokenVencido(token)){
-  
-}
-  const rolesId = obtenerRolDelToken(); 
+  const rolesId = obtenerRolDelToken();
   let rolUsuario;
 
-switch (rolesId) {
-  case 1:
-    rolUsuario = "superAdmin";
-    break;
-  case 2:
-    rolUsuario = "admin";
-    break;
-  case 3:
-    rolUsuario = "vigilante";
-    break;
-  default:
-    rolUsuario = "RolNoDefinido";
-}
+  switch (rolesId) {
+    case 1:
+      rolUsuario = "superAdmin";
+      break;
+    case 2:
+      rolUsuario = "admin";
+      break;
+    case 3:
+      rolUsuario = "vigilante";
+      break;
+    default:
+      rolUsuario = "RolNoDefinido";
+  }
 
   const manejarRespuestaHTTP = async (response) => {
     if (response.status === 401 || response.status === 403) {
@@ -127,19 +137,25 @@ switch (rolesId) {
   };
 
 
+
+  useEffect(() => {
+    setVerificadorRol(rolesId || null);
+  }, [rolesId]);
+
+
   const obtenerApartamentoId = (torre, apartamento) => {
-   
+
 
     const letraIndex = torre.charCodeAt(0) - 65;
     const numeroApartamento = parseInt(apartamento);
 
-  
+
     let numeroEnTorre;
     if (numeroApartamento >= 1001 && numeroApartamento <= 1005) {
-      
+
       numeroEnTorre = numeroApartamento - 1000;
     } else {
-    
+
       numeroEnTorre = numeroApartamento % 100;
       if (numeroEnTorre === 0) numeroEnTorre = 5;
     }
@@ -172,7 +188,7 @@ switch (rolesId) {
       return `${año}-${mes}-${dia} ${horas}:${minutos}`;
     } catch (error) {
       console.error("Error al normalizar fecha/hora:", error);
-     
+
       return fechaHoraString.replace("T", " ");
     }
   };
@@ -184,7 +200,7 @@ switch (rolesId) {
   const [showModalDetalles, setShowModalDetalles] = useState(false);
   const [paqueteSeleccionado, setPaqueteSeleccionado] = useState(null);
   const [paqueteAEditar, setPaqueteAEditar] = useState(null);
-
+  const [verificadorRol, setVerificadorRol] = useState(null);
   const [paquetes, setPaquetes] = useState([]);
 
   useEffect(() => {
@@ -250,8 +266,8 @@ switch (rolesId) {
   const abrirModalEditar = (paquete) => {
 
     const partesApartamento = paquete.apartamento.split(" - ");
-    const torre = partesApartamento[0].replace("Torre ", ""); 
-    const numeroApartamento = partesApartamento[1]; 
+    const torre = partesApartamento[0].replace("Torre ", "");
+    const numeroApartamento = partesApartamento[1];
     setFormDataEditar({
       residente: paquete.residente,
       torre: torre,
@@ -318,17 +334,7 @@ switch (rolesId) {
     console.log("Datos a enviar para registro:", paqueteParaRegistrar);
 
     try {
-      const response = await fetch(
-        "http://localhost:3001/api/recepcionPaquetes",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(paqueteParaRegistrar),
-        }
-      );
+      const response = await registrarPaquete(paqueteParaRegistrar, token);
 
       console.log(
         "Respuesta del servidor (registro):",
@@ -336,8 +342,8 @@ switch (rolesId) {
         response.statusText
       );
 
-      if (await manejarRespuestaHTTP(response)) {
-        Swal.fire("Paquete Registrado!", "", "success");
+        if (await manejarRespuestaHTTP(response)) {
+        Swal.fire({ icon: 'success', title: 'Registrado correctamente', timer: 3500, showConfirmButton: false });
         await recargarPaquetes();
         cerrarModalCrear();
       } else if (response.status !== 401 && response.status !== 403) {
@@ -351,7 +357,7 @@ switch (rolesId) {
       }
     } catch (err) {
       console.error("Error completo:", err);
-      Swal.fire("Error de conexión con el servidor", err.message, "error");
+      Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
     }
   };
 
@@ -398,17 +404,7 @@ switch (rolesId) {
       if (result.isConfirmed) {
         try {
           console.log(`Editando paquete ID: ${paqueteId}`);
-          const response = await fetch(
-            `http://localhost:3001/api/recepcionPaquetes/${paqueteId}`,
-            {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify(paqueteParaEditar),
-            }
-          );
+          const response = await actualizarPaquete(paqueteId, paqueteParaEditar, token);
 
           console.log(
             "Respuesta del servidor:",
@@ -416,8 +412,8 @@ switch (rolesId) {
             response.statusText
           );
 
-          if (await manejarRespuestaHTTP(response)) {
-            Swal.fire("¡Guardado!", "", "success");
+            if (await manejarRespuestaHTTP(response)) {
+            Swal.fire({ icon: 'success', title: 'Guardado correctamente', timer: 3500, showConfirmButton: false });
             await recargarPaquetes();
             cerrarModalEditar();
           } else if (response.status !== 401 && response.status !== 403) {
@@ -431,7 +427,7 @@ switch (rolesId) {
           }
         } catch (err) {
           console.error("Error completo:", err);
-          Swal.fire("Error de conexión con el servidor", err.message, "error");
+          Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
         }
       } else if (result.isDenied) {
         Swal.fire("Los cambios no fueron guardados", "", "info");
@@ -442,9 +438,7 @@ switch (rolesId) {
 
   const recargarPaquetes = async () => {
     try {
-      const response = await fetch(
-        "http://localhost:3001/api/recepcion-paquetes"
-      );
+      const response = await obtenerPaquetes(token);
       const data = await response.json();
       const paquetesMapeados = data.map((item) => ({
         id: item.idPaquete,
@@ -480,18 +474,10 @@ switch (rolesId) {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const response = await fetch(
-            `http://localhost:3001/api/recepcionPaquetes/${idPaquete}`,
-            {
-              method: "DELETE",
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
+          const response = await eliminarPaquete(idPaquete, token);
 
-          if (await manejarRespuestaHTTP(response)) {
-            Swal.fire("¡Paquete entregado!", "", "success");
+            if (await manejarRespuestaHTTP(response)) {
+            Swal.fire({ icon: 'success', title: 'Finalizado correctamente', timer: 3500, showConfirmButton: false });
             await recargarPaquetes();
           } else if (response.status !== 401 && response.status !== 403) {
             Swal.fire("Error al finalizar el paquete", "", "error");
@@ -511,7 +497,7 @@ switch (rolesId) {
 
   const paquetesFiltrados = paquetes
     .filter((p) => {
- 
+
       const coincideApartamento = p.apartamento
         .toLowerCase()
         .includes(busqueda.toLowerCase());
@@ -525,13 +511,13 @@ switch (rolesId) {
       return coincideApartamento && coincideEstado;
     })
     .sort((a, b) => {
-   
+
       const fechaA = new Date(`${a.fechaRecepcion} ${a.horaRecepcion}`);
       const fechaB = new Date(`${b.fechaRecepcion} ${b.horaRecepcion}`);
-      return fechaB - fechaA; 
+      return fechaB - fechaA;
     });
 
-  
+
   const indiceUltimo = paginaActual * paquetesPorPagina;
   const indicePrimero = indiceUltimo - paquetesPorPagina;
   const paquetesPaginados = paquetesFiltrados.slice(
@@ -611,41 +597,57 @@ switch (rolesId) {
           </div>
 
           <div className="mb-4">
+             {(verificadorRol === 1 || verificadorRol === "1" || verificadorRol
+              === 2 || verificadorRol === "2"
+            ) && (
             <h6 className="text-uppercase fw-bold">Gestión de Áreas Comunes</h6>
+               )}
+               {(verificadorRol === 1 || verificadorRol === "1" || verificadorRol
+              === 2 || verificadorRol === "2"
+            ) && (
             <ul className="nav flex-column mt-2 gap-2">
               <li>
                 <Link className="nav-link text-white" to="/AreasComunes">
                   Registrar Reserva
                 </Link>
               </li>
-              <li>
+               <li>
                 <Link className="nav-link text-white" to="/AreasComunes">
-                  Consultar Zonas
+                  Consultar Reserva
                 </Link>
               </li>
             </ul>
+             )}
           </div>
 
-      
+
 
           <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión Residentes</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link
-                  className="nav-link text-white"
-                  to="/Residentes"
-                  state={{ abrirModal: true }}
-                >
-                  Crear Residente
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/Residentes">
-                  Consultar Residente
-                </Link>
-              </li>
-            </ul>
+            {(verificadorRol === 1 || verificadorRol === "1" || verificadorRol
+              === 2 || verificadorRol === "2"
+            ) && (
+                <h6 className="text-uppercase fw-bold">Gestión Residentes</h6>
+              )}
+            {(verificadorRol === 1 || verificadorRol === "1" || verificadorRol
+              === 2 || verificadorRol === "2"
+            ) && (
+                <ul className="nav flex-column mt-2 gap-2">
+                  <li>
+                    <Link
+                      className="nav-link text-white"
+                      to="/Residentes"
+                      state={{ abrirModal: true }}
+                    >
+                      Crear Residente
+                    </Link>
+                  </li>
+                  <li>
+                    <Link className="nav-link text-white" to="/Residentes">
+                      Consultar Residente
+                    </Link>
+                  </li>
+                </ul>
+              )}
           </div>
 
           <div className="mt-auto text-center logout-container">
@@ -832,9 +834,8 @@ switch (rolesId) {
               {[...Array(totalPaginas).keys()].map((num) => (
                 <li
                   key={num + 1}
-                  className={`page-item ${
-                    paginaActual === num + 1 ? "active" : ""
-                  }`}
+                  className={`page-item ${paginaActual === num + 1 ? "active" : ""
+                    }`}
                 >
                   <button
                     className="page-link"
@@ -845,11 +846,10 @@ switch (rolesId) {
                 </li>
               ))}
               <li
-                className={`page-item ${
-                  paginaActual === totalPaginas || totalPaginas === 0
-                    ? "disabled"
-                    : ""
-                }`}
+                className={`page-item ${paginaActual === totalPaginas || totalPaginas === 0
+                  ? "disabled"
+                  : ""
+                  }`}
               >
                 <button
                   className="page-link"
@@ -943,16 +943,16 @@ switch (rolesId) {
                           <option value="">Selecciona apartamento</option>
                           {formDataCrear.torre &&
                             Array.from({ length: 5 }).map((_, i) => {
-                            
+
                               const num =
                                 formDataCrear.torre === "J"
                                   ? 1001 + i
                                   : (formDataCrear.torre.charCodeAt(0) -
-                                      65 +
-                                      1) *
-                                      100 +
-                                    1 +
-                                    i;
+                                    65 +
+                                    1) *
+                                  100 +
+                                  1 +
+                                  i;
                               return (
                                 <option key={num} value={num}>
                                   {formDataCrear.torre} - {num}
@@ -1087,15 +1087,15 @@ switch (rolesId) {
                           <option value="">Selecciona apartamento</option>
                           {formDataEditar.torre &&
                             Array.from({ length: 5 }).map((_, i) => {
-                         
+                              const num =
                                 formDataEditar.torre === "J"
                                   ? 1001 + i
                                   : (formDataEditar.torre.charCodeAt(0) -
-                                      65 +
-                                      1) *
-                                      100 +
-                                    1 +
-                                    i;
+                                    65 +
+                                    1) *
+                                  100 +
+                                  1 +
+                                  i;
                               return (
                                 <option key={num} value={num}>
                                   {formDataEditar.torre} - {num}

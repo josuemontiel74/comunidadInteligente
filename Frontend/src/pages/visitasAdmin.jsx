@@ -1,11 +1,22 @@
+import React, { useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../Styles/styles.css';
 import logo from '../../img/logo.png';
 import moto from '../../img/moto.png';
 import { Link, useNavigate } from "react-router-dom";
+import Swal from 'sweetalert2';
 
 function VisitasAdmin() {
    const navigator = useNavigate();
+   useEffect(() => {
+     const token = localStorage.getItem("token");
+     if (!token) {
+      Swal.fire({ icon: 'warning', title: 'Sesión expirada', text: 'La sesión expiró. Vuelva a iniciar sesión.', timer: 3500, showConfirmButton: false, timerProgressBar: true }).then(() => {
+        localStorage.clear();
+        navigator('/');
+      });
+     }
+   }, [navigator]);
     const  cerrarSesión = (s) =>{
       localStorage.clear(); 
       s.preventDefault();

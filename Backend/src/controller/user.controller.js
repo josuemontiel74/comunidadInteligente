@@ -67,6 +67,7 @@ export const crearUsuario = async (req, res) => {
         numeroDocumento: nuevaPersona.numeroDocumento,
       },
     });
+
   } catch (error) {
     const username = req.user?.username || "desconocido";
     const ruta = "POST /usuarios";
@@ -144,7 +145,7 @@ export const obtenerUsuario = async (req, res) => {
 export const obtenerUsuarioPorId = async (req, res) => {
   try {
     await User.sync();
-    const username = req.params.username;
+    const username = decodeURIComponent(req.params.username);
     const usuario = await User.findByPk(username);
     if (!usuario) {
       return res.status(404).json({
@@ -181,6 +182,8 @@ export const actualizarUsuario = async (req, res) => {
     const usuario = await User.findByPk(username, {
       include: [{ model: Persona, as: "Persona" }],
     });
+    // volver activar
+
 
     if (!usuario) {
       return res.status(404).json({ error: "Usuario no encontrado" });
@@ -339,7 +342,7 @@ export const loginUsuario = async (req, res) => {
 export const buscarUsuarios = async (req, res) => {
   try {
     await User.sync();
-    const estadoId = req.params.estadoId;
+    const estadoId = decodeURIComponent(req.params.estadoId);
     const usuario = await User.findAll({ where: { estadoId } });
     if (!usuario) {
       return res.status(404).json({

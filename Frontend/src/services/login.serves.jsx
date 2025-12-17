@@ -6,9 +6,7 @@ export const handleSubmit = async (username, password) => {
       body: JSON.stringify({ username, password }),
     });
     const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.message || "Credenciales inválidas");
-    }
+    // Retornar el objeto JSON tal cual para que el componente controle la lógica
     return data;
   } catch (err) {
     throw err;

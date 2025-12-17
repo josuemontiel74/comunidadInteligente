@@ -5,7 +5,7 @@ import validate from "../middlewares/user.middleware.js";
 import * as visitasSchema from "../schemas/visitas.schema.js";
 
 const router = Router();
-
+router.post("/reportesvisitas/:por",validarJWT,validarRol(1),visitasController.informeVisintante);
 router.post(
   "/visita",
   validate(visitasSchema.crearVisitanteSchema, "body", true),
@@ -13,7 +13,7 @@ router.post(
   validarRol(1, 2, 3),
   visitasController.crearVisita
 );
-
+router.get("/visitasDia",validarJWT,validarRol(1,2,3),visitasController.visitasDelDia)
 router.get("/visitaJoin", visitasController.listarVisitas);
 
 router.get(

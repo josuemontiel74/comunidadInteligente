@@ -2,12 +2,28 @@ import "bootstrap/dist/css/bootstrap.min.css";
 
 import "../Styles/AreasComunes.css";
 import logo from "../../img/logo.png";
+import {
+  obtenerReservasAreas,
+  obtenerApartamentos,
+  crearReserva_v2,
+  actualizarReserva_v2,
+  eliminarReserva_v2,
+} from "../services/areasComunes.services.jsx";
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 
 function AreasComunes() {
   const navegacion = useNavigate();
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      Swal.fire({ icon: 'warning', title: 'Sesión expirada', text: 'La sesión expiró. Vuelva a iniciar sesión.', timer: 3500, showConfirmButton: false, timerProgressBar: true }).then(() => {
+        localStorage.clear();
+        navegacion('/');
+      });
+    }
+  }, [navegacion]);
   const cerrarSesión = (e) => {
     e.preventDefault();
     localStorage.clear();
@@ -31,6 +47,7 @@ function AreasComunes() {
   const [apartamentos, setApartamentos] = useState([]);
   const [areasComunes, setAreasComunes] = useState([]);
   const [tiposDocumento, setTiposDocumento] = useState([]);
+  const [verificadorRol, setVerificadorRol] = useState(null);
 
   // Funciones de manejo de token y usuario (igual que en paquetería)
   const obtenerToken = () => {
@@ -99,7 +116,10 @@ if(verificarTokenVencido(token)){
 }
   const rolesId = obtenerRolDelToken(); 
   let rolUsuario;
-
+useEffect(() => {
+  const rolesId = obtenerRolDelToken();
+  setVerificadorRol(rolesId);
+}, [token]);
 switch (rolesId) {
   case 1:
     rolUsuario = "superAdmin";
@@ -115,6 +135,9 @@ switch (rolesId) {
 }
 
   const nombreUsuario = obtenerUsuarioDelToken();
+  const tokenValido = token && !verificarTokenVencido(token);
+  const showUserManagement = tokenValido && rolesId === 1; // solo SuperAdmin gestiona usuarios
+  const showAreasComunes = tokenValido && rolesId !== 3; // ocultar áreas comunes para Vigilante
 
   const [formData, setFormData] = useState({
     torre: "",
@@ -190,34 +213,24 @@ switch (rolesId) {
   const obtenerReservas = async () => {
     try {
       setLoading(true);
-      const response = await fetch("http://localhost:3001/api/reservas-areas", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
+      const response = await obtenerReservasAreas(token);
       if (response.ok) {
         const data = await response.json();
         console.log("=== DEBUG: Reservas obtenidas ===");
         console.log("Total reservas:", data.body?.length || 0);
-
-        // Log específico para debugging de estados
         const estadosCount = {};
         data.body?.forEach((r) => {
-          estadosCount[r.nombreEstado] =
-            (estadosCount[r.nombreEstado] || 0) + 1;
+          estadosCount[r.nombreEstado] = (estadosCount[r.nombreEstado] || 0) + 1;
         });
         console.log("Estados actuales:", estadosCount);
-
         setReservas(data.body || []);
       } else {
         console.error("Error al obtener reservas:", response.statusText);
-        Swal.fire("Error", "No se pudieron cargar las reservas", "error");
+        Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
       }
     } catch (error) {
       console.error("Error en la conexión:", error);
-      Swal.fire("Error", "No se pudo conectar con el servidor", "error");
+      Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
     } finally {
       setLoading(false);
     }
@@ -227,12 +240,7 @@ switch (rolesId) {
     try {
       // Obtener apartamentos
       try {
-        const apartamentosResponse = await fetch(
-          "http://localhost:3001/api/apartamentos",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        const apartamentosResponse = await obtenerApartamentos(token);
         if (apartamentosResponse.ok) {
           const apartamentosData = await apartamentosResponse.json();
           setApartamentos(apartamentosData.body || []);
@@ -373,17 +381,17 @@ switch (rolesId) {
   }, []);
 
   useEffect(() => {
-    if (location.state?.abrirModal) abrirModal();
+    if (location.state?.abrirModal) abrirModal(location.state?.prefill || null);
   }, [location.state]);
 
-  const abrirModal = () => {
+  const abrirModal = (prefill = null) => {
     setFormData({
       torre: "",
       apartamentoId: "",
-      areaComunId: "",
-      fechaReserva: "",
-      horaInicio: "",
-      horaFin: "",
+      areaComunId: prefill?.areaComunId || "",
+      fechaReserva: prefill?.fechaReserva || "",
+      horaInicio: prefill?.horaInicio || "",
+      horaFin: prefill?.horaFin || "",
       motivoReserva: "",
       cantidadAsistentes: "",
       invitadosExternos: false,
@@ -484,25 +492,13 @@ switch (rolesId) {
       console.log("Token:", token.substring(0, 50) + "...");
 
       const isEditing = editIndex !== null;
-      const url = isEditing
-        ? `http://localhost:3001/api/reservarAreas/${editIndex}`
-        : "http://localhost:3001/api/reservarAreas";
-      const method = isEditing ? "PATCH" : "POST";
-
-      console.log(
-        `=== DEBUG: ${isEditing ? "EDITANDO" : "CREANDO"} RESERVA ===`
-      );
-      console.log("URL:", url);
-      console.log("Method:", method);
-
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(reservaData),
-      });
+      console.log(`=== DEBUG: ${isEditing ? "EDITANDO" : "CREANDO"} RESERVA ===`);
+      let response;
+      if (isEditing) {
+        response = await actualizarReserva_v2(editIndex, reservaData, token);
+      } else {
+        response = await crearReserva_v2(reservaData, token);
+      }
 
       console.log("=== DEBUG: Respuesta del servidor ===");
       console.log("Status:", response.status);
@@ -511,11 +507,8 @@ switch (rolesId) {
       if (response.ok) {
         const responseData = await response.json();
         console.log("Respuesta exitosa:", responseData);
-        const mensaje =
-          editIndex !== null
-            ? "¡Reserva editada exitosamente!"
-            : "¡Reserva creada exitosamente!";
-        Swal.fire({ title: mensaje, icon: "success" });
+          const mensaje = editIndex !== null ? "Actualizado correctamente" : "Registrado correctamente";
+          Swal.fire({ icon: 'success', title: mensaje, timer: 3500, showConfirmButton: false });
 
         setFormData({
           torre: "",
@@ -538,17 +531,51 @@ switch (rolesId) {
         cerrarModal();
         obtenerReservas();
       } else {
-        const errorData = await response.json(); 
-        console.error("Error del servidor:", errorData);
+        // Manejo explícito para conflicto (409) u otros errores
+        if (response.status === 409) {
+          try {
+            const errorData = await response.json();
+            const mensaje409 =
+              errorData?.message || errorData?.mensaje || errorData?.error || errorData?.body?.message || JSON.stringify(errorData);
+            Swal.fire({ icon: 'error', title: 'Lo siento', text: mensaje409 || 'El área ya está reservada en la fecha y horario indicados.', confirmButtonText: 'Entendido' });
+          } catch (e) {
+            const texto = await response.text().catch(() => null);
+            Swal.fire({ icon: 'error', title: 'Lo siento', text: texto || 'El área ya está reservada en la fecha y horario indicados.', confirmButtonText: 'Entendido' });
+          }
+          return;
+        }
 
-       
-        const mensajeError =
-          errorData.message || errorData.error || `Error ${response.status}`;
-        Swal.fire("Error", mensajeError, "error");
+        let mensajeError = `Error ${response.status}`;
+        try {
+          const errorData = await response.json();
+          console.error("Error del servidor:", errorData);
+
+          mensajeError =
+            errorData?.message ||
+            errorData?.mensaje ||
+            errorData?.error ||
+            errorData?.body?.message ||
+            mensajeError;
+        } catch (parseError) {
+          console.error("No se pudo parsear el body de error:", parseError);
+          try {
+            const texto = await response.text();
+            if (texto) mensajeError = texto;
+          } catch (e) {
+            /* ignorar */
+          }
+        }
+
+        Swal.fire({
+          icon: 'error',
+          title: 'Lo siento',
+          text: mensajeError || 'Error en la operación. Comuníquese con el área de sistemas.',
+          confirmButtonText: 'Entendido',
+        });
       }
     } catch (error) {
       console.error("Error de conexión:", error);
-      Swal.fire("Error", "No se pudo conectar con el servidor", "error");
+      Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
     } finally {
       setLoading(false);
     }
@@ -568,16 +595,7 @@ switch (rolesId) {
         try {
           setLoading(true);
           // Finalizar la reserva usando DELETE
-          const response = await fetch(
-            `http://localhost:3001/api/reservarAreas/${idReserva}`,
-            {
-              method: "DELETE",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-            }
-          );
+          const response = await eliminarReserva_v2(idReserva, token);
 
           if (response.ok) {
             const responseData = await response.text();
@@ -585,11 +603,7 @@ switch (rolesId) {
             console.log("Respuesta del DELETE:", responseData);
             console.log("Reserva finalizada ID:", idReserva);
 
-            Swal.fire({
-              title: "¡Finalizado!",
-              text: "La reserva fue finalizada",
-              icon: "success",
-            });
+            Swal.fire({ icon: 'success', title: 'Finalizado correctamente', timer: 3500, showConfirmButton: false });
 
             console.log(
               "=== DEBUG: Recargando reservas después del DELETE ==="
@@ -598,11 +612,11 @@ switch (rolesId) {
           } else {
             const errorData = await response.text();
             console.error("Error al finalizar reserva:", errorData);
-            Swal.fire("Error", "No se pudo finalizar la reserva", "error");
+            Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
           }
         } catch (error) {
           console.error("Error al finalizar reserva:", error);
-          Swal.fire("Error", "No se pudo finalizar la reserva", "error");
+          Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
         } finally {
           setLoading(false);
         }
@@ -613,7 +627,9 @@ switch (rolesId) {
   const editarReserva = (reserva) => {
   
     setFormData({
-      torre: reserva.nombreTorre?.charAt(reserva.nombreTorre.length - 1) || "", 
+      torre: reserva.nombreTorre
+        ? reserva.nombreTorre.charAt(reserva.nombreTorre.length - 1)
+        : "",
       apartamentoId: reserva.apartamentoId,
       areaComunId: reserva.areaComunId,
       fechaReserva: reserva.fechaReserva,
@@ -649,32 +665,19 @@ switch (rolesId) {
       if (result.isConfirmed) {
         try {
           setLoading(true);
-          const response = await fetch(
-            `http://localhost:3001/api/reservarAreas/${idReserva}`,
-            {
-              method: "DELETE",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-            }
-          );
+          const response = await eliminarReserva_v2(idReserva, token);
 
           if (response.ok) {
-            Swal.fire({
-              title: "¡Eliminado!",
-              text: "La reserva fue eliminada",
-              icon: "success",
-            });
+            Swal.fire({ icon: 'success', title: 'Eliminado correctamente', timer: 3500, showConfirmButton: false });
             obtenerReservas(); 
           } else {
             const errorData = await response.text();
             console.error("Error al eliminar reserva:", errorData);
-            Swal.fire("Error", "No se pudo eliminar la reserva", "error");
+            Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
           }
         } catch (error) {
           console.error("Error al eliminar reserva:", error);
-          Swal.fire("Error", "No se pudo eliminar la reserva", "error");
+          Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
         } finally {
           setLoading(false);
         }
@@ -795,45 +798,50 @@ switch (rolesId) {
                   Consultar Parqueaderos
                 </Link>
               </li>
+             
             </ul>
           </div>
 
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión de Áreas Comunes</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link className="nav-link text-white" onClick={abrirModal}>
-                  Registrar Reserva
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/AreasComunes">
-                  Consultar Zonas
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {showAreasComunes && (
+            <div className="mb-4">
+              <h6 className="text-uppercase fw-bold">Gestión de Áreas Comunes</h6>
+              <ul className="nav flex-column mt-2 gap-2">
+                <li>
+                  <Link className="nav-link text-white" onClick={abrirModal}>
+                    Registrar Reserva
+                  </Link>
+                </li>
+                <li>
+                   {(verificadorRol === 1 || verificadorRol==="1" || verificadorRol ===2)&& (
+                  <Link className="nav-link text-white" to="/CalendarioReservas">
+                    Ver Calendario
+                  </Link>
+                    )}
+                </li>
+              </ul>
+            </div>
+          )}
 
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión de Usuarios</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li
-                
-                  className="nav-link text-white"
-                 onClick={gestionUsuarios}
-                  state={{ abrirModal: true }}
+          {showUserManagement && (
+            <div className="mb-4">
               
-                >s
+              <h6 className="text-uppercase fw-bold">Gestión de Usuarios</h6>
+              <ul className="nav flex-column mt-2 gap-2">
+                {(verificadorRol === 1 || verificadorRol==="1")&& (
+                <li className="nav-link text-white" onClick={gestionUsuarios}>
                   Registrar Usuario
-                
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/GestionUsuario">
-                  Consultar Usuarios
-                </Link>
-              </li>
-            </ul>
-          </div>
+                </li>
+                )}
+                {(verificadorRol === 1 ||verificadorRol==="1") && (
+                <li>
+                  <Link className="nav-link text-white" to="/GestionUsuario">
+                    Consultar Usuarios
+                  </Link>
+                </li>
+                )}
+              </ul>
+            </div>
+          )}
 
           <div className="mb-4">
             <h6 className="text-uppercase fw-bold">Gestión Residentes</h6>
@@ -980,222 +988,164 @@ switch (rolesId) {
         </div>
 
         {/* Tabla */}
-        <div
-          className="table-responsive"
-          style={{ maxWidth: "85%", margin: "0 auto" }}
-        >
-          <table
-            className="table table-bordered table-striped table-sm"
-            style={{ fontSize: "0.9rem" }}
+       <div style={{ maxWidth: "90%", margin: "0 auto" }}>
+  {loading ? (
+    <div className="text-center p-4">Cargando reservas...</div>
+  ) : reservasPaginadas.length === 0 ? (
+    <div className="text-center p-4">No hay reservas para mostrar</div>
+  ) : (
+    reservasPaginadas.map((r, index) => (
+      <div
+        key={r.idReservas || index}
+        className="shadow-sm mb-3 p-3 d-flex align-items-center justify-content-between"
+        style={{
+          background: "#ffffff",
+          borderRadius: "18px",
+          borderLeft: "6px solid #4CAF50",
+        }}
+      >
+        {/* Icono */}
+        <div className="d-flex align-items-center gap-3">
+          <div
+            style={{
+              width: 60,
+              height: 60,
+              borderRadius: "14px",
+              background: "#e6f5ef",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
           >
-            <thead className="table-success">
-              <tr>
-                <th style={{ width: "16%", padding: "0.5rem 0.3rem" }}>Área</th>
-                <th style={{ width: "12%", padding: "0.5rem 0.3rem" }}>
-                  Documento
-                </th>
-                <th style={{ width: "16%", padding: "0.5rem 0.3rem" }}>
-                  Solicitante
-                </th>
-                <th style={{ width: "10%", padding: "0.5rem 0.3rem" }}>
-                  Fecha
-                </th>
-                <th style={{ width: "8%", padding: "0.5rem 0.3rem" }}>
-                  Inicio
-                </th>
-                <th style={{ width: "8%", padding: "0.5rem 0.3rem" }}>Fin</th>
-                <th style={{ width: "6%", padding: "0.5rem 0.3rem" }}>
-                  Asist.
-                </th>
-                <th style={{ width: "10%", padding: "0.5rem 0.3rem" }}>
-                  Estado
-                </th>
-                <th style={{ width: "14%", padding: "0.5rem 0.3rem" }}>
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="9" className="text-center">
-                    Cargando reservas...
-                  </td>
-                </tr>
-              ) : reservasPaginadas.length === 0 ? (
-                <tr>
-                  <td colSpan="9" className="text-center">
-                    No hay reservas para mostrar
-                  </td>
-                </tr>
-              ) : (
-                reservasPaginadas.map((r, index) => (
-                  <tr key={r.idReservas || index}>
-                    <td
-                      className="text-truncate"
-                      title={r.nombreArea}
-                      style={{ padding: "0.5rem 0.3rem", maxWidth: "120px" }}
-                    >
-                      {r.nombreArea}
-                    </td>
-                    <td
-                      className="text-truncate"
-                      title={r.documentoSolicitante}
-                      style={{ padding: "0.5rem 0.3rem", maxWidth: "100px" }}
-                    >
-                      {r.documentoSolicitante}
-                    </td>
-                    <td
-                      className="text-truncate"
-                      title={r.nombreSolicitante}
-                      style={{ padding: "0.5rem 0.3rem", maxWidth: "130px" }}
-                    >
-                      {r.nombreSolicitante}
-                    </td>
-                    <td
-                      style={{ padding: "0.5rem 0.3rem", fontSize: "0.85rem" }}
-                    >
-                      {r.fechaReserva}
-                    </td>
-                    <td
-                      style={{ padding: "0.5rem 0.3rem", fontSize: "0.85rem" }}
-                    >
-                      {r.horaInicio?.substring(0, 5)}
-                    </td>
-                    <td
-                      style={{ padding: "0.5rem 0.3rem", fontSize: "0.85rem" }}
-                    >
-                      {r.horaFin?.substring(0, 5)}
-                    </td>
-                    <td
-                      className="text-center"
-                      style={{ padding: "0.5rem 0.3rem" }}
-                    >
-                      {r.cantidadAsistentes}
-                    </td>
-                    <td style={{ padding: "0.6rem 0.4rem" }}>
-                      {r.nombreEstado === "finalizada" ? (
-                        <span
-                          className="badge text-bg-success"
-                          style={{ fontSize: "0.75rem" }}
-                        >
-                          Finalizada
-                        </span>
-                      ) : r.nombreEstado === "en curso" ? (
-                        <span
-                          className="badge bg-warning text-dark"
-                          style={{ fontSize: "0.75rem" }}
-                        >
-                          En Curso
-                        </span>
-                      ) : (
-                        <span
-                          className="badge bg-info text-white"
-                          style={{ fontSize: "0.75rem" }}
-                        >
-                          Registrada
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ padding: "0.4rem 0.3rem" }}>
-                      <div className="d-flex gap-1 justify-content-center flex-wrap">
-                        {r.nombreEstado !== "finalizada" && (
-                          <>
-                            <button
-                              className="btn btn-xs btn-outline-primary"
-                              onClick={() => editarReserva(r)}
-                              disabled={loading}
-                              style={{
-                                fontSize: "0.65rem",
-                                padding: "0.15rem 0.3rem",
-                                marginBottom: "0.1rem",
-                              }}
-                            >
-                              Editar
-                            </button>
-                            <button
-                              className="btn btn-xs btn-outline-success"
-                              onClick={() => finalizarRegistro(r.idReservas)}
-                              disabled={loading}
-                              style={{
-                                fontSize: "0.65rem",
-                                padding: "0.15rem 0.3rem",
-                                marginBottom: "0.1rem",
-                              }}
-                            >
-                              Finalizar
-                            </button>
-                          </>
-                        )}
-                        <button
-                          className="btn btn-xs btn-outline-info"
-                          onClick={() => verDetalles(r)}
-                          style={{
-                            fontSize: "0.65rem",
-                            padding: "0.15rem 0.3rem",
-                            marginBottom: "0.1rem",
-                          }}
-                        >
-                          Detalles
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+            <i className="bi bi-people-fill"></i>
 
-          {/* Paginación */}
-          <nav className="d-flex justify-content-center mt-3">
-            <ul className="pagination">
-              <li
-                className={`page-item ${paginaActual === 1 ? "disabled" : ""}`}
-              >
-                <button
-                  className="page-link"
-                  onClick={() =>
-                    paginaActual > 1 && setPaginaActual(paginaActual - 1)
-                  }
-                >
-                  Anterior
-                </button>
-              </li>
-              {[...Array(totalPaginas).keys()].map((num) => (
-                <li
-                  key={num + 1}
-                  className={`page-item ${
-                    paginaActual === num + 1 ? "active" : ""
-                  }`}
-                >
-                  <button
-                    className="page-link"
-                    onClick={() => setPaginaActual(num + 1)}
-                  >
-                    {num + 1}
-                  </button>
-                </li>
-              ))}
-              <li
-                className={`page-item ${
-                  paginaActual === totalPaginas || totalPaginas === 0
-                    ? "disabled"
-                    : ""
-                }`}
-              >
-                <button
-                  className="page-link"
-                  onClick={() =>
-                    paginaActual < totalPaginas &&
-                    setPaginaActual(paginaActual + 1)
-                  }
-                >
-                  Siguiente
-                </button>
-              </li>
-            </ul>
-          </nav>
+          </div>
+
+          {/* Información */}
+          <div>
+            <h5 className="fw-bold mb-1" style={{ fontSize: "1rem" }}>
+              {r.nombreArea}
+            </h5>
+            <p className="mb-0" style={{ fontSize: "0.85rem" }}>
+              <strong>Solicitante:</strong> {r.nombreSolicitante}
+            </p>
+            <p className="mb-0" style={{ fontSize: "0.85rem" }}>
+              <strong>Documento:</strong> {r.documentoSolicitante}
+            </p>
+          </div>
         </div>
+
+        {/* Fecha y horas */}
+        <div className="text-center" style={{ minWidth: "150px" }}>
+          <p className="mb-1" style={{ fontSize: "0.85rem" }}>
+            <strong>Fecha:</strong> {r.fechaReserva}
+          </p>
+          <p className="mb-0" style={{ fontSize: "0.85rem" }}>
+            {r.horaInicio?.substring(0, 5)} — {r.horaFin?.substring(0, 5)}
+          </p>
+        </div>
+
+        {/* Asistentes */}
+        <div className="text-center" style={{ minWidth: "80px" }}>
+          <span
+            className="badge bg-secondary"
+            style={{ fontSize: "0.8rem", padding: "6px 10px" }}
+          >
+            {r.cantidadAsistentes} Asist.
+          </span>
+        </div>
+
+        {/* Estado */}
+        <div style={{ minWidth: "110px" }}>
+          {r.nombreEstado === "finalizada" ? (
+            <span className="badge bg-success" style={{ fontSize: "0.8rem" }}>
+              Finalizada
+            </span>
+          ) : r.nombreEstado === "en curso" ? (
+            <span className="badge bg-warning text-dark" style={{ fontSize: "0.8rem" }}>
+              En Curso
+            </span>
+          ) : (
+            <span className="badge bg-info text-white" style={{ fontSize: "0.8rem" }}>
+              Registrada
+            </span>
+          )}
+        </div>
+
+        {/* Acciones */}
+        <div className="d-flex flex-column gap-1" style={{ minWidth: "110px" }}>
+          {r.nombreEstado !== "finalizada" && (
+            <>
+              <button
+                className="btn btn-sm btn-outline-primary"
+                onClick={() => editarReserva(r)}
+                disabled={loading}
+              >
+                Editar
+              </button>
+
+              <button
+                className="btn btn-sm btn-outline-success"
+                onClick={() => finalizarRegistro(r.idReservas)}
+                disabled={loading}
+              >
+                Finalizar
+              </button>
+            </>
+          )}
+
+          <button
+            className="btn btn-sm btn-outline-info"
+            onClick={() => verDetalles(r)}
+          >
+            Detalles
+          </button>
+        </div>
+      </div>
+    ))
+  )}
+
+  {/* Paginación */}
+  <nav className="d-flex justify-content-center mt-3">
+    <ul className="pagination">
+      <li className={`page-item ${paginaActual === 1 ? "disabled" : ""}`}>
+        <button
+          className="page-link"
+          onClick={() => paginaActual > 1 && setPaginaActual(paginaActual - 1)}
+        >
+          Anterior
+        </button>
+      </li>
+
+      {[...Array(totalPaginas).keys()].map((num) => (
+        <li
+          key={num + 1}
+          className={`page-item ${paginaActual === num + 1 ? "active" : ""}`}
+        >
+          <button className="page-link" onClick={() => setPaginaActual(num + 1)}>
+            {num + 1}
+          </button>
+        </li>
+      ))}
+
+      <li
+        className={`page-item ${
+          paginaActual === totalPaginas || totalPaginas === 0 ? "disabled" : ""
+        }`}
+      >
+        <button
+          className="page-link"
+          onClick={() =>
+            paginaActual < totalPaginas && setPaginaActual(paginaActual + 1)
+          }
+        >
+          Siguiente
+        </button>
+      </li>
+    </ul>
+  </nav>
+</div>
+
 
         {/* Modal Registrar/Editar */}
         {modalAbierto && (

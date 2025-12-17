@@ -6,12 +6,9 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button, Table, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
+import { obtenerResidentes, crearOcupante, actualizarOcupante, finalizarOcupante } from "../services/residentes.services.jsx";
 
-const API_BASE_URL = "http://localhost:3001/api";
-const getAuthToken = () => {
-  return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Impvc3VlMjAyMyIsInJvbGVzSWQiOjEsImlhdCI6MTc1OTQ5NzMzOCwiZXhwIjoxNzU5NTAwOTM4fQ.zoWZMuCBmzoyZvQ8_8OYGKHwQpkDFaB8QSMQXBQcbXA";
-};
-
+  
 
   const obtenerToken = () => {
     const token =
@@ -59,6 +56,82 @@ const getAuthToken = () => {
       return "Usuario";
     }
   };
+  
+  // Traduce mensajes/estructuras de error del backend a textos amigables en español
+  const campoAmigable = (field) => {
+    const map = {
+      numeroDocumento: 'Número de documento',
+      primerNombre: 'Primer nombre',
+      segundoNombre: 'Segundo nombre',
+      primerApellido: 'Primer apellido',
+      segundoApellido: 'Segundo apellido',
+      correoElectronico: 'Correo electrónico',
+      correo: 'Correo electrónico',
+      telefono: 'Teléfono',
+      apto: 'Apartamento',
+      apartamentosId: 'Apartamento',
+      tipoOcupacion: 'Tipo de ocupación',
+      fechaInicio: 'Fecha de inicio',
+      fechaFin: 'Fecha de fin',
+      personasACargo: 'Personas a cargo',
+    };
+    return map[field] || field;
+  };
+
+  const traducirMensajeBackend = (errData) => {
+    if (errData === null || errData === undefined) return 'Datos inválidos o incompletos.';
+
+    if (typeof errData === 'string') {
+      const s = errData;
+      if (/required|is required|cannot be null|no puede estar vacío|cannot be empty/i.test(s)) return 'Falta información obligatoria en el formulario.';
+      if (/max.*length|no puede.*mayor|exceeds the maximum|too long|longitud máxima/i.test(s)) return 'Algún campo supera la longitud permitida.';
+      if (/min.*length|must be at least|falta.*caracter|too short|longitud mínima/i.test(s)) return 'Algún campo no cumple la longitud mínima requerida.';
+      if (/invalid|not valid|no válido|formato/i.test(s)) return 'Formato de campo inválido.';
+      if (/unique|exists|ya existe/i.test(s)) return 'Ya existe un registro con esos datos.';
+      // Si el mensaje ya está en español claro, devolverlo
+      if (/[áéíóúñ¿¡]/i.test(s) || /\b(error|campo|no|falta|inválid)/i.test(s)) return s;
+      // Por defecto, devolver un mensaje genérico pero útil
+      return 'Hay un problema con los datos ingresados. Revise el formulario e intente nuevamente.';
+    }
+
+    if (Array.isArray(errData)) {
+      return errData.map((e) => traducirMensajeBackend(e)).join(' ');
+    }
+
+    if (typeof errData === 'object') {
+      // Estructura común: { message: '...', errors: [...] }
+      if (errData.message && typeof errData.message === 'string') {
+        return traducirMensajeBackend(errData.message);
+      }
+
+      if (errData.errors && Array.isArray(errData.errors)) {
+        return errData.errors
+          .map((it) => {
+            if (it.field || it.param) {
+              const f = it.field || it.param;
+              const msg = it.message || it.msg || it.error || JSON.stringify(it);
+              return `${campoAmigable(f)}: ${traducirMensajeBackend(msg)}`;
+            }
+            return traducirMensajeBackend(it.message || it);
+          })
+          .join(' ');
+      }
+
+      // Si es un objeto con claves por campo
+      const partes = [];
+      for (const k in errData) {
+        if (!Object.prototype.hasOwnProperty.call(errData, k)) continue;
+        const v = errData[k];
+        const texto = traducirMensajeBackend(v);
+        partes.push(`${campoAmigable(k)}: ${texto}`);
+      }
+      if (partes.length) return partes.join(' ');
+
+      return 'Hay un problema con los datos ingresados. Revise el formulario e intente nuevamente.';
+    }
+
+    return 'Hay un problema con los datos ingresados. Revise el formulario e intente nuevamente.';
+  };
   //obtener rol 
 const obtenerRolDelToken = () => {
   try {
@@ -95,166 +168,24 @@ switch (rolesId) {
 }
 
   const nombreUsuario = obtenerUsuarioDelToken();
-const apiService = {
- 
-  getOcupantes: async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/ocupantes`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-          "Content-Type": "application/json",
-        },
-      });
-      const data = await response.json();
-      return data.ok ? data.body : [];
-    } catch (error) {
-      console.error("Error al obtener ocupantes:", error);
-      throw error;
-    }
-  },
 
-  createOcupante: async (ocupanteData) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/ocupante`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(ocupanteData),
-      });
+  const tokenValido = token && !verificarTokenVencido(token);
+  const showUserManagement = tokenValido && rolesId === 1; // solo SuperAdmin puede gestionar usuarios
+  const showAreasComunes = tokenValido && rolesId !== 3; // ocultar áreas comunes para Vigilante (3)
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error response:", errorText);
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await response.text();
-        console.error("Non-JSON response:", text);
-        throw new Error("La respuesta del servidor no es JSON válido");
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error("Error al crear ocupante:", error);
-      throw error;
-    }
-  },
-
-  updateOcupante: async (id, ocupanteData) => {
-    try {
-      console.log("=== API UPDATE DEBUG ===");
-      console.log("URL:", `${API_BASE_URL}/ocupante/${id}`);
-      console.log("Datos enviados:", JSON.stringify(ocupanteData, null, 2));
-
-      const response = await fetch(`${API_BASE_URL}/ocupante/${id}`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(ocupanteData),
-      });
-
-      console.log("Response status:", response.status);
-      console.log("Response headers:", [...response.headers.entries()]);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error response body:", errorText);
-
-      
-        try {
-          const errorJson = JSON.parse(errorText);
-          console.error("Error JSON parsed:", errorJson);
-          throw new Error(
-            `HTTP ${response.status}: ${
-              errorJson.message || response.statusText
-            }`
-          );
-        } catch (parseError) {
-          throw new Error(
-            `HTTP ${response.status}: ${response.statusText} - ${errorText}`
-          );
-        }
-      }
-
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await response.text();
-        console.error("Non-JSON response:", text);
-        throw new Error("La respuesta del servidor no es JSON válido");
-      }
-
-      const data = await response.json();
-      console.log("Response data:", data);
-      return data;
-    } catch (error) {
-      console.error("Error al actualizar ocupante:", error);
-      throw error;
-    }
-  },
-
-  finalizarOcupante: async (id) => {
-    try {
-      console.log("=== API DELETE DEBUG ===");
-      console.log("URL:", `${API_BASE_URL}/ocupante/${id}`);
-      console.log("Método: DELETE");
-
-      const response = await fetch(`${API_BASE_URL}/ocupante/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      console.log("Response status:", response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error response body:", errorText);
-
-        try {
-          const errorJson = JSON.parse(errorText);
-          console.error("Error JSON parsed:", errorJson);
-          throw new Error(
-            `HTTP ${response.status}: ${
-              errorJson.message || response.statusText
-            }`
-          );
-        } catch (parseError) {
-          throw new Error(
-            `HTTP ${response.status}: ${response.statusText} - ${errorText}`
-          );
-        }
-      }
-
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await response.text();
-        console.error("Non-JSON response:", text);
-        throw new Error("La respuesta del servidor no es JSON válido");
-      }
-
-      const data = await response.json();
-      console.log("Response data:", data);
-      return data;
-    } catch (error) {
-      console.error("Error al finalizar ocupante:", error);
-      throw error;
-    }
-  },
-};
 
 function Residentes() {
   const location = useLocation();
   const navegacion = useNavigate();
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      Swal.fire({ icon: 'warning', title: 'Sesión expirada', text: 'La sesión expiró. Vuelva a iniciar sesión.', timer: 3500, showConfirmButton: false, timerProgressBar: true }).then(() => {
+        localStorage.clear();
+        navegacion('/');
+      });
+    }
+  }, [navegacion]);
   const CerraSesión = (e) => {
     e?.preventDefault();
     localStorage.clear();
@@ -271,7 +202,52 @@ function Residentes() {
   const cargarResidentes = async () => {
     try {
       setLoading(true);
-      const ocupantes = await apiService.getOcupantes();
+      const res = await obtenerResidentes(obtenerToken());
+
+      if (res?.status === 401) {
+        // Mostrar mensaje que provea el backend si lo hay
+        let body = null;
+        try {
+          const ct = res.headers.get('content-type') || '';
+          body = ct.includes('application/json') ? await res.json() : await res.text();
+        } catch (e) {
+          body = null;
+        }
+        const backendMsg = body ? (typeof body === 'object' ? (body.message || JSON.stringify(body)) : body) : 'No autorizado. Token inválido o expirado.';
+        console.error('Token expirado o inválido', res.status, backendMsg);
+        Swal.fire({ icon: 'warning', title: 'No autorizado', text: backendMsg, confirmButtonText: 'Entendido' }).then(()=>{
+          localStorage.removeItem('token');
+          navegacion('/');
+        });
+        return;
+      }
+
+      if (!res.ok) {
+        const text = await res.text();
+        let parsed = text;
+        try {
+          parsed = JSON.parse(text);
+        } catch (e) {
+          // no es JSON
+        }
+        console.error("Error al obtener residentes:", res.status, res.statusText, parsed);
+        if (res.status === 400) {
+          const friendly = traducirMensajeBackend(parsed || text);
+          Swal.fire({ icon: 'warning', title: 'Error de validación', text: friendly, confirmButtonText: 'Entendido' });
+          setLoading(false);
+          return;
+        }
+        if (res.status >= 500) {
+          Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+          setLoading(false);
+          return;
+        }
+        throw new Error(`Error ${res.status}: ${res.statusText}`);
+      }
+
+      const data = await res.json();
+      const ocupantes = data.body || data;
+
       const residentesFormateados = ocupantes.map((ocupante) => ({
         idOcupante: ocupante.idOcupante,
         tipoDocumento: mapTipoDocumento(ocupante.tipoDocumentoId),
@@ -303,7 +279,7 @@ function Residentes() {
       setResidentes(residentesFormateados);
     } catch (error) {
       console.error("Error al cargar residentes:", error);
-      Swal.fire("Error", "No se pudieron cargar los residentes", "error");
+      Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
     } finally {
       setLoading(false);
     }
@@ -421,8 +397,22 @@ function Residentes() {
   
   const cargarApartamentos = async () => {
     try {
-   
-      const ocupantes = await apiService.getOcupantes();
+      const res = await obtenerResidentes(obtenerToken());
+
+      if (res?.status === 401) {
+        console.error("Token expirado o inválido");
+        localStorage.removeItem("token");
+        navegacion("/");
+        return;
+      }
+
+      if (!res.ok) {
+        console.error("Error al obtener residentes para aptos:", res.status, res.statusText);
+        throw new Error(`Error ${res.status}: ${res.statusText}`);
+      }
+
+      const data = await res.json();
+      const ocupantes = data.body || data;
       const apartamentosUnicos = [];
       const idsVistos = new Set();
 
@@ -536,13 +526,20 @@ function Residentes() {
           formData.segundoApellido && formData.segundoApellido.trim() !== ""
             ? formData.segundoApellido
             : null,
-        telefono: formData.telefono || "0000000000", 
-        correoElectronico: formData.correo || "noemail@example.com", requerido
+        telefono: formData.telefono || "0000000000",
+        // Para creación usar placeholder si no hay correo; para actualización omitir si está vacío
+        correoElectronico:
+          editIndex === null
+            ? formData.correo || "noemail@example.com"
+            : formData.correo && formData.correo.trim() !== ""
+            ? formData.correo
+            : undefined,
       };
 
  
-      if (editIndex === null) {
-        ocupanteData.numeroDocumento = formData.numeroDocumento;
+      // Incluir número de documento tanto en creación como en edición
+      if (formData.numeroDocumento && formData.numeroDocumento.trim() !== "") {
+        ocupanteData.numeroDocumento = formData.numeroDocumento.trim();
       }
 
       if (editIndex !== null) {
@@ -560,35 +557,76 @@ function Residentes() {
           console.log("ID a actualizar:", editIndex);
           console.log("Datos a enviar:", ocupanteData);
 
-          await apiService.updateOcupante(editIndex, ocupanteData);
-          Swal.fire("Guardado", "Cambios guardados correctamente", "success");
-          cargarResidentes();
-          cerrarModal();
+              const resUpdate = await actualizarOcupante(editIndex, ocupanteData, obtenerToken());
+              if (resUpdate?.status === 401) {
+                let body = null;
+                try {
+                  const ct = resUpdate.headers.get('content-type') || '';
+                  body = ct.includes('application/json') ? await resUpdate.json() : await resUpdate.text();
+                } catch (e) { body = null; }
+                const backendMsg = body ? (typeof body === 'object' ? (body.message || JSON.stringify(body)) : body) : 'No autorizado. Token inválido o expirado.';
+                Swal.fire({ icon: 'warning', title: 'No autorizado', text: backendMsg, confirmButtonText: 'Entendido' }).then(()=>{ localStorage.removeItem('token'); navegacion('/'); });
+                return;
+              }
+            if (!resUpdate.ok) {
+              const contentType = resUpdate.headers.get("content-type");
+              const errData = contentType && contentType.includes("application/json") ? await resUpdate.json() : await resUpdate.text();
+              console.error("Error actualizando ocupante:", resUpdate.status, errData);
+              if (resUpdate.status === 400) {
+                // Mostrar el mensaje tal cual lo envía el backend (si lo proporciona)
+                const backendMsg = typeof errData === 'object' ? (errData.message || JSON.stringify(errData)) : errData;
+                console.error('Error de validación desde backend:', backendMsg);
+                Swal.fire({ icon: 'warning', title: 'Error de validación', text: backendMsg || 'Error de validación en los datos.', confirmButtonText: 'Entendido' });
+                return;
+              }
+              if (resUpdate.status >= 500) {
+                Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+                return;
+              }
+              Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo actualizar el registro.', confirmButtonText: 'Entendido' });
+              return;
+            }
+
+            Swal.fire({ icon: 'success', title: 'Guardado correctamente', timer: 3500, showConfirmButton: false });
+            cargarResidentes();
+            cerrarModal();
         } else if (result.isDenied) {
           Swal.fire("No guardado", "Los cambios no se aplicaron", "info");
         }
       } else {
-        const result = await apiService.createOcupante(ocupanteData);
+        const resCreate = await crearOcupante(ocupanteData, obtenerToken());
+        if (resCreate?.status === 401) {
+          let body = null;
+          try {
+            const ct = resCreate.headers.get('content-type') || '';
+            body = ct.includes('application/json') ? await resCreate.json() : await resCreate.text();
+          } catch (e) { body = null; }
+          const backendMsg = body ? (typeof body === 'object' ? (body.message || JSON.stringify(body)) : body) : 'No autorizado. Token inválido o expirado.';
+          Swal.fire({ icon: 'warning', title: 'No autorizado', text: backendMsg, confirmButtonText: 'Entendido' }).then(()=>{ localStorage.removeItem('token'); navegacion('/'); });
+          return;
+        }
+        const contentType = resCreate.headers.get("content-type");
+        const dataCreate = contentType && contentType.includes("application/json") ? await resCreate.json() : await resCreate.text();
 
-        if (result.message && result.ocupante) {
-          Swal.fire("Éxito", "Residente registrado con éxito", "success");
+        if (!resCreate.ok) {
+          console.error("Error creando ocupante:", resCreate.status, dataCreate);
+          if (resCreate.status === 400) {
+            const friendly = traducirMensajeBackend(dataCreate);
+            Swal.fire({ icon: 'warning', title: 'Error de validación', text: friendly, confirmButtonText: 'Entendido' });
+          } else if (resCreate.status >= 500) {
+            Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+          } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo crear el registro.', confirmButtonText: 'Entendido' });
+          }
+        } else {
+          Swal.fire({ icon: 'success', title: 'Registrado correctamente', timer: 3500, showConfirmButton: false });
           cargarResidentes();
           cerrarModal();
-        } else {
-          Swal.fire(
-            "Error",
-            result.message || "Error al registrar residente",
-            "error"
-          );
         }
       }
     } catch (error) {
       console.error("Error al guardar residente:", error);
-      Swal.fire(
-        "Error",
-        `No se pudo guardar el residente: ${error.message}`,
-        "error"
-      );
+      Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
     }
   };
 
@@ -642,12 +680,38 @@ function Residentes() {
 
     if (result.isConfirmed) {
       try {
-        await apiService.finalizarOcupante(residente.idOcupante);
-        Swal.fire("Finalizado", "El residente ha sido finalizado", "success");
+        const resFinal = await finalizarOcupante(residente.idOcupante, obtenerToken());
+        if (resFinal?.status === 401) {
+          let body = null;
+          try {
+            const ct = resFinal.headers.get('content-type') || '';
+            body = ct.includes('application/json') ? await resFinal.json() : await resFinal.text();
+          } catch (e) { body = null; }
+          const backendMsg = body ? (typeof body === 'object' ? (body.message || JSON.stringify(body)) : body) : 'No autorizado. Token inválido o expirado.';
+          Swal.fire({ icon: 'warning', title: 'No autorizado', text: backendMsg, confirmButtonText: 'Entendido' }).then(()=>{ localStorage.removeItem('token'); navegacion('/'); });
+          return;
+        }
+        if (!resFinal.ok) {
+          const contentType = resFinal.headers.get("content-type");
+          const errData = contentType && contentType.includes("application/json") ? await resFinal.json() : await resFinal.text();
+          console.error("Error finalizando ocupante:", resFinal.status, errData);
+          if (resFinal.status === 400) {
+            const friendly = traducirMensajeBackend(errData);
+            Swal.fire({ icon: 'warning', title: 'Error de validación', text: friendly, confirmButtonText: 'Entendido' });
+            return;
+          }
+          if (resFinal.status >= 500) {
+            Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+            return;
+          }
+          Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo finalizar el registro.', confirmButtonText: 'Entendido' });
+          return;
+        }
+        Swal.fire({ icon: 'success', title: 'Finalizado correctamente', timer: 3500, showConfirmButton: false });
         cargarResidentes();
       } catch (error) {
         console.error("Error al finalizar residente:", error);
-        Swal.fire("Error", "No se pudo finalizar el residente", "error");
+        Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
       }
     }
   };
@@ -885,41 +949,45 @@ function Residentes() {
             </ul>
           </div>
 
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión de Áreas Comunes</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link className="nav-link text-white" to="/AreasComunes">
-                  Registrar Reserva
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/AreasComunes">
-                  Consultar Zonas
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {showAreasComunes && (
+            <div className="mb-4">
+              <h6 className="text-uppercase fw-bold">Gestión de Áreas Comunes</h6>
+              <ul className="nav flex-column mt-2 gap-2">
+                <li>
+                  <Link className="nav-link text-white" to="/AreasComunes">
+                    Registrar Reserva
+                  </Link>
+                </li>
+                <li>
+                  <Link className="nav-link text-white" to="/AreasComunes">
+                    Consultar Zonas
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          )}
 
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión de Usuarios</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link
-                  className="nav-link text-white"
-                  to="/Registro"
-                  state={{ abrirModal: true }}
-                >
-                  Registrar Usuario
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/GestionUsuario">
-                  Consultar Usuarios
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {showUserManagement && (
+            <div className="mb-4">
+              <h6 className="text-uppercase fw-bold">Gestión de Usuarios</h6>
+              <ul className="nav flex-column mt-2 gap-2">
+                <li>
+                  <Link
+                    className="nav-link text-white"
+                    to="/GestionUsuario"
+                    state={{ abrirModal: true }}
+                  >
+                    Registrar Usuario
+                  </Link>
+                </li>
+                <li>
+                  <Link className="nav-link text-white" to="/GestionUsuario">
+                    Consultar Usuarios
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          )}
 
           <div className="mb-4">
             <h6 className="text-uppercase fw-bold">Gestión Residentes</h6>
@@ -1339,24 +1407,16 @@ function Residentes() {
                       </div>
 
                       <div className="col-md-8 mb-2">
-                        <label className="form-label">
-                          Número Documento
-                          {editIndex !== null && (
-                            <small className="text-muted"> (No editable)</small>
-                          )}
-                        </label>
+                        <label className="form-label">Número Documento</label>
                         <input
                           type="text"
                           name="numeroDocumento"
                           className="form-control"
                           value={formData.numeroDocumento}
                           onChange={handleChange}
-                          required
-                          disabled={editIndex !== null} // Deshabilitar en edición
-                          style={{
-                            backgroundColor:
-                              editIndex !== null ? "#f8f9fa" : "",
-                          }}
+                          required={editIndex === null}
+                          disabled={editIndex !== null}
+                          style={{ backgroundColor: editIndex !== null ? "#f8f9fa" : "" }}
                         />
                       </div>
 
