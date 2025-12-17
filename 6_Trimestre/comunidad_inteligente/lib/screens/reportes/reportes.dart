@@ -129,6 +129,74 @@ class ReportesApiService {
       return {};
     }
   }
+
+  // ============================================================================
+  // REPORTES DE RESIDENTES
+  // ============================================================================
+
+  /// Obtiene estadísticas de ocupación por torre
+  static Future<Map<String, dynamic>> obtenerReporteOcupacion(
+    String token,
+  ) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/reportes/residentes/ocupacion'),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      return {};
+    } catch (e) {
+      print('Error al obtener reporte de ocupación: $e');
+      return {};
+    }
+  }
+
+  /// Obtiene listado de niños (menores de 18 años)
+  static Future<Map<String, dynamic>> obtenerReporteNinos(String token) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/reportes/residentes/ninos'),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      return {};
+    } catch (e) {
+      print('Error al obtener reporte de niños: $e');
+      return {};
+    }
+  }
+
+  /// Obtiene información de población especial (adultos mayores y discapacitados)
+  static Future<Map<String, dynamic>> obtenerReportePoblacionEspecial(
+    String token,
+  ) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/reportes/residentes/poblacion-especial'),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      return {};
+    } catch (e) {
+      print('Error al obtener reporte de población especial: $e');
+      return {};
+    }
+  }
 }
 
 // ============================================================================
@@ -152,6 +220,11 @@ class _ReportesScreenState extends State<ReportesScreen> {
   Map<String, dynamic> reportePaquetes = {};
   Map<String, dynamic> reporteReservas = {};
   Map<String, dynamic> reporteVisitas = {};
+
+  // Reportes de residentes
+  Map<String, dynamic> reporteOcupacion = {};
+  Map<String, dynamic> reporteNinos = {};
+  Map<String, dynamic> reportePoblacionEspecial = {};
 
   @override
   void initState() {
@@ -183,6 +256,10 @@ class _ReportesScreenState extends State<ReportesScreen> {
         fechaInicio,
         fechaFin,
       ),
+      // Reportes de residentes (sin filtro de fechas)
+      ReportesApiService.obtenerReporteOcupacion(widget.token),
+      ReportesApiService.obtenerReporteNinos(widget.token),
+      ReportesApiService.obtenerReportePoblacionEspecial(widget.token),
     ]);
 
     setState(() {
@@ -214,6 +291,29 @@ class _ReportesScreenState extends State<ReportesScreen> {
               'data': {'totalVisitas': 0, 'diaConMasVisitas': {}},
             }
           : results[3];
+
+      // Reportes de residentes
+      reporteOcupacion = results[4].isEmpty
+          ? {
+              'totalApartamentos': 0,
+              'apartamentosOcupados': 0,
+              'apartamentosVacios': 0,
+              'porcentajeOcupacion': 0,
+              'totalResidentes': 0,
+              'detallePorTorre': [],
+            }
+          : results[4];
+
+      reporteNinos = results[5].isEmpty
+          ? {'totalNinos': 0, 'ninos': []}
+          : results[5];
+
+      reportePoblacionEspecial = results[6].isEmpty
+          ? {
+              'adultosMayores': {'total': 0, 'personas': []},
+              'personasConDiscapacidad': {'total': 0, 'personas': []},
+            }
+          : results[6];
 
       isLoading = false;
     });
@@ -324,6 +424,21 @@ class _ReportesScreenState extends State<ReportesScreen> {
                         _buildReportePaquetes(),
                         const SizedBox(height: 24),
                         _buildReporteReservas(),
+                        const SizedBox(height: 32),
+                        // ============================================
+                        // SECCIÓN DE REPORTES DE RESIDENTES
+                        // ============================================
+                        _buildSeccionTitulo(
+                          'Reportes de Residentes',
+                          Icons.people,
+                          Colors.teal,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildReporteOcupacionTorres(),
+                        const SizedBox(height: 24),
+                        _buildReporteNinos(),
+                        const SizedBox(height: 24),
+                        _buildReportePoblacionEspecial(),
                       ],
                     ),
                   ),
@@ -570,7 +685,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
             const SizedBox(height: 16),
             // Gráfico de barras
             SizedBox(
-              height: 250,
+              height: 280,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: ocupacionDiaria.length,
@@ -595,7 +710,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                   }
 
                   final altura = maxVehiculos > 0
-                      ? (vehiculosIngresados / maxVehiculos) * 180
+                      ? (vehiculosIngresados / maxVehiculos) * 150
                       : 0.0;
 
                   return Container(
@@ -615,7 +730,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                         const SizedBox(height: 4),
                         // Barra apilada
                         SizedBox(
-                          height: altura.clamp(20, 180),
+                          height: altura.clamp(20, 150),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
@@ -624,7 +739,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                                 Container(
                                   height: vehiculosIngresados > 0
                                       ? (motos / vehiculosIngresados) *
-                                            altura.clamp(20, 180)
+                                            altura.clamp(20, 150)
                                       : 0,
                                   decoration: BoxDecoration(
                                     color: Colors.orange.shade600,
@@ -648,7 +763,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                                 Container(
                                   height: vehiculosIngresados > 0
                                       ? (carros / vehiculosIngresados) *
-                                            altura.clamp(20, 180)
+                                            altura.clamp(20, 150)
                                       : 0,
                                   decoration: BoxDecoration(
                                     color: Colors.blue.shade600,
@@ -1709,6 +1824,38 @@ class _ReportesScreenState extends State<ReportesScreen> {
             ),
           ),
 
+          // ============================================================
+          // REPORTES DE RESIDENTES
+          // ============================================================
+          pw.SizedBox(height: 32),
+          pw.Container(
+            padding: const pw.EdgeInsets.all(12),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.teal50,
+              borderRadius: pw.BorderRadius.circular(8),
+            ),
+            child: pw.Text(
+              'REPORTES DE RESIDENTES',
+              style: pw.TextStyle(
+                fontSize: 20,
+                fontWeight: pw.FontWeight.bold,
+                color: PdfColors.teal800,
+              ),
+            ),
+          ),
+          pw.SizedBox(height: 16),
+
+          // Ocupación por Torres
+          ..._buildPDFOcupacionTorres(),
+          pw.SizedBox(height: 24),
+
+          // Niños en la Comunidad
+          ..._buildPDFNinos(),
+          pw.SizedBox(height: 24),
+
+          // Población Especial
+          ..._buildPDFPoblacionEspecial(),
+
           pw.SizedBox(height: 32),
           pw.Divider(),
           pw.SizedBox(height: 8),
@@ -1780,5 +1927,1158 @@ class _ReportesScreenState extends State<ReportesScreen> {
 
   String _formatearFecha(DateTime fecha) {
     return '${fecha.day.toString().padLeft(2, '0')}/${fecha.month.toString().padLeft(2, '0')}/${fecha.year}';
+  }
+
+  // ============================================================================
+  // MÉTODOS PDF PARA REPORTES DE RESIDENTES
+  // ============================================================================
+
+  /// Genera contenido PDF para ocupación por torres
+  List<pw.Widget> _buildPDFOcupacionTorres() {
+    dynamic rawData = reporteOcupacion['data'] ?? reporteOcupacion;
+    Map<String, dynamic> data = {};
+    if (rawData is Map) {
+      data = Map<String, dynamic>.from(rawData);
+    }
+
+    final totalApartamentos = _toInt(data['totalApartamentos']);
+    final apartamentosOcupados = _toInt(data['apartamentosOcupados']);
+    final apartamentosVacios = _toInt(data['apartamentosVacios']);
+    final porcentajeOcupacion = data['porcentajeOcupacion'] ?? 0;
+    final totalResidentes = _toInt(data['totalResidentes']);
+
+    List detallePorTorre = [];
+    if (data['detallePorTorre'] is List) {
+      detallePorTorre = data['detallePorTorre'] as List;
+    }
+
+    return [
+      _buildPDFTitulo('OCUPACIÓN POR TORRES', PdfColors.teal700),
+      pw.SizedBox(height: 12),
+      pw.Container(
+        padding: const pw.EdgeInsets.all(16),
+        decoration: pw.BoxDecoration(
+          border: pw.Border.all(color: PdfColors.grey300),
+          borderRadius: pw.BorderRadius.circular(8),
+        ),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            // Resumen general
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+              children: [
+                _buildPDFEstadistica(
+                  'Total Aptos',
+                  '$totalApartamentos',
+                  PdfColors.blue700,
+                ),
+                _buildPDFEstadistica(
+                  'Ocupados',
+                  '$apartamentosOcupados',
+                  PdfColors.green700,
+                ),
+                _buildPDFEstadistica(
+                  'Vacíos',
+                  '$apartamentosVacios',
+                  PdfColors.orange700,
+                ),
+                _buildPDFEstadistica(
+                  'Residentes',
+                  '$totalResidentes',
+                  PdfColors.purple700,
+                ),
+                _buildPDFEstadistica(
+                  'Ocupación',
+                  '${porcentajeOcupacion is num ? porcentajeOcupacion.toStringAsFixed(1) : porcentajeOcupacion}%',
+                  PdfColors.teal700,
+                ),
+              ],
+            ),
+            if (detallePorTorre.isNotEmpty) ...[
+              pw.SizedBox(height: 16),
+              pw.Divider(),
+              pw.SizedBox(height: 12),
+              pw.Text(
+                'Detalle por Torre:',
+                style: pw.TextStyle(
+                  fontSize: 12,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 8),
+              // Tabla de torres
+              pw.Table(
+                border: pw.TableBorder.all(color: PdfColors.grey300),
+                columnWidths: {
+                  0: const pw.FlexColumnWidth(2),
+                  1: const pw.FlexColumnWidth(1.5),
+                  2: const pw.FlexColumnWidth(1.5),
+                  3: const pw.FlexColumnWidth(1.5),
+                },
+                children: [
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(color: PdfColors.teal50),
+                    children: [
+                      _buildPDFCeldaHeader('Torre'),
+                      _buildPDFCeldaHeader('Apartamentos'),
+                      _buildPDFCeldaHeader('Ocupados'),
+                      _buildPDFCeldaHeader('Personas'),
+                    ],
+                  ),
+                  ...detallePorTorre.map((torre) {
+                    return pw.TableRow(
+                      children: [
+                        _buildPDFCelda(torre['nombreTorre']?.toString() ?? '-'),
+                        _buildPDFCelda('${_toInt(torre['totalApartamentos'])}'),
+                        _buildPDFCelda(
+                          '${_toInt(torre['apartamentosOcupados'])}',
+                        ),
+                        _buildPDFCelda('${_toInt(torre['totalPersonas'])}'),
+                      ],
+                    );
+                  }).toList(),
+                ],
+              ),
+            ] else
+              pw.Text(
+                'No hay datos de torres disponibles',
+                style: const pw.TextStyle(
+                  fontSize: 12,
+                  color: PdfColors.grey600,
+                ),
+              ),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  /// Genera contenido PDF para niños en la comunidad
+  List<pw.Widget> _buildPDFNinos() {
+    dynamic rawData = reporteNinos['data'] ?? reporteNinos;
+    Map<String, dynamic> data = {};
+    if (rawData is Map) {
+      data = Map<String, dynamic>.from(rawData);
+    }
+
+    final totalNinos = _toInt(data['totalNinos']);
+    final totalApartamentosConNinos = _toInt(data['totalApartamentosConNinos']);
+
+    List detalleApartamentos = [];
+    if (data['detalleApartamentos'] is List) {
+      detalleApartamentos = data['detalleApartamentos'] as List;
+    }
+
+    return [
+      _buildPDFTitulo('NIÑOS EN LA COMUNIDAD', PdfColors.pink700),
+      pw.SizedBox(height: 12),
+      pw.Container(
+        padding: const pw.EdgeInsets.all(16),
+        decoration: pw.BoxDecoration(
+          border: pw.Border.all(color: PdfColors.grey300),
+          borderRadius: pw.BorderRadius.circular(8),
+        ),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            // Resumen
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+              children: [
+                _buildPDFEstadistica(
+                  'Total Niños',
+                  '$totalNinos',
+                  PdfColors.pink700,
+                ),
+                _buildPDFEstadistica(
+                  'Apartamentos con Niños',
+                  '$totalApartamentosConNinos',
+                  PdfColors.pink500,
+                ),
+              ],
+            ),
+            if (detalleApartamentos.isNotEmpty) ...[
+              pw.SizedBox(height: 16),
+              pw.Divider(),
+              pw.SizedBox(height: 12),
+              pw.Text(
+                'Detalle de Apartamentos con Niños:',
+                style: pw.TextStyle(
+                  fontSize: 12,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 8),
+              pw.Table(
+                border: pw.TableBorder.all(color: PdfColors.grey300),
+                columnWidths: {
+                  0: const pw.FlexColumnWidth(1.5),
+                  1: const pw.FlexColumnWidth(1.5),
+                  2: const pw.FlexColumnWidth(1),
+                  3: const pw.FlexColumnWidth(3),
+                },
+                children: [
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(color: PdfColors.pink50),
+                    children: [
+                      _buildPDFCeldaHeader('Torre'),
+                      _buildPDFCeldaHeader('Apartamento'),
+                      _buildPDFCeldaHeader('Niños'),
+                      _buildPDFCeldaHeader('Ocupante'),
+                    ],
+                  ),
+                  ...detalleApartamentos.take(15).map((apto) {
+                    return pw.TableRow(
+                      children: [
+                        _buildPDFCelda(apto['nombreTorre']?.toString() ?? '-'),
+                        _buildPDFCelda(
+                          apto['numeroApartamento']?.toString() ?? '-',
+                        ),
+                        _buildPDFCelda('${_toInt(apto['ocupantesConNinos'])}'),
+                        _buildPDFCelda(
+                          apto['nombreOcupantes']?.toString() ?? '-',
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                ],
+              ),
+              if (detalleApartamentos.length > 15)
+                pw.Padding(
+                  padding: const pw.EdgeInsets.only(top: 8),
+                  child: pw.Text(
+                    '... y ${detalleApartamentos.length - 15} apartamentos más',
+                    style: const pw.TextStyle(
+                      fontSize: 10,
+                      color: PdfColors.grey600,
+                    ),
+                  ),
+                ),
+            ] else
+              pw.Text(
+                'No hay datos de niños disponibles',
+                style: const pw.TextStyle(
+                  fontSize: 12,
+                  color: PdfColors.grey600,
+                ),
+              ),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  /// Genera contenido PDF para población especial
+  List<pw.Widget> _buildPDFPoblacionEspecial() {
+    dynamic rawData =
+        reportePoblacionEspecial['data'] ?? reportePoblacionEspecial;
+    Map<String, dynamic> data = {};
+    if (rawData is Map) {
+      data = Map<String, dynamic>.from(rawData);
+    }
+
+    final totalAdultosMayores = _toInt(data['totalAdultosMayores']);
+    final totalDiscapacitados = _toInt(data['totalDiscapacidad']);
+
+    List detalleApartamentos = [];
+    if (data['detalleApartamentos'] is List) {
+      detalleApartamentos = data['detalleApartamentos'] as List;
+    }
+
+    return [
+      _buildPDFTitulo('POBLACIÓN ESPECIAL', PdfColors.indigo700),
+      pw.SizedBox(height: 12),
+      pw.Container(
+        padding: const pw.EdgeInsets.all(16),
+        decoration: pw.BoxDecoration(
+          border: pw.Border.all(color: PdfColors.grey300),
+          borderRadius: pw.BorderRadius.circular(8),
+        ),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            // Resumen
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+              children: [
+                _buildPDFEstadistica(
+                  'Adultos Mayores (60+)',
+                  '$totalAdultosMayores',
+                  PdfColors.amber700,
+                ),
+                _buildPDFEstadistica(
+                  'Personas con Discapacidad',
+                  '$totalDiscapacitados',
+                  PdfColors.indigo700,
+                ),
+              ],
+            ),
+            if (detalleApartamentos.isNotEmpty) ...[
+              pw.SizedBox(height: 16),
+              pw.Divider(),
+              pw.SizedBox(height: 12),
+              pw.Text(
+                'Detalle de Población Especial:',
+                style: pw.TextStyle(
+                  fontSize: 12,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 8),
+              pw.Table(
+                border: pw.TableBorder.all(color: PdfColors.grey300),
+                columnWidths: {
+                  0: const pw.FlexColumnWidth(1.5),
+                  1: const pw.FlexColumnWidth(1.5),
+                  2: const pw.FlexColumnWidth(2),
+                  3: const pw.FlexColumnWidth(3),
+                },
+                children: [
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(
+                      color: PdfColors.indigo50,
+                    ),
+                    children: [
+                      _buildPDFCeldaHeader('Torre'),
+                      _buildPDFCeldaHeader('Apartamento'),
+                      _buildPDFCeldaHeader('Tipo'),
+                      _buildPDFCeldaHeader('Ocupante'),
+                    ],
+                  ),
+                  ...detalleApartamentos.take(15).map((persona) {
+                    return pw.TableRow(
+                      children: [
+                        _buildPDFCelda(
+                          persona['nombreTorre']?.toString() ?? '-',
+                        ),
+                        _buildPDFCelda(
+                          persona['numeroApartamento']?.toString() ?? '-',
+                        ),
+                        _buildPDFCelda(
+                          persona['tipoPoblacion']?.toString() ?? '-',
+                        ),
+                        _buildPDFCelda(
+                          persona['nombreOcupantes']?.toString() ?? '-',
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                ],
+              ),
+              if (detalleApartamentos.length > 15)
+                pw.Padding(
+                  padding: const pw.EdgeInsets.only(top: 8),
+                  child: pw.Text(
+                    '... y ${detalleApartamentos.length - 15} registros más',
+                    style: const pw.TextStyle(
+                      fontSize: 10,
+                      color: PdfColors.grey600,
+                    ),
+                  ),
+                ),
+            ] else
+              pw.Text(
+                'No hay datos de población especial disponibles',
+                style: const pw.TextStyle(
+                  fontSize: 12,
+                  color: PdfColors.grey600,
+                ),
+              ),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  /// Helper para crear estadística en PDF
+  pw.Widget _buildPDFEstadistica(String label, String valor, PdfColor color) {
+    return pw.Column(
+      children: [
+        pw.Text(
+          valor,
+          style: pw.TextStyle(
+            fontSize: 18,
+            fontWeight: pw.FontWeight.bold,
+            color: color,
+          ),
+        ),
+        pw.SizedBox(height: 4),
+        pw.Text(
+          label,
+          style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+          textAlign: pw.TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  /// Helper para crear celda de encabezado en tabla PDF
+  pw.Widget _buildPDFCeldaHeader(String texto) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.all(6),
+      child: pw.Text(
+        texto,
+        style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+        textAlign: pw.TextAlign.center,
+      ),
+    );
+  }
+
+  /// Helper para crear celda de datos en tabla PDF
+  pw.Widget _buildPDFCelda(String texto) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.all(6),
+      child: pw.Text(
+        texto,
+        style: const pw.TextStyle(fontSize: 9),
+        textAlign: pw.TextAlign.center,
+      ),
+    );
+  }
+
+  // ============================================================================
+  // WIDGETS DE REPORTES DE RESIDENTES
+  // ============================================================================
+
+  /// Widget para crear título de sección con ícono
+  Widget _buildSeccionTitulo(String titulo, IconData icono, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [color.withOpacity(0.1), color.withOpacity(0.05)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icono, color: color, size: 28),
+          const SizedBox(width: 12),
+          Text(
+            titulo,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Widget para mostrar ocupación por torres con gráfico de barras
+  Widget _buildReporteOcupacionTorres() {
+    // Manejar diferentes estructuras de respuesta (con o sin wrapper 'data')
+    dynamic rawData = reporteOcupacion['data'] ?? reporteOcupacion;
+    Map<String, dynamic> data = {};
+    if (rawData is Map) {
+      data = Map<String, dynamic>.from(rawData);
+    }
+
+    final totalApartamentos = _toInt(data['totalApartamentos']);
+    final apartamentosOcupados = _toInt(data['apartamentosOcupados']);
+    final apartamentosVacios = _toInt(data['apartamentosVacios']);
+    final porcentajeOcupacion = data['porcentajeOcupacion'] ?? 0;
+    final totalResidentes = _toInt(data['totalResidentes']);
+
+    List detallePorTorre = [];
+    if (data['detallePorTorre'] is List) {
+      detallePorTorre = data['detallePorTorre'] as List;
+    }
+
+    // Encontrar el máximo para escalar el gráfico (usando totalPersonas del backend)
+    int maxPersonas = 0;
+    for (var torre in detallePorTorre) {
+      final personas = _toInt(torre['totalPersonas']);
+      if (personas > maxPersonas) maxPersonas = personas;
+    }
+
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.apartment, color: Colors.teal.shade700, size: 32),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Ocupación por Torres',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            // Resumen general
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.teal.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildEstadisticaCircular(
+                        'Total Aptos',
+                        totalApartamentos.toString(),
+                        Colors.blue,
+                        Icons.home,
+                      ),
+                      _buildEstadisticaCircular(
+                        'Ocupados',
+                        apartamentosOcupados.toString(),
+                        Colors.green,
+                        Icons.check_circle,
+                      ),
+                      _buildEstadisticaCircular(
+                        'Vacíos',
+                        apartamentosVacios.toString(),
+                        Colors.orange,
+                        Icons.remove_circle_outline,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildEstadisticaCircular(
+                        'Residentes',
+                        totalResidentes.toString(),
+                        Colors.purple,
+                        Icons.people,
+                      ),
+                      _buildEstadisticaCircular(
+                        'Ocupación',
+                        '${(porcentajeOcupacion is num ? porcentajeOcupacion.toStringAsFixed(1) : porcentajeOcupacion)}%',
+                        Colors.teal,
+                        Icons.pie_chart,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Gráfico de barras por torre
+            if (detallePorTorre.isNotEmpty) ...[
+              const Text(
+                'Residentes por Torre:',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 280,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: detallePorTorre.length,
+                  itemBuilder: (context, index) {
+                    final torre = detallePorTorre[index];
+                    final nombreTorre =
+                        torre['nombreTorre']?.toString() ?? 'Torre ?';
+                    final totalPersonas = _toInt(torre['totalPersonas']);
+                    final totalApartamentos = _toInt(
+                      torre['totalApartamentos'],
+                    );
+                    final apartamentosOcupados = _toInt(
+                      torre['apartamentosOcupados'],
+                    );
+
+                    final altura = maxPersonas > 0
+                        ? (totalPersonas / maxPersonas) * 150
+                        : 0.0;
+
+                    return Container(
+                      width: 90,
+                      margin: const EdgeInsets.symmetric(horizontal: 6),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          // Valor
+                          Text(
+                            '$totalPersonas',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.teal.shade700,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          // Barra
+                          Container(
+                            height: altura.clamp(10.0, 150.0),
+                            width: 50,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.teal.shade400,
+                                  Colors.teal.shade600,
+                                ],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              ),
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(6),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.teal.withOpacity(0.3),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          // Nombre de la torre
+                          Text(
+                            nombreTorre,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          // Info adicional
+                          Text(
+                            '$apartamentosOcupados/$totalApartamentos',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+              Center(
+                child: Text(
+                  'Ocupados / Total apartamentos',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade500,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ] else
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.apartment,
+                        size: 48,
+                        color: Colors.grey.shade300,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'No hay datos de ocupación disponibles',
+                        style: TextStyle(color: Colors.grey.shade500),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Widget auxiliar para mostrar estadística en círculo
+  Widget _buildEstadisticaCircular(
+    String label,
+    String valor,
+    Color color,
+    IconData icono,
+  ) {
+    return Column(
+      children: [
+        Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
+            border: Border.all(color: color, width: 2),
+          ),
+          child: Center(child: Icon(icono, color: color, size: 28)),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          valor,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+        ),
+      ],
+    );
+  }
+
+  /// Widget para mostrar reporte de niños (menores de 18)
+  Widget _buildReporteNinos() {
+    // Manejar diferentes estructuras de respuesta (con o sin wrapper 'data')
+    dynamic rawData = reporteNinos['data'] ?? reporteNinos;
+    Map<String, dynamic> data = {};
+    if (rawData is Map) {
+      data = Map<String, dynamic>.from(rawData);
+    }
+
+    final totalNinos = _toInt(data['totalNinos']);
+    final totalApartamentosConNinos = _toInt(data['totalApartamentosConNinos']);
+
+    List detalleApartamentos = [];
+    if (data['detalleApartamentos'] is List) {
+      detalleApartamentos = data['detalleApartamentos'] as List;
+    }
+
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.child_care, color: Colors.pink.shade600, size: 32),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Niños en la Comunidad',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.pink.shade50,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.pink.shade200),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.child_friendly,
+                        size: 18,
+                        color: Colors.pink.shade600,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Total: $totalNinos',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.pink.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            if (detalleApartamentos.isNotEmpty)
+              // Tabla de apartamentos con niños
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  headingRowColor: MaterialStateProperty.all(
+                    Colors.pink.shade50,
+                  ),
+                  columns: const [
+                    DataColumn(
+                      label: Text(
+                        'Torre',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    DataColumn(
+                      label: Text(
+                        'Apartamento',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    DataColumn(
+                      label: Text(
+                        'Niños',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    DataColumn(
+                      label: Text(
+                        'Ocupante',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                  rows: detalleApartamentos.map<DataRow>((apto) {
+                    return DataRow(
+                      cells: [
+                        DataCell(Text(apto['nombreTorre']?.toString() ?? '-')),
+                        DataCell(
+                          Text(apto['numeroApartamento']?.toString() ?? '-'),
+                        ),
+                        DataCell(
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.pink.shade400,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${_toInt(apto['ocupantesConNinos'])}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          Text(apto['nombreOcupantes']?.toString() ?? '-'),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                ),
+              )
+            else
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.child_care,
+                        size: 48,
+                        color: Colors.grey.shade300,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'No hay datos de niños disponibles',
+                        style: TextStyle(color: Colors.grey.shade500),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Color según la edad del niño
+  Color _colorPorEdad(int edad) {
+    if (edad <= 5) return Colors.purple;
+    if (edad <= 10) return Colors.blue;
+    if (edad <= 14) return Colors.teal;
+    return Colors.orange;
+  }
+
+  /// Widget para mostrar reporte de población especial
+  Widget _buildReportePoblacionEspecial() {
+    // Manejar diferentes estructuras de respuesta (con o sin wrapper 'data')
+    dynamic rawData =
+        reportePoblacionEspecial['data'] ?? reportePoblacionEspecial;
+    Map<String, dynamic> data = {};
+    if (rawData is Map) {
+      data = Map<String, dynamic>.from(rawData);
+    }
+
+    // Los totales están directamente en data
+    final totalAdultosMayores = _toInt(data['totalAdultosMayores']);
+    final totalDiscapacitados = _toInt(data['totalDiscapacidad']);
+
+    // El detalle está en detalleApartamentos
+    List detalleApartamentos = [];
+    if (data['detalleApartamentos'] is List) {
+      detalleApartamentos = data['detalleApartamentos'] as List;
+    }
+
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.accessibility_new,
+                  color: Colors.indigo.shade600,
+                  size: 32,
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Población Especial',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            // Resumen
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.amber.shade200),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.elderly,
+                          size: 40,
+                          color: Colors.amber.shade700,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '$totalAdultosMayores',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.amber.shade800,
+                          ),
+                        ),
+                        const Text(
+                          'Adultos Mayores',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        Text(
+                          '(60+ años)',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.indigo.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.indigo.shade200),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.accessible,
+                          size: 40,
+                          color: Colors.indigo.shade700,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '$totalDiscapacitados',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.indigo.shade800,
+                          ),
+                        ),
+                        const Text(
+                          'Personas con',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        Text(
+                          'Discapacidad',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Tabla unificada de población especial
+            if (detalleApartamentos.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 8,
+                  horizontal: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.purple.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.people_alt,
+                      color: Colors.purple.shade800,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Detalle de Población Especial',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.purple.shade900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  headingRowColor: MaterialStateProperty.all(
+                    Colors.purple.shade50,
+                  ),
+                  columns: const [
+                    DataColumn(
+                      label: Text(
+                        'Torre',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    DataColumn(
+                      label: Text(
+                        'Apartamento',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    DataColumn(
+                      label: Text(
+                        'Tipo',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    DataColumn(
+                      label: Text(
+                        'Ocupante',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                  rows: detalleApartamentos.map<DataRow>((persona) {
+                    final tipoPoblacion =
+                        persona['tipoPoblacion']?.toString() ?? '-';
+                    final esAdultoMayor = tipoPoblacion.toLowerCase().contains(
+                      'adulto',
+                    );
+                    return DataRow(
+                      cells: [
+                        DataCell(
+                          Text(persona['nombreTorre']?.toString() ?? '-'),
+                        ),
+                        DataCell(
+                          Text(persona['numeroApartamento']?.toString() ?? '-'),
+                        ),
+                        DataCell(
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: esAdultoMayor
+                                  ? Colors.amber.shade600
+                                  : Colors.indigo.shade600,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              tipoPoblacion,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          Text(persona['nombreOcupantes']?.toString() ?? '-'),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+            // Mensaje si no hay datos
+            if (detalleApartamentos.isEmpty)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.accessibility,
+                        size: 48,
+                        color: Colors.grey.shade300,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'No hay datos de población especial disponibles',
+                        style: TextStyle(color: Colors.grey.shade500),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }

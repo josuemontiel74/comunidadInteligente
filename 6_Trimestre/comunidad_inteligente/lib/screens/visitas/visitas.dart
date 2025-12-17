@@ -337,6 +337,8 @@ class _VisitasScreenState extends State<VisitasScreen> {
   int totalPaginas = 1;
   final int itemsPorPagina = 10;
   String busquedaNombre = '';
+  String? filtroTorre;
+  String? filtroApartamento;
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -349,6 +351,27 @@ class _VisitasScreenState extends State<VisitasScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  // Método para obtener los apartamentos según la torre seleccionada
+  List<DropdownMenuItem<String>> _getApartamentosPorTorre(String torre) {
+    Map<String, List<String>> apartamentosPorTorre = {
+      'Torre A': ['101', '102', '103', '104', '105'],
+      'Torre B': ['201', '202', '203', '204', '205'],
+      'Torre C': ['301', '302', '303', '304', '305'],
+      'Torre D': ['401', '402', '403', '404', '405'],
+      'Torre E': ['501', '502', '503', '504', '505'],
+      'Torre F': ['601', '602', '603', '604', '605'],
+      'Torre G': ['701', '702', '703', '704', '705'],
+      'Torre H': ['801', '802', '803', '804', '805'],
+      'Torre I': ['901', '902', '903', '904', '905'],
+      'Torre J': ['1001', '1002', '1003', '1004', '1005'],
+    };
+
+    List<String> apartamentos = apartamentosPorTorre[torre] ?? [];
+    return apartamentos.map((apto) {
+      return DropdownMenuItem(value: apto, child: Text(apto));
+    }).toList();
   }
 
   Future<void> _cargarVisitas() async {
@@ -375,6 +398,21 @@ class _VisitasScreenState extends State<VisitasScreen> {
           return estado == 'finalizada';
         }
         return true;
+      }).toList();
+    }
+
+    // Filtrar por torre
+    if (filtroTorre != null && filtroTorre!.isNotEmpty) {
+      visitasFiltradas = visitasFiltradas.where((visita) {
+        final nombreTorre = visita['nombreTorre']?.toString() ?? '';
+        return nombreTorre == filtroTorre;
+      }).toList();
+    }
+
+    // Filtrar por apartamento
+    if (filtroApartamento != null && filtroApartamento!.isNotEmpty) {
+      visitasFiltradas = visitasFiltradas.where((visita) {
+        return visita['numeroApartamento']?.toString() == filtroApartamento;
       }).toList();
     }
 
@@ -483,6 +521,84 @@ class _VisitasScreenState extends State<VisitasScreen> {
                 ),
                 const SizedBox(height: 15),
 
+                // Filtros por torre y apartamento
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: filtroTorre,
+                        decoration: InputDecoration(
+                          labelText: 'Torre',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        items: [
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('Todas'),
+                          ),
+                          ...[
+                            'Torre A',
+                            'Torre B',
+                            'Torre C',
+                            'Torre D',
+                            'Torre E',
+                            'Torre F',
+                            'Torre G',
+                            'Torre H',
+                            'Torre I',
+                            'Torre J',
+                          ].map(
+                            (t) => DropdownMenuItem(value: t, child: Text(t)),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            filtroTorre = value;
+                            filtroApartamento = null;
+                            paginaActual = 1;
+                            _aplicarFiltros();
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: filtroApartamento,
+                        decoration: InputDecoration(
+                          labelText: 'Apartamento',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        items: [
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('Todos'),
+                          ),
+                          // Generar apartamentos según la torre seleccionada
+                          if (filtroTorre != null)
+                            ..._getApartamentosPorTorre(filtroTorre!),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            filtroApartamento = value;
+                            paginaActual = 1;
+                            _aplicarFiltros();
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 15),
+
                 // Filtros de estado
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -521,6 +637,8 @@ class _VisitasScreenState extends State<VisitasScreen> {
                     onPressed: () {
                       setState(() {
                         filtroEstado = 'todos';
+                        filtroTorre = null;
+                        filtroApartamento = null;
                         busquedaNombre = '';
                         _searchController.clear();
                         paginaActual = 1;
@@ -2645,6 +2763,7 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
               title: Text(
                 'Editar Visita #${widget.visita['idVisita']}',
                 style: const TextStyle(fontSize: 18),
+                overflow: TextOverflow.ellipsis,
               ),
               backgroundColor: Colors.green,
               foregroundColor: Colors.white,
@@ -2948,6 +3067,7 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
   }) {
     return DropdownButtonFormField<String>(
       value: value,
+      isExpanded: true,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icono, color: Colors.green),
@@ -2957,7 +3077,22 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
           borderSide: const BorderSide(color: Colors.green, width: 2),
         ),
       ),
-      items: items.isEmpty ? null : items,
+      items: items.isEmpty
+          ? null
+          : items.map((item) {
+              return DropdownMenuItem<String>(
+                value: item.value,
+                child: SizedBox(
+                  width: 200,
+                  child: Text(
+                    item.child is Text
+                        ? (item.child as Text).data ?? ''
+                        : item.child.toString(),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              );
+            }).toList(),
       hint: items.isEmpty ? const Text('Cargando...') : null,
       onChanged: onChanged,
       validator: (value) {
