@@ -7,6 +7,8 @@ import logo from "../../img/logo.png";
 import * as echarts from "echarts";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 // URL base del backend
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -122,34 +124,197 @@ function Reportes() {
         return { fechaInicio: null, fechaFin: null };
     };
 
-    // Descargar como PDF
-    const downloadPDF = () => {
-        const container = document.getElementById('report-container');
-        if (!container) {
-            alert('No se encontró el contenedor para imprimir');
-            return;
-        }
-
+    // Descargar como PDF (implementación avanzada con html2canvas + jsPDF)
+    const downloadPDF = async () => {
+        console.log(' Iniciando generación de PDF...');
         setPrintingMode(true);
+        const sidebar = document.getElementById('menuTrabajador');
+        const mainContent = document.querySelector('.main-content');
+        const logoEl = document.querySelector('.logo-img');
+        const elementsToHide = document.querySelectorAll('.no-print');
 
-        setTimeout(() => {
-            try {
-                window.dispatchEvent(new Event('resize'));
-            } catch (err) {
-                console.warn('No se pudo despachar resize:', err);
+        const graficos = [
+            { selector: '.card.border-success .card-body > div', titulo: 'Áreas Comunes', color: '#198754' },
+            { selector: '.card.border-info .card-body > div', titulo: 'Visitas', color: '#0dcaf0' },
+            { selector: '.card.border-primary .card-body > div', titulo: 'Paquetería', color: '#0d6efd' },
+            { selector: '#parqueoChart', titulo: 'Estado de Parqueaderos', color: '#dc3545' }
+        ];
+
+        // Guardar estados originales
+        const originalStates = {
+            sidebarDisplay: sidebar?.style.display || '',
+            mainWidth: mainContent?.style.width || '',
+            mainMaxWidth: mainContent?.style.maxWidth || '',
+            elementsDisplay: Array.from(elementsToHide).map(el => el.style.display)
+        };
+
+        try {
+            // Aplicar cambios de UI para captura
+            if (sidebar) sidebar.style.display = 'none';
+            if (mainContent) {
+                mainContent.style.width = '100%';
+                mainContent.style.maxWidth = '100%';
+            }
+            elementsToHide.forEach(el => el.style.display = 'none');
+
+            // Esperar short delay para que el DOM se re-renderice
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 15; // mm
+            const contentWidth = pageWidth - margin * 2;
+            const contentHeight = pageHeight - margin * 2;
+
+            // Agregar logo centrado si existe
+            if (logoEl) {
+                try {
+                    const logoCanvas = await html2canvas(logoEl, { scale: 2.5, backgroundColor: '#ffffff', useCORS: true, allowTaint: true, logging: false });
+                    const logoData = logoCanvas.toDataURL('image/png');
+                    const logoW = 30; // mm
+                    const logoH = (logoCanvas.height * logoW) / logoCanvas.width;
+                    const x = (pageWidth - logoW) / 2;
+                    pdf.addImage(logoData, 'PNG', x, margin, logoW, logoH);
+                } catch (err) {
+                    console.warn(' No se pudo capturar el logo:', err);
+                }
+            } else {
+                console.warn('Logo no encontrado, continúo sin logo');
             }
 
-            setTimeout(() => {
-                try {
-                    window.print();
-                } catch (err) {
-                    console.error('Error al imprimir:', err);
-                    alert('Error al intentar imprimir.');
-                } finally {
-                    setPrintingMode(false);
+            // Título y fecha en la primera página
+            const tituloY = margin + 35;
+            pdf.setFontSize(18);
+            pdf.setTextColor('#111111');
+            pdf.text('Reportes del conjunto', pageWidth / 2, tituloY, { align: 'center' });
+            pdf.setFontSize(11);
+            const fechaStr = new Date().toLocaleString('es-ES');
+            pdf.text(`Generado el: ${fechaStr}`, pageWidth / 2, tituloY + 8, { align: 'center' });
+
+            let cursorY = tituloY + 16;
+
+            // Recorremos los gráficos
+            for (let i = 0; i < graficos.length; i++) {
+                const g = graficos[i];
+                const el = document.querySelector(g.selector);
+                console.log(` Capturando: ${g.titulo} -> selector: ${g.selector}`);
+
+                if (!el) {
+                    console.warn(`Gráfico no encontrado: ${g.selector}`);
+                    continue;
                 }
-            }, 700);
-        }, 600);
+
+                try {
+                    const canvas = await html2canvas(el, {
+                        scale: 2.5,
+                        backgroundColor: '#ffffff',
+                        useCORS: true,
+                        allowTaint: true,
+                        logging: false,
+                        removeContainer: false
+                    });
+
+                    // Preparar título de sección
+                    if (cursorY + 12 > contentHeight) {
+                        pdf.addPage();
+                        cursorY = margin;
+                    }
+                    pdf.setFontSize(13);
+                    const rgb = (hex) => {
+                        const h = hex.replace('#','');
+                        return [parseInt(h.substring(0,2),16), parseInt(h.substring(2,4),16), parseInt(h.substring(4,6),16)];
+                    };
+                    pdf.setTextColor(...rgb(g.color));
+                    pdf.text(` ${g.titulo}`, margin, cursorY + 6);
+                    pdf.setTextColor('#111111');
+
+                    // Convertir y ajustar tamaño al ancho disponible
+                    const imgData = canvas.toDataURL('image/png');
+                    const imgWidthMM = contentWidth;
+                    const imgHeightMM = (canvas.height * imgWidthMM) / canvas.width;
+
+                    // Si la imagen entra en la página actual
+                    if (cursorY + imgHeightMM <= pageHeight - margin) {
+                        pdf.addImage(imgData, 'PNG', margin, cursorY + 10, imgWidthMM, imgHeightMM);
+                        cursorY += imgHeightMM + 18;
+                    } else {
+                        // Si es muy alta, la cortamos en secciones y ponemos cada sección en páginas sucesivas
+                        const pxPerMm = canvas.width / imgWidthMM; // px per mm
+                        const maxHeightPxPerPage = Math.floor((pageHeight - margin - (cursorY + 10 - margin)) * pxPerMm);
+                        let remainingY = 0;
+                        while (remainingY < canvas.height) {
+                            const sliceHeightPx = Math.min(maxHeightPxPerPage, canvas.height - remainingY);
+                            const tmpCanvas = document.createElement('canvas');
+                            tmpCanvas.width = canvas.width;
+                            tmpCanvas.height = sliceHeightPx;
+                            const ctx = tmpCanvas.getContext('2d');
+                            ctx.drawImage(canvas, 0, remainingY, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx);
+                            const sliceData = tmpCanvas.toDataURL('image/png');
+                            const sliceHeightMM = (sliceHeightPx * imgWidthMM) / canvas.width;
+
+                            // Si no cabe en la página actual, crear nueva página
+                            if (cursorY + sliceHeightMM > pageHeight - margin) {
+                                pdf.addPage();
+                                cursorY = margin;
+                                // Re-escribir título en nueva página
+                                pdf.setFontSize(13);
+                                pdf.setTextColor(...rgb(g.color));
+                                pdf.text(` ${g.titulo} (continuación)`, margin, cursorY + 6);
+                                pdf.setTextColor('#111111');
+                                cursorY += 12;
+                            }
+
+                            pdf.addImage(sliceData, 'PNG', margin, cursorY + 10, imgWidthMM, sliceHeightMM);
+                            cursorY += sliceHeightMM + 6;
+                            remainingY += sliceHeightPx;
+                        }
+                        cursorY += 6;
+                    }
+
+                    // Añadir un pequeño separador y si queda poco espacio, nueva página
+                    if (cursorY + 40 > pageHeight - margin) {
+                        pdf.addPage();
+                        cursorY = margin;
+                    }
+
+                } catch (err) {
+                    console.error(` Error capturando gráfico ${g.titulo}:`, err);
+                }
+            }
+
+            // Numeración de páginas
+            const totalPages = pdf.getNumberOfPages();
+            for (let p = 1; p <= totalPages; p++) {
+                pdf.setPage(p);
+                pdf.setFontSize(10);
+                pdf.setTextColor('#666666');
+                pdf.text(`Página ${p} de ${totalPages}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
+            }
+
+            // Guardar PDF
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const fileName = `Reporte_Conjunto_${timestamp}.pdf`;
+            pdf.save(fileName);
+            console.log(' PDF generado exitosamente:', fileName);
+
+        } catch (error) {
+            console.error(' Error general generando PDF:', error);
+            alert('Error al generar el PDF. Revisa la consola para más detalles.');
+        } finally {
+            // Restaurar estados
+            try {
+                if (sidebar) sidebar.style.display = originalStates.sidebarDisplay;
+                if (mainContent) {
+                    mainContent.style.width = originalStates.mainWidth;
+                    mainContent.style.maxWidth = originalStates.mainMaxWidth;
+                }
+                elementsToHide.forEach((el, idx) => el.style.display = originalStates.elementsDisplay[idx] || '');
+            } catch (err) {
+                console.warn('⚠️ Error restaurando estado original:', err);
+            }
+            setPrintingMode(false);
+        }
     };
 
     // Verificar usuario
@@ -204,15 +369,15 @@ function Reportes() {
                     }
                 );
                 const data = await res.json();
-                console.log("🚗 Respuesta parqueaderos:", data);
+                console.log(" Respuesta parqueaderos:", data);
                 if (data.success && data.data) {
                     setParqueaderos(data.data.resumenActual || []);
-                    console.log("🚗 Parqueaderos seteados:", data.data.resumenActual);
+                    console.log(" Parqueaderos seteados:", data.data.resumenActual);
                 } else {
-                    console.warn("⚠️ No hay datos de parqueaderos");
+                    console.warn(" No hay datos de parqueaderos");
                 }
             } catch (error) {
-                console.error("❌ Error cargando parqueaderos:", error);
+                console.error(" Error cargando parqueaderos:", error);
             }
         }
         fetchParqueaderos();
@@ -226,7 +391,7 @@ function Reportes() {
             
             try {
                 const rango = construirRango();
-                console.log("🏢 Fetching reservas con rango:", rango);
+                console.log("Fetching reservas con rango:", rango);
                 const res = await fetch(
                     `${API_URL}/api/reportes/reservas?fechaInicio=${rango.fechaInicio}&fechaFin=${rango.fechaFin}`,
                     {
@@ -237,17 +402,17 @@ function Reportes() {
                     }
                 );
                 const data = await res.json();
-                console.log("🏢 Respuesta reservas:", data);
+                console.log(" Respuesta reservas:", data);
 
                 if (data.success && data.data && data.data.porArea) {
                     setReporte(data.data.porArea);
-                    console.log("🏢 Reservas seteadas:", data.data.porArea);
+                    console.log("Reservas seteadas:", data.data.porArea);
                 } else {
-                    console.warn("⚠️ No hay datos en el reporte de reservas");
+                    console.warn("No hay datos en el reporte de reservas");
                     setReporte([]);
                 }
             } catch (error) {
-                console.error("❌ Error cargando áreas comunes:", error);
+                console.error(" Error cargando áreas comunes:", error);
                 setReporte([]);
             }
         }
@@ -257,16 +422,16 @@ function Reportes() {
     // Gráfico de Áreas Comunes
     useEffect(() => {
         if (!areasChartRef.current) {
-            console.log("⚠️ No hay referencia al chart de áreas");
+            console.log(" No hay referencia al chart de áreas");
             return;
         }
 
-        console.log("📊 Iniciando gráfico de áreas comunes con datos:", reporte);
+        console.log("Iniciando gráfico de áreas comunes con datos:", reporte);
 
         const myChart = echarts.init(areasChartRef.current);
 
         if (!reporte || reporte.length === 0) {
-            console.log("⚠️ Sin datos para graficar áreas comunes");
+            console.log("Sin datos para graficar áreas comunes");
             myChart.clear();
             myChart.setOption({
                 title: { text: 'Áreas Comunes (Sin información en la fecha elegida.)', left: 'center' }
@@ -277,8 +442,8 @@ function Reportes() {
         const areas = reporte.map(r => r.nombreArea);
         const cantidades = reporte.map(r => parseInt(r.cantidad || 0));
         
-        console.log("📊 Áreas:", areas);
-        console.log("📊 Cantidades:", cantidades);
+        console.log(" Áreas:", areas);
+        console.log(" Cantidades:", cantidades);
 
         const option = {
             title: {
@@ -299,7 +464,7 @@ function Reportes() {
         };
 
         myChart.setOption(option, true);
-        console.log("✅ Gráfico de áreas comunes renderizado");
+        console.log(" Gráfico de áreas comunes renderizado");
 
         const resizeChart = () => myChart.resize();
         window.addEventListener('resize', resizeChart);
@@ -349,7 +514,7 @@ function Reportes() {
 
                 const option = {
                     title: {
-                        text: 'Visitas por Día',
+                        text: 'Visitas Registradas ',
                         left: 'center'
                     },
                     tooltip: {
@@ -427,7 +592,7 @@ function Reportes() {
 
                 const option = {
                     title: { 
-                        text: 'Paquetería por Día', 
+                        text: 'Paquetería Recibida', 
                         left: 'center' 
                     },
                     tooltip: { trigger: 'axis' },
@@ -664,9 +829,9 @@ function Reportes() {
                         )}
                     </div>
                 </div>
-
+                
                 <div className="text-center mt-3 my-4">
-                    <h2 className="fw-bold"> Reportes del conjunto</h2>
+                    <h3 className="fw-bold"> Reportes del conjunto</h3>
                 </div>
 
                 <div id="report-container" className="container-fluid px-4">
