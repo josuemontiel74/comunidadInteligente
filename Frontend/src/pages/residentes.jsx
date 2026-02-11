@@ -8,131 +8,131 @@ import { Button, Table, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
 import { obtenerResidentes, crearOcupante, actualizarOcupante, finalizarOcupante } from "../services/residentes.services.jsx";
 
-  
 
-  const obtenerToken = () => {
-    const token =
-      localStorage.getItem("token") ||
-      localStorage.getItem("authToken") ||
-      sessionStorage.getItem("token") ||
-      sessionStorage.getItem("authToken");
 
-    // Si no hay token válido, usar token de desarrollo
-    if (!token) {
-      console.warn(
-        "No se encontró token de autenticación, usando token de desarrollo"
-      );
-      return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Impvc3VlMjAyMyIsInJvbGVzSWQiOjEsImlhdCI6MTc1OTUxNTQwMCwiZXhwIjoxNzU5NTE5MDAwfQ.wKzrnUttdHRGkHnnZL1LR1amxt2ZQ4PZR85khZauShQ";
+const obtenerToken = () => {
+  const token =
+    localStorage.getItem("token") ||
+    localStorage.getItem("authToken") ||
+    sessionStorage.getItem("token") ||
+    sessionStorage.getItem("authToken");
+
+  // Si no hay token válido, usar token de desarrollo
+  if (!token) {
+    console.warn(
+      "No se encontró token de autenticación, usando token de desarrollo"
+    );
+    return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Impvc3VlMjAyMyIsInJvbGVzSWQiOjEsImlhdCI6MTc1OTUxNTQwMCwiZXhwIjoxNzU5NTE5MDAwfQ.wKzrnUttdHRGkHnnZL1LR1amxt2ZQ4PZR85khZauShQ";
+  }
+
+  return token;
+};
+
+const token = obtenerToken();
+
+// Función para verificar si el token está vencido
+const verificarTokenVencido = (token) => {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    const fechaExpiracion = payload.exp * 1000; // Convertir a milisegundos
+    return Date.now() >= fechaExpiracion;
+  } catch (error) {
+    console.error("Error al verificar expiración del token:", error);
+    return true; // Considerar vencido si hay error
+  }
+};
+
+const obtenerUsuarioDelToken = () => {
+  try {
+    if (verificarTokenVencido(token)) {
+      console.warn("Token vencido, usando usuario por defecto...");
+      return "josue2023";
     }
 
-    return token;
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.username || "Usuario";
+  } catch (error) {
+    console.error("Error al decodificar el token:", error);
+    return "Usuario";
+  }
+};
+
+// Traduce mensajes/estructuras de error del backend a textos amigables en español
+const campoAmigable = (field) => {
+  const map = {
+    numeroDocumento: 'Número de documento',
+    primerNombre: 'Primer nombre',
+    segundoNombre: 'Segundo nombre',
+    primerApellido: 'Primer apellido',
+    segundoApellido: 'Segundo apellido',
+    correoElectronico: 'Correo electrónico',
+    correo: 'Correo electrónico',
+    telefono: 'Teléfono',
+    apto: 'Apartamento',
+    apartamentosId: 'Apartamento',
+    tipoOcupacion: 'Tipo de ocupación',
+    fechaInicio: 'Fecha de inicio',
+    fechaFin: 'Fecha de fin',
+    personasACargo: 'Personas a cargo',
   };
+  return map[field] || field;
+};
 
-  const token = obtenerToken();
+const traducirMensajeBackend = (errData) => {
+  if (errData === null || errData === undefined) return 'Datos inválidos o incompletos.';
 
-  // Función para verificar si el token está vencido
-  const verificarTokenVencido = (token) => {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      const fechaExpiracion = payload.exp * 1000; // Convertir a milisegundos
-      return Date.now() >= fechaExpiracion;
-    } catch (error) {
-      console.error("Error al verificar expiración del token:", error);
-      return true; // Considerar vencido si hay error
-    }
-  };
+  if (typeof errData === 'string') {
+    const s = errData;
+    if (/required|is required|cannot be null|no puede estar vacío|cannot be empty/i.test(s)) return 'Falta información obligatoria en el formulario.';
+    if (/max.*length|no puede.*mayor|exceeds the maximum|too long|longitud máxima/i.test(s)) return 'Algún campo supera la longitud permitida.';
+    if (/min.*length|must be at least|falta.*caracter|too short|longitud mínima/i.test(s)) return 'Algún campo no cumple la longitud mínima requerida.';
+    if (/invalid|not valid|no válido|formato/i.test(s)) return 'Formato de campo inválido.';
+    if (/unique|exists|ya existe/i.test(s)) return 'Ya existe un registro con esos datos.';
+    // Si el mensaje ya está en español claro, devolverlo
+    if (/[áéíóúñ¿¡]/i.test(s) || /\b(error|campo|no|falta|inválid)/i.test(s)) return s;
+    // Por defecto, devolver un mensaje genérico pero útil
+    return 'Hay un problema con los datos ingresados. Revise el formulario e intente nuevamente.';
+  }
 
-  const obtenerUsuarioDelToken = () => {
-    try {
-      if (verificarTokenVencido(token)) {
-        console.warn("Token vencido, usando usuario por defecto...");
-        return "josue2023";
-      }
+  if (Array.isArray(errData)) {
+    return errData.map((e) => traducirMensajeBackend(e)).join(' ');
+  }
 
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload.username || "Usuario";
-    } catch (error) {
-      console.error("Error al decodificar el token:", error);
-      return "Usuario";
-    }
-  };
-  
-  // Traduce mensajes/estructuras de error del backend a textos amigables en español
-  const campoAmigable = (field) => {
-    const map = {
-      numeroDocumento: 'Número de documento',
-      primerNombre: 'Primer nombre',
-      segundoNombre: 'Segundo nombre',
-      primerApellido: 'Primer apellido',
-      segundoApellido: 'Segundo apellido',
-      correoElectronico: 'Correo electrónico',
-      correo: 'Correo electrónico',
-      telefono: 'Teléfono',
-      apto: 'Apartamento',
-      apartamentosId: 'Apartamento',
-      tipoOcupacion: 'Tipo de ocupación',
-      fechaInicio: 'Fecha de inicio',
-      fechaFin: 'Fecha de fin',
-      personasACargo: 'Personas a cargo',
-    };
-    return map[field] || field;
-  };
-
-  const traducirMensajeBackend = (errData) => {
-    if (errData === null || errData === undefined) return 'Datos inválidos o incompletos.';
-
-    if (typeof errData === 'string') {
-      const s = errData;
-      if (/required|is required|cannot be null|no puede estar vacío|cannot be empty/i.test(s)) return 'Falta información obligatoria en el formulario.';
-      if (/max.*length|no puede.*mayor|exceeds the maximum|too long|longitud máxima/i.test(s)) return 'Algún campo supera la longitud permitida.';
-      if (/min.*length|must be at least|falta.*caracter|too short|longitud mínima/i.test(s)) return 'Algún campo no cumple la longitud mínima requerida.';
-      if (/invalid|not valid|no válido|formato/i.test(s)) return 'Formato de campo inválido.';
-      if (/unique|exists|ya existe/i.test(s)) return 'Ya existe un registro con esos datos.';
-      // Si el mensaje ya está en español claro, devolverlo
-      if (/[áéíóúñ¿¡]/i.test(s) || /\b(error|campo|no|falta|inválid)/i.test(s)) return s;
-      // Por defecto, devolver un mensaje genérico pero útil
-      return 'Hay un problema con los datos ingresados. Revise el formulario e intente nuevamente.';
+  if (typeof errData === 'object') {
+    // Estructura común: { message: '...', errors: [...] }
+    if (errData.message && typeof errData.message === 'string') {
+      return traducirMensajeBackend(errData.message);
     }
 
-    if (Array.isArray(errData)) {
-      return errData.map((e) => traducirMensajeBackend(e)).join(' ');
+    if (errData.errors && Array.isArray(errData.errors)) {
+      return errData.errors
+        .map((it) => {
+          if (it.field || it.param) {
+            const f = it.field || it.param;
+            const msg = it.message || it.msg || it.error || JSON.stringify(it);
+            return `${campoAmigable(f)}: ${traducirMensajeBackend(msg)}`;
+          }
+          return traducirMensajeBackend(it.message || it);
+        })
+        .join(' ');
     }
 
-    if (typeof errData === 'object') {
-      // Estructura común: { message: '...', errors: [...] }
-      if (errData.message && typeof errData.message === 'string') {
-        return traducirMensajeBackend(errData.message);
-      }
-
-      if (errData.errors && Array.isArray(errData.errors)) {
-        return errData.errors
-          .map((it) => {
-            if (it.field || it.param) {
-              const f = it.field || it.param;
-              const msg = it.message || it.msg || it.error || JSON.stringify(it);
-              return `${campoAmigable(f)}: ${traducirMensajeBackend(msg)}`;
-            }
-            return traducirMensajeBackend(it.message || it);
-          })
-          .join(' ');
-      }
-
-      // Si es un objeto con claves por campo
-      const partes = [];
-      for (const k in errData) {
-        if (!Object.prototype.hasOwnProperty.call(errData, k)) continue;
-        const v = errData[k];
-        const texto = traducirMensajeBackend(v);
-        partes.push(`${campoAmigable(k)}: ${texto}`);
-      }
-      if (partes.length) return partes.join(' ');
-
-      return 'Hay un problema con los datos ingresados. Revise el formulario e intente nuevamente.';
+    // Si es un objeto con claves por campo
+    const partes = [];
+    for (const k in errData) {
+      if (!Object.prototype.hasOwnProperty.call(errData, k)) continue;
+      const v = errData[k];
+      const texto = traducirMensajeBackend(v);
+      partes.push(`${campoAmigable(k)}: ${texto}`);
     }
+    if (partes.length) return partes.join(' ');
 
     return 'Hay un problema con los datos ingresados. Revise el formulario e intente nuevamente.';
-  };
-  //obtener rol 
+  }
+
+  return 'Hay un problema con los datos ingresados. Revise el formulario e intente nuevamente.';
+};
+//obtener rol 
 const obtenerRolDelToken = () => {
   try {
     if (verificarTokenVencido(token)) {
@@ -147,11 +147,11 @@ const obtenerRolDelToken = () => {
     return "RolNoDefinido";
   }
 };
-if(verificarTokenVencido(token)){
-  
+if (verificarTokenVencido(token)) {
+
 }
-  const rolesId = obtenerRolDelToken(); 
-  let rolUsuario;
+const rolesId = obtenerRolDelToken();
+let rolUsuario;
 
 switch (rolesId) {
   case 1:
@@ -167,11 +167,11 @@ switch (rolesId) {
     rolUsuario = "RolNoDefinido";
 }
 
-  const nombreUsuario = obtenerUsuarioDelToken();
+const nombreUsuario = obtenerUsuarioDelToken();
 
-  const tokenValido = token && !verificarTokenVencido(token);
-  const showUserManagement = tokenValido && rolesId === 1; // solo SuperAdmin puede gestionar usuarios
-  const showAreasComunes = tokenValido && rolesId !== 3; // ocultar áreas comunes para Vigilante (3)
+const tokenValido = token && !verificarTokenVencido(token);
+const showUserManagement = tokenValido && rolesId === 1; // solo SuperAdmin puede gestionar usuarios
+const showAreasComunes = tokenValido && rolesId !== 3; // ocultar áreas comunes para Vigilante (3)
 
 
 function Residentes() {
@@ -215,7 +215,7 @@ function Residentes() {
         }
         const backendMsg = body ? (typeof body === 'object' ? (body.message || JSON.stringify(body)) : body) : 'No autorizado. Token inválido o expirado.';
         console.error('Token expirado o inválido', res.status, backendMsg);
-        Swal.fire({ icon: 'warning', title: 'No autorizado', text: backendMsg, confirmButtonText: 'Entendido' }).then(()=>{
+        Swal.fire({ icon: 'warning', title: 'No autorizado', text: backendMsg, confirmButtonText: 'Entendido' }).then(() => {
           localStorage.removeItem('token');
           navegacion('/');
         });
@@ -263,8 +263,13 @@ function Residentes() {
         fechaFin: ocupante.fechaFin || "",
         correo: ocupante.correoElectronico || "",
         telefono: ocupante.telefono || "",
+        tieneNinos: ocupante.tieneNinos || 0,
+        tieneAdultoMayor: ocupante.tieneAdultoMayor || 0,
+        tieneDiscapacidad: ocupante.tieneDiscapacidad || 0,
         torre: mapTorre(ocupante.torresId),
-        apto: ocupante.apartamentosId.toString(), 
+        torresId: ocupante.torresId,
+        apto: ocupante.apartamentosId?.toString(),
+        aptoDisplay: formatNumeroApartamento(ocupante.apartamentosId),
         estado: ocupante.nombreEstado === "activa" ? "Activo" : "Finalizado",
         nombreCompleto: [
           ocupante.primerNombre,
@@ -274,7 +279,7 @@ function Residentes() {
         ]
           .filter(Boolean)
           .join(" "),
-        apartamentosId: ocupante.apartamentosId, 
+        apartamentosId: ocupante.apartamentosId,
       }));
       setResidentes(residentesFormateados);
     } catch (error) {
@@ -285,7 +290,7 @@ function Residentes() {
     }
   };
 
- 
+
   const mapTipoDocumento = (tipoDocumentoId) => {
     const tipos = { 1: "CC", 2: "CE", 3: "PP", 4: "PEP", 5: "PPT" };
     return tipos[tipoDocumentoId] || "CC";
@@ -333,6 +338,14 @@ function Residentes() {
     cargarApartamentos();
   }, []);
 
+  const formatNumeroApartamento = (num) => {
+    if (num === null || num === undefined) return "";
+    const s = num.toString();
+    const m = s.match(/^(\d)(0)(\d{1,3})$/);
+    if (m) return `${m[1]}${m[3]}`;
+    return s;
+  };
+
   const [modalAbierto, setModalAbierto] = useState(false);
   const [editIndex, setEditIndex] = useState(null);
   const [showModalDetalles, setShowModalDetalles] = useState(false);
@@ -351,8 +364,12 @@ function Residentes() {
     correo: "",
     telefono: "",
     torre: "A",
+    torreId: 1,
     apto: "",
     estado: "Activo",
+    tieneNinos: 0,
+    tieneAdultoMayor: 0,
+    tieneDiscapacidad: 0,
   });
 
   useEffect(() => {
@@ -374,9 +391,13 @@ function Residentes() {
         correo: "",
         telefono: "",
         torre: "A",
+        torreId: 1,
         apto: "",
         estado: "Activo",
         personasACargo: 0,
+        tieneNinos: 0,
+        tieneAdultoMayor: 0,
+        tieneDiscapacidad: 0,
       });
     }
     setModalAbierto(true);
@@ -394,7 +415,7 @@ function Residentes() {
 
   const [apartamentos, setApartamentos] = useState([]);
 
-  
+
   const cargarApartamentos = async () => {
     try {
       const res = await obtenerResidentes(obtenerToken());
@@ -417,18 +438,27 @@ function Residentes() {
       const idsVistos = new Set();
 
 
+      const formatNumeroApartamento = (num) => {
+        if (num === null || num === undefined) return '';
+        const s = num.toString();
+
+        const m = s.match(/^(\d)(0)(\d{1,3})$/);
+        if (m) return `${m[1]}${m[3]}`;
+        return s;
+      };
+
       ocupantes.forEach((ocupante) => {
         if (!idsVistos.has(ocupante.apartamentosId)) {
           idsVistos.add(ocupante.apartamentosId);
           apartamentosUnicos.push({
-            idApartamento: ocupante.apartamentosId, 
-            numeroApartamento: ocupante.apartamentosId.toString(),
+            idApartamento: ocupante.apartamentosId,
+            numeroApartamento: formatNumeroApartamento(ocupante.apartamentosId),
             torresId: ocupante.torresId,
           });
         }
       });
 
- 
+
       console.log("Apartamentos cargados desde DB:", apartamentosUnicos);
 
       // Ordenar por ID
@@ -437,7 +467,7 @@ function Residentes() {
       setApartamentos(apartamentosUnicos);
     } catch (error) {
       console.error("Error al cargar apartamentos:", error);
-    
+
       setApartamentos([
         { idApartamento: 1, numeroApartamento: "1", torresId: 1 },
         { idApartamento: 2, numeroApartamento: "2", torresId: 1 },
@@ -449,8 +479,8 @@ function Residentes() {
   };
 
   const generarAptos = (torre) => {
-    if (!torre || apartamentos.length === 0) return [];
-    const torreId = mapTorreId(torre);
+    const torreId = Number(torre) || null;
+    if (!torreId || apartamentos.length === 0) return [];
     return apartamentos
       .filter((apt) => apt.torresId === torreId)
       .map((apt) => ({
@@ -462,7 +492,7 @@ function Residentes() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-   
+
     if (editIndex === null && !formData.numeroDocumento.trim()) {
       Swal.fire("Error", "Ingrese número de documento", "error");
       return;
@@ -477,6 +507,10 @@ function Residentes() {
     }
     if (!formData.apto) {
       Swal.fire("Error", "Seleccione un apartamento", "error");
+      return;
+    }
+    if (!formData.fechaInicio || formData.fechaInicio.trim() === "") {
+      Swal.fire("Error", "La fecha de inicio es obligatoria", "error");
       return;
     }
 
@@ -532,11 +566,14 @@ function Residentes() {
           editIndex === null
             ? formData.correo || "noemail@example.com"
             : formData.correo && formData.correo.trim() !== ""
-            ? formData.correo
-            : undefined,
+              ? formData.correo
+              : undefined,
+        tieneNinos: Number(formData.tieneNinos) === 1 ? 1 : 0,
+        tieneAdultoMayor: Number(formData.tieneAdultoMayor) === 1 ? 1 : 0,
+        tieneDiscapacidad: Number(formData.tieneDiscapacidad) === 1 ? 1 : 0,
       };
 
- 
+
       // Incluir número de documento tanto en creación como en edición
       if (formData.numeroDocumento && formData.numeroDocumento.trim() !== "") {
         ocupanteData.numeroDocumento = formData.numeroDocumento.trim();
@@ -552,44 +589,44 @@ function Residentes() {
         });
 
         if (result.isConfirmed) {
-      
+
           console.log("=== DEBUG UPDATE ===");
           console.log("ID a actualizar:", editIndex);
           console.log("Datos a enviar:", ocupanteData);
 
-              const resUpdate = await actualizarOcupante(editIndex, ocupanteData, obtenerToken());
-              if (resUpdate?.status === 401) {
-                let body = null;
-                try {
-                  const ct = resUpdate.headers.get('content-type') || '';
-                  body = ct.includes('application/json') ? await resUpdate.json() : await resUpdate.text();
-                } catch (e) { body = null; }
-                const backendMsg = body ? (typeof body === 'object' ? (body.message || JSON.stringify(body)) : body) : 'No autorizado. Token inválido o expirado.';
-                Swal.fire({ icon: 'warning', title: 'No autorizado', text: backendMsg, confirmButtonText: 'Entendido' }).then(()=>{ localStorage.removeItem('token'); navegacion('/'); });
-                return;
-              }
-            if (!resUpdate.ok) {
-              const contentType = resUpdate.headers.get("content-type");
-              const errData = contentType && contentType.includes("application/json") ? await resUpdate.json() : await resUpdate.text();
-              console.error("Error actualizando ocupante:", resUpdate.status, errData);
-              if (resUpdate.status === 400) {
-                // Mostrar el mensaje tal cual lo envía el backend (si lo proporciona)
-                const backendMsg = typeof errData === 'object' ? (errData.message || JSON.stringify(errData)) : errData;
-                console.error('Error de validación desde backend:', backendMsg);
-                Swal.fire({ icon: 'warning', title: 'Error de validación', text: backendMsg || 'Error de validación en los datos.', confirmButtonText: 'Entendido' });
-                return;
-              }
-              if (resUpdate.status >= 500) {
-                Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
-                return;
-              }
-              Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo actualizar el registro.', confirmButtonText: 'Entendido' });
+          const resUpdate = await actualizarOcupante(editIndex, ocupanteData, obtenerToken());
+          if (resUpdate?.status === 401) {
+            let body = null;
+            try {
+              const ct = resUpdate.headers.get('content-type') || '';
+              body = ct.includes('application/json') ? await resUpdate.json() : await resUpdate.text();
+            } catch (e) { body = null; }
+            const backendMsg = body ? (typeof body === 'object' ? (body.message || JSON.stringify(body)) : body) : 'No autorizado. Token inválido o expirado.';
+            Swal.fire({ icon: 'warning', title: 'No autorizado', text: backendMsg, confirmButtonText: 'Entendido' }).then(() => { localStorage.removeItem('token'); navegacion('/'); });
+            return;
+          }
+          if (!resUpdate.ok) {
+            const contentType = resUpdate.headers.get("content-type");
+            const errData = contentType && contentType.includes("application/json") ? await resUpdate.json() : await resUpdate.text();
+            console.error("Error actualizando ocupante:", resUpdate.status, errData);
+            if (resUpdate.status === 400) {
+              // Mostrar el mensaje tal cual lo envía el backend (si lo proporciona)
+              const backendMsg = typeof errData === 'object' ? (errData.message || JSON.stringify(errData)) : errData;
+              console.error('Error de validación desde backend:', backendMsg);
+              Swal.fire({ icon: 'warning', title: 'Error de validación', text: backendMsg || 'Error de validación en los datos.', confirmButtonText: 'Entendido' });
               return;
             }
+            if (resUpdate.status >= 500) {
+              Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+              return;
+            }
+            Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo actualizar el registro.', confirmButtonText: 'Entendido' });
+            return;
+          }
 
-            Swal.fire({ icon: 'success', title: 'Guardado correctamente', timer: 3500, showConfirmButton: false });
-            cargarResidentes();
-            cerrarModal();
+          Swal.fire({ icon: 'success', title: 'Guardado correctamente', timer: 3500, showConfirmButton: false });
+          cargarResidentes();
+          cerrarModal();
         } else if (result.isDenied) {
           Swal.fire("No guardado", "Los cambios no se aplicaron", "info");
         }
@@ -602,7 +639,7 @@ function Residentes() {
             body = ct.includes('application/json') ? await resCreate.json() : await resCreate.text();
           } catch (e) { body = null; }
           const backendMsg = body ? (typeof body === 'object' ? (body.message || JSON.stringify(body)) : body) : 'No autorizado. Token inválido o expirado.';
-          Swal.fire({ icon: 'warning', title: 'No autorizado', text: backendMsg, confirmButtonText: 'Entendido' }).then(()=>{ localStorage.removeItem('token'); navegacion('/'); });
+          Swal.fire({ icon: 'warning', title: 'No autorizado', text: backendMsg, confirmButtonText: 'Entendido' }).then(() => { localStorage.removeItem('token'); navegacion('/'); });
           return;
         }
         const contentType = resCreate.headers.get("content-type");
@@ -643,7 +680,7 @@ function Residentes() {
       numeroDocumento: residente.numeroDocumento || "",
       tipoOcupacion:
         residente.tipoOcupacion?.charAt(0).toUpperCase() +
-          residente.tipoOcupacion?.slice(1) || "Propietario",
+        residente.tipoOcupacion?.slice(1) || "Propietario",
       primerNombre: residente.primerNombre || "",
       segundoNombre: residente.segundoNombre || "",
       primerApellido: residente.primerApellido || "",
@@ -654,12 +691,16 @@ function Residentes() {
       correo: residente.correoElectronico || "",
       telefono: residente.telefono || "",
       torre: mapTorre(residente.torresId) || "A",
+      torreId: residente.torresId || mapTorreId(residente.torre) || 1,
       apto: residente.apartamentosId?.toString() || "",
       estado: residente.nombreEstado === "activa" ? "Activo" : "Finalizado",
       personasACargo: residente.personasACargo || 0,
+      tieneNinos: residente.tieneNinos || 0,
+      tieneAdultoMayor: residente.tieneAdultoMayor || 0,
+      tieneDiscapacidad: residente.tieneDiscapacidad || 0,
     });
 
-    setEditIndex(residente.idOcupante); 
+    setEditIndex(residente.idOcupante);
     setModalAbierto(true);
   };
   const finalizarResidente = async (residente) => {
@@ -688,7 +729,7 @@ function Residentes() {
             body = ct.includes('application/json') ? await resFinal.json() : await resFinal.text();
           } catch (e) { body = null; }
           const backendMsg = body ? (typeof body === 'object' ? (body.message || JSON.stringify(body)) : body) : 'No autorizado. Token inválido o expirado.';
-          Swal.fire({ icon: 'warning', title: 'No autorizado', text: backendMsg, confirmButtonText: 'Entendido' }).then(()=>{ localStorage.removeItem('token'); navegacion('/'); });
+          Swal.fire({ icon: 'warning', title: 'No autorizado', text: backendMsg, confirmButtonText: 'Entendido' }).then(() => { localStorage.removeItem('token'); navegacion('/'); });
           return;
         }
         if (!resFinal.ok) {
@@ -723,15 +764,15 @@ function Residentes() {
 
   const [vistaCuadricula, setVistaCuadricula] = useState(false);
 
-  
+
   const [busqueda, setBusqueda] = useState("");
-  const [filtroEstado, setFiltroEstado] = useState("todos"); 
+  const [filtroEstado, setFiltroEstado] = useState("todos");
   const [paginaActual, setPaginaActual] = useState(1);
   const elementosPorPagina = 10;
 
   const ordenarResidentes = (residentes) => {
     return [...residentes].sort((a, b) => {
- 
+
       if (a.estado !== b.estado) {
         return a.estado === "Activo" ? -1 : 1;
       }
@@ -759,7 +800,7 @@ function Residentes() {
           r.numeroDocumento.toLowerCase().includes(terminoBusqueda) ||
           r.correo.toLowerCase().includes(terminoBusqueda) ||
           r.telefono.toLowerCase().includes(terminoBusqueda) ||
-          `${r.torre}-${r.apto}`.toLowerCase().includes(terminoBusqueda)
+          `${r.torre}-${r.aptoDisplay}`.toLowerCase().includes(terminoBusqueda)
       );
     }
 
@@ -842,9 +883,8 @@ function Residentes() {
           ))}
 
           <li
-            className={`page-item ${
-              paginaActual === totalPaginas ? "disabled" : ""
-            }`}
+            className={`page-item ${paginaActual === totalPaginas ? "disabled" : ""
+              }`}
           >
             <button
               className="page-link"
@@ -855,9 +895,8 @@ function Residentes() {
             </button>
           </li>
           <li
-            className={`page-item ${
-              paginaActual === totalPaginas ? "disabled" : ""
-            }`}
+            className={`page-item ${paginaActual === totalPaginas ? "disabled" : ""
+              }`}
           >
             <button
               className="page-link"
@@ -884,7 +923,7 @@ function Residentes() {
       {/* Sidebar - Menú Super Admin */}
       <aside id="menuTrabajador" className="workers-menu bg-success text-white">
         <div className="p-3 d-flex flex-column h-100">
-         <div className="d-flex align-items-center gap-3 mb-4">
+          <div className="d-flex align-items-center gap-3 mb-4">
             <div
               className="user-circle bg-white d-flex align-items-center justify-content-center"
               style={{ width: "50px", height: "50px", borderRadius: "50%" }}
@@ -1070,13 +1109,13 @@ function Residentes() {
           style={{
             padding: "0 30px 30px 50px",
             maxWidth: "none",
-          }} 
+          }}
         >
           <div
             className="d-flex justify-content-between align-items-center mb-3"
             style={{ margin: "0 15px" }}
           >
-            <h3 className="fw-bold text-success">🏢 Lista de Residentes</h3>
+            <h3 className="fw-bold text-success"> Lista de Residentes</h3>
             <div className="d-flex gap-2">
               <Button
                 variant="success"
@@ -1167,9 +1206,12 @@ function Residentes() {
                         <th style={{ minWidth: "90px" }}>Ocupación</th>
                         <th style={{ minWidth: "150px" }}>Nombre Completo</th>
                         <th style={{ minWidth: "85px" }}>F. Inicio</th>
-                        <th style={{ minWidth: "85px" }}>F. Fin</th>
+                      
                         <th style={{ minWidth: "140px" }}>Correo</th>
                         <th style={{ minWidth: "100px" }}>Teléfono</th>
+                        <th style={{ minWidth: "80px" }}>Niños</th>
+                        <th style={{ minWidth: "120px" }}>Adulto Mayor</th>
+                        <th style={{ minWidth: "120px" }}>Discapacidad</th>
                         <th style={{ minWidth: "70px" }}>Torre-Apto</th>
                         <th style={{ minWidth: "70px" }}>Estado</th>
                         <th style={{ minWidth: "120px" }}>Acciones</th>
@@ -1178,9 +1220,9 @@ function Residentes() {
                     <tbody>
                       {residentesPaginados.length === 0 ? (
                         <tr>
-                          <td colSpan={11} className="text-center py-4">
+                          <td colSpan={14} className="text-center py-4">
                             {residentesFiltrados.length === 0 &&
-                            residentes.length > 0
+                              residentes.length > 0
                               ? "No se encontraron residentes con los criterios de búsqueda"
                               : "No hay residentes registrados"}
                           </td>
@@ -1211,7 +1253,7 @@ function Residentes() {
                               {r.nombreCompleto}
                             </td>
                             <td>{r.fechaInicio || "-"}</td>
-                            <td>{r.fechaFin || "-"}</td>
+                            
                             <td
                               className="text-truncate"
                               style={{ maxWidth: "140px" }}
@@ -1220,11 +1262,14 @@ function Residentes() {
                               {r.correo || "-"}
                             </td>
                             <td>{r.telefono || "-"}</td>
+                            <td>{r.tieneNinos === 1 ? "Si" : "No"}</td>
+                            <td>{r.tieneAdultoMayor === 1 ? "Si" : "No"}</td>
+                            <td>{r.tieneDiscapacidad === 1 ? "Si" : "No"}</td>
                             <td>
                               {r.torre}-
                               {apartamentos.find(
-                                (apt) => apt.idApartamento == r.apto
-                              )?.numeroApartamento || r.apto}
+                                (apt) => apt.idApartamento == r.apartamentosId
+                              )?.numeroApartamento || r.aptoDisplay}
                             </td>
                             <td>
                               <Badge
@@ -1283,65 +1328,93 @@ function Residentes() {
             </>
           ) : (
             <>
-              <div className="row g-3">
-                {residentesPaginados.map((r, i) => (
-                  <div key={r.idOcupante || i} className="col-md-4">
-                    <div className="card shadow-sm h-100">
-                      <div className="card-body">
-                        <h5
-                          className="card-title text-truncate"
-                          title={r.nombreCompleto}
-                        >
-                          {r.nombreCompleto}
-                        </h5>
-                        <p className="card-text">
-                          <strong>{r.tipoDocumento}</strong>:{" "}
-                          {r.numeroDocumento}
-                          <br />
-                          Torre {r.torre} - Apto{" "}
-                          {apartamentos.find(
-                            (apt) => apt.idApartamento == r.apto
-                          )?.numeroApartamento || r.apto}
-                          <br />
-                          Estado:{" "}
-                          <Badge
-                            bg={r.estado === "Activo" ? "success" : "secondary"}
-                          >
-                            {r.estado}
-                          </Badge>
-                        </p>
-                        <div className="d-flex gap-2 mt-auto">
-                          {r.estado !== "Finalizado" && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline-primary"
-                                onClick={() => abrirModalEditar(r)}
-                              >
-                                Editar
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline-danger"
-                                onClick={() => finalizarResidente(r)}
-                              >
-                                Finalizar
-                              </Button>
-                            </>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="outline-info"
-                            onClick={() => verDetalles(r)}
-                          >
-                            Detalles
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+           <div className="row g-4">
+  {residentesPaginados.map((r, i) => (
+    <div key={r.idOcupante || i} className="col-xl-3 col-lg-4 col-md-6">
+      <div className="card h-100 shadow-sm border-0">
+
+        {/* HEADER */}
+        <div className="card-header bg-light d-flex justify-content-between align-items-start">
+          <div className="text-truncate">
+            <h6 className="mb-0 fw-bold text-truncate" title={r.nombreCompleto}>
+              {r.nombreCompleto}
+            </h6>
+            <small className="text-muted">
+              {r.tipoDocumento} · {r.numeroDocumento}
+            </small>
+          </div>
+
+          <Badge bg={r.estado === "Activo" ? "success" : "secondary"}>
+            {r.estado}
+          </Badge>
+        </div>
+
+        {/* BODY */}
+        <div className="card-body d-flex flex-column gap-2">
+
+          <div className="small text-muted">
+             Torre <strong>{r.torre}</strong> · Apto{" "}
+            <strong>
+              {apartamentos.find(
+                (apt) => apt.idApartamento == r.apartamentosId
+              )?.numeroApartamento || r.aptoDisplay}
+            </strong>
+          </div>
+
+          {/* CONDICIONES */}
+          <div className="d-flex flex-wrap gap-1 mt-2">
+            <Badge bg={r.tieneNinos === 1 ? "primary" : "light"} text={r.tieneNinos === 1 ? "" : "dark"}>
+              Niños
+            </Badge>
+
+            <Badge bg={r.tieneAdultoMayor === 1 ? "warning" : "light"} text={r.tieneAdultoMayor === 1 ? "" : "dark"}>
+              Adulto Mayor
+            </Badge>
+
+            <Badge bg={r.tieneDiscapacidad === 1 ? "danger" : "light"} text={r.tieneDiscapacidad === 1 ? "" : "dark"}>
+               Discapacidad
+            </Badge>
+          </div>
+
+          {/* ACTIONS */}
+          <div className="mt-auto d-flex gap-2 pt-3 border-top">
+            {r.estado !== "Finalizado" && (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline-primary"
+                  className="w-100"
+                  onClick={() => abrirModalEditar(r)}
+                >
+                  Editar
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline-danger"
+                  className="w-100"
+                  onClick={() => finalizarResidente(r)}
+                >
+                   Finalizar
+                </Button>
+              </>
+            )}
+
+            <Button
+              size="sm"
+              variant="outline-secondary"
+              className="w-100"
+              onClick={() => verDetalles(r)}
+            >
+               Detalles
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  ))}
+</div>
+
 
               {/* Paginación */}
               <div className="mt-4">
@@ -1387,182 +1460,276 @@ function Residentes() {
                   ></button>
                 </div>
                 <div className="modal-body">
-                  <form onSubmit={handleSubmit}>
-                    <div className="row">
-                      <div className="col-md-4 mb-2">
-                        <label className="form-label">Tipo Documento</label>
-                        <select
-                          name="tipoDocumento"
-                          className="form-control"
-                          value={formData.tipoDocumento}
-                          onChange={handleChange}
-                          required
-                        >
-                          <option value="CC">CC</option>
-                          <option value="CE">CE</option>
-                          <option value="PA">PA</option>
-                          <option value="PP">PP</option>
-                          <option value="PPT">PPT</option>
-                        </select>
-                      </div>
+                  <form onSubmit={handleSubmit} className="p-3">
 
-                      <div className="col-md-8 mb-2">
-                        <label className="form-label">Número Documento</label>
-                        <input
-                          type="text"
-                          name="numeroDocumento"
-                          className="form-control"
-                          value={formData.numeroDocumento}
-                          onChange={handleChange}
-                          required={editIndex === null}
-                          disabled={editIndex !== null}
-                          style={{ backgroundColor: editIndex !== null ? "#f8f9fa" : "" }}
-                        />
+                    {/* ===== DATOS DE IDENTIFICACIÓN ===== */}
+                    <div className="card mb-3 shadow-sm">
+                      <div className="card-header fw-bold">
+                        Datos del arrendatario/propietario
                       </div>
+                      <div className="card-body row g-3">
 
-                      <div className="col-md-6 mb-2">
-                        <label className="form-label">Tipo Ocupación</label>
-                        <select
-                          name="tipoOcupacion"
-                          className="form-control"
-                          value={formData.tipoOcupacion}
-                          onChange={handleChange}
-                        >
-                          <option>Propietario</option>
-                          <option>Arrendatario</option>
-                        </select>
-                      </div>
+                        <div className="col-md-4">
+                          <label className="form-label">Tipo Documento</label>
+                          <select
+                            name="tipoDocumento"
+                            className="form-select"
+                            value={formData.tipoDocumento}
+                            onChange={handleChange}
+                            required
+                          >
+                            <option value="CC">CC</option>
+                            <option value="CE">CE</option>
+                            <option value="PA">PA</option>
+                            <option value="PP">PP</option>
+                            <option value="PPT">PPT</option>
+                          </select>
+                        </div>
 
-                      <div className="col-md-6 mb-2">
-                        <label className="form-label">Primer Nombre</label>
-                        <input
-                          type="text"
-                          name="primerNombre"
-                          className="form-control"
-                          value={formData.primerNombre}
-                          onChange={handleChange}
-                          required
-                        />
-                      </div>
+                        <div className="col-md-4">
+                          <label className="form-label">Número Documento</label>
+                          <input
+                            type="text"
+                            name="numeroDocumento"
+                            className="form-control"
+                            value={formData.numeroDocumento}
+                            onChange={handleChange}
+                            required={editIndex === null}
+                            disabled={editIndex !== null}
+                          />
+                        </div>
+                        <div className="col-md-4">
+                          <label className="form-label">Fecha Inicio</label>
+                          <input
+                            type="date"
+                            name="fechaInicio"
+                            className="form-control"
+                            value={formData.fechaInicio}
+                            onChange={handleChange}
+                            required
+                          />
+                        </div>
 
-                      <div className="col-md-6 mb-2">
-                        <label className="form-label">Segundo Nombre</label>
-                        <input
-                          type="text"
-                          name="segundoNombre"
-                          className="form-control"
-                          value={formData.segundoNombre}
-                          onChange={handleChange}
-                        />
-                      </div>
+                        <div className="col-md-4">
+                          <label className="form-label">Torre</label>
+                          <select
+                            name="torreId"
+                            className="form-select"
+                            value={formData.torreId}
+                            onChange={(e) => {
+                              // actualizar torreId y limpiar apto seleccionado
+                              handleChange(e);
+                              setFormData((f) => ({ ...f, apto: "" }));
+                            }}
+                          >
+                            {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
+                              <option key={num} value={num}>
+                                Torre {String.fromCharCode(64 + num)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
 
-                      <div className="col-md-6 mb-2">
-                        <label className="form-label">Primer Apellido</label>
-                        <input
-                          type="text"
-                          name="primerApellido"
-                          className="form-control"
-                          value={formData.primerApellido}
-                          onChange={handleChange}
-                          required
-                        />
-                      </div>
-
-                      <div className="col-md-6 mb-2">
-                        <label className="form-label">Segundo Apellido</label>
-                        <input
-                          type="text"
-                          name="segundoApellido"
-                          className="form-control"
-                          value={formData.segundoApellido}
-                          onChange={handleChange}
-                        />
-                      </div>
-
-                      <div className="col-md-6 mb-2">
-                        <label className="form-label">Personas a Cargo</label>
-                        <input
-                          type="number"
-                          name="personasACargo"
-                          className="form-control"
-                          value={formData.personasACargo || 0}
-                          onChange={handleChange}
-                          min="0"
-                        />
-                      </div>
-
-                      <div className="col-md-6 mb-2">
-                        <label className="form-label">Correo</label>
-                        <input
-                          type="email"
-                          name="correo"
-                          className="form-control"
-                          value={formData.correo}
-                          onChange={handleChange}
-                        />
-                      </div>
-
-                      <div className="col-md-6 mb-2">
-                        <label className="form-label">Teléfono</label>
-                        <input
-                          type="text"
-                          name="telefono"
-                          className="form-control"
-                          value={formData.telefono}
-                          onChange={handleChange}
-                        />
-                      </div>
-
-                      <div className="col-md-6 mb-2">
-                        <label className="form-label">Torre</label>
-                        <select
-                          name="torre"
-                          className="form-control"
-                          value={formData.torre}
-                          onChange={handleChange}
-                        >
-                          {[
-                            "A",
-                            "B",
-                            "C",
-                            "D",
-                            "E",
-                            "F",
-                            "G",
-                            "H",
-                            "I",
-                            "J",
-                          ].map((t) => (
-                            <option key={t} value={t}>
-                              {t}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="col-md-6 mb-2">
-                        <label className="form-label">Apartamento</label>
-                        <select
-                          name="apto"
-                          className="form-control"
-                          value={formData.apto}
-                          onChange={handleChange}
-                        >
-                          <option value="">Seleccione...</option>
-                          {generarAptos(formData.torre).map((a) => (
-                            <option key={a.id} value={a.id}>
-                              {a.numero}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="col-md-4">
+                          <label className="form-label">Apartamento</label>
+                          <select
+                            name="apto"
+                            className="form-select"
+                            value={formData.apto}
+                            onChange={handleChange}
+                          >
+                            <option value="">Seleccione...</option>
+                            {generarAptos(formData.torre).map(a => (
+                              <option key={a.id} value={a.id}>{a.numero}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="col-md-4">
+                          <label className="form-label">Tipo Ocupación</label>
+                          <select
+                            name="tipoOcupacion"
+                            className="form-select"
+                            value={formData.tipoOcupacion}
+                            onChange={handleChange}
+                          >
+                            <option>Propietario</option>
+                            <option>Arrendatario</option>
+                          </select>
+                        </div>
                       </div>
                     </div>
+
+                    {/* ===== DATOS PERSONALES ===== */}
+                    <div className="card mb-3 shadow-sm">
+                      <div className="card-header fw-bold">
+                        Datos Personales
+                      </div>
+                      <div className="card-body row g-3">
+
+
+
+                        <div className="col-md-6">
+                          <label className="form-label">Primer Nombre</label>
+                          <input
+                            type="text"
+                            name="primerNombre"
+                            className="form-control"
+                            value={formData.primerNombre}
+                            onChange={handleChange}
+                            required
+                          />
+                        </div>
+
+                        <div className="col-md-6">
+                          <label className="form-label">Segundo Nombre</label>
+                          <input
+                            type="text"
+                            name="segundoNombre"
+                            className="form-control"
+                            value={formData.segundoNombre}
+                            onChange={handleChange}
+                          />
+                        </div>
+
+                        <div className="col-md-6">
+                          <label className="form-label">Primer Apellido</label>
+                          <input
+                            type="text"
+                            name="primerApellido"
+                            className="form-control"
+                            value={formData.primerApellido}
+                            onChange={handleChange}
+                            required
+                          />
+                        </div>
+
+                        <div className="col-md-6">
+                          <label className="form-label">Segundo Apellido</label>
+                          <input
+                            type="text"
+                            name="segundoApellido"
+                            className="form-control"
+                            value={formData.segundoApellido}
+                            onChange={handleChange}
+                          />
+                        </div>
+
+                      </div>
+                    </div>
+                      {/* ===== CONTACTO Y UBICACIÓN ===== */}
+                  
+                      <div className="card mb-3 shadow-sm">
+                      <div className="card-header fw-bold">
+                        Contacto 
+                      </div>
+                      <div className="card-body row g-3">
+
+                        <div className="col-md-6">
+                          <label className="form-label">Correo</label>
+                          <input
+                            type="email"
+                            name="correo"
+                            className="form-control"
+                            value={formData.correo}
+                            onChange={handleChange}
+                          />
+                        </div>
+
+                      <div className="col-md-6">
+                          <label className="form-label">Teléfono</label>
+                          <input
+                            type="text"
+                            name="telefono"
+                            className="form-control"
+                            value={formData.telefono}
+                            onChange={handleChange}
+                          />
+                        </div>
+
+                      </div>
+                    </div>
+
+                    {/* ===== CONDICIÓN FAMILIAR ===== */}
+                    <div className="card mb-3 shadow-sm">
+                      <div className="card-header fw-bold">
+                        Condición Familiar
+                      </div>
+                      <div className="card-body row g-3">
+
+                        <div className="col-md-4 form-check form-switch">
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            name="tieneNinos"
+                            checked={formData.tieneNinos === 1}
+                            onChange={(e) =>
+                              handleChange({
+                                target: {
+                                  name: "tieneNinos",
+                                  value: e.target.checked ? 1 : 0,
+                                },
+                              })
+                            }
+                          />
+                          <label className="form-check-label">
+                            ¿Tiene niños a cargo?
+                          </label>
+                        </div>
+
+                        <div className="col-md-4 form-check form-switch">
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            name="tieneAdultoMayor"
+                            checked={formData.tieneAdultoMayor === 1}
+                            onChange={(e) =>
+                              handleChange({
+                                target: {
+                                  name: "tieneAdultoMayor",
+                                  value: e.target.checked ? 1 : 0,
+                                },
+                              })
+                            }
+                          />
+                          <label className="form-check-label">
+                            ¿Tiene adulto mayor a cargo?
+                          </label>
+                        </div>
+
+                        <div className="col-md-4 form-check form-switch">
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            name="tieneDiscapacidad"
+                            checked={formData.tieneDiscapacidad === 1}
+                            onChange={(e) =>
+                              handleChange({
+                                target: {
+                                  name: "tieneDiscapacidad",
+                                  value: e.target.checked ? 1 : 0,
+                                },
+                              })
+                            }
+                          />
+                          <label className="form-check-label">
+                            ¿Tiene persona con discapacidad?
+                          </label>
+                        </div>
+
+                      </div>
+                    </div>
+
+                  
+
+                    {/* ===== BOTÓN ===== */}
                     <div className="text-end">
-                      <button type="submit" className="btn btn-success">
-                        Guardar
+                      <button type="submit" className="btn btn-success px-4">
+                        Guardar Información
                       </button>
                     </div>
+
                   </form>
+
                 </div>
               </div>
             </div>
@@ -1616,6 +1783,15 @@ function Residentes() {
                   <p>
                     <strong>Fecha Fin:</strong>{" "}
                     {residenteSeleccionado.fechaFin || "-"}
+                  </p>
+                  <p>
+                    <strong>Niños:</strong> {residenteSeleccionado.tieneNinos === 1 ? "Si" : "No"}
+                  </p>
+                  <p>
+                    <strong>Adulto Mayor:</strong> {residenteSeleccionado.tieneAdultoMayor === 1 ? "Si" : "No"}
+                  </p>
+                  <p>
+                    <strong>Discapacidad:</strong> {residenteSeleccionado.tieneDiscapacidad === 1 ? "Si" : "No"}
                   </p>
                   <p>
                     <strong>Estado:</strong> {residenteSeleccionado.estado}
