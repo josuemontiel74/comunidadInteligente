@@ -72,9 +72,22 @@ export const crearUsuario = async (req, res) => {
     const username = req.user?.username || "desconocido";
     const ruta = "POST /usuarios";
 
+    // Manejo específico para errores de duplicado
+    if (error.name === "SequelizeUniqueConstraintError") {
+      const campo = error.errors[0]?.path;
+      const valor = error.errors[0]?.value;
+
+      return res.status(409).json({
+        ok: false,
+        message: `El ${campo} '${valor}' ya está registrado`,
+        status: 409,
+      });
+    }
+
     await registrarFallo("ERROR", username, ruta, error.message, error.stack);
 
     res.status(500).json({
+      ok: false,
       message: "Algo salió mal en la petición :(",
       status: 500,
       error: error.message,
@@ -250,7 +263,13 @@ export const actualizarUsuario = async (req, res) => {
   } catch (error) {
     const ruta = "PUT /usuarios/:id";
 
-    await registrarFallo("ERROR", usuarioQueActualiza, ruta, error.message, error.stack);
+    await registrarFallo(
+      "ERROR",
+      usuarioQueActualiza,
+      ruta,
+      error.message,
+      error.stack
+    );
 
     return res.status(500).json({
       message: "Algo salió mal en la petición :(",
