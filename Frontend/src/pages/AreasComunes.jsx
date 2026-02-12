@@ -10,6 +10,8 @@ import {
   eliminarReserva_v2,
 } from "../services/areasComunes.services.jsx";
 import React, { useState, useEffect } from "react";
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 
@@ -139,7 +141,8 @@ switch (rolesId) {
   const showUserManagement = tokenValido && rolesId === 1; // solo SuperAdmin gestiona usuarios
   const showAreasComunes = tokenValido && rolesId !== 3; // ocultar áreas comunes para Vigilante
 
-  const [formData, setFormData] = useState({
+  // Estado único y completo para el formulario de reserva
+  const [reserva, setReserva] = useState({
     torre: "",
     apartamentoId: "",
     areaComunId: "",
@@ -164,10 +167,10 @@ switch (rolesId) {
 
   // Función para obtener apartamentos filtrados por torre
   const apartamentosFiltrados = apartamentos.filter((apt) => {
-    if (!formData.torre) return false;
+    if (!reserva.torre) return false;
 
     const numeroApto = parseInt(apt.numeroApartamento);
-    const torreLetra = formData.torre;
+    const torreLetra = reserva.torre;
 
     // Mapear letras a números: A=1, B=2, C=3, etc.
     const torreNumero = torreLetra.charCodeAt(0) - 64; // A=1, B=2, C=3...
@@ -202,11 +205,7 @@ switch (rolesId) {
   // Función para manejar cambio de torre
   const handleTorreChange = (e) => {
     const nuevaTorre = e.target.value;
-    setFormData({
-      ...formData,
-      torre: nuevaTorre,
-      apartamentoId: "", // Limpiar apartamento seleccionado cuando cambie la torre
-    });
+    setReserva((prev) => ({ ...prev, torre: nuevaTorre, apartamentoId: "" }));
   };
 
   // Funciones para conectar con el backend
@@ -233,6 +232,127 @@ switch (rolesId) {
       Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  /**
+   * Genera un ticket HTML estilizado y lo convierte a PDF.
+   * - Crea un elemento con id `ticketReserva` y clases CSS definidas en AreasComunes.css
+   * - Captura con html2canvas y lo inserta en jsPDF
+   * - Fuerza que quepa en una sola página A4 y descarga con nombre `reserva-YYYY-MM-DD.pdf`
+   */
+  const generarTicketPDF = async (reserva) => {
+    try {
+      if (!reserva) {
+        console.warn('generarTicketPDF: no hay datos de reserva');
+        return;
+      }
+
+      // Preparar datos
+      const fechaReserva = reserva.fechaReserva || new Date().toISOString().split('T')[0];
+      // Normalizar y formatear horas a formato 12h AM/PM
+      const normalizeTime = (t) => {
+        if (!t) return '';
+        // Acepta "HH:MM" o "HH:MM:SS" o "HH:MM:SS.sss"
+        const parts = t.split(':');
+        const hh = parseInt(parts[0], 10);
+        const mm = parts[1] || '00';
+        if (isNaN(hh)) return t;
+        const ampm = hh >= 12 ? 'PM' : 'AM';
+        const h12 = hh % 12 === 0 ? 12 : hh % 12;
+        return `${h12}:${String(mm).padStart(2, '0')} ${ampm}`;
+      };
+
+      const rawHoraInicio = reserva.horaInicio ? reserva.horaInicio.replace(/:00$/, '') : (reserva.horaInicio || '');
+      const rawHoraFin = reserva.horaFin ? reserva.horaFin.replace(/:00$/, '') : (reserva.horaFin || '');
+      const horaInicio = normalizeTime(rawHoraInicio);
+      const horaFin = normalizeTime(rawHoraFin);
+      const nombre = reserva.nombreSolicitante || reserva.nombre || '';
+      const correo = reserva.correoSolicitante || reserva.correo || '';
+      const telefono = reserva.telefonoSolicitante || reserva.telefono || '';
+      // Buscar campo de cantidad/asistentes en el objeto reserva (varias posibles claves)
+      const posiblesClavesCantidad = ['cantidadAsistentes','cantidad','asistentes','numeroAsistentes','cantidad_asistentes'];
+      let cantidadValor = '';
+      let cantidadLabel = 'Cantidad asistentes';
+      for (const k of posiblesClavesCantidad) {
+        if (Object.prototype.hasOwnProperty.call(reserva, k) && reserva[k] !== undefined && reserva[k] !== null && String(reserva[k]).trim() !== '') {
+          cantidadValor = reserva[k];
+          if (k.toLowerCase().includes('asist')) cantidadLabel = 'Asistentes';
+          else if (k.toLowerCase().includes('cantidad')) cantidadLabel = 'Cantidad asistentes';
+          else cantidadLabel = k;
+          break;
+        }
+      }
+
+      // Si ya existe un ticket en el DOM, removerlo
+      const existente = document.getElementById('ticketReserva');
+      if (existente) existente.remove();
+
+      // Crear el contenedor del ticket (usar clases, evitar estilos inline innecesarios)
+      const ticket = document.createElement('div');
+      ticket.id = 'ticketReserva';
+      ticket.className = 'ticket-hidden';
+
+      ticket.innerHTML = `
+        <div class="ticket-inner">
+          <div class="ticket-header">
+            <img src="${logo}" class="ticket-logo" alt="logo" />
+            <h2 class="ticket-title">Conjunto Residencial Azaharr</h2>
+          </div>
+          <hr class="ticket-sep" />
+          <div class="ticket-body">
+            <div class="ticket-row"><div class="field-label">Nombre</div><div class="field-value">${nombre}</div></div>
+            <div class="ticket-row"><div class="field-label">Correo</div><div class="field-value">${correo}</div></div>
+            <div class="ticket-row"><div class="field-label">Teléfono</div><div class="field-value">${telefono}</div></div>
+            <div class="ticket-row"><div class="field-label">Fecha de reserva</div><div class="field-value">${fechaReserva}</div></div>
+            <div class="ticket-row"><div class="field-label">Hora inicio</div><div class="field-value">${horaInicio}</div></div>
+            <div class="ticket-row"><div class="field-label">Hora fin</div><div class="field-value">${horaFin}</div></div>
+            <div class="ticket-row"><div class="field-label">${cantidadLabel}</div><div class="field-value">${cantidadValor}</div></div>
+          </div>
+        </div>
+      `;
+
+      // Añadir al DOM (fuera de vista) para capturar con html2canvas
+      document.body.appendChild(ticket);
+
+      // Pequeña espera para que estilos se apliquen
+      await new Promise(r => setTimeout(r, 150));
+
+      // Capturar como canvas
+      const canvas = await html2canvas(ticket, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+
+      // Crear PDF y ajustar tamaño para una sola página
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10; // mm
+      const pdfWidth = pageWidth - margin * 2;
+
+      const imgProps = pdf.getImageProperties(imgData);
+      let imgWidth = pdfWidth;
+      let imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+
+      // Si la imagen es demasiado alta, escalar para que quepa en la página
+      const maxHeight = pageHeight - margin * 2;
+      if (imgHeight > maxHeight) {
+        const scale = maxHeight / imgHeight;
+        imgHeight = imgHeight * scale;
+        imgWidth = imgWidth * scale;
+      }
+
+      const x = (pageWidth - imgWidth) / 2;
+      const y = margin;
+      pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+
+      // Descargar con nombre usando la fecha de la reserva
+      const fileName = `reserva-${fechaReserva}.pdf`;
+      pdf.save(fileName);
+
+      // Limpiar DOM
+      ticket.remove();
+    } catch (err) {
+      console.error('Error en generarTicketPDF:', err);
     }
   };
 
@@ -385,7 +505,7 @@ switch (rolesId) {
   }, [location.state]);
 
   const abrirModal = (prefill = null) => {
-    setFormData({
+    setReserva({
       torre: "",
       apartamentoId: "",
       areaComunId: prefill?.areaComunId || "",
@@ -410,24 +530,30 @@ switch (rolesId) {
   };
   const toggleMenu = () => setMenuAbierto(!menuAbierto);
 
-  const handleChange = (e) =>
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  // Handler genérico para actualizar cualquier campo del estado `reserva`
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setReserva((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     console.log("=== DEBUG: Iniciando envío de formulario ===");
-    console.log("FormData actual:", formData);
+    console.log("Reserva (estado) actual:", reserva);
 
     // Validaciones
-    if (!formData.aceptaReglamento) {
+    if (!reserva.aceptaReglamento) {
       Swal.fire("Error", "Debe aceptar el reglamento para continuar", "error");
       return;
     }
 
     // Validación de fecha (no puede ser en el pasado)
     const hoy = new Date();
-    const fechaReserva = new Date(formData.fechaReserva);
+    const fechaReserva = new Date(reserva.fechaReserva);
     const hoyFormateado = new Date(
       hoy.getFullYear(),
       hoy.getMonth(),
@@ -457,7 +583,7 @@ switch (rolesId) {
     }
 
     // Validación hora inicio < hora fin
-    if (formData.horaInicio >= formData.horaFin) {
+    if (reserva.horaInicio >= reserva.horaFin) {
       Swal.fire(
         "Error",
         "La hora de inicio debe ser menor que la hora de fin",
@@ -469,22 +595,22 @@ switch (rolesId) {
     try {
       setLoading(true);
 
-      // Crear objeto para enviar al backend
+      // Crear objeto para enviar al backend usando el estado único `reserva`
       const reservaData = {
-        apartamentoId: parseInt(formData.apartamentoId),
-        areaComunId: parseInt(formData.areaComunId),
-        fechaReserva: formData.fechaReserva,
-        horaInicio: formData.horaInicio + ":00",
-        horaFin: formData.horaFin + ":00",
-        motivoReserva: formData.motivoReserva,
-        cantidadAsistentes: formData.cantidadAsistentes, 
-        invitadosExternos: formData.invitadosExternos, // Enviar como boolean
-        aceptaReglamento: formData.aceptaReglamento, // Enviar como boolean
-        documentoSolicitante: formData.documentoSolicitante,
-        tipoDocumentoId: parseInt(formData.tipoDocumentoId),
-        nombreSolicitante: formData.nombreSolicitante,
-        telefonoSolicitante: formData.telefonoSolicitante,
-        correoSolicitante: formData.correoSolicitante,
+        apartamentoId: parseInt(reserva.apartamentoId),
+        areaComunId: parseInt(reserva.areaComunId),
+        fechaReserva: reserva.fechaReserva,
+        horaInicio: reserva.horaInicio + ":00",
+        horaFin: reserva.horaFin + ":00",
+        motivoReserva: reserva.motivoReserva,
+        cantidadAsistentes: reserva.cantidadAsistentes,
+        invitadosExternos: !!reserva.invitadosExternos, // Enviar como boolean
+        aceptaReglamento: !!reserva.aceptaReglamento, // Enviar como boolean
+        documentoSolicitante: reserva.documentoSolicitante,
+        tipoDocumentoId: parseInt(reserva.tipoDocumentoId),
+        nombreSolicitante: reserva.nombreSolicitante,
+        telefonoSolicitante: reserva.telefonoSolicitante,
+        correoSolicitante: reserva.correoSolicitante,
       };
 
       console.log("=== DEBUG: Datos a enviar al backend ===");
@@ -510,7 +636,7 @@ switch (rolesId) {
           const mensaje = editIndex !== null ? "Actualizado correctamente" : "Registrado correctamente";
           Swal.fire({ icon: 'success', title: mensaje, timer: 3500, showConfirmButton: false });
 
-        setFormData({
+        setReserva({
           torre: "",
           apartamentoId: "",
           areaComunId: "",
@@ -530,6 +656,15 @@ switch (rolesId) {
 
         cerrarModal();
         obtenerReservas();
+        // Generar y descargar ticket PDF automáticamente solo cuando se creó (no en edición)
+        if (!isEditing) {
+          try {
+            // Usar el objeto local `reservaData` (valores del formulario) para generar el PDF
+            await generarTicketPDF(reservaData);
+          } catch (err) {
+            console.warn('No fue posible generar el PDF automáticamente:', err);
+          }
+        }
       } else {
         // Manejo explícito para conflicto (409) u otros errores
         if (response.status === 409) {
@@ -626,7 +761,7 @@ switch (rolesId) {
 
   const editarReserva = (reserva) => {
   
-    setFormData({
+    setReserva({
       torre: reserva.nombreTorre
         ? reserva.nombreTorre.charAt(reserva.nombreTorre.length - 1)
         : "",
@@ -1188,7 +1323,7 @@ switch (rolesId) {
                         <select
                           name="torre"
                           className="form-select"
-                          value={formData.torre}
+                          value={reserva.torre}
                           onChange={handleTorreChange}
                           required
                         >
@@ -1210,13 +1345,13 @@ switch (rolesId) {
                         <select
                           name="apartamentoId"
                           className="form-select"
-                          value={formData.apartamentoId}
+                          value={reserva.apartamentoId}
                           onChange={handleChange}
                           required
-                          disabled={!formData.torre}
+                          disabled={!reserva.torre}
                         >
                           <option value="">
-                            {!formData.torre
+                            {!reserva.torre
                               ? "Primero selecciona una torre"
                               : "Selecciona apartamento"}
                           </option>
@@ -1235,7 +1370,7 @@ switch (rolesId) {
                         <select
                           name="areaComunId"
                           className="form-select"
-                          value={formData.areaComunId}
+                          value={reserva.areaComunId}
                           onChange={handleChange}
                           required
                         >
@@ -1260,7 +1395,7 @@ switch (rolesId) {
                         <select
                           name="tipoDocumentoId"
                           className="form-select"
-                          value={formData.tipoDocumentoId}
+                          value={reserva.tipoDocumentoId}
                           onChange={handleChange}
                           required
                         >
@@ -1283,7 +1418,7 @@ switch (rolesId) {
                           type="text"
                           name="documentoSolicitante"
                           className="form-control"
-                          value={formData.documentoSolicitante}
+                          value={reserva.documentoSolicitante}
                           onChange={handleChange}
                           required
                         />
@@ -1298,7 +1433,7 @@ switch (rolesId) {
                         type="text"
                         name="nombreSolicitante"
                         className="form-control"
-                        value={formData.nombreSolicitante}
+                        value={reserva.nombreSolicitante}
                         onChange={handleChange}
                         placeholder="Nombre y apellidos completos"
                         required
@@ -1312,7 +1447,7 @@ switch (rolesId) {
                           type="text"
                           name="telefonoSolicitante"
                           className="form-control"
-                          value={formData.telefonoSolicitante}
+                          value={reserva.telefonoSolicitante}
                           onChange={handleChange}
                           required
                         />
@@ -1325,7 +1460,7 @@ switch (rolesId) {
                           type="email"
                           name="correoSolicitante"
                           className="form-control"
-                          value={formData.correoSolicitante}
+                          value={reserva.correoSolicitante}
                           onChange={handleChange}
                           required
                         />
@@ -1339,7 +1474,7 @@ switch (rolesId) {
                           type="date"
                           name="fechaReserva"
                           className="form-control"
-                          value={formData.fechaReserva}
+                          value={reserva.fechaReserva}
                           onChange={handleChange}
                           min={new Date().toISOString().split("T")[0]} // No permitir fechas pasadas
                           required
@@ -1351,7 +1486,7 @@ switch (rolesId) {
                           type="time"
                           name="horaInicio"
                           className="form-control"
-                          value={formData.horaInicio}
+                          value={reserva.horaInicio}
                           onChange={handleChange}
                           required
                         />
@@ -1362,7 +1497,7 @@ switch (rolesId) {
                           type="time"
                           name="horaFin"
                           className="form-control"
-                          value={formData.horaFin}
+                          value={reserva.horaFin}
                           onChange={handleChange}
                           required
                         />
@@ -1377,7 +1512,7 @@ switch (rolesId) {
                         <textarea
                           name="motivoReserva"
                           className="form-control"
-                          value={formData.motivoReserva}
+                          value={reserva.motivoReserva}
                           onChange={handleChange}
                           placeholder="Describe el motivo de la reserva"
                           rows="2"
@@ -1392,7 +1527,7 @@ switch (rolesId) {
                           type="number"
                           name="cantidadAsistentes"
                           className="form-control"
-                          value={formData.cantidadAsistentes}
+                          value={reserva.cantidadAsistentes}
                           onChange={handleChange}
                           min="1"
                           required
@@ -1407,13 +1542,8 @@ switch (rolesId) {
                             className="form-check-input"
                             type="checkbox"
                             name="invitadosExternos"
-                            checked={formData.invitadosExternos}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                invitadosExternos: e.target.checked,
-                              })
-                            }
+                            checked={reserva.invitadosExternos}
+                            onChange={handleChange}
                           />
                           <label className="form-check-label">
                             ¿Habrá invitados externos?
@@ -1426,13 +1556,8 @@ switch (rolesId) {
                             className="form-check-input"
                             type="checkbox"
                             name="aceptaReglamento"
-                            checked={formData.aceptaReglamento}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                aceptaReglamento: e.target.checked,
-                              })
-                            }
+                            checked={reserva.aceptaReglamento}
+                            onChange={handleChange}
                             required
                           />
                           <label className="form-check-label">
