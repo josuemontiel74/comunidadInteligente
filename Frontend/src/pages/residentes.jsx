@@ -1532,17 +1532,17 @@ function Residentes() {
 
                         <div className="col-md-4">
                           <label className="form-label">Apartamento</label>
-                          <select
-                            name="apto"
-                            className="form-select"
-                            value={formData.apto}
-                            onChange={handleChange}
-                          >
-                            <option value="">Seleccione...</option>
-                            {generarAptos(formData.torre).map(a => (
-                              <option key={a.id} value={a.id}>{a.numero}</option>
-                            ))}
-                          </select>
+                            <select
+                              name="apto"
+                              className="form-select"
+                              value={formData.apto}
+                              onChange={handleChange}
+                            >
+                              <option value="">Seleccione...</option>
+                              {generarAptos(formData.torreId).map((a) => (
+                                <option key={a.id} value={a.id}>{a.numero}</option>
+                              ))}
+                            </select>
                         </div>
                         <div className="col-md-4">
                           <label className="form-label">Tipo Ocupación</label>

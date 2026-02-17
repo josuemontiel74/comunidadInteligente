@@ -5,7 +5,7 @@ import dayjs from "dayjs";
 import Apartamento from "../models/apartamentos.model.js";
 import Estado from "../models/estados.model.js";
 import { sequelize } from "../config/connect.db.js";
-import { Op as SequelizeOp } from "sequelize";
+import { Op, fn, col, literal, where } from "sequelize";
 import Tipodocumentos from "../models/tipoDocumento.model.js";
 import Torre from "../models/torres.model.js";
 import { registrarAuditoria } from "../services/auditorias.service.js";

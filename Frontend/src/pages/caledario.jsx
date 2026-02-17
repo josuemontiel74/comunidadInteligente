@@ -113,23 +113,39 @@ export default function CalendarioReservas() {
     }
   };
 
-  const obtenerDiasParaMostrar = () => {
-    const hoy = new Date();
-    const dias = [];
-    
-    for (let i = 0; i < 10; i++) {
-      const fecha = new Date(hoy);
-      fecha.setDate(hoy.getDate() + i);
-      dias.push(fecha);
+  // Genera array de días para un mes (incluye nulls antes del primer día para alinear lunes=0)
+  const generarDiasDelMes = (year, month) => {
+    const first = new Date(year, month, 1);
+    // Ajuste para que lunes sea 0
+    const primerIndice = (first.getDay() + 6) % 7; // 0..6
+    const diasEnMes = new Date(year, month + 1, 0).getDate();
+
+    const cells = [];
+    for (let i = 0; i < primerIndice; i++) cells.push(null);
+    for (let d = 1; d <= diasEnMes; d++) {
+      const yyyy = String(year);
+      const mm = String(month + 1).padStart(2, '0');
+      const dd = String(d).padStart(2, '0');
+      const iso = `${yyyy}-${mm}-${dd}`;
+      cells.push({ day: d, iso });
     }
-    
-    return dias;
+    return cells;
+  };
+
+  // Genera los 12 meses del año actual
+  const obtenerMesesDelAnio = () => {
+    const currentYear = new Date().getFullYear();
+    const mesesArr = [];
+    for (let m = 0; m < 12; m++) {
+      mesesArr.push({ year: currentYear, month: m, name: nombresMeses[m], dias: generarDiasDelMes(currentYear, m) });
+    }
+    return mesesArr;
   };
 
   const mostrarDetallesDia = (fecha) => {
     const reservasDia = obtenerReservasPorDia(fecha);
     const espacios = calcularEspaciosDisponibles(fecha);
-    const diaTexto = `${diasSemana[fecha.getDay()]} ${fecha.getDate()} de ${meses[fecha.getMonth()]}`;
+    const diaTexto = `${diasSemana[fecha.getDay()]} ${fecha.getDate()} de ${nombresMeses[fecha.getMonth()]}`;
 
     let html = `<div style="text-align:left">`;
 
@@ -357,10 +373,12 @@ export default function CalendarioReservas() {
   };
 
   const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-  const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const nombresMeses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  
 
-  const dias = obtenerDiasParaMostrar();
+  const meses = obtenerMesesDelAnio();
+  const reservasSet = new Set(reservas.map(r => r.fechaReserva));
+  const hoyStr = new Date().toISOString().split('T')[0];
 
   return (
     <div className="container-fluid p-0">
@@ -541,84 +559,55 @@ export default function CalendarioReservas() {
             <p className="text-muted">Haz clic en un día para ver más detalles</p>
           </div>
 
-          {/* Cards de días */}
+          {/* Calendario anual: 12 meses (3 por fila) */}
           <div className="row g-3 mb-4">
-            {dias.map((fecha, index) => {
-              const reservasDia = obtenerReservasPorDia(fecha);
-              const esHoy = fecha.toDateString() === new Date().toDateString();
-              const estaSeleccionado = diaSeleccionado && 
-                fecha.toDateString() === diaSeleccionado.toDateString();
+            {meses.map((mesObj) => (
+              <div key={`${mesObj.year}-${mesObj.month}`} className="col-12 col-md-4">
+                <div className="card h-100">
+                  <div className="card-body">
+                    <h5 className="card-title text-center mb-2">{mesObj.name} {mesObj.year}</h5>
 
-              return (
-                <div key={index} className="col-12 col-md-6 col-lg-4 col-xl-3">
-                  <div 
-                    className={`card h-100 ${estaSeleccionado ? 'border-success' : ''}`}
-                    style={{
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      borderWidth: estaSeleccionado ? '3px' : '1px',
-                      boxShadow: estaSeleccionado ? '0 4px 12px rgba(40, 167, 69, 0.3)' : '0 2px 4px rgba(0,0,0,0.1)'
-                    }}
-                    onClick={() => mostrarDetallesDia(fecha)}
-                  >
-                    <div className={`card-header text-white ${esHoy ? 'bg-success' : 'bg-secondary'}`}>
-                      <div className="d-flex justify-content-between align-items-center">
-                        <div>
-                          <h5 className="mb-0">{diasSemana[fecha.getDay()]}</h5>
-                          <small>{fecha.getDate()} {meses[fecha.getMonth()]}</small>
-                        </div>
-                        {esHoy && <span className="badge bg-white text-success">HOY</span>}
-                      </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 6, textAlign: 'center', fontWeight: 700 }}>
+                      {['L','M','M','J','V','S','D'].map((s, i) => (
+                        <div key={i} style={{ fontSize: 12, color: '#444' }}>{s}</div>
+                      ))}
                     </div>
 
-                    <div className="card-body p-3">
-                      {reservasDia.length === 0 ? (
-                        <div className="text-center py-3">
-                          <Plus size={32} className="text-success mb-2" />
-                          <p className="text-success mb-0 fw-bold">Sin reservas</p>
-                          <small className="text-muted">Día completamente disponible</small>
-                        </div>
-                      ) : (
-                        <div>
-                          <div className="d-flex align-items-center mb-3">
-                            <Clock size={16} className="text-danger me-2" />
-                            <span className="badge bg-danger">{reservasDia.length} reserva{reservasDia.length > 1 ? 's' : ''}</span>
-                          </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
+                      {mesObj.dias.map((cell, i) => {
+                        if (cell === null) return <div key={`empty-${i}`} style={{ minHeight: 36 }}></div>;
+                        const reservado = reservasSet.has(cell.iso);
+                        const esPasado = cell.iso < hoyStr;
+                        const estilo = reservado ? { backgroundColor: '#e07a7a', color: '#fff', borderRadius: 6, padding: '8px 6px', textAlign: 'center', cursor: 'not-allowed' }
+                                                  : { backgroundColor: '#6fbf73', color: '#fff', borderRadius: 6, padding: '8px 6px', textAlign: 'center', cursor: 'pointer' };
 
-                          <div className="d-flex flex-column gap-2">
-                            {reservasDia.slice(0, 3).map((reserva, idx) => (
-                              <div 
-                                key={idx}
-                                className="p-2 rounded"
-                                style={{
-                                  backgroundColor: `${obtenerColorArea(reserva.areaComunId)}15`,
-                                  borderLeft: `3px solid ${obtenerColorArea(reserva.areaComunId)}`
-                                }}
-                              >
-                                <div className="small">
-                                  <strong style={{ color: obtenerColorArea(reserva.areaComunId) }}>
-                                    {obtenerNombreArea(reserva.areaComunId)}
-                                  </strong>
-                                </div>
-                                <div className="small text-muted">
-                                  {formatearHora(reserva.horaInicio)} - {formatearHora(reserva.horaFin)}
-                                </div>
-                              </div>
-                            ))}
-                            
-                            {reservasDia.length > 3 && (
-                              <div className="text-center">
-                                <small className="text-muted">+{reservasDia.length - 3} más...</small>
-                              </div>
-                            )}
+                        return (
+                          <div
+                            key={cell.iso}
+                            style={estilo}
+                            title={cell.iso}
+                            onClick={() => {
+                              if (reservado) {
+                                Swal.fire('Fecha reservada', `La fecha ${cell.iso} ya está reservada.`, 'info');
+                                return;
+                              }
+                              if (esPasado) {
+                                Swal.fire('Fecha pasada', 'No es posible reservar fechas pasadas.', 'warning');
+                                return;
+                              }
+                              // Usar la función existente para mostrar modal o flujo
+                              mostrarDetallesDia(new Date(cell.iso));
+                            }}
+                          >
+                            {cell.day}
                           </div>
-                        </div>
-                      )}
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
 
           {/* Detalles del día seleccionado */}
@@ -626,7 +615,7 @@ export default function CalendarioReservas() {
             <div className="card shadow-sm">
               <div className="card-header bg-success text-white">
                 <h4 className="mb-0">
-                  Detalles del {diasSemana[diaSeleccionado.getDay()]} {diaSeleccionado.getDate()} de {meses[diaSeleccionado.getMonth()]}
+                  Detalles del {diasSemana[diaSeleccionado.getDay()]} {diaSeleccionado.getDate()} de {nombresMeses[diaSeleccionado.getMonth()]}
                 </h4>
               </div>
               
