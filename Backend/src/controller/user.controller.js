@@ -47,7 +47,7 @@ export const crearUsuario = async (req, res) => {
     // Registrar en auditoría - Usar el username (llave primaria) como idRegistroAfectado
     const usuarioActual = req.user?.username || "desconocido";
     const usuarioCreadoUsername = createUser.username; // Capturar el username del usuario recién creado
-
+    
     await registrarAuditoria(
       usuarioActual,
       "usuarios",
@@ -100,7 +100,7 @@ export const obtenerUsuario = async (req, res) => {
     const usuarios = await User.findAll({
       include: [
         {
-          model: Persona,
+          model: Persona, 
           as: "Persona",
           attributes: [
             "numeroDocumento",
@@ -121,12 +121,12 @@ export const obtenerUsuario = async (req, res) => {
           ],
         },
         {
-          model: Rol,
+          model: Rol, 
           as: "Rol",
           attributes: ["idRol", "nombreRol"],
         },
         {
-          model: Estado,
+          model: Estado, 
           as: "Estado",
           attributes: ["idEstado", "nombreEstado"],
         },
@@ -436,7 +436,7 @@ export const reactivarUsuario = async (req, res) => {
 export const inactivarUsuario = async (req, res) => {
   const username = req.params.username;
   const usuarioQueActualiza = req.user?.username || "desconocido";
-
+  
   try {
     const usuario = await User.findByPk(username);
     if (!usuario) {
@@ -445,10 +445,10 @@ export const inactivarUsuario = async (req, res) => {
         status: 404,
       });
     }
-
+    
     // Realizar la actualización del estado
     await usuario.update({ estadoId: 2 });
-
+    
     // Registrar en auditoría DESPUÉS de confirmar la actualización
     await registrarAuditoria(
       usuarioQueActualiza,

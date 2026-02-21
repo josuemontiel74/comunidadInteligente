@@ -29,7 +29,7 @@ app.use(morgan("dev"));
 app.use(express.json());
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:65089"],
+    origin: ["http://localhost:5173", "http://localhost:54910"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   })
