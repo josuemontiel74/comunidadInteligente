@@ -52,7 +52,7 @@ export const crearUsuario = async (req, res) => {
       usuarioActual,
       "usuarios",
       "INSERT",
-      usuarioCreadoUsername
+      usuarioCreadoUsername,
     );
 
     res.status(201).json({
@@ -67,7 +67,6 @@ export const crearUsuario = async (req, res) => {
         numeroDocumento: nuevaPersona.numeroDocumento,
       },
     });
-
   } catch (error) {
     const username = req.user?.username || "desconocido";
     const ruta = "POST /usuarios";
@@ -197,7 +196,6 @@ export const actualizarUsuario = async (req, res) => {
     });
     // volver activar
 
-
     if (!usuario) {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
@@ -249,7 +247,7 @@ export const actualizarUsuario = async (req, res) => {
       usuarioQueActualiza,
       "usuarios",
       "UPDATE",
-      username
+      username,
     );
 
     const { password, ...usuarioSinPass } = usuario.toJSON();
@@ -268,7 +266,7 @@ export const actualizarUsuario = async (req, res) => {
       usuarioQueActualiza,
       ruta,
       error.message,
-      error.stack
+      error.stack,
     );
 
     return res.status(500).json({
@@ -321,7 +319,7 @@ export const loginUsuario = async (req, res) => {
         rol: nombreRol,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "1h" },
     );
 
     const {
@@ -390,6 +388,51 @@ export const buscarUsuarios = async (req, res) => {
   }
 };
 
+export const reactivarUsuario = async (req, res) => {
+  const username = req.params.usernameAtivar;
+  const usuarioQueActualiza = req.user?.username || "desconocido";
+
+  try {
+    const usuario = await User.findByPk(username);
+    if (!usuario) {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        status: 404,
+      });
+    }
+
+    await usuario.update({ estadoId: 1 });
+
+    await registrarAuditoria(
+      usuarioQueActualiza,
+      "usuarios",
+      "PATCH",
+      username,
+    );
+
+    res.status(200).json({
+      message: "El usuario ha sido reactivado correctamente",
+      status: 200,
+    });
+  } catch (error) {
+    const ruta = "PATCH /usuarios/reactivar/:usernameAtivar";
+
+    await registrarFallo(
+      "ERROR",
+      usuarioQueActualiza,
+      ruta,
+      error.message,
+      error.stack,
+    );
+
+    return res.status(500).json({
+      message: "Algo salió mal en la petición :(",
+      status: 500,
+      error: error.message,
+    });
+  }
+};
+
 export const inactivarUsuario = async (req, res) => {
   const username = req.params.username;
   const usuarioQueActualiza = req.user?.username || "desconocido";
@@ -411,7 +454,7 @@ export const inactivarUsuario = async (req, res) => {
       usuarioQueActualiza,
       "usuarios",
       "DELETE",
-      username // El username es el identificador del usuario afectado
+      username, // El username es el identificador del usuario afectado
     );
 
     res.status(200).json({
@@ -427,7 +470,7 @@ export const inactivarUsuario = async (req, res) => {
       usuarioQueActualiza,
       ruta,
       error.message,
-      error.stack
+      error.stack,
     );
 
     return res.status(500).json({
