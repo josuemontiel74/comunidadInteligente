@@ -7,6 +7,7 @@ import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import tiposVehiculoModel from "../models/tiposVehiculo.model.js";
 import { sequelize } from "../config/connect.db.js";
+import { fn, col, where } from "sequelize";
 import { registrarAuditoria } from "../services/auditorias.service.js";
 
 dayjs.extend(utc);

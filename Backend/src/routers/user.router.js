@@ -46,12 +46,13 @@ router.patch(
 
   userController.actualizarUsuario
 );
-router.patch(
+/**router.patch(
   "/usuario/reactivar/:usernameAtivar",
   validarJWT,
   validarRol(1),
   userController.reactivarUsuario
 );
+**/
 router.delete(
   "/usuario/:username",
   validarJWT,
