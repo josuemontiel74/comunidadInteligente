@@ -122,6 +122,3 @@ export const obtenerUsuariosEnLinea = async (token) => {
   const data = await res.json();
   return data.enLinea || {};
 };
-
-
-
