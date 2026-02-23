@@ -1,355 +1,174 @@
-import "bootstrap/dist/css/bootstrap.min.css";
+﻿import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
 import "../Styles/residentes.css";
 import logo from "../../img/logo.png";
 
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Button, Table, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
-import { obtenerResidentes, crearOcupante, actualizarOcupante, finalizarOcupante } from "../services/residentes.services.jsx";
+import {
+  obtenerResidentes,
+  crearOcupante,
+  actualizarOcupante,
+  finalizarOcupante,
+} from "../services/residentes.services.jsx";
+import { logoutUsuario } from "../services/gestionUsuarios.jsx";
 
-
-
+/* =========================================================
+   UTILIDADES
+   ========================================================= */
 const obtenerToken = () => {
-  const token =
+  return (
     localStorage.getItem("token") ||
     localStorage.getItem("authToken") ||
     sessionStorage.getItem("token") ||
-    sessionStorage.getItem("authToken");
-
-  // Si no hay token válido, usar token de desarrollo
-  if (!token) {
-    console.warn(
-      "No se encontró token de autenticación, usando token de desarrollo"
-    );
-    return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Impvc3VlMjAyMyIsInJvbGVzSWQiOjEsImlhdCI6MTc1OTUxNTQwMCwiZXhwIjoxNzU5NTE5MDAwfQ.wKzrnUttdHRGkHnnZL1LR1amxt2ZQ4PZR85khZauShQ";
-  }
-
-  return token;
+    sessionStorage.getItem("authToken") ||
+    null
+  );
 };
 
-const token = obtenerToken();
-
-// Función para verificar si el token está vencido
 const verificarTokenVencido = (token) => {
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
-    const fechaExpiracion = payload.exp * 1000; // Convertir a milisegundos
-    return Date.now() >= fechaExpiracion;
-  } catch (error) {
-    console.error("Error al verificar expiración del token:", error);
-    return true; // Considerar vencido si hay error
+    return Date.now() >= payload.exp * 1000;
+  } catch {
+    return true;
   }
 };
 
 const obtenerUsuarioDelToken = () => {
   try {
-    if (verificarTokenVencido(token)) {
-      console.warn("Token vencido, usando usuario por defecto...");
-      return "josue2023";
-    }
-
-    const payload = JSON.parse(atob(token.split(".")[1]));
+    const t = obtenerToken();
+    if (!t || verificarTokenVencido(t)) return "Usuario";
+    const payload = JSON.parse(atob(t.split(".")[1]));
     return payload.username || "Usuario";
-  } catch (error) {
-    console.error("Error al decodificar el token:", error);
+  } catch {
     return "Usuario";
   }
 };
 
-// Traduce mensajes/estructuras de error del backend a textos amigables en español
+const obtenerRolDelToken = () => {
+  try {
+    const t = obtenerToken();
+    if (!t || verificarTokenVencido(t)) return null;
+    const payload = JSON.parse(atob(t.split(".")[1]));
+    return payload.rolesId || null;
+  } catch {
+    return null;
+  }
+};
+
+const mapTipoDocumento = (id) =>
+  ({ 1: "CC", 2: "CE", 3: "PP", 4: "PEP", 5: "PPT" })[id] || "CC";
+const mapTipoDocumentoId = (t) =>
+  ({ CC: 1, CE: 2, PP: 3, PEP: 4, PPT: 5 })[t] || 1;
+const mapTorre = (id) =>
+  ({
+    1: "A",
+    2: "B",
+    3: "C",
+    4: "D",
+    5: "E",
+    6: "F",
+    7: "G",
+    8: "H",
+    9: "I",
+    10: "J",
+  })[id] || "";
+const mapTorreId = (l) =>
+  ({
+    A: 1,
+    B: 2,
+    C: 3,
+    D: 4,
+    E: 5,
+    F: 6,
+    G: 7,
+    H: 8,
+    I: 9,
+    J: 10,
+  })[l] || 1;
+
 const campoAmigable = (field) => {
   const map = {
-    numeroDocumento: 'Número de documento',
-    primerNombre: 'Primer nombre',
-    segundoNombre: 'Segundo nombre',
-    primerApellido: 'Primer apellido',
-    segundoApellido: 'Segundo apellido',
-    correoElectronico: 'Correo electrónico',
-    correo: 'Correo electrónico',
-    telefono: 'Teléfono',
-    apto: 'Apartamento',
-    apartamentosId: 'Apartamento',
-    tipoOcupacion: 'Tipo de ocupación',
-    fechaInicio: 'Fecha de inicio',
-    fechaFin: 'Fecha de fin',
-    personasACargo: 'Personas a cargo',
+    numeroDocumento: "Número de documento",
+    primerNombre: "Primer nombre",
+    primerApellido: "Primer apellido",
+    correoElectronico: "Correo electrónico",
+    telefono: "Teléfono",
+    apartamentosId: "Apartamento",
+    tipoOcupacion: "Tipo de ocupación",
+    fechaInicio: "Fecha de inicio",
+    personasACargo: "Personas a cargo",
   };
   return map[field] || field;
 };
 
 const traducirMensajeBackend = (errData) => {
-  if (errData === null || errData === undefined) return 'Datos inválidos o incompletos.';
-
-  if (typeof errData === 'string') {
-    const s = errData;
-    if (/required|is required|cannot be null|no puede estar vacío|cannot be empty/i.test(s)) return 'Falta información obligatoria en el formulario.';
-    if (/max.*length|no puede.*mayor|exceeds the maximum|too long|longitud máxima/i.test(s)) return 'Algún campo supera la longitud permitida.';
-    if (/min.*length|must be at least|falta.*caracter|too short|longitud mínima/i.test(s)) return 'Algún campo no cumple la longitud mínima requerida.';
-    if (/invalid|not valid|no válido|formato/i.test(s)) return 'Formato de campo inválido.';
-    if (/unique|exists|ya existe/i.test(s)) return 'Ya existe un registro con esos datos.';
-    // Si el mensaje ya está en español claro, devolverlo
-    if (/[áéíóúñ¿¡]/i.test(s) || /\b(error|campo|no|falta|inválid)/i.test(s)) return s;
-    // Por defecto, devolver un mensaje genérico pero útil
-    return 'Hay un problema con los datos ingresados. Revise el formulario e intente nuevamente.';
+  if (!errData) return "Datos inválidos o incompletos.";
+  if (typeof errData === "string") {
+    if (/required|cannot be null/i.test(errData))
+      return "Falta información obligatoria en el formulario.";
+    if (/unique|exists|ya existe/i.test(errData))
+      return "Ya existe un registro con esos datos.";
+    return errData;
   }
-
-  if (Array.isArray(errData)) {
-    return errData.map((e) => traducirMensajeBackend(e)).join(' ');
-  }
-
-  if (typeof errData === 'object') {
-    // Estructura común: { message: '...', errors: [...] }
-    if (errData.message && typeof errData.message === 'string') {
-      return traducirMensajeBackend(errData.message);
-    }
-
-    if (errData.errors && Array.isArray(errData.errors)) {
+  if (typeof errData === "object") {
+    if (errData.message) return traducirMensajeBackend(errData.message);
+    if (errData.errors && Array.isArray(errData.errors))
       return errData.errors
-        .map((it) => {
-          if (it.field || it.param) {
-            const f = it.field || it.param;
-            const msg = it.message || it.msg || it.error || JSON.stringify(it);
-            return `${campoAmigable(f)}: ${traducirMensajeBackend(msg)}`;
-          }
-          return traducirMensajeBackend(it.message || it);
-        })
-        .join(' ');
-    }
-
-    // Si es un objeto con claves por campo
-    const partes = [];
-    for (const k in errData) {
-      if (!Object.prototype.hasOwnProperty.call(errData, k)) continue;
-      const v = errData[k];
-      const texto = traducirMensajeBackend(v);
-      partes.push(`${campoAmigable(k)}: ${texto}`);
-    }
-    if (partes.length) return partes.join(' ');
-
-    return 'Hay un problema con los datos ingresados. Revise el formulario e intente nuevamente.';
+        .map(
+          (it) =>
+            `${campoAmigable(it.field || it.param || "")}: ${it.message || it.msg || ""}`,
+        )
+        .join(" ");
   }
-
-  return 'Hay un problema con los datos ingresados. Revise el formulario e intente nuevamente.';
+  return "Hay un problema con los datos ingresados.";
 };
-//obtener rol 
-const obtenerRolDelToken = () => {
+
+const getUserProfilePhoto = () => {
   try {
-    if (verificarTokenVencido(token)) {
-      console.warn("Token vencido, usando rol por defecto...");
-      return "RolDesconocido";
-    }
-
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.rolesId || "RolNoDefinido";
-  } catch (error) {
-    console.error("Error al decodificar el token:", error);
-    return "RolNoDefinido";
+    const photosStr = localStorage.getItem("gu_user_photos");
+    if (!photosStr) return null;
+    const photos = JSON.parse(photosStr);
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const key = user.numeroDocumento || user.username || "";
+    return photos[key] || null;
+  } catch {
+    return null;
   }
 };
-if (verificarTokenVencido(token)) {
 
-}
-const rolesId = obtenerRolDelToken();
-let rolUsuario;
-
-switch (rolesId) {
-  case 1:
-    rolUsuario = "superAdmin";
-    break;
-  case 2:
-    rolUsuario = "admin";
-    break;
-  case 3:
-    rolUsuario = "vigilante";
-    break;
-  default:
-    rolUsuario = "RolNoDefinido";
-}
-
-const nombreUsuario = obtenerUsuarioDelToken();
-
-const tokenValido = token && !verificarTokenVencido(token);
-const showUserManagement = tokenValido && rolesId === 1; // solo SuperAdmin puede gestionar usuarios
-const showAreasComunes = tokenValido && rolesId !== 3; // ocultar áreas comunes para Vigilante (3)
-
-
+/* =========================================================
+   COMPONENTE PRINCIPAL
+   ========================================================= */
 function Residentes() {
   const location = useLocation();
   const navegacion = useNavigate();
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      Swal.fire({ icon: 'warning', title: 'Sesión expirada', text: 'La sesión expiró. Vuelva a iniciar sesión.', timer: 3500, showConfirmButton: false, timerProgressBar: true }).then(() => {
-        localStorage.clear();
-        navegacion('/');
-      });
-    }
-  }, [navegacion]);
-  const CerraSesión = (e) => {
-    e?.preventDefault();
-    localStorage.clear();
-    navegacion("/");
-  };
+  const rolesId = obtenerRolDelToken();
+  const nombreUsuario = obtenerUsuarioDelToken();
+  const showUserManagement = rolesId === 1;
+  const showAreasComunes = rolesId !== 3;
 
-  const [showUserMenu, setShowUserMenu] = useState(false);
-
-
-
+  /* ---- estado ---- */
+  const [menuOpen, setMenuOpen] = useState(false);
   const [residentes, setResidentes] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const cargarResidentes = async () => {
-    try {
-      setLoading(true);
-      const res = await obtenerResidentes(obtenerToken());
-
-      if (res?.status === 401) {
-        // Mostrar mensaje que provea el backend si lo hay
-        let body = null;
-        try {
-          const ct = res.headers.get('content-type') || '';
-          body = ct.includes('application/json') ? await res.json() : await res.text();
-        } catch (e) {
-          body = null;
-        }
-        const backendMsg = body ? (typeof body === 'object' ? (body.message || JSON.stringify(body)) : body) : 'No autorizado. Token inválido o expirado.';
-        console.error('Token expirado o inválido', res.status, backendMsg);
-        Swal.fire({ icon: 'warning', title: 'No autorizado', text: backendMsg, confirmButtonText: 'Entendido' }).then(() => {
-          localStorage.removeItem('token');
-          navegacion('/');
-        });
-        return;
-      }
-
-      if (!res.ok) {
-        const text = await res.text();
-        let parsed = text;
-        try {
-          parsed = JSON.parse(text);
-        } catch (e) {
-          // no es JSON
-        }
-        console.error("Error al obtener residentes:", res.status, res.statusText, parsed);
-        if (res.status === 400) {
-          const friendly = traducirMensajeBackend(parsed || text);
-          Swal.fire({ icon: 'warning', title: 'Error de validación', text: friendly, confirmButtonText: 'Entendido' });
-          setLoading(false);
-          return;
-        }
-        if (res.status >= 500) {
-          Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
-          setLoading(false);
-          return;
-        }
-        throw new Error(`Error ${res.status}: ${res.statusText}`);
-      }
-
-      const data = await res.json();
-      const ocupantes = data.body || data;
-
-      const residentesFormateados = ocupantes.map((ocupante) => ({
-        idOcupante: ocupante.idOcupante,
-        tipoDocumento: mapTipoDocumento(ocupante.tipoDocumentoId),
-        numeroDocumento: ocupante.numeroDocumento,
-        tipoOcupacion:
-          ocupante.tipoOcupacion.charAt(0).toUpperCase() +
-          ocupante.tipoOcupacion.slice(1),
-        primerNombre: ocupante.primerNombre,
-        segundoNombre: ocupante.segundoNombre || "",
-        primerApellido: ocupante.primerApellido,
-        segundoApellido: ocupante.segundoApellido || "",
-        fechaInicio: ocupante.fechaInicio,
-        fechaFin: ocupante.fechaFin || "",
-        correo: ocupante.correoElectronico || "",
-        telefono: ocupante.telefono || "",
-        tieneNinos: ocupante.tieneNinos || 0,
-        tieneAdultoMayor: ocupante.tieneAdultoMayor || 0,
-        tieneDiscapacidad: ocupante.tieneDiscapacidad || 0,
-        torre: mapTorre(ocupante.torresId),
-        torresId: ocupante.torresId,
-        apto: ocupante.apartamentosId?.toString(),
-        aptoDisplay: formatNumeroApartamento(ocupante.apartamentosId),
-        estado: ocupante.nombreEstado === "activa" ? "Activo" : "Finalizado",
-        nombreCompleto: [
-          ocupante.primerNombre,
-          ocupante.segundoNombre,
-          ocupante.primerApellido,
-          ocupante.segundoApellido,
-        ]
-          .filter(Boolean)
-          .join(" "),
-        apartamentosId: ocupante.apartamentosId,
-      }));
-      setResidentes(residentesFormateados);
-    } catch (error) {
-      console.error("Error al cargar residentes:", error);
-      Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
-  const mapTipoDocumento = (tipoDocumentoId) => {
-    const tipos = { 1: "CC", 2: "CE", 3: "PP", 4: "PEP", 5: "PPT" };
-    return tipos[tipoDocumentoId] || "CC";
-  };
-
-  const mapTipoDocumentoId = (tipoDocumento) => {
-    const tipos = { CC: 1, CE: 2, PP: 3, PEP: 4, PPT: 5 };
-    return tipos[tipoDocumento] || 1;
-  };
-
-  const mapTorre = (torresId) => {
-    const torres = {
-      1: "A",
-      2: "B",
-      3: "C",
-      4: "D",
-      5: "E",
-      6: "F",
-      7: "G",
-      8: "H",
-      9: "I",
-      10: "J",
-    };
-    return torres[torresId] || "A";
-  };
-
-  const mapTorreId = (torre) => {
-    const torres = {
-      A: 1,
-      B: 2,
-      C: 3,
-      D: 4,
-      E: 5,
-      F: 6,
-      G: 7,
-      H: 8,
-      I: 9,
-      J: 10,
-    };
-    return torres[torre] || 1;
-  };
-
-  useEffect(() => {
-    cargarResidentes();
-    cargarApartamentos();
-  }, []);
-
-  const formatNumeroApartamento = (num) => {
-    if (num === null || num === undefined) return "";
-    const s = num.toString();
-    const m = s.match(/^(\d)(0)(\d{1,3})$/);
-    if (m) return `${m[1]}${m[3]}`;
-    return s;
-  };
+  const [apartamentos, setApartamentos] = useState([]);
 
   const [modalAbierto, setModalAbierto] = useState(false);
   const [editIndex, setEditIndex] = useState(null);
   const [showModalDetalles, setShowModalDetalles] = useState(false);
   const [residenteSeleccionado, setResidenteSeleccionado] = useState(null);
+
+  const [vistaCuadricula, setVistaCuadricula] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroEstado, setFiltroEstado] = useState("todos");
+  const [filtroTorre, setFiltroTorre] = useState("todos");
+  const [filtroTipoOcupacion, setFiltroTipoOcupacion] = useState("todos");
+  const [ordenFecha, setOrdenFecha] = useState("recientes");
+  const [paginaActual, setPaginaActual] = useState(1);
+  const elementosPorPagina = 10;
 
   const [formData, setFormData] = useState({
     tipoDocumento: "CC",
@@ -360,22 +179,214 @@ function Residentes() {
     primerApellido: "",
     segundoApellido: "",
     fechaInicio: new Date().toISOString().split("T")[0],
-    fechaFin: "",
     correo: "",
     telefono: "",
-    torre: "A",
     torreId: 1,
     apto: "",
-    estado: "Activo",
+    personasACargo: 0,
     tieneNinos: 0,
     tieneAdultoMayor: 0,
     tieneDiscapacidad: 0,
   });
 
+  /* ---- token check ---- */
+  useEffect(() => {
+    const token = obtenerToken();
+    if (!token || verificarTokenVencido(token)) {
+      Swal.fire({
+        icon: "warning",
+        title: "Sesión expirada",
+        text: "La sesión expiró. Vuelva a iniciar sesión.",
+        timer: 3500,
+        showConfirmButton: false,
+        timerProgressBar: true,
+      }).then(() => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navegacion("/");
+      });
+    }
+  }, [navegacion]);
+
+  /* ---- carga inicial + auto-refresh ---- */
+  useEffect(() => {
+    cargarResidentes();
+    cargarApartamentos();
+    const intervalo = setInterval(cargarResidentes, 30000);
+    return () => clearInterval(intervalo);
+  }, []);
+
   useEffect(() => {
     if (location.state?.abrirModal) abrirModal();
   }, [location.state]);
 
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [busqueda, filtroEstado, filtroTorre, filtroTipoOcupacion, ordenFecha]);
+
+  /* ---- menu title ---- */
+  const getMenuTitle = () => {
+    if (rolesId === 1) return "Menú Super Admin";
+    if (rolesId === 2) return "Menú Admin";
+    return "Menú Vigilante";
+  };
+
+  /* ---- API calls ---- */
+  const cargarResidentes = async () => {
+    try {
+      setLoading(true);
+      const token = obtenerToken();
+      const res = await obtenerResidentes(token);
+
+      if (res?.status === 401) {
+        Swal.fire({
+          icon: "warning",
+          title: "No autorizado",
+          text: "Token inválido o expirado.",
+        }).then(() => {
+          localStorage.removeItem("token");
+          navegacion("/");
+        });
+        return;
+      }
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+
+      const data = await res.json();
+      const ocupantes = data.body || data;
+      const formateados = ocupantes.map((o) => ({
+        idOcupante: o.idOcupante,
+        tipoDocumento: mapTipoDocumento(o.tipoDocumentoId),
+        tipoDocumentoId: o.tipoDocumentoId,
+        numeroDocumento: o.numeroDocumento,
+        tipoOcupacion:
+          o.tipoOcupacion?.charAt(0).toUpperCase() + o.tipoOcupacion?.slice(1),
+        primerNombre: o.primerNombre,
+        segundoNombre: o.segundoNombre || "",
+        primerApellido: o.primerApellido,
+        segundoApellido: o.segundoApellido || "",
+        fechaInicio: o.fechaInicio ? o.fechaInicio.split("T")[0] : "",
+        fechaFin: o.fechaFin ? o.fechaFin.split("T")[0] : "",
+        correo: o.correoElectronico || "",
+        telefono: o.telefono || "",
+        personasACargo: o.personasACargo || 0,
+        tieneNinos: o.tieneNinos || 0,
+        tieneAdultoMayor: o.tieneAdultoMayor || 0,
+        tieneDiscapacidad: o.tieneDiscapacidad || 0,
+        torre: mapTorre(o.torresId),
+        torresId: o.torresId,
+        apartamentosId: o.apartamentosId,
+        estado: o.nombreEstado === "activa" ? "Activo" : "Finalizado",
+        estadoId: o.estadoId,
+        nombreEstado: o.nombreEstado,
+        nombreCompleto: [
+          o.primerNombre,
+          o.segundoNombre,
+          o.primerApellido,
+          o.segundoApellido,
+        ]
+          .filter(Boolean)
+          .join(" "),
+      }));
+      setResidentes(formateados);
+    } catch {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Error de conexión al cargar residentes.",
+        iconColor: "#0d9488",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cargarApartamentos = async () => {
+    try {
+      const token = obtenerToken();
+      const res = await obtenerResidentes(token);
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      const ocupantes = data.body || data;
+      const unicos = [];
+      const ids = new Set();
+      ocupantes.forEach((o) => {
+        if (!ids.has(o.apartamentosId)) {
+          ids.add(o.apartamentosId);
+          unicos.push({
+            idApartamento: o.apartamentosId,
+            numeroApartamento: o.apartamentosId?.toString(),
+            torresId: o.torresId,
+          });
+        }
+      });
+      unicos.sort((a, b) => a.idApartamento - b.idApartamento);
+      setApartamentos(unicos);
+    } catch {
+      setApartamentos([]);
+    }
+  };
+
+  const generarAptos = (torreId) => {
+    const id = Number(torreId);
+    if (!id || !apartamentos.length) return [];
+    return apartamentos
+      .filter((a) => a.torresId === id)
+      .map((a) => ({ id: a.idApartamento, numero: a.numeroApartamento }));
+  };
+
+  /* ---- filtro & paginacion ---- */
+  const residentesFiltrados = (() => {
+    let arr = [...residentes];
+    // ordenar: activos primero, luego por fecha
+    arr.sort((a, b) => {
+      const estadoA = a.estado === "Activo" ? -1 : 1;
+      const estadoB = b.estado === "Activo" ? -1 : 1;
+      if (estadoA !== estadoB) return estadoA - estadoB;
+      const fechaA = new Date(a.fechaInicio || 0).getTime();
+      const fechaB = new Date(b.fechaInicio || 0).getTime();
+      return ordenFecha === "recientes" ? fechaB - fechaA : fechaA - fechaB;
+    });
+    if (filtroEstado !== "todos")
+      arr = arr.filter(
+        (r) =>
+          r.estado === (filtroEstado === "activo" ? "Activo" : "Finalizado"),
+      );
+    if (filtroTorre !== "todos")
+      arr = arr.filter((r) => r.torre === filtroTorre);
+    if (filtroTipoOcupacion !== "todos")
+      arr = arr.filter(
+        (r) => r.tipoOcupacion?.toLowerCase() === filtroTipoOcupacion,
+      );
+    if (busqueda.trim()) {
+      const q = busqueda.toLowerCase();
+      arr = arr.filter(
+        (r) =>
+          r.nombreCompleto.toLowerCase().includes(q) ||
+          r.numeroDocumento?.toLowerCase().includes(q) ||
+          r.correo?.toLowerCase().includes(q) ||
+          r.telefono?.toLowerCase().includes(q) ||
+          `${r.torre}-${r.apartamentosId}`.toLowerCase().includes(q),
+      );
+    }
+    return arr;
+  })();
+
+  const totalPaginas = Math.ceil(
+    residentesFiltrados.length / elementosPorPagina,
+  );
+  const residentesPaginados = residentesFiltrados.slice(
+    (paginaActual - 1) * elementosPorPagina,
+    paginaActual * elementosPorPagina,
+  );
+
+  // Stats
+  const totalCount = residentes.length;
+  const activosCount = residentes.filter((r) => r.estado === "Activo").length;
+  const finalizadosCount = residentes.filter(
+    (r) => r.estado === "Finalizado",
+  ).length;
+
+  /* ---- modal ---- */
   const abrirModal = () => {
     if (editIndex === null) {
       setFormData({
@@ -387,13 +398,10 @@ function Residentes() {
         primerApellido: "",
         segundoApellido: "",
         fechaInicio: new Date().toISOString().split("T")[0],
-        fechaFin: "",
         correo: "",
         telefono: "",
-        torre: "A",
         torreId: 1,
         apto: "",
-        estado: "Activo",
         personasACargo: 0,
         tieneNinos: 0,
         tieneAdultoMayor: 0,
@@ -410,1398 +418,1225 @@ function Residentes() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === "telefono") {
+      const soloNumeros = value.replace(/[^0-9]/g, "");
+      setFormData((f) => ({ ...f, [name]: soloNumeros }));
+      return;
+    }
     setFormData((f) => ({ ...f, [name]: value }));
   };
 
-  const [apartamentos, setApartamentos] = useState([]);
-
-
-  const cargarApartamentos = async () => {
-    try {
-      const res = await obtenerResidentes(obtenerToken());
-
-      if (res?.status === 401) {
-        console.error("Token expirado o inválido");
-        localStorage.removeItem("token");
-        navegacion("/");
-        return;
-      }
-
-      if (!res.ok) {
-        console.error("Error al obtener residentes para aptos:", res.status, res.statusText);
-        throw new Error(`Error ${res.status}: ${res.statusText}`);
-      }
-
-      const data = await res.json();
-      const ocupantes = data.body || data;
-      const apartamentosUnicos = [];
-      const idsVistos = new Set();
-
-
-      const formatNumeroApartamento = (num) => {
-        if (num === null || num === undefined) return '';
-        const s = num.toString();
-
-        const m = s.match(/^(\d)(0)(\d{1,3})$/);
-        if (m) return `${m[1]}${m[3]}`;
-        return s;
-      };
-
-      ocupantes.forEach((ocupante) => {
-        if (!idsVistos.has(ocupante.apartamentosId)) {
-          idsVistos.add(ocupante.apartamentosId);
-          apartamentosUnicos.push({
-            idApartamento: ocupante.apartamentosId,
-            numeroApartamento: formatNumeroApartamento(ocupante.apartamentosId),
-            torresId: ocupante.torresId,
-          });
-        }
-      });
-
-
-      console.log("Apartamentos cargados desde DB:", apartamentosUnicos);
-
-      // Ordenar por ID
-      apartamentosUnicos.sort((a, b) => a.idApartamento - b.idApartamento);
-
-      setApartamentos(apartamentosUnicos);
-    } catch (error) {
-      console.error("Error al cargar apartamentos:", error);
-
-      setApartamentos([
-        { idApartamento: 1, numeroApartamento: "1", torresId: 1 },
-        { idApartamento: 2, numeroApartamento: "2", torresId: 1 },
-        { idApartamento: 3, numeroApartamento: "3", torresId: 1 },
-        { idApartamento: 4, numeroApartamento: "4", torresId: 1 },
-        { idApartamento: 5, numeroApartamento: "5", torresId: 1 },
-      ]);
-    }
-  };
-
-  const generarAptos = (torre) => {
-    const torreId = Number(torre) || null;
-    if (!torreId || apartamentos.length === 0) return [];
-    return apartamentos
-      .filter((apt) => apt.torresId === torreId)
-      .map((apt) => ({
-        id: apt.idApartamento,
-        numero: apt.numeroApartamento,
-      }));
+  const abrirModalEditar = (r) => {
+    if (!r) return;
+    setFormData({
+      tipoDocumento: r.tipoDocumento || "CC",
+      numeroDocumento: r.numeroDocumento || "",
+      tipoOcupacion: r.tipoOcupacion || "Propietario",
+      primerNombre: r.primerNombre || "",
+      segundoNombre: r.segundoNombre || "",
+      primerApellido: r.primerApellido || "",
+      segundoApellido: r.segundoApellido || "",
+      fechaInicio: r.fechaInicio || new Date().toISOString().split("T")[0],
+      correo: r.correo || "",
+      telefono: r.telefono || "",
+      torreId: r.torresId || 1,
+      apto: r.apartamentosId?.toString() || "",
+      personasACargo: r.personasACargo || 0,
+      tieneNinos: r.tieneNinos || 0,
+      tieneAdultoMayor: r.tieneAdultoMayor || 0,
+      tieneDiscapacidad: r.tieneDiscapacidad || 0,
+    });
+    setEditIndex(r.idOcupante);
+    setModalAbierto(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.primerNombre.trim())
+      return Swal.fire("Error", "Ingrese el primer nombre", "error");
+    if (!formData.primerApellido.trim())
+      return Swal.fire("Error", "Ingrese el primer apellido", "error");
+    if (!formData.apto)
+      return Swal.fire("Error", "Seleccione un apartamento", "error");
+    if (!formData.fechaInicio)
+      return Swal.fire("Error", "La fecha de inicio es obligatoria", "error");
+    if (editIndex === null && !formData.numeroDocumento.trim())
+      return Swal.fire("Error", "Ingrese el número de documento", "error");
+    if (formData.telefono && !/^[0-9]{7,15}$/.test(formData.telefono))
+      return Swal.fire(
+        "Error",
+        "El teléfono debe contener solo números (entre 7 y 15 dígitos)",
+        "error",
+      );
 
+    // Validar duplicidad de documento al crear
+    if (editIndex === null && formData.numeroDocumento.trim()) {
+      const doc = formData.numeroDocumento.trim().toLowerCase();
+      const existente = residentes.find(
+        (r) => r.numeroDocumento?.toLowerCase() === doc,
+      );
+      if (existente) {
+        if (existente.estado === "Activo") {
+          const result = await Swal.fire({
+            icon: "info",
+            iconColor: "#0d9488",
+            title: "Residente ya existe",
+            html: `<b>${existente.nombreCompleto}</b> ya se encuentra <b>activo/a</b> en Torre ${existente.torre} - Apto ${existente.apartamentosId}.<br/><br/>¿Desea editar su información en lugar de crear un nuevo registro?`,
+            showCancelButton: true,
+            confirmButtonText: "Sí, editar",
+            cancelButtonText: "Cancelar",
+            confirmButtonColor: "#0d9488",
+          });
+          if (result.isConfirmed) {
+            cerrarModal();
+            abrirModalEditar(existente);
+          }
+          return;
+        }
+        // Si está finalizado, permitir continuar (se puede re-registrar)
+      }
+    }
 
-    if (editIndex === null && !formData.numeroDocumento.trim()) {
-      Swal.fire("Error", "Ingrese número de documento", "error");
-      return;
-    }
-    if (!formData.primerNombre.trim()) {
-      Swal.fire("Error", "Ingrese al menos el primer nombre", "error");
-      return;
-    }
-    if (!formData.primerApellido.trim()) {
-      Swal.fire("Error", "Ingrese al menos el primer apellido", "error");
-      return;
-    }
-    if (!formData.apto) {
-      Swal.fire("Error", "Seleccione un apartamento", "error");
-      return;
-    }
-    if (!formData.fechaInicio || formData.fechaInicio.trim() === "") {
-      Swal.fire("Error", "La fecha de inicio es obligatoria", "error");
-      return;
-    }
-
+    const token = obtenerToken();
     try {
       const apartamentoId = parseInt(formData.apto);
-      if (isNaN(apartamentoId) || apartamentoId <= 0) {
-        Swal.fire("Error", "ID de apartamento inválido", "error");
-        return;
-      }
-
-
-      const apartamentoExiste = apartamentos.some(
-        (apt) => apt.idApartamento === apartamentoId
-      );
-      if (!apartamentoExiste) {
-        Swal.fire(
-          "Error",
-          `El apartamento con ID ${apartamentoId} no existe en el sistema`,
-          "error"
-        );
-        console.error(
-          "Apartamento no encontrado. ID:",
-          apartamentoId,
-          "Apartamentos disponibles:",
-          apartamentos
-        );
-        return;
-      }
+      if (isNaN(apartamentoId) || apartamentoId <= 0)
+        return Swal.fire("Error", "Apartamento inválido", "error");
 
       const ocupanteData = {
         apartamentosId: apartamentoId,
         tipoOcupacion: formData.tipoOcupacion.toLowerCase(),
         personasACargo: parseInt(formData.personasACargo) || 0,
         fechaInicio: formData.fechaInicio,
-        fechaFin:
-          formData.fechaFin && formData.fechaFin.trim() !== ""
-            ? formData.fechaFin
-            : null,
+        fechaFin: null,
         tipoDocumentoId: mapTipoDocumentoId(formData.tipoDocumento),
         primerNombre: formData.primerNombre,
-        segundoNombre:
-          formData.segundoNombre && formData.segundoNombre.trim() !== ""
-            ? formData.segundoNombre
-            : null,
+        segundoNombre: formData.segundoNombre?.trim() || null,
         primerApellido: formData.primerApellido,
-        segundoApellido:
-          formData.segundoApellido && formData.segundoApellido.trim() !== ""
-            ? formData.segundoApellido
-            : null,
+        segundoApellido: formData.segundoApellido?.trim() || null,
         telefono: formData.telefono || "0000000000",
-        // Para creación usar placeholder si no hay correo; para actualización omitir si está vacío
         correoElectronico:
           editIndex === null
             ? formData.correo || "noemail@example.com"
-            : formData.correo && formData.correo.trim() !== ""
-              ? formData.correo
-              : undefined,
+            : formData.correo?.trim() || undefined,
         tieneNinos: Number(formData.tieneNinos) === 1 ? 1 : 0,
         tieneAdultoMayor: Number(formData.tieneAdultoMayor) === 1 ? 1 : 0,
         tieneDiscapacidad: Number(formData.tieneDiscapacidad) === 1 ? 1 : 0,
       };
 
-
-      // Incluir número de documento tanto en creación como en edición
-      if (formData.numeroDocumento && formData.numeroDocumento.trim() !== "") {
+      if (formData.numeroDocumento?.trim())
         ocupanteData.numeroDocumento = formData.numeroDocumento.trim();
-      }
 
       if (editIndex !== null) {
-        const result = await Swal.fire({
-          title: "¿Quieres guardar los cambios?",
-          showDenyButton: true,
+        const confirm = await Swal.fire({
+          title: "¿Guardar cambios?",
+          icon: "question",
+          iconColor: "#0d9488",
           showCancelButton: true,
           confirmButtonText: "Guardar",
-          denyButtonText: "No guardar",
+          cancelButtonText: "Cancelar",
+          confirmButtonColor: "#0d9488",
         });
+        if (!confirm.isConfirmed) return;
 
-        if (result.isConfirmed) {
-
-          console.log("=== DEBUG UPDATE ===");
-          console.log("ID a actualizar:", editIndex);
-          console.log("Datos a enviar:", ocupanteData);
-
-          const resUpdate = await actualizarOcupante(editIndex, ocupanteData, obtenerToken());
-          if (resUpdate?.status === 401) {
-            let body = null;
-            try {
-              const ct = resUpdate.headers.get('content-type') || '';
-              body = ct.includes('application/json') ? await resUpdate.json() : await resUpdate.text();
-            } catch (e) { body = null; }
-            const backendMsg = body ? (typeof body === 'object' ? (body.message || JSON.stringify(body)) : body) : 'No autorizado. Token inválido o expirado.';
-            Swal.fire({ icon: 'warning', title: 'No autorizado', text: backendMsg, confirmButtonText: 'Entendido' }).then(() => { localStorage.removeItem('token'); navegacion('/'); });
-            return;
-          }
-          if (!resUpdate.ok) {
-            const contentType = resUpdate.headers.get("content-type");
-            const errData = contentType && contentType.includes("application/json") ? await resUpdate.json() : await resUpdate.text();
-            console.error("Error actualizando ocupante:", resUpdate.status, errData);
-            if (resUpdate.status === 400) {
-              // Mostrar el mensaje tal cual lo envía el backend (si lo proporciona)
-              const backendMsg = typeof errData === 'object' ? (errData.message || JSON.stringify(errData)) : errData;
-              console.error('Error de validación desde backend:', backendMsg);
-              Swal.fire({ icon: 'warning', title: 'Error de validación', text: backendMsg || 'Error de validación en los datos.', confirmButtonText: 'Entendido' });
-              return;
-            }
-            if (resUpdate.status >= 500) {
-              Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
-              return;
-            }
-            Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo actualizar el registro.', confirmButtonText: 'Entendido' });
-            return;
-          }
-
-          Swal.fire({ icon: 'success', title: 'Guardado correctamente', timer: 3500, showConfirmButton: false });
-          cargarResidentes();
-          cerrarModal();
-        } else if (result.isDenied) {
-          Swal.fire("No guardado", "Los cambios no se aplicaron", "info");
-        }
-      } else {
-        const resCreate = await crearOcupante(ocupanteData, obtenerToken());
-        if (resCreate?.status === 401) {
-          let body = null;
-          try {
-            const ct = resCreate.headers.get('content-type') || '';
-            body = ct.includes('application/json') ? await resCreate.json() : await resCreate.text();
-          } catch (e) { body = null; }
-          const backendMsg = body ? (typeof body === 'object' ? (body.message || JSON.stringify(body)) : body) : 'No autorizado. Token inválido o expirado.';
-          Swal.fire({ icon: 'warning', title: 'No autorizado', text: backendMsg, confirmButtonText: 'Entendido' }).then(() => { localStorage.removeItem('token'); navegacion('/'); });
+        const res = await actualizarOcupante(editIndex, ocupanteData, token);
+        if (res?.status === 401) {
+          Swal.fire("No autorizado", "Token expirado", "warning").then(() => {
+            localStorage.removeItem("token");
+            navegacion("/");
+          });
           return;
         }
-        const contentType = resCreate.headers.get("content-type");
-        const dataCreate = contentType && contentType.includes("application/json") ? await resCreate.json() : await resCreate.text();
-
-        if (!resCreate.ok) {
-          console.error("Error creando ocupante:", resCreate.status, dataCreate);
-          if (resCreate.status === 400) {
-            const friendly = traducirMensajeBackend(dataCreate);
-            Swal.fire({ icon: 'warning', title: 'Error de validación', text: friendly, confirmButtonText: 'Entendido' });
-          } else if (resCreate.status >= 500) {
-            Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
-          } else {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo crear el registro.', confirmButtonText: 'Entendido' });
-          }
-        } else {
-          Swal.fire({ icon: 'success', title: 'Registrado correctamente', timer: 3500, showConfirmButton: false });
-          cargarResidentes();
-          cerrarModal();
+        if (!res.ok) {
+          const ct = res.headers.get("content-type") || "";
+          const errData = ct.includes("json")
+            ? await res.json()
+            : await res.text();
+          Swal.fire("Error", traducirMensajeBackend(errData), "warning");
+          return;
         }
+        Swal.fire({
+          icon: "success",
+          title: "Actualizado correctamente",
+          timer: 2500,
+          showConfirmButton: false,
+          iconColor: "#0d9488",
+        });
+      } else {
+        const res = await crearOcupante(ocupanteData, token);
+        if (res?.status === 401) {
+          Swal.fire("No autorizado", "Token expirado", "warning").then(() => {
+            localStorage.removeItem("token");
+            navegacion("/");
+          });
+          return;
+        }
+        const ct = res.headers.get("content-type") || "";
+        const dataCreate = ct.includes("json")
+          ? await res.json()
+          : await res.text();
+        if (!res.ok) {
+          Swal.fire("Error", traducirMensajeBackend(dataCreate), "warning");
+          return;
+        }
+        Swal.fire({
+          icon: "success",
+          title: "Registrado correctamente",
+          timer: 2500,
+          showConfirmButton: false,
+          iconColor: "#0d9488",
+        });
       }
-    } catch (error) {
-      console.error("Error al guardar residente:", error);
-      Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+      await cargarResidentes();
+      cerrarModal();
+    } catch {
+      Swal.fire("Error", "Error de conexión. Intente de nuevo.", "error");
     }
   };
 
-  const abrirModalEditar = (residente) => {
-    if (!residente) return;
-
-    console.log("=== DEBUG EDICION ===");
-    console.log("Residente a editar:", residente);
-    console.log("ID del residente:", residente.idOcupante);
-
-
-    setFormData({
-      tipoDocumento: mapTipoDocumento(residente.tipoDocumentoId) || "CC",
-      numeroDocumento: residente.numeroDocumento || "",
-      tipoOcupacion:
-        residente.tipoOcupacion?.charAt(0).toUpperCase() +
-        residente.tipoOcupacion?.slice(1) || "Propietario",
-      primerNombre: residente.primerNombre || "",
-      segundoNombre: residente.segundoNombre || "",
-      primerApellido: residente.primerApellido || "",
-      segundoApellido: residente.segundoApellido || "",
-      fechaInicio:
-        residente.fechaInicio || new Date().toISOString().split("T")[0],
-      fechaFin: residente.fechaFin || "",
-      correo: residente.correoElectronico || "",
-      telefono: residente.telefono || "",
-      torre: mapTorre(residente.torresId) || "A",
-      torreId: residente.torresId || mapTorreId(residente.torre) || 1,
-      apto: residente.apartamentosId?.toString() || "",
-      estado: residente.nombreEstado === "activa" ? "Activo" : "Finalizado",
-      personasACargo: residente.personasACargo || 0,
-      tieneNinos: residente.tieneNinos || 0,
-      tieneAdultoMayor: residente.tieneAdultoMayor || 0,
-      tieneDiscapacidad: residente.tieneDiscapacidad || 0,
-    });
-
-    setEditIndex(residente.idOcupante);
-    setModalAbierto(true);
+  const cerrarSesion = async (e) => {
+    e?.preventDefault();
+    const token = localStorage.getItem("token");
+    if (token) await logoutUsuario(token);
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navegacion("/");
   };
-  const finalizarResidente = async (residente) => {
-    if (!residente) return;
 
-    console.log("=== DEBUG FINALIZAR ===");
-    console.log("Residente a finalizar:", residente);
-    console.log("ID para API:", residente.idOcupante);
-
+  const ejecutarFinalizar = async (r) => {
+    if (!r) return;
     const result = await Swal.fire({
       title: "¿Finalizar este residente?",
-      text: "Esta acción finalizará la ocupación del residente. ¿Estás seguro?",
+      text: "Esta acción finalizará la ocupación.",
       icon: "warning",
+      iconColor: "#dc2626",
       showCancelButton: true,
       confirmButtonText: "Sí, finalizar",
       cancelButtonText: "Cancelar",
+      confirmButtonColor: "#dc2626",
     });
-
-    if (result.isConfirmed) {
-      try {
-        const resFinal = await finalizarOcupante(residente.idOcupante, obtenerToken());
-        if (resFinal?.status === 401) {
-          let body = null;
-          try {
-            const ct = resFinal.headers.get('content-type') || '';
-            body = ct.includes('application/json') ? await resFinal.json() : await resFinal.text();
-          } catch (e) { body = null; }
-          const backendMsg = body ? (typeof body === 'object' ? (body.message || JSON.stringify(body)) : body) : 'No autorizado. Token inválido o expirado.';
-          Swal.fire({ icon: 'warning', title: 'No autorizado', text: backendMsg, confirmButtonText: 'Entendido' }).then(() => { localStorage.removeItem('token'); navegacion('/'); });
-          return;
-        }
-        if (!resFinal.ok) {
-          const contentType = resFinal.headers.get("content-type");
-          const errData = contentType && contentType.includes("application/json") ? await resFinal.json() : await resFinal.text();
-          console.error("Error finalizando ocupante:", resFinal.status, errData);
-          if (resFinal.status === 400) {
-            const friendly = traducirMensajeBackend(errData);
-            Swal.fire({ icon: 'warning', title: 'Error de validación', text: friendly, confirmButtonText: 'Entendido' });
-            return;
-          }
-          if (resFinal.status >= 500) {
-            Swal.fire({ icon: 'error', title: 'Error de servidor', text: 'Error en el servidor. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
-            return;
-          }
-          Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo finalizar el registro.', confirmButtonText: 'Entendido' });
-          return;
-        }
-        Swal.fire({ icon: 'success', title: 'Finalizado correctamente', timer: 3500, showConfirmButton: false });
-        cargarResidentes();
-      } catch (error) {
-        console.error("Error al finalizar residente:", error);
-        Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+    if (!result.isConfirmed) return;
+    try {
+      const token = obtenerToken();
+      const res = await finalizarOcupante(r.idOcupante, token);
+      if (res?.status === 401) {
+        Swal.fire("No autorizado", "Token expirado", "warning").then(() => {
+          localStorage.removeItem("token");
+          navegacion("/");
+        });
+        return;
       }
-    }
-  };
-
-  const verDetalles = (r) => {
-    setResidenteSeleccionado(r);
-    setShowModalDetalles(true);
-  };
-
-  const [vistaCuadricula, setVistaCuadricula] = useState(false);
-
-
-  const [busqueda, setBusqueda] = useState("");
-  const [filtroEstado, setFiltroEstado] = useState("todos");
-  const [paginaActual, setPaginaActual] = useState(1);
-  const elementosPorPagina = 10;
-
-  const ordenarResidentes = (residentes) => {
-    return [...residentes].sort((a, b) => {
-
-      if (a.estado !== b.estado) {
-        return a.estado === "Activo" ? -1 : 1;
+      if (!res.ok) {
+        const ct = res.headers.get("content-type") || "";
+        const errData = ct.includes("json")
+          ? await res.json()
+          : await res.text();
+        Swal.fire("Error", traducirMensajeBackend(errData), "warning");
+        return;
       }
-
-      const fechaA = new Date(a.fechaInicio || "1900-01-01");
-      const fechaB = new Date(b.fechaInicio || "1900-01-01");
-      return fechaB - fechaA;
-    });
+      Swal.fire({
+        icon: "success",
+        title: "Finalizado correctamente",
+        timer: 2500,
+        showConfirmButton: false,
+        iconColor: "#0d9488",
+      });
+      await cargarResidentes();
+    } catch {
+      Swal.fire("Error", "Error de conexión.", "error");
+    }
   };
 
-
-  const filtrarResidentes = (residentes) => {
-    let filtrados = [...residentes];
-
-    if (filtroEstado !== "todos") {
-      const estadoBuscado = filtroEstado === "activo" ? "Activo" : "Finalizado";
-      filtrados = filtrados.filter((r) => r.estado === estadoBuscado);
-    }
-
-    if (busqueda.trim()) {
-      const terminoBusqueda = busqueda.toLowerCase();
-      filtrados = filtrados.filter(
-        (r) =>
-          r.nombreCompleto.toLowerCase().includes(terminoBusqueda) ||
-          r.numeroDocumento.toLowerCase().includes(terminoBusqueda) ||
-          r.correo.toLowerCase().includes(terminoBusqueda) ||
-          r.telefono.toLowerCase().includes(terminoBusqueda) ||
-          `${r.torre}-${r.aptoDisplay}`.toLowerCase().includes(terminoBusqueda)
-      );
-    }
-
-    return filtrados;
-  };
-
-  const residentesOrdenados = ordenarResidentes(residentes);
-  const residentesFiltrados = filtrarResidentes(residentesOrdenados);
-  const totalPaginas = Math.ceil(
-    residentesFiltrados.length / elementosPorPagina
-  );
-  const indiceInicio = (paginaActual - 1) * elementosPorPagina;
-  const residentesPaginados = residentesFiltrados.slice(
-    indiceInicio,
-    indiceInicio + elementosPorPagina
-  );
-
-  useEffect(() => {
-    setPaginaActual(1);
-  }, [busqueda, filtroEstado]);
-
-
+  /* ---- render Paginacion ---- */
   const Paginacion = () => {
     if (totalPaginas <= 1) return null;
-
     const paginas = [];
-    const maxPaginasVisibles = 5;
-
-    let paginaInicio = Math.max(
-      1,
-      paginaActual - Math.floor(maxPaginasVisibles / 2)
-    );
-    let paginaFin = Math.min(
-      totalPaginas,
-      paginaInicio + maxPaginasVisibles - 1
-    );
-
-    if (paginaFin - paginaInicio < maxPaginasVisibles - 1) {
-      paginaInicio = Math.max(1, paginaFin - maxPaginasVisibles + 1);
-    }
-
-    for (let i = paginaInicio; i <= paginaFin; i++) {
-      paginas.push(i);
-    }
+    const maxVis = 5;
+    let ini = Math.max(1, paginaActual - Math.floor(maxVis / 2));
+    let fin = Math.min(totalPaginas, ini + maxVis - 1);
+    if (fin - ini < maxVis - 1) ini = Math.max(1, fin - maxVis + 1);
+    for (let i = ini; i <= fin; i++) paginas.push(i);
 
     return (
-      <nav aria-label="Paginación de residentes">
-        <ul className="pagination justify-content-center">
-          <li className={`page-item ${paginaActual === 1 ? "disabled" : ""}`}>
-            <button
-              className="page-link"
-              onClick={() => setPaginaActual(1)}
-              disabled={paginaActual === 1}
-            >
-              ««
-            </button>
-          </li>
-          <li className={`page-item ${paginaActual === 1 ? "disabled" : ""}`}>
-            <button
-              className="page-link"
-              onClick={() => setPaginaActual(paginaActual - 1)}
-              disabled={paginaActual === 1}
-            >
-              ‹
-            </button>
-          </li>
-
-          {paginas.map((pagina) => (
-            <li
-              key={pagina}
-              className={`page-item ${paginaActual === pagina ? "active" : ""}`}
-            >
-              <button
-                className="page-link"
-                onClick={() => setPaginaActual(pagina)}
-              >
-                {pagina}
-              </button>
-            </li>
-          ))}
-
-          <li
-            className={`page-item ${paginaActual === totalPaginas ? "disabled" : ""
-              }`}
+      <div className="res-pagination">
+        <button
+          className="res-page-btn"
+          disabled={paginaActual === 1}
+          onClick={() => setPaginaActual(1)}
+        >
+          <i className="bi bi-chevron-double-left"></i>
+        </button>
+        <button
+          className="res-page-btn"
+          disabled={paginaActual === 1}
+          onClick={() => setPaginaActual(paginaActual - 1)}
+        >
+          <i className="bi bi-chevron-left"></i>
+        </button>
+        {paginas.map((p) => (
+          <button
+            key={p}
+            className={`res-page-btn ${paginaActual === p ? "active" : ""}`}
+            onClick={() => setPaginaActual(p)}
           >
-            <button
-              className="page-link"
-              onClick={() => setPaginaActual(paginaActual + 1)}
-              disabled={paginaActual === totalPaginas}
-            >
-              ›
-            </button>
-          </li>
-          <li
-            className={`page-item ${paginaActual === totalPaginas ? "disabled" : ""
-              }`}
-          >
-            <button
-              className="page-link"
-              onClick={() => setPaginaActual(totalPaginas)}
-              disabled={paginaActual === totalPaginas}
-            >
-              »»
-            </button>
-          </li>
-        </ul>
-      </nav>
+            {p}
+          </button>
+        ))}
+        <button
+          className="res-page-btn"
+          disabled={paginaActual === totalPaginas}
+          onClick={() => setPaginaActual(paginaActual + 1)}
+        >
+          <i className="bi bi-chevron-right"></i>
+        </button>
+        <button
+          className="res-page-btn"
+          disabled={paginaActual === totalPaginas}
+          onClick={() => setPaginaActual(totalPaginas)}
+        >
+          <i className="bi bi-chevron-double-right"></i>
+        </button>
+        <span className="res-page-info">
+          {residentesFiltrados.length} residentes
+        </span>
+      </div>
     );
   };
 
-  return (
-    <div
-      className="container-fluid p-0"
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#f0f2f5",
-        overflow: "auto",
-      }}
-    >
-      {/* Sidebar - Menú Super Admin */}
-      <aside id="menuTrabajador" className="workers-menu bg-success text-white">
-        <div className="p-3 d-flex flex-column h-100">
-          <div className="d-flex align-items-center gap-3 mb-4">
+  /* ===========================================================
+     RENDER
+     =========================================================== */
+  if (loading) {
+    return (
+      <div className="res-dashboard">
+        <div className="res-main">
+          <div className="res-loading">
             <div
-              className="user-circle bg-white d-flex align-items-center justify-content-center"
-              style={{ width: "50px", height: "50px", borderRadius: "50%" }}
+              className="spinner-border"
+              role="status"
+              style={{ color: "#14b8a6" }}
             >
-              <span className="fw-bold text-success">
-                {nombreUsuario?.substring(0, 2).toUpperCase() || "US"}
-              </span>
+              <span className="visually-hidden">Cargando...</span>
             </div>
-            <div className="d-flex flex-column">
-              <span className="fw-semibold text-white">
-                {nombreUsuario || "Usuario"}
-              </span>
-              <span className="fw-semibold text-white"> {rolUsuario || "Usuario"}</span>
-              <span className="small text-white-50">Sesión activa</span>
+            <p className="mt-3 fw-semibold" style={{ color: "#14b8a6" }}>
+              Cargando residentes...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="res-dashboard">
+      {/* OVERLAY */}
+      <div
+        className={`res-overlay ${menuOpen ? "active" : ""}`}
+        onClick={() => setMenuOpen(false)}
+      />
+
+      {/* DRAWER */}
+      <aside className={`res-drawer ${menuOpen ? "open" : ""}`}>
+        <div className="res-drawer-header">
+          {getUserProfilePhoto() ? (
+            <img
+              src={getUserProfilePhoto()}
+              alt="Perfil"
+              className="res-drawer-photo"
+            />
+          ) : (
+            <div className="res-drawer-avatar">
+              <i className="bi bi-people-fill"></i>
             </div>
+          )}
+          <p className="res-drawer-title">{getMenuTitle()}</p>
+          <p className="res-drawer-user">{nombreUsuario}</p>
+        </div>
+        <nav className="res-drawer-nav">
+          <div className="res-menu-section">
+            <p className="res-menu-section-title">Gestión de Paquetes</p>
+            <Link
+              className="res-menu-item"
+              to="/Paqueteria"
+              state={{ abrirModal: true }}
+            >
+              <i className="bi bi-plus-circle"></i> Registrar Paquete
+              <i className="bi bi-chevron-right res-menu-arrow"></i>
+            </Link>
+            <Link className="res-menu-item" to="/Paqueteria">
+              <i className="bi bi-box-seam"></i> Historial de Paquetes
+              <i className="bi bi-chevron-right res-menu-arrow"></i>
+            </Link>
           </div>
-
-          <h5 className="mb-3 mx-4">Menú Super Admin</h5>
-
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión de Paquetes</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link
-                  className="nav-link text-white"
-                  to="/Paqueteria"
-                  state={{ abrirModal: true }}
-                >
-                  Registrar Paquete
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/Paqueteria">
-                  Historial de Paquetes
-                </Link>
-              </li>
-            </ul>
+          <div className="res-menu-section">
+            <p className="res-menu-section-title">Gestión de Visitas</p>
+            <Link
+              className="res-menu-item"
+              to="/visitas"
+              state={{ abrirModal: true }}
+            >
+              <i className="bi bi-person-plus"></i> Crear Visita
+              <i className="bi bi-chevron-right res-menu-arrow"></i>
+            </Link>
+            <Link className="res-menu-item" to="/visitas">
+              <i className="bi bi-people"></i> Consultar Visitas
+              <i className="bi bi-chevron-right res-menu-arrow"></i>
+            </Link>
+            <Link className="res-menu-item" to="/parqueaderos">
+              <i className="bi bi-car-front"></i> Parqueaderos
+              <i className="bi bi-chevron-right res-menu-arrow"></i>
+            </Link>
           </div>
-
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión de Visitas</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link
-                  className="nav-link text-white"
-                  to="/visitas"
-                  state={{ abrirModal: true }}
-                >
-                  Crear Visita
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/visitas">
-                  Consultar Visitas
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/parqueaderos">
-                  Consultar Parqueaderos
-                </Link>
-              </li>
-            </ul>
-          </div>
-
           {showAreasComunes && (
-            <div className="mb-4">
-              <h6 className="text-uppercase fw-bold">Gestión de Áreas Comunes</h6>
-              <ul className="nav flex-column mt-2 gap-2">
-                <li>
-                  <Link className="nav-link text-white" to="/AreasComunes">
-                    Registrar Reserva
-                  </Link>
-                </li>
-                <li>
-                  <Link className="nav-link text-white" to="/AreasComunes">
-                    Consultar Zonas
-                  </Link>
-                </li>
-              </ul>
+            <div className="res-menu-section">
+              <p className="res-menu-section-title">Gestión Áreas Comunes</p>
+              <Link className="res-menu-item" to="/AreasComunes">
+                <i className="bi bi-calendar-check"></i> Reservar Área
+                <i className="bi bi-chevron-right res-menu-arrow"></i>
+              </Link>
             </div>
           )}
-
           {showUserManagement && (
-            <div className="mb-4">
-              <h6 className="text-uppercase fw-bold">Gestión de Usuarios</h6>
-              <ul className="nav flex-column mt-2 gap-2">
-                <li>
-                  <Link
-                    className="nav-link text-white"
-                    to="/GestionUsuario"
-                    state={{ abrirModal: true }}
-                  >
-                    Registrar Usuario
-                  </Link>
-                </li>
-                <li>
-                  <Link className="nav-link text-white" to="/GestionUsuario">
-                    Consultar Usuarios
-                  </Link>
-                </li>
-              </ul>
+            <div className="res-menu-section">
+              <p className="res-menu-section-title">Gestión de Usuarios</p>
+              <Link
+                className="res-menu-item"
+                to="/GestionUsuario"
+                state={{ abrirModal: true }}
+              >
+                <i className="bi bi-person-plus"></i> Registrar Usuario
+                <i className="bi bi-chevron-right res-menu-arrow"></i>
+              </Link>
+              <Link className="res-menu-item" to="/GestionUsuario">
+                <i className="bi bi-person-lines-fill"></i> Consultar Usuarios
+                <i className="bi bi-chevron-right res-menu-arrow"></i>
+              </Link>
             </div>
           )}
-
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión Residentes</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link
-                  className="nav-link text-white"
-                  to="/Residentes"
-                  state={{ abrirModal: true }}
-                >
-                  Crear Residente
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/Residentes">
-                  Consultar Residente
-                </Link>
-              </li>
-            </ul>
+          <div className="res-menu-section">
+            <p className="res-menu-section-title">Gestión Residentes</p>
+            <Link
+              className="res-menu-item active"
+              to="/Residentes"
+              state={{ abrirModal: true }}
+            >
+              <i className="bi bi-person-plus"></i> Crear Residente
+              <i className="bi bi-chevron-right res-menu-arrow"></i>
+            </Link>
+            <Link className="res-menu-item active" to="/Residentes">
+              <i className="bi bi-house-door"></i> Consultar Residentes
+              <i className="bi bi-chevron-right res-menu-arrow"></i>
+            </Link>
           </div>
-
-          <div className="mt-auto text-center logout-container">
-            <button className="btn btn-light w-100" onClick={CerraSesión}>
-              Cerrar sesión
-            </button>
-          </div>
+        </nav>
+        <div className="res-drawer-footer">
+          <button className="res-logout-btn" onClick={cerrarSesion}>
+            <i className="bi bi-box-arrow-right"></i> Cerrar sesión
+          </button>
         </div>
       </aside>
 
-      <div className="main-content">
-        {/* Header */}
-        <div className="d-flex align-items-center justify-content-between px-4 py-3 header-bar w-100">
-          <div className="logo-container mx-auto">
-            <Link to="/">
-              <img src={logo} alt="Logo" className="logo-img" />
-            </Link>
+      {/* MAIN CONTENT */}
+      <main className="res-main">
+        {/* HEADER */}
+        <header className="res-header">
+          <button
+            className="res-header-btn"
+            onClick={() =>
+              navegacion(
+                rolesId === 1
+                  ? "/Superadmin"
+                  : rolesId === 2
+                    ? "/Admin"
+                    : "/Vigilante",
+              )
+            }
+            title="Volver al inicio"
+          >
+            <i className="bi bi-arrow-left"></i>
+          </button>
+          <div className="res-header-center">
+            <h1 className="res-header-title">Gestión de Residentes</h1>
           </div>
-          <div className="position-relative">
-            <div
-              className="btn btn-outline-success d-flex align-items-center gap-2"
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              style={{ cursor: "pointer" }}
+          <div className="res-header-actions">
+            <button
+              className="res-header-btn"
+              onClick={() => cargarResidentes()}
+              title="Recargar"
             >
-              <i className="bi bi-person-circle"></i> {nombreUsuario}
-            </div>
-            {showUserMenu && (
-              <div
-                className="user-menu text-center bg-white shadow p-3 rounded"
-                style={{
-                  position: "absolute",
-                  right: 0,
-                  top: "calc(100% + 20px)",
-                  zIndex: 1000,
-                  minWidth: "200px",
-                }}
-              >
-                <p>
-                  Usuario: <strong>{nombreUsuario}</strong>
-                </p>
-                <hr />
-                <div className="text-center">
-                  <button
-                    className="btn btn-danger d-block mx-auto"
-                    onClick={CerraSesión}
-                  >
-                    Cerrar sesión
-                  </button>
-                </div>
-              </div>
-            )}
+              <i className="bi bi-arrow-clockwise"></i>
+            </button>
+            <button
+              className="res-header-btn"
+              onClick={() => setMenuOpen(!menuOpen)}
+              title="Menú"
+            >
+              <i className="bi bi-list"></i>
+            </button>
           </div>
-        </div>
+        </header>
 
-        <div className="text-center mt-4 mb-4">
-          <h2 className="fw-bold">Gestión de Residentes</h2>
-        </div>
-
-        <div
-          className="container-fluid"
-          style={{
-            padding: "0 30px 30px 50px",
-            maxWidth: "none",
-          }}
-        >
-          <div
-            className="d-flex justify-content-between align-items-center mb-3"
-            style={{ margin: "0 15px" }}
-          >
-            <h3 className="fw-bold text-success"> Lista de Residentes</h3>
-            <div className="d-flex gap-2">
-              <Button
-                variant="success"
-                onClick={() => {
-                  setEditIndex(null);
-                  abrirModal();
-                }}
-              >
-                <i className="bi bi-person-plus"></i> Añadir Residente
-              </Button>
-              <Button
-                variant="outline-secondary"
-                onClick={() => setVistaCuadricula(!vistaCuadricula)}
-              >
-                {vistaCuadricula ? "Tabla" : "Cuadrícula"}
-              </Button>
+        {/* CONTENT */}
+        <div className="res-content">
+          {/* STATS */}
+          <div className="res-stats-container">
+            <div className="res-stat-box">
+              <p className="res-stat-label" style={{ color: "#0d9488" }}>
+                Total
+              </p>
+              <p className="res-stat-value" style={{ color: "#0d9488" }}>
+                {totalCount}
+              </p>
+            </div>
+            <div className="res-stat-box">
+              <p className="res-stat-label" style={{ color: "#16a34a" }}>
+                Activos
+              </p>
+              <p className="res-stat-value" style={{ color: "#16a34a" }}>
+                {activosCount}
+              </p>
+            </div>
+            <div className="res-stat-box">
+              <p className="res-stat-label" style={{ color: "#dc2626" }}>
+                Finalizados
+              </p>
+              <p className="res-stat-value" style={{ color: "#dc2626" }}>
+                {finalizadosCount}
+              </p>
             </div>
           </div>
 
-          {/* Barra de búsqueda y filtros */}
-          <div
-            className="row mb-3"
-            style={{ margin: "0 15px", padding: "10px 0" }}
-          >
-            <div className="col-md-6">
-              <div className="input-group">
-                <span className="input-group-text">
-                  <i className="bi bi-search"></i>
-                </span>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Buscar por nombre, documento, correo, teléfono o apartamento..."
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                />
-                {busqueda && (
-                  <button
-                    className="btn btn-outline-secondary"
-                    type="button"
-                    onClick={() => setBusqueda("")}
-                  >
-                    <i className="bi bi-x"></i>
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="col-md-3">
-              <select
-                className="form-select"
-                value={filtroEstado}
-                onChange={(e) => setFiltroEstado(e.target.value)}
+          {/* ACTION BAR */}
+          <div className="res-action-bar">
+            <button
+              className="res-btn-registrar"
+              onClick={() => {
+                setEditIndex(null);
+                abrirModal();
+              }}
+            >
+              <i className="bi bi-person-plus-fill"></i> Añadir Residente
+            </button>
+            <div className="res-view-toggle">
+              <button
+                className={`res-view-btn ${!vistaCuadricula ? "active" : ""}`}
+                onClick={() => setVistaCuadricula(false)}
+                title="Vista tabla"
               >
-                <option value="todos">Todos los estados</option>
-                <option value="activo">Solo activos</option>
-                <option value="finalizado">Solo finalizados</option>
-              </select>
-            </div>
-            <div className="col-md-3">
-              <div className="text-muted small">
-                Mostrando {residentesPaginados.length} de{" "}
-                {residentesFiltrados.length} residentes
-                {residentesFiltrados.length !== residentes.length &&
-                  ` (${residentes.length} total)`}
-              </div>
+                <i className="bi bi-table"></i>
+              </button>
+              <button
+                className={`res-view-btn ${vistaCuadricula ? "active" : ""}`}
+                onClick={() => setVistaCuadricula(true)}
+                title="Vista cuadrícula"
+              >
+                <i className="bi bi-grid-3x3-gap-fill"></i>
+              </button>
             </div>
           </div>
 
-          {loading ? (
-            <div className="text-center py-4">
-              <div className="spinner-border text-success" role="status">
-                <span className="visually-hidden">Cargando...</span>
-              </div>
-              <p className="mt-2">Cargando residentes...</p>
+          {/* TOOLBAR */}
+          <div className="res-toolbar">
+            <div className="res-search-box">
+              <i className="bi bi-search"></i>
+              <input
+                type="text"
+                placeholder="Buscar por nombre, documento, correo..."
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+              />
+            </div>
+            <select
+              className="res-filter-select"
+              value={filtroEstado}
+              onChange={(e) => setFiltroEstado(e.target.value)}
+            >
+              <option value="todos">Todos los estados</option>
+              <option value="activo">Activos</option>
+              <option value="finalizado">Finalizados</option>
+            </select>
+            <select
+              className="res-filter-select"
+              value={filtroTorre}
+              onChange={(e) => setFiltroTorre(e.target.value)}
+            >
+              <option value="todos">Todas las torres</option>
+              {["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"].map((l) => (
+                <option key={l} value={l}>
+                  Torre {l}
+                </option>
+              ))}
+            </select>
+            <select
+              className="res-filter-select"
+              value={filtroTipoOcupacion}
+              onChange={(e) => setFiltroTipoOcupacion(e.target.value)}
+            >
+              <option value="todos">Tipo de ocupación</option>
+              <option value="propietario">Propietario</option>
+              <option value="arrendatario">Arrendatario</option>
+            </select>
+            <select
+              className="res-filter-select"
+              value={ordenFecha}
+              onChange={(e) => setOrdenFecha(e.target.value)}
+            >
+              <option value="recientes">Más recientes</option>
+              <option value="antiguos">Más antiguos</option>
+            </select>
+          </div>
+
+          {/* CONTENIDO */}
+          {residentesFiltrados.length === 0 ? (
+            <div className="res-empty">
+              <i className="bi bi-people d-block"></i>
+              <p>No se encontraron residentes</p>
             </div>
           ) : !vistaCuadricula ? (
             <>
-              <div
-                className="table-container"
-                style={{ margin: "0 15px", padding: "10px 0" }}
-              >
-                <div className="table-responsive">
-                  <Table striped bordered hover size="sm">
-                    <thead className="table-success">
-                      <tr>
-                        <th style={{ minWidth: "100px" }}>Documento</th>
-                        <th style={{ minWidth: "60px" }}>Tipo</th>
-                        <th style={{ minWidth: "90px" }}>Ocupación</th>
-                        <th style={{ minWidth: "150px" }}>Nombre Completo</th>
-                        <th style={{ minWidth: "85px" }}>F. Inicio</th>
-                      
-                        <th style={{ minWidth: "140px" }}>Correo</th>
-                        <th style={{ minWidth: "100px" }}>Teléfono</th>
-                        <th style={{ minWidth: "80px" }}>Niños</th>
-                        <th style={{ minWidth: "120px" }}>Adulto Mayor</th>
-                        <th style={{ minWidth: "120px" }}>Discapacidad</th>
-                        <th style={{ minWidth: "70px" }}>Torre-Apto</th>
-                        <th style={{ minWidth: "70px" }}>Estado</th>
-                        <th style={{ minWidth: "120px" }}>Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {residentesPaginados.length === 0 ? (
-                        <tr>
-                          <td colSpan={14} className="text-center py-4">
-                            {residentesFiltrados.length === 0 &&
-                              residentes.length > 0
-                              ? "No se encontraron residentes con los criterios de búsqueda"
-                              : "No hay residentes registrados"}
-                          </td>
-                        </tr>
-                      ) : (
-                        residentesPaginados.map((r, i) => (
-                          <tr key={r.idOcupante || i}>
-                            <td
-                              className="text-truncate"
-                              style={{ maxWidth: "100px" }}
-                              title={r.numeroDocumento}
+              <div className="res-table-wrapper">
+                <table className="res-table">
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Documento</th>
+                      <th>Torre-Apto</th>
+                      <th>Ocupación</th>
+                      <th>F. Inicio</th>
+                      <th>Teléfono</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {residentesPaginados.map((r) => (
+                      <tr key={r.idOcupante}>
+                        <td
+                          style={{
+                            maxWidth: "180px",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                          title={r.nombreCompleto}
+                        >
+                          {r.nombreCompleto}
+                        </td>
+                        <td>
+                          <small className="text-muted">
+                            {r.tipoDocumento}
+                          </small>{" "}
+                          {r.numeroDocumento}
+                        </td>
+                        <td>
+                          {r.torre}-{r.apartamentosId}
+                        </td>
+                        <td>
+                          <span
+                            className={`res-badge ${r.tipoOcupacion?.toLowerCase() === "propietario" ? "res-badge-propietario" : "res-badge-arrendatario"}`}
+                          >
+                            {r.tipoOcupacion}
+                          </span>
+                        </td>
+                        <td>{r.fechaInicio || "-"}</td>
+                        <td>{r.telefono || "-"}</td>
+                        <td>
+                          <span
+                            className={`res-badge ${r.estado === "Activo" ? "res-badge-activo" : "res-badge-finalizado"}`}
+                          >
+                            {r.estado}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="res-actions">
+                            <button
+                              className="res-action-btn res-btn-ver"
+                              title="Ver detalles"
+                              onClick={() => {
+                                setResidenteSeleccionado(r);
+                                setShowModalDetalles(true);
+                              }}
                             >
-                              {r.numeroDocumento}
-                            </td>
-                            <td>{r.tipoDocumento}</td>
-                            <td
-                              className="text-truncate"
-                              style={{ maxWidth: "90px" }}
-                              title={r.tipoOcupacion}
-                            >
-                              {r.tipoOcupacion}
-                            </td>
-                            <td
-                              className="text-truncate"
-                              style={{ maxWidth: "150px" }}
-                              title={r.nombreCompleto}
-                            >
-                              {r.nombreCompleto}
-                            </td>
-                            <td>{r.fechaInicio || "-"}</td>
-                            
-                            <td
-                              className="text-truncate"
-                              style={{ maxWidth: "140px" }}
-                              title={r.correo}
-                            >
-                              {r.correo || "-"}
-                            </td>
-                            <td>{r.telefono || "-"}</td>
-                            <td>{r.tieneNinos === 1 ? "Si" : "No"}</td>
-                            <td>{r.tieneAdultoMayor === 1 ? "Si" : "No"}</td>
-                            <td>{r.tieneDiscapacidad === 1 ? "Si" : "No"}</td>
-                            <td>
-                              {r.torre}-
-                              {apartamentos.find(
-                                (apt) => apt.idApartamento == r.apartamentosId
-                              )?.numeroApartamento || r.aptoDisplay}
-                            </td>
-                            <td>
-                              <Badge
-                                bg={
-                                  r.estado === "Activo"
-                                    ? "success"
-                                    : "secondary"
-                                }
-                                className="w-100"
-                              >
-                                {r.estado}
-                              </Badge>
-                            </td>
-                            <td>
-                              <div className="d-flex gap-1 flex-wrap">
-                                {r.estado !== "Finalizado" && (
-                                  <>
-                                    <Button
-                                      size="sm"
-                                      variant="outline-primary"
-                                      onClick={() => abrirModalEditar(r)}
-                                      title="Editar"
-                                    >
-                                      <i className="bi bi-pencil"></i>
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline-danger"
-                                      onClick={() => finalizarResidente(r)}
-                                      title="Finalizar"
-                                    >
-                                      <i className="bi bi-x-circle"></i>
-                                    </Button>
-                                  </>
-                                )}
-                                <Button
-                                  size="sm"
-                                  variant="outline-info"
-                                  onClick={() => verDetalles(r)}
-                                  title="Ver detalles"
+                              <i className="bi bi-eye"></i>
+                            </button>
+                            {r.estado === "Activo" && (
+                              <>
+                                <button
+                                  className="res-action-btn res-btn-editar"
+                                  title="Editar"
+                                  onClick={() => abrirModalEditar(r)}
                                 >
-                                  <i className="bi bi-eye"></i>
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </Table>
-                </div>
-              </div>{" "}
-              {/* Cierre del table-container */}
-              {/* Paginación */}
+                                  <i className="bi bi-pencil"></i>
+                                </button>
+                                <button
+                                  className="res-action-btn res-btn-finalizar"
+                                  title="Finalizar"
+                                  onClick={() => ejecutarFinalizar(r)}
+                                >
+                                  <i className="bi bi-x-circle"></i>
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               <Paginacion />
             </>
           ) : (
             <>
-           <div className="row g-4">
-  {residentesPaginados.map((r, i) => (
-    <div key={r.idOcupante || i} className="col-xl-3 col-lg-4 col-md-6">
-      <div className="card h-100 shadow-sm border-0">
-
-        {/* HEADER */}
-        <div className="card-header bg-light d-flex justify-content-between align-items-start">
-          <div className="text-truncate">
-            <h6 className="mb-0 fw-bold text-truncate" title={r.nombreCompleto}>
-              {r.nombreCompleto}
-            </h6>
-            <small className="text-muted">
-              {r.tipoDocumento} · {r.numeroDocumento}
-            </small>
-          </div>
-
-          <Badge bg={r.estado === "Activo" ? "success" : "secondary"}>
-            {r.estado}
-          </Badge>
-        </div>
-
-        {/* BODY */}
-        <div className="card-body d-flex flex-column gap-2">
-
-          <div className="small text-muted">
-             Torre <strong>{r.torre}</strong> · Apto{" "}
-            <strong>
-              {apartamentos.find(
-                (apt) => apt.idApartamento == r.apartamentosId
-              )?.numeroApartamento || r.aptoDisplay}
-            </strong>
-          </div>
-
-          {/* CONDICIONES */}
-          <div className="d-flex flex-wrap gap-1 mt-2">
-            <Badge bg={r.tieneNinos === 1 ? "primary" : "light"} text={r.tieneNinos === 1 ? "" : "dark"}>
-              Niños
-            </Badge>
-
-            <Badge bg={r.tieneAdultoMayor === 1 ? "warning" : "light"} text={r.tieneAdultoMayor === 1 ? "" : "dark"}>
-              Adulto Mayor
-            </Badge>
-
-            <Badge bg={r.tieneDiscapacidad === 1 ? "danger" : "light"} text={r.tieneDiscapacidad === 1 ? "" : "dark"}>
-               Discapacidad
-            </Badge>
-          </div>
-
-          {/* ACTIONS */}
-          <div className="mt-auto d-flex gap-2 pt-3 border-top">
-            {r.estado !== "Finalizado" && (
-              <>
-                <Button
-                  size="sm"
-                  variant="outline-primary"
-                  className="w-100"
-                  onClick={() => abrirModalEditar(r)}
-                >
-                  Editar
-                </Button>
-
-                <Button
-                  size="sm"
-                  variant="outline-danger"
-                  className="w-100"
-                  onClick={() => finalizarResidente(r)}
-                >
-                   Finalizar
-                </Button>
-              </>
-            )}
-
-            <Button
-              size="sm"
-              variant="outline-secondary"
-              className="w-100"
-              onClick={() => verDetalles(r)}
-            >
-               Detalles
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  ))}
-</div>
-
-
-              {/* Paginación */}
-              <div className="mt-4">
-                <Paginacion />
+              <div className="res-grid">
+                {residentesPaginados.map((r) => (
+                  <div key={r.idOcupante} className="res-card">
+                    <div className="res-card-header">
+                      <div>
+                        <p className="res-card-name">{r.nombreCompleto}</p>
+                        <p className="res-card-doc">
+                          {r.tipoDocumento} {r.numeroDocumento}
+                        </p>
+                      </div>
+                      <span
+                        className={`res-badge ${r.estado === "Activo" ? "res-badge-activo" : "res-badge-finalizado"}`}
+                      >
+                        {r.estado}
+                      </span>
+                    </div>
+                    <div className="res-card-body">
+                      <div className="res-card-row">
+                        <span className="label">Torre - Apto</span>
+                        <span className="value">
+                          {r.torre} - {r.apartamentosId}
+                        </span>
+                      </div>
+                      <div className="res-card-row">
+                        <span className="label">Ocupación</span>
+                        <span className="value">{r.tipoOcupacion}</span>
+                      </div>
+                      <div className="res-card-row">
+                        <span className="label">Fecha Inicio</span>
+                        <span className="value">{r.fechaInicio || "-"}</span>
+                      </div>
+                      <div className="res-card-row">
+                        <span className="label">Teléfono</span>
+                        <span className="value">{r.telefono || "-"}</span>
+                      </div>
+                      <div className="res-card-row">
+                        <span className="label">Personas a cargo</span>
+                        <span className="value">{r.personasACargo}</span>
+                      </div>
+                    </div>
+                    <div className="res-card-conditions">
+                      <span
+                        className={`res-card-condition ${r.tieneNinos === 1 ? "active" : "inactive"}`}
+                      >
+                        Niños
+                      </span>
+                      <span
+                        className={`res-card-condition ${r.tieneAdultoMayor === 1 ? "active" : "inactive"}`}
+                      >
+                        Adulto Mayor
+                      </span>
+                      <span
+                        className={`res-card-condition ${r.tieneDiscapacidad === 1 ? "active" : "inactive"}`}
+                      >
+                        Discapacidad
+                      </span>
+                    </div>
+                    <div className="res-card-actions">
+                      <button
+                        className="res-action-btn res-btn-ver"
+                        title="Ver detalles"
+                        onClick={() => {
+                          setResidenteSeleccionado(r);
+                          setShowModalDetalles(true);
+                        }}
+                      >
+                        <i className="bi bi-eye"></i>
+                      </button>
+                      {r.estado === "Activo" && (
+                        <>
+                          <button
+                            className="res-action-btn res-btn-editar"
+                            title="Editar"
+                            onClick={() => abrirModalEditar(r)}
+                          >
+                            <i className="bi bi-pencil"></i>
+                          </button>
+                          <button
+                            className="res-action-btn res-btn-finalizar"
+                            title="Finalizar"
+                            onClick={() => ejecutarFinalizar(r)}
+                          >
+                            <i className="bi bi-x-circle"></i>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
+              <Paginacion />
             </>
           )}
         </div>
+      </main>
 
-        {/* Modal Registrar / Editar */}
-        {modalAbierto && (
-          <div
-            className="modal fade show"
-            tabIndex="-1"
-            role="dialog"
-            style={{
-              display: "block",
-              backgroundColor: "rgba(0,0,0,0.5)",
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100vw",
-              height: "100vh",
-              zIndex: 1050,
-            }}
-          >
-            <div
-              className="modal-dialog modal-lg modal-dialog-centered"
-              role="document"
-            >
-              <div className="modal-content">
-                <div className="modal-header bg-success text-white">
-                  <h5 className="modal-title">
-                    {editIndex !== null
-                      ? "Editar Residente"
-                      : "Registrar Residente"}
-                  </h5>
-                  <button
-                    type="button"
-                    className="btn-close btn-close-white"
-                    aria-label="Cerrar"
-                    onClick={cerrarModal}
-                  ></button>
+      {/* ===== MODAL CREAR / EDITAR ===== */}
+      {modalAbierto && (
+        <div className="res-modal-overlay" onClick={cerrarModal}>
+          <div className="res-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="res-modal-header">
+              <h3>
+                <i
+                  className={`bi ${editIndex !== null ? "bi-pencil-square" : "bi-person-plus-fill"}`}
+                  style={{ fontSize: "22px" }}
+                ></i>
+                {editIndex !== null
+                  ? "Editar Residente"
+                  : "Registrar Residente"}
+              </h3>
+              <button className="res-modal-close" onClick={cerrarModal}>
+                <i className="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <form onSubmit={handleSubmit}>
+              <div className="res-modal-body">
+                {/* SECCION: Informacion de Ocupacion */}
+                <p className="res-modal-section-title">
+                  <i className="bi bi-house-door"></i> Información de la
+                  Ocupación
+                </p>
+                <div className="res-form-row triple">
+                  <div className="res-form-group">
+                    <label>Torre *</label>
+                    <select
+                      name="torreId"
+                      value={formData.torreId}
+                      onChange={(e) => {
+                        handleChange(e);
+                        setFormData((f) => ({ ...f, apto: "" }));
+                      }}
+                      required
+                    >
+                      {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                        <option key={n} value={n}>
+                          Torre {String.fromCharCode(64 + n)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="res-form-group">
+                    <label>Apartamento *</label>
+                    <select
+                      name="apto"
+                      value={formData.apto}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="">Seleccione...</option>
+                      {generarAptos(formData.torreId).map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.numero}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="res-form-group">
+                    <label>Tipo Ocupación *</label>
+                    <select
+                      name="tipoOcupacion"
+                      value={formData.tipoOcupacion}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="Propietario">Propietario</option>
+                      <option value="Arrendatario">Arrendatario</option>
+                    </select>
+                  </div>
                 </div>
-                <div className="modal-body">
-                  <form onSubmit={handleSubmit} className="p-3">
+                <div className="res-form-row">
+                  <div className="res-form-group">
+                    <label>Fecha de Inicio *</label>
+                    <input
+                      type="date"
+                      name="fechaInicio"
+                      value={formData.fechaInicio}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="res-form-group">
+                    <label>¿Cuántas personas vivirán con usted?</label>
+                    <input
+                      type="number"
+                      name="personasACargo"
+                      value={formData.personasACargo}
+                      onChange={handleChange}
+                      min="0"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
 
-                    {/* ===== DATOS DE IDENTIFICACIÓN ===== */}
-                    <div className="card mb-3 shadow-sm">
-                      <div className="card-header fw-bold">
-                        Datos del arrendatario/propietario
-                      </div>
-                      <div className="card-body row g-3">
+                {/* SECCION: Informacion Personal */}
+                <p className="res-modal-section-title">
+                  <i className="bi bi-person-vcard"></i> Información Personal
+                </p>
+                <div className="res-form-row triple">
+                  <div className="res-form-group">
+                    <label>Tipo Documento *</label>
+                    <select
+                      name="tipoDocumento"
+                      value={formData.tipoDocumento}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="CC">CC</option>
+                      <option value="CE">CE</option>
+                      <option value="PP">PP</option>
+                      <option value="PEP">PEP</option>
+                      <option value="PPT">PPT</option>
+                    </select>
+                  </div>
+                  <div
+                    className="res-form-group"
+                    style={{ gridColumn: "span 2" }}
+                  >
+                    <label>Número de Documento *</label>
+                    <input
+                      type="text"
+                      name="numeroDocumento"
+                      value={formData.numeroDocumento}
+                      onChange={handleChange}
+                      required={editIndex === null}
+                      disabled={editIndex !== null}
+                    />
+                  </div>
+                </div>
+                <div className="res-form-row">
+                  <div className="res-form-group">
+                    <label>Primer Nombre *</label>
+                    <input
+                      type="text"
+                      name="primerNombre"
+                      value={formData.primerNombre}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="res-form-group">
+                    <label>Segundo Nombre</label>
+                    <input
+                      type="text"
+                      name="segundoNombre"
+                      value={formData.segundoNombre}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+                <div className="res-form-row">
+                  <div className="res-form-group">
+                    <label>Primer Apellido *</label>
+                    <input
+                      type="text"
+                      name="primerApellido"
+                      value={formData.primerApellido}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="res-form-group">
+                    <label>Segundo Apellido</label>
+                    <input
+                      type="text"
+                      name="segundoApellido"
+                      value={formData.segundoApellido}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
 
-                        <div className="col-md-4">
-                          <label className="form-label">Tipo Documento</label>
-                          <select
-                            name="tipoDocumento"
-                            className="form-select"
-                            value={formData.tipoDocumento}
-                            onChange={handleChange}
-                            required
-                          >
-                            <option value="CC">CC</option>
-                            <option value="CE">CE</option>
-                            <option value="PA">PA</option>
-                            <option value="PP">PP</option>
-                            <option value="PPT">PPT</option>
-                          </select>
-                        </div>
+                {/* SECCION: Contacto */}
+                <p className="res-modal-section-title">
+                  <i className="bi bi-telephone"></i> Contacto
+                </p>
+                <div className="res-form-row">
+                  <div className="res-form-group">
+                    <label>Correo Electrónico</label>
+                    <input
+                      type="email"
+                      name="correo"
+                      value={formData.correo}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="res-form-group">
+                    <label>Teléfono</label>
+                    <input
+                      type="tel"
+                      name="telefono"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={15}
+                      placeholder="Ej: 3001234567"
+                      value={formData.telefono}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
 
-                        <div className="col-md-4">
-                          <label className="form-label">Número Documento</label>
-                          <input
-                            type="text"
-                            name="numeroDocumento"
-                            className="form-control"
-                            value={formData.numeroDocumento}
-                            onChange={handleChange}
-                            required={editIndex === null}
-                            disabled={editIndex !== null}
-                          />
-                        </div>
-                        <div className="col-md-4">
-                          <label className="form-label">Fecha Inicio</label>
-                          <input
-                            type="date"
-                            name="fechaInicio"
-                            className="form-control"
-                            value={formData.fechaInicio}
-                            onChange={handleChange}
-                            required
-                          />
-                        </div>
-
-                        <div className="col-md-4">
-                          <label className="form-label">Torre</label>
-                          <select
-                            name="torreId"
-                            className="form-select"
-                            value={formData.torreId}
-                            onChange={(e) => {
-                              // actualizar torreId y limpiar apto seleccionado
-                              handleChange(e);
-                              setFormData((f) => ({ ...f, apto: "" }));
-                            }}
-                          >
-                            {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
-                              <option key={num} value={num}>
-                                Torre {String.fromCharCode(64 + num)}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div className="col-md-4">
-                          <label className="form-label">Apartamento</label>
-                            <select
-                              name="apto"
-                              className="form-select"
-                              value={formData.apto}
-                              onChange={handleChange}
-                            >
-                              <option value="">Seleccione...</option>
-                              {generarAptos(formData.torreId).map((a) => (
-                                <option key={a.id} value={a.id}>{a.numero}</option>
-                              ))}
-                            </select>
-                        </div>
-                        <div className="col-md-4">
-                          <label className="form-label">Tipo Ocupación</label>
-                          <select
-                            name="tipoOcupacion"
-                            className="form-select"
-                            value={formData.tipoOcupacion}
-                            onChange={handleChange}
-                          >
-                            <option>Propietario</option>
-                            <option>Arrendatario</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* ===== DATOS PERSONALES ===== */}
-                    <div className="card mb-3 shadow-sm">
-                      <div className="card-header fw-bold">
-                        Datos Personales
-                      </div>
-                      <div className="card-body row g-3">
-
-
-
-                        <div className="col-md-6">
-                          <label className="form-label">Primer Nombre</label>
-                          <input
-                            type="text"
-                            name="primerNombre"
-                            className="form-control"
-                            value={formData.primerNombre}
-                            onChange={handleChange}
-                            required
-                          />
-                        </div>
-
-                        <div className="col-md-6">
-                          <label className="form-label">Segundo Nombre</label>
-                          <input
-                            type="text"
-                            name="segundoNombre"
-                            className="form-control"
-                            value={formData.segundoNombre}
-                            onChange={handleChange}
-                          />
-                        </div>
-
-                        <div className="col-md-6">
-                          <label className="form-label">Primer Apellido</label>
-                          <input
-                            type="text"
-                            name="primerApellido"
-                            className="form-control"
-                            value={formData.primerApellido}
-                            onChange={handleChange}
-                            required
-                          />
-                        </div>
-
-                        <div className="col-md-6">
-                          <label className="form-label">Segundo Apellido</label>
-                          <input
-                            type="text"
-                            name="segundoApellido"
-                            className="form-control"
-                            value={formData.segundoApellido}
-                            onChange={handleChange}
-                          />
-                        </div>
-
-                      </div>
-                    </div>
-                      {/* ===== CONTACTO Y UBICACIÓN ===== */}
-                  
-                      <div className="card mb-3 shadow-sm">
-                      <div className="card-header fw-bold">
-                        Contacto 
-                      </div>
-                      <div className="card-body row g-3">
-
-                        <div className="col-md-6">
-                          <label className="form-label">Correo</label>
-                          <input
-                            type="email"
-                            name="correo"
-                            className="form-control"
-                            value={formData.correo}
-                            onChange={handleChange}
-                          />
-                        </div>
-
-                      <div className="col-md-6">
-                          <label className="form-label">Teléfono</label>
-                          <input
-                            type="text"
-                            name="telefono"
-                            className="form-control"
-                            value={formData.telefono}
-                            onChange={handleChange}
-                          />
-                        </div>
-
-                      </div>
-                    </div>
-
-                    {/* ===== CONDICIÓN FAMILIAR ===== */}
-                    <div className="card mb-3 shadow-sm">
-                      <div className="card-header fw-bold">
-                        Condición Familiar
-                      </div>
-                      <div className="card-body row g-3">
-
-                        <div className="col-md-4 form-check form-switch">
-                          <input
-                            className="form-check-input"
-                            type="checkbox"
-                            name="tieneNinos"
-                            checked={formData.tieneNinos === 1}
-                            onChange={(e) =>
-                              handleChange({
-                                target: {
-                                  name: "tieneNinos",
-                                  value: e.target.checked ? 1 : 0,
-                                },
-                              })
-                            }
-                          />
-                          <label className="form-check-label">
-                            ¿Tiene niños a cargo?
-                          </label>
-                        </div>
-
-                        <div className="col-md-4 form-check form-switch">
-                          <input
-                            className="form-check-input"
-                            type="checkbox"
-                            name="tieneAdultoMayor"
-                            checked={formData.tieneAdultoMayor === 1}
-                            onChange={(e) =>
-                              handleChange({
-                                target: {
-                                  name: "tieneAdultoMayor",
-                                  value: e.target.checked ? 1 : 0,
-                                },
-                              })
-                            }
-                          />
-                          <label className="form-check-label">
-                            ¿Tiene adulto mayor a cargo?
-                          </label>
-                        </div>
-
-                        <div className="col-md-4 form-check form-switch">
-                          <input
-                            className="form-check-input"
-                            type="checkbox"
-                            name="tieneDiscapacidad"
-                            checked={formData.tieneDiscapacidad === 1}
-                            onChange={(e) =>
-                              handleChange({
-                                target: {
-                                  name: "tieneDiscapacidad",
-                                  value: e.target.checked ? 1 : 0,
-                                },
-                              })
-                            }
-                          />
-                          <label className="form-check-label">
-                            ¿Tiene persona con discapacidad?
-                          </label>
-                        </div>
-
-                      </div>
-                    </div>
-
-                  
-
-                    {/* ===== BOTÓN ===== */}
-                    <div className="text-end">
-                      <button type="submit" className="btn btn-success px-4">
-                        Guardar Información
-                      </button>
-                    </div>
-
-                  </form>
-
+                {/* SECCION: Información Adicional */}
+                <p className="res-modal-section-title">
+                  <i className="bi bi-info-circle"></i> Información Adicional
+                </p>
+                <p
+                  style={{
+                    fontSize: "13px",
+                    color: "#64748b",
+                    marginBottom: "12px",
+                    fontStyle: "italic",
+                  }}
+                >
+                  ¿Cuenta con alguno de estos en su núcleo familiar?
+                </p>
+                <div className="res-form-row triple">
+                  <div className="res-form-check">
+                    <input
+                      type="checkbox"
+                      id="tieneNinos"
+                      checked={Number(formData.tieneNinos) === 1}
+                      onChange={(e) =>
+                        setFormData((f) => ({
+                          ...f,
+                          tieneNinos: e.target.checked ? 1 : 0,
+                        }))
+                      }
+                    />
+                    <label htmlFor="tieneNinos">Niños</label>
+                  </div>
+                  <div className="res-form-check">
+                    <input
+                      type="checkbox"
+                      id="tieneAdultoMayor"
+                      checked={Number(formData.tieneAdultoMayor) === 1}
+                      onChange={(e) =>
+                        setFormData((f) => ({
+                          ...f,
+                          tieneAdultoMayor: e.target.checked ? 1 : 0,
+                        }))
+                      }
+                    />
+                    <label htmlFor="tieneAdultoMayor">Adulto Mayor</label>
+                  </div>
+                  <div className="res-form-check">
+                    <input
+                      type="checkbox"
+                      id="tieneDiscapacidad"
+                      checked={Number(formData.tieneDiscapacidad) === 1}
+                      onChange={(e) =>
+                        setFormData((f) => ({
+                          ...f,
+                          tieneDiscapacidad: e.target.checked ? 1 : 0,
+                        }))
+                      }
+                    />
+                    <label htmlFor="tieneDiscapacidad">Discapacidad</label>
+                  </div>
                 </div>
               </div>
-            </div>
+              <div className="res-modal-footer">
+                <button
+                  type="button"
+                  className="res-btn-cancel"
+                  onClick={cerrarModal}
+                >
+                  Cancelar
+                </button>
+                <button type="submit" className="res-btn-submit">
+                  {editIndex !== null ? "Actualizar" : "Registrar"}
+                </button>
+              </div>
+            </form>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Modal Detalles */}
-        {showModalDetalles && residenteSeleccionado && (
+      {/* ===== MODAL DETALLES ===== */}
+      {showModalDetalles && residenteSeleccionado && (
+        <div
+          className="res-modal-overlay"
+          onClick={() => setShowModalDetalles(false)}
+        >
           <div
-            className="modal fade show"
-            style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }}
+            className="res-modal"
+            style={{ maxWidth: 800 }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="modal-dialog modal-lg modal-dialog-centered">
-              <div className="modal-content">
-                <div className="modal-header bg-info text-white">
-                  <h5 className="modal-title">Detalles del Residente</h5>
-                  <button
-                    type="button"
-                    className="btn-close btn-close-white"
-                    onClick={() => setShowModalDetalles(false)}
-                  ></button>
+            <div className="res-modal-header">
+              <h3>
+                <i
+                  className="bi bi-person-badge"
+                  style={{ fontSize: "22px" }}
+                ></i>
+                Detalles del Residente
+              </h3>
+              <button
+                className="res-modal-close"
+                onClick={() => setShowModalDetalles(false)}
+              >
+                <i className="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <div className="res-modal-body">
+              {/* Seccion Personal */}
+              <div className="res-detail-section">
+                <p className="res-detail-section-title">
+                  <i className="bi bi-person"></i> Información Personal
+                </p>
+                <div className="res-detail-row">
+                  <span className="res-detail-label">
+                    <i className="bi bi-person-fill"></i> Nombre Completo
+                  </span>
+                  <span className="res-detail-value">
+                    {residenteSeleccionado.nombreCompleto}
+                  </span>
                 </div>
-                <div className="modal-body">
-                  <p>
-                    <strong>Documento:</strong>{" "}
+                <div className="res-detail-row">
+                  <span className="res-detail-label">
+                    <i className="bi bi-card-text"></i> Documento
+                  </span>
+                  <span className="res-detail-value">
                     {residenteSeleccionado.tipoDocumento}{" "}
                     {residenteSeleccionado.numeroDocumento}
-                  </p>
-                  <p>
-                    <strong>Nombre:</strong>{" "}
-                    {residenteSeleccionado.nombreCompleto}
-                  </p>
-                  <p>
-                    <strong>Ocupación:</strong>{" "}
+                  </span>
+                </div>
+                <div className="res-detail-row">
+                  <span className="res-detail-label">
+                    <i className="bi bi-telephone"></i> Teléfono
+                  </span>
+                  <span className="res-detail-value">
+                    {residenteSeleccionado.telefono || "No registrado"}
+                  </span>
+                </div>
+                <div className="res-detail-row">
+                  <span className="res-detail-label">
+                    <i className="bi bi-envelope"></i> Correo
+                  </span>
+                  <span className="res-detail-value">
+                    {residenteSeleccionado.correo || "No registrado"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Seccion Residencia */}
+              <div className="res-detail-section">
+                <p className="res-detail-section-title">
+                  <i className="bi bi-house-door"></i> Información de Residencia
+                </p>
+                <div className="res-detail-row">
+                  <span className="res-detail-label">
+                    <i className="bi bi-building"></i> Torre - Apartamento
+                  </span>
+                  <span className="res-detail-value">
+                    Torre {residenteSeleccionado.torre} - Apto{" "}
+                    {residenteSeleccionado.apartamentosId}
+                  </span>
+                </div>
+                <div className="res-detail-row">
+                  <span className="res-detail-label">
+                    <i className="bi bi-key"></i> Tipo de Ocupación
+                  </span>
+                  <span className="res-detail-value">
                     {residenteSeleccionado.tipoOcupacion}
-                  </p>
-                  <p>
-                    <strong>Correo:</strong> {residenteSeleccionado.correo}
-                  </p>
-                  <p>
-                    <strong>Teléfono:</strong> {residenteSeleccionado.telefono}
-                  </p>
-                  <p>
-                    <strong>Torre - Apto:</strong> {residenteSeleccionado.torre}
-                    -{residenteSeleccionado.apto}
-                  </p>
-                  <p>
-                    <strong>Fecha Inicio:</strong>{" "}
-                    {residenteSeleccionado.fechaInicio}
-                  </p>
-                  <p>
-                    <strong>Fecha Fin:</strong>{" "}
-                    {residenteSeleccionado.fechaFin || "-"}
-                  </p>
-                  <p>
-                    <strong>Niños:</strong> {residenteSeleccionado.tieneNinos === 1 ? "Si" : "No"}
-                  </p>
-                  <p>
-                    <strong>Adulto Mayor:</strong> {residenteSeleccionado.tieneAdultoMayor === 1 ? "Si" : "No"}
-                  </p>
-                  <p>
-                    <strong>Discapacidad:</strong> {residenteSeleccionado.tieneDiscapacidad === 1 ? "Si" : "No"}
-                  </p>
-                  <p>
-                    <strong>Estado:</strong> {residenteSeleccionado.estado}
-                  </p>
+                  </span>
+                </div>
+                <div className="res-detail-row">
+                  <span className="res-detail-label">
+                    <i className="bi bi-flag"></i> Estado
+                  </span>
+                  <span className="res-detail-value">
+                    <span
+                      className={`res-badge ${residenteSeleccionado.estado === "Activo" ? "res-badge-activo" : "res-badge-finalizado"}`}
+                    >
+                      {residenteSeleccionado.estado}
+                    </span>
+                  </span>
+                </div>
+                <div className="res-detail-row">
+                  <span className="res-detail-label">
+                    <i className="bi bi-calendar-check"></i> Fecha de Inicio
+                  </span>
+                  <span className="res-detail-value">
+                    {residenteSeleccionado.fechaInicio || "N/A"}
+                  </span>
+                </div>
+                {residenteSeleccionado.fechaFin && (
+                  <div className="res-detail-row">
+                    <span className="res-detail-label">
+                      <i className="bi bi-calendar-x"></i> Fecha de Fin
+                    </span>
+                    <span className="res-detail-value">
+                      {residenteSeleccionado.fechaFin}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Seccion Familiar */}
+              <div className="res-detail-section">
+                <p className="res-detail-section-title">
+                  <i className="bi bi-people"></i> Información Familiar
+                </p>
+                <div className="res-detail-row">
+                  <span className="res-detail-label">
+                    <i className="bi bi-people-fill"></i> Personas a Cargo
+                  </span>
+                  <span className="res-detail-value">
+                    {residenteSeleccionado.personasACargo || 0}
+                  </span>
+                </div>
+                <div className="res-detail-row">
+                  <span className="res-detail-label">
+                    <i className="bi bi-emoji-smile"></i> Niños
+                  </span>
+                  <span className="res-detail-value">
+                    {residenteSeleccionado.tieneNinos === 1 ? "Sí" : "No"}
+                  </span>
+                </div>
+                <div className="res-detail-row">
+                  <span className="res-detail-label">
+                    <i className="bi bi-heart-pulse"></i> Adulto Mayor
+                  </span>
+                  <span className="res-detail-value">
+                    {residenteSeleccionado.tieneAdultoMayor === 1 ? "Sí" : "No"}
+                  </span>
+                </div>
+                <div className="res-detail-row">
+                  <span className="res-detail-label">
+                    <i className="bi bi-person-wheelchair"></i> Discapacidad
+                  </span>
+                  <span className="res-detail-value">
+                    {residenteSeleccionado.tieneDiscapacidad === 1
+                      ? "Sí"
+                      : "No"}
+                  </span>
                 </div>
               </div>
             </div>
+            <div className="res-modal-footer">
+              <button
+                className="res-btn-submit"
+                onClick={() => setShowModalDetalles(false)}
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

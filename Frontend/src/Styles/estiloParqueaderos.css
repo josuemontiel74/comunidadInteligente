@@ -1,0 +1,754 @@
+/* ============================================
+   PARQUEADEROS — Tema Rojo (Flutter replica)
+   ============================================ */
+
+/* Loading screen */
+.parq-loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: #fafafa;
+}
+
+/* Layout principal */
+.parq-dashboard {
+  display: flex;
+  min-height: 100vh;
+  background: #f5f5f5;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* ====== OVERLAY & DRAWER ====== */
+.parq-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 999;
+  transition: opacity 0.3s;
+}
+.parq-overlay.active {
+  display: block;
+}
+
+.parq-drawer {
+  position: fixed;
+  right: -320px;
+  top: 0;
+  width: 310px;
+  height: 100vh;
+  background: linear-gradient(180deg, #991b1b, #dc2626, #ef4444);
+  color: white;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+}
+.parq-drawer.open {
+  right: 0;
+}
+
+.parq-drawer-header {
+  padding: 28px 20px 20px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+.parq-drawer-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  font-size: 28px;
+}
+.parq-drawer-title {
+  font-size: 18px;
+  margin: 0 0 4px;
+  font-weight: 700;
+}
+.parq-drawer-user {
+  opacity: 0.85;
+  font-size: 14px;
+}
+
+.parq-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 12px;
+}
+
+.parq-menu-section {
+  margin-bottom: 16px;
+}
+.parq-menu-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.6;
+  margin: 0 0 8px 16px;
+  font-weight: 700;
+}
+
+.parq-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin: 0;
+  border-radius: 10px;
+  color: white;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.parq-menu-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+.parq-menu-item.active {
+  background: rgba(255, 255, 255, 0.25);
+  font-weight: 700;
+  border-left: none;
+  padding-left: 16px;
+}
+.parq-menu-arrow {
+  margin-left: auto;
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+.parq-drawer-footer {
+  padding: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.parq-logout-btn {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  transition: background 0.2s;
+  font-size: 14px;
+}
+.parq-logout-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+}
+
+/* ====== MAIN CONTENT ====== */
+.parq-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Header / AppBar */
+.parq-header {
+  background: linear-gradient(135deg, #c62828, #ef5350);
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  height: 60px;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(195, 40, 40, 0.25);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  width: 100%;
+}
+
+.parq-header-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.parq-header-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+.parq-header-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.parq-header-center {
+  flex: 1;
+  text-align: center;
+}
+.parq-header-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.parq-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ====== TOOLBAR (Búsqueda + Filtros) ====== */
+.parq-toolbar {
+  background: #fffbfb;
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  border-bottom: 1px solid #f0e0e0;
+}
+
+.parq-toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.parq-filter-search {
+  position: relative;
+  width: 240px;
+  min-width: 180px;
+}
+.parq-filter-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #ef5350;
+  font-size: 16px;
+}
+.parq-filter-input {
+  width: 100%;
+  padding: 8px 14px 8px 38px;
+  border: 2px solid #ffcdd2;
+  border-radius: 10px;
+  font-size: 14px;
+  transition: border 0.2s;
+}
+.parq-filter-input:focus {
+  outline: none;
+  border-color: #ef5350;
+  box-shadow: 0 0 0 3px rgba(239, 83, 80, 0.1);
+}
+
+/* Grupos de filtros */
+.parq-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.parq-filter-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+/* Filter Chips */
+.parq-filter-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.parq-chip {
+  background: white;
+  border: 2px solid #e0e0e0;
+  color: #424242;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.parq-chip:hover {
+  border-color: #ef5350;
+  color: #ef5350;
+}
+.parq-chip.active {
+  background: #ef5350;
+  border-color: #ef5350;
+  color: white;
+  box-shadow: 0 2px 8px rgba(239, 83, 80, 0.25);
+}
+
+.parq-chip-clear {
+  background: #ffebee;
+  border-color: #ef5350;
+  color: #c62828;
+}
+.parq-chip-clear:hover {
+  background: #ef5350;
+  border-color: #c62828;
+  color: white;
+}
+
+/* Info de resultados */
+.parq-results-info {
+  font-size: 13px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+/* ====== GRID PARQUEADEROS ====== */
+.parq-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.parq-empty-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #9ca3af;
+}
+.parq-empty-icon {
+  font-size: 64px;
+  margin-bottom: 12px;
+  color: #d1d5db;
+}
+
+.parq-error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #991b1b;
+  text-align: center;
+}
+.parq-error-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.parq-grid-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  width: 100%;
+  justify-content: center;
+}
+
+/* ====== TARJETA PARQUEADERO ====== */
+.parq-card {
+  background: white;
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  min-height: 200px;
+  border: 2px solid transparent;
+}
+
+/* Disponible */
+.parq-card.disponible {
+  border: 2px solid #a5d6a7;
+  box-shadow: 0 2px 12px rgba(76, 175, 80, 0.15);
+}
+.parq-card.disponible:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(76, 175, 80, 0.25);
+  border-color: #66bb6a;
+}
+
+/* Ocupado */
+.parq-card.ocupado {
+  border: 2px solid #ef9a9a;
+  box-shadow: 0 2px 12px rgba(239, 83, 80, 0.15);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.parq-card.ocupado:hover {
+  transform: none;
+}
+
+/* No disponible / Mantenimiento */
+.parq-card.no-disponible {
+  border: 2px solid #ffcc80;
+  box-shadow: 0 2px 12px rgba(255, 152, 0, 0.15);
+  opacity: 0.7;
+  cursor: not-allowed;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 8px,
+    rgba(255, 152, 0, 0.04) 8px,
+    rgba(255, 152, 0, 0.04) 16px
+  );
+}
+.parq-card.no-disponible:hover {
+  transform: none;
+}
+
+/* Modo selección - tarjetas seleccionables */
+.parq-card.seleccionable {
+  cursor: pointer;
+  position: relative;
+}
+.parq-card.seleccionable::after {
+  content: "Seleccionar";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, #2e7d32, #4caf50);
+  color: white;
+  text-align: center;
+  padding: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.parq-card.seleccionable:hover::after {
+  opacity: 1;
+}
+.parq-card.seleccionable:hover {
+  border-color: #4caf50;
+  box-shadow: 0 8px 24px rgba(76, 175, 80, 0.35);
+  transform: translateY(-6px);
+}
+
+/* Banner modo selección */
+.parq-selection-banner {
+  background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+  border: 1px solid #a5d6a7;
+  border-radius: 10px;
+  padding: 14px 20px;
+  font-size: 14px;
+  color: #2e7d32;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.parq-selection-banner-btn {
+  background: white;
+  border: 1px solid #a5d6a7;
+  color: #2e7d32;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: auto;
+  transition: all 0.2s;
+}
+.parq-selection-banner-btn:hover {
+  background: #2e7d32;
+  color: white;
+}
+
+.parq-card-header {
+  background: white;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  justify-content: center;
+}
+
+.parq-card-codigo {
+  font-size: 20px;
+  font-weight: 700;
+  color: #212121;
+}
+
+.parq-card-icon {
+  font-size: 28px;
+  color: #ef5350;
+}
+
+.parq-card-tipo {
+  font-size: 12px;
+  color: #757575;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.parq-card-footer {
+  padding: 10px 16px;
+  background: #fffbfb;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.parq-btn-estado {
+  background: none;
+  border: 1px solid #bdbdbd;
+  color: #757575;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+  flex-shrink: 0;
+}
+.parq-btn-estado:hover {
+  background: #c62828;
+  border-color: #c62828;
+  color: white;
+  transform: scale(1.1);
+}
+
+.parq-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.parq-badge-disponible {
+  background: #c8e6c9;
+  color: #2e7d32;
+}
+
+.parq-badge-ocupado {
+  background: #ffcdd2;
+  color: #c62828;
+}
+
+.parq-badge-no-disponible {
+  background: #ffe0b2;
+  color: #e65100;
+}
+
+/* ====== ESTADÍSTICAS ====== */
+.parq-stats-container {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.parq-stat-box {
+  flex: 1;
+  min-width: 150px;
+  background: white;
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+.parq-stat-label {
+  font-size: 12px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.parq-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ef5350;
+}
+
+/* ====== PAGINACIÓN ====== */
+.parq-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 28px;
+  padding: 16px 0;
+}
+
+.parq-page-btn {
+  background: white;
+  border: 2px solid #e0e0e0;
+  color: #424242;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.parq-page-btn:hover:not(:disabled) {
+  border-color: #ef5350;
+  color: #ef5350;
+  background: #fff5f5;
+}
+.parq-page-btn.active {
+  background: #ef5350;
+  border-color: #ef5350;
+  color: white;
+  box-shadow: 0 2px 8px rgba(239, 83, 80, 0.3);
+}
+.parq-page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.parq-page-dots {
+  color: #9ca3af;
+  font-size: 14px;
+  padding: 0 4px;
+  user-select: none;
+}
+
+/* ====== RESPONSIVE ====== */
+@media (max-width: 800px) {
+  .parq-grid-container {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .parq-card {
+    min-height: 180px;
+  }
+
+  .parq-card-codigo {
+    font-size: 16px;
+  }
+
+  .parq-card-icon {
+    font-size: 24px;
+  }
+
+  .parq-header {
+    padding: 0 12px;
+  }
+
+  .parq-toolbar {
+    padding: 12px 16px;
+  }
+
+  .parq-toolbar-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .parq-filter-search {
+    width: 100%;
+  }
+
+  .parq-filter-group {
+    flex-wrap: wrap;
+  }
+
+  .parq-filter-chips {
+    justify-content: flex-start;
+  }
+
+  .parq-content {
+    padding: 16px;
+  }
+
+  .parq-pagination {
+    gap: 4px;
+  }
+  .parq-page-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .parq-grid-container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .parq-card {
+    min-height: 140px;
+  }
+
+  .parq-card-codigo {
+    font-size: 14px;
+  }
+
+  .parq-card-icon {
+    font-size: 20px;
+  }
+
+  .parq-header-title {
+    font-size: 16px;
+  }
+
+  .parq-content {
+    padding: 12px;
+  }
+
+  .parq-stats-container {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .parq-stat-box {
+    min-width: 100%;
+  }
+}

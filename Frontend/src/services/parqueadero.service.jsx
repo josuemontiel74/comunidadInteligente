@@ -30,7 +30,8 @@ const parqueaderoService = {
   async handleResponse(response) {
     if (!response.ok) {
       if (response.status === 401) {
-        localStorage.clear();
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
         throw new Error("Sesión expirada. Por favor inicia sesión nuevamente.");
       }
       if (response.status === 403) {
@@ -78,7 +79,7 @@ const parqueaderoService = {
         {
           method: "GET",
           headers: this.getHeaders(),
-        }
+        },
       );
 
       const data = await this.handleResponse(response);
@@ -108,7 +109,7 @@ const parqueaderoService = {
           method: "PATCH",
           headers: this.getHeaders(),
           body: JSON.stringify(body),
-        }
+        },
       );
 
       const data = await this.handleResponse(response);
@@ -136,7 +137,7 @@ const parqueaderoService = {
           method: "PATCH",
           headers: this.getHeaders(),
           body: JSON.stringify(body),
-        }
+        },
       );
 
       const data = await this.handleResponse(response);
@@ -161,7 +162,7 @@ const parqueaderoService = {
           method: "PATCH",
           headers: this.getHeaders(),
           body: JSON.stringify(datosActualizacion),
-        }
+        },
       );
 
       const data = await this.handleResponse(response);
@@ -191,7 +192,7 @@ const parqueaderoService = {
             ? Math.round(
                 (parqueaderos.filter((p) => p.estadoId === 3).length /
                   parqueaderos.length) *
-                  100
+                  100,
               )
             : 0,
       };
@@ -239,7 +240,7 @@ const parqueaderoService = {
     if (!termino) return parqueaderos;
     const terminoLower = termino.toLowerCase();
     return parqueaderos.filter((p) =>
-      p.codigoParqueadero.toLowerCase().includes(terminoLower)
+      p.codigoParqueadero.toLowerCase().includes(terminoLower),
     );
   },
 
@@ -250,9 +251,8 @@ const parqueaderoService = {
    */
   async estaDisponible(codigoParqueadero) {
     try {
-      const parqueadero = await this.obtenerParqueaderoPorCodigo(
-        codigoParqueadero
-      );
+      const parqueadero =
+        await this.obtenerParqueaderoPorCodigo(codigoParqueadero);
       return parqueadero.estadoId === 4;
     } catch (error) {
       console.error("Error al verificar disponibilidad:", error);
