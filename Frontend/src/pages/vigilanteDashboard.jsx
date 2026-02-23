@@ -1,190 +1,169 @@
-import React, { useEffect, useRef, useState } from "react";
-import Swal from 'sweetalert2';
-import { Routes, Route, Link, useNavigate, Outlet } from "react-router-dom";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import Swal from "sweetalert2";
+import { Link, useNavigate } from "react-router-dom";
 import Chart from "chart.js/auto";
-import VisitasAdmin from "./visitasAdmin.jsx";
-import Paqueteria from "./paqueteria.jsx";
-import "bootstrap/dist/css/bootstrap.min.css";
-import "../Styles/vigilanteDashboard.css";
+import "../Styles/dashboardVigilante.css";
 import logo from "../../img/logo.png";
-import paquetesImg from "../../img/paquetes.jpeg";
-import visitasImg from "../../img/visitas.jpg";
-import Visitas from "./visitas.jsx";
-import Paqueadero from "./seleccionparqueadero.jsx";
-import Login from "./login.jsx";
-import { visitasDia } from "../services/visitas.services";
-import { paquetesDia } from "../services/paqueteria.services";
-import { obtenerParqueaderos } from "../services/parqueadero.services.jsx";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
+import { obtenerResumenDashboard } from "../services/dashboard.services.jsx";
+import { logoutUsuario } from "../services/gestionUsuarios.jsx";
+
+const PHOTO_STORAGE_KEY = "gu_user_photos";
+const getUserProfilePhoto = (key) => {
+  try {
+    const photos = JSON.parse(localStorage.getItem(PHOTO_STORAGE_KEY) || "{}");
+    return photos[key] || null;
+  } catch {
+    return null;
+  }
+};
+
 function Dashboard() {
-  const navigate = useNavigate();
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      Swal.fire({ icon: 'warning', title: 'Sesión expirada', text: 'La sesión expiró. Vuelva a iniciar sesión.', timer: 2000, showConfirmButton: false, timerProgressBar: true }).then(() => {
-        localStorage.clear();
-        navigate('/');
-      });
-    }
-  }, [navigate]);
-  const CERRAR = (e) => {
-    e.preventDefault();
-    localStorage.clear();
-    navigate("/");
-  };
-  useEffect(() => {
-      async function fetchParqueaderos() {
-        const token = localStorage.getItem("token");
-        if (!token) return;
-  
-        try {
-          const res = await obtenerParqueaderos(token);
-          const data = await res.json();
-  
-          console.log(data);
-  
-          setParqueaderos(data.body);
-        } catch (error) {
-          console.error("Error cargando parqueaderos:", error);
-        }
-      }
-  
-      fetchParqueaderos();
-    }, []);
-   useEffect(() => {
-      async function fecthpaquetesDia() {
-        const token = localStorage.getItem("token");
-        if (!token) return;
-        try {
-          const res = await paquetesDia(token);
-          const data = await res.json();
-          setTotalPaquetes(data.paqueteDia)
-        } catch (error) {
-          console.error("No se cargaron los datos")
-        }
-  
-      }
-      fecthpaquetesDia();
-    }, []);
-   useEffect(() => {
-        async function fetchVisitas() {
-          const token = localStorage.getItem("token");
-          if (!token) return;
-    
-          try {
-            const res = await visitasDia(token);
-            const data = await res.json();
-            setTotalVisitas(data.visitasDia);
-          } catch (error) {
-            console.error("Error cargando visitas del día:", error);
-          }
-        }
-        fetchVisitas();
-      }, []);
-  const [totalVisitas, setTotalVisitas] = useState(0);
-  const [totalPaquetes, setTotalPaquetes] = useState(0);
+  const navigator = useNavigate();
+  const visitasChartRef = useRef(null);
+  const paquetesChartRef = useRef(null);
 
-  const [parqueaderos, setParqueaderos] = useState([]);
-   const espaciosLibres = parqueaderos.filter((p) => p.estadoId === 4).length;
-  const espaciosOcupados = parqueaderos.filter((p) => p.estadoId === 3).length;
-  const chartRef = useRef(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const obtenerToken = () => {
-    const token =
-      localStorage.getItem("token") ||
-      localStorage.getItem("authToken") ||
-      sessionStorage.getItem("token") ||
-      sessionStorage.getItem("authToken");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [fotoUsuario, setFotoUsuario] = useState(null);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [usuario, setUsuario] = useState(null);
 
-    // Si no hay token válido, usar token de desarrollo
-    if (!token) {
-      console.warn(
-        "No se encontró token de autenticación, usando token de desarrollo"
-      );
-      return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Impvc3VlMjAyMyIsInJvbGVzSWQiOjEsImlhdCI6MTc1OTUxNTQwMCwiZXhwIjoxNzU5NTE5MDAwfQ.wKzrnUttdHRGkHnnZL1LR1amxt2ZQ4PZR85khZauShQ";
-    }
+  // Datos del dashboard
+  const [paquetesEntregados, setPaquetesEntregados] = useState(0);
+  const [paquetesPendientes, setPaquetesPendientes] = useState(0);
+  const [visitasHoy, setVisitasHoy] = useState(0);
+  const [visitasActivas, setVisitasActivas] = useState(0);
 
-    return token;
-  };
-
-  const token = obtenerToken();
-
-  // Función para verificar si el token está vencido
+  // Token helpers
   const verificarTokenVencido = (token) => {
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
-      const fechaExpiracion = payload.exp * 1000; // Convertir a milisegundos
-      return Date.now() >= fechaExpiracion;
-    } catch (error) {
-      console.error("Error al verificar expiración del token:", error);
-      return true; // Considerar vencido si hay error
+      return Date.now() >= payload.exp * 1000;
+    } catch {
+      return true;
     }
   };
 
-  const obtenerUsuarioDelToken = () => {
-    try {
-      if (verificarTokenVencido(token)) {
-        console.warn("Token vencido, usando usuario por defecto...");
-        return "josue2023";
-      }
-
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload.username || "Usuario";
-    } catch (error) {
-      console.error("Error al decodificar el token:", error);
-      return "Usuario";
-    }
-  };
-  //obtener rol 
-  const obtenerRolDelToken = () => {
-    try {
-      if (verificarTokenVencido(token)) {
-        console.warn("Token vencido, usando rol por defecto...");
-        return "RolDesconocido";
-      }
-
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload.rolesId || "RolNoDefinido";
-    } catch (error) {
-      console.error("Error al decodificar el token:", error);
-      return "RolNoDefinido";
-    }
-  };
-  if (verificarTokenVencido(token)) {
-
-  }
-  const rolesId = obtenerRolDelToken();
-  let rolUsuario;
-
-  switch (rolesId) {
-    case 1:
-      rolUsuario = "superAdmin";
-      break;
-    case 2:
-      rolUsuario = "admin";
-      break;
-    case 3:
-      rolUsuario = "vigilante";
-      break;
-    default:
-      rolUsuario = "RolNoDefinido";
-  }
-
-  const nombreUsuario = obtenerUsuarioDelToken();
+  // Verificar sesión
   useEffect(() => {
-    const ctx = document.getElementById("parqueoChart");
-
-    if (chartRef.current) {
-      chartRef.current.destroy();
+    const token = localStorage.getItem("token");
+    if (!token) {
+      Swal.fire({
+        icon: "warning",
+        title: "Sesión expirada",
+        text: "La sesión expiró. Vuelva a iniciar sesión.",
+        timer: 2000,
+        showConfirmButton: false,
+        timerProgressBar: true,
+      }).then(() => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigator("/");
+      });
+      return;
     }
 
-    chartRef.current = new Chart(ctx, {
-      type: "doughnut",
+    const userGuardado = localStorage.getItem("user");
+    if (userGuardado) {
+      try {
+        setUsuario(JSON.parse(userGuardado));
+        setLoading(false);
+      } catch {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigator("/");
+      }
+    } else {
+      fetch("http://localhost:3001/api/usuario", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error("No autorizado");
+          return res.json();
+        })
+        .then((data) => {
+          setUsuario(data.usuario);
+          localStorage.setItem("user", JSON.stringify(data.usuario));
+          setLoading(false);
+        })
+        .catch(() => {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          navigator("/");
+        });
+    }
+  }, [navigator]);
+
+  // Cargar foto de perfil
+  useEffect(() => {
+    if (usuario) {
+      setFotoUsuario(
+        getUserProfilePhoto(usuario.numeroDocumento) ||
+          getUserProfilePhoto(usuario.username) ||
+          null,
+      );
+    }
+  }, [usuario]);
+
+  // Cargar datos del dashboard
+  const cargarDatos = useCallback(async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    setDataLoading(true);
+    try {
+      const res = await obtenerResumenDashboard(token);
+      const responseData = await res.json();
+
+      if (res.ok && responseData.success) {
+        const datos = responseData.data;
+        setPaquetesEntregados(datos.paquetes?.entregados ?? 0);
+        setPaquetesPendientes(datos.paquetes?.pendientes ?? 0);
+        setVisitasHoy(datos.visitas?.hoy ?? 0);
+        setVisitasActivas(datos.visitas?.activas ?? 0);
+      }
+    } catch (error) {
+      console.error("Error al cargar datos del dashboard:", error);
+    } finally {
+      setDataLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      cargarDatos();
+    }
+  }, [loading, cargarDatos]);
+
+  // Gráfico de barras para visitas del día
+  useEffect(() => {
+    if (loading || dataLoading) return;
+    const ctx = document.getElementById("visitasBarChart");
+    if (!ctx) return;
+
+    if (visitasChartRef.current) visitasChartRef.current.destroy();
+
+    visitasChartRef.current = new Chart(ctx, {
+      type: "bar",
       data: {
-        labels: ["Ocupados", "Disponibles"],
+        labels: ["Hoy", "Activas"],
         datasets: [
           {
-            data: [espaciosLibres, espaciosOcupados],
-            backgroundColor: ["#dc3545", "#198754"], // rojo y verde
+            data: [visitasHoy, visitasActivas],
+            backgroundColor: [
+              "rgba(59, 130, 246, 0.85)",
+              "rgba(34, 197, 94, 0.85)",
+            ],
+            borderRadius: 12,
+            borderSkipped: false,
+            barThickness: 60,
           },
         ],
       },
@@ -192,142 +171,452 @@ function Dashboard() {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { position: "bottom" },
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (tooltipCtx) => `${tooltipCtx.raw} visitas`,
+            },
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize: 1, color: "#6b7280" },
+            grid: { color: "rgba(0,0,0,0.05)" },
+          },
+          x: {
+            ticks: { color: "#374151", font: { weight: "500" } },
+            grid: { display: false },
+          },
         },
       },
     });
-  }, [parqueaderos]);
+
+    return () => {
+      if (visitasChartRef.current) visitasChartRef.current.destroy();
+    };
+  }, [loading, dataLoading, visitasHoy, visitasActivas]);
+
+  // Gráfico de barras para paquetes
+  useEffect(() => {
+    if (loading || dataLoading) return;
+    const ctx = document.getElementById("paquetesBarChart");
+    if (!ctx) return;
+
+    if (paquetesChartRef.current) paquetesChartRef.current.destroy();
+
+    paquetesChartRef.current = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: ["Entregados", "Pendientes"],
+        datasets: [
+          {
+            data: [paquetesEntregados, paquetesPendientes],
+            backgroundColor: [
+              "rgba(34, 197, 94, 0.85)",
+              "rgba(249, 115, 22, 0.85)",
+            ],
+            borderRadius: 12,
+            borderSkipped: false,
+            barThickness: 60,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (tooltipCtx) => `${tooltipCtx.raw} paquetes`,
+            },
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize: 1, color: "#6b7280" },
+            grid: { color: "rgba(0,0,0,0.05)" },
+          },
+          x: {
+            ticks: { color: "#374151", font: { weight: "500" } },
+            grid: { display: false },
+          },
+        },
+      },
+    });
+
+    return () => {
+      if (paquetesChartRef.current) paquetesChartRef.current.destroy();
+    };
+  }, [loading, dataLoading, paquetesEntregados, paquetesPendientes]);
+
+  const cerrarSesion = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem("token");
+    if (token) await logoutUsuario(token);
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigator("/");
+  };
+
+  if (loading) {
+    return (
+      <div className="vi-loading-screen">
+        <div
+          className="spinner-border"
+          role="status"
+          style={{ color: "#3b82f6" }}
+        >
+          <span className="visually-hidden">Cargando...</span>
+        </div>
+        <p className="mt-3 fw-semibold" style={{ color: "#3b82f6" }}>
+          Verificando sesión...
+        </p>
+      </div>
+    );
+  }
+
+  const totalPaquetes = paquetesEntregados + paquetesPendientes;
+  const porcentajeEntregados =
+    totalPaquetes > 0
+      ? ((paquetesEntregados / totalPaquetes) * 100).toFixed(0)
+      : 0;
+
+  // Módulos del vigilante: Paquetería, Visitas y Parqueaderos
+  const modulos = [
+    {
+      icon: "bi-box-seam-fill",
+      title: "Gestión de Paquetería",
+      color: "#3b82f6",
+      to: "/Paqueteria",
+    },
+    {
+      icon: "bi-people-fill",
+      title: "Gestión de Visitas",
+      color: "#22c55e",
+      to: "/visitas",
+    },
+    {
+      icon: "bi-p-circle-fill",
+      title: "Parqueaderos",
+      color: "#ef4444",
+      to: "/parqueaderos",
+    },
+  ];
 
   return (
-    <div className="main-dashboard dashboard-container d-flex">
-      {/* Sidebar */}
-      <aside id="menuTrabajador" className="worker-menu bg-success text-white">
-        <div className="p-3 d-flex flex-column h-100">
-          <div className="d-flex align-items-center gap-3 mb-4">
-            <div
-              className="user-circle bg-white d-flex align-items-center justify-content-center"
-              style={{ width: "50px", height: "50px", borderRadius: "50%" }}
+    <div className="vi-dashboard">
+      {/* ====== OFFCANVAS MENU ====== */}
+      <div
+        className={`vi-overlay ${menuOpen ? "active" : ""}`}
+        onClick={() => setMenuOpen(false)}
+      />
+      <aside className={`vi-drawer ${menuOpen ? "open" : ""}`}>
+        <div className="vi-drawer-header">
+          <div className="vi-drawer-avatar">
+            {fotoUsuario ? (
+              <img
+                src={fotoUsuario}
+                alt="Perfil"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  borderRadius: "50%",
+                }}
+              />
+            ) : (
+              <i className="bi bi-shield-check"></i>
+            )}
+          </div>
+          <h4 className="vi-drawer-title">Menú Vigilante</h4>
+          <span className="vi-drawer-user">
+            {usuario?.username || usuario?.nombre || "Usuario"}
+          </span>
+        </div>
+
+        <div className="vi-drawer-body">
+          {/* Sección Paquetes */}
+          <div className="vi-menu-section">
+            <h6 className="vi-menu-section-title">Gestión de Paquetes</h6>
+            <Link
+              className="vi-menu-item"
+              to="/Paqueteria"
+              state={{ abrirModal: true }}
+              onClick={() => setMenuOpen(false)}
             >
-              <span className="fw-bold text-success">
-                {nombreUsuario?.substring(0, 2).toUpperCase() || "US"}
-              </span>
-            </div>
-            <div className="d-flex flex-column">
-              <span className="fw-semibold text-white">
-                {nombreUsuario || "Usuario"}
-              </span>
-              <span className="fw-semibold text-white"> {rolUsuario || "Usuario"}</span>
-              <span className="small text-white-50">Sesión activa</span>
-            </div>
+              <i className="bi bi-plus-box"></i>
+              <span>Registrar Paquete</span>
+              <i className="bi bi-chevron-right vi-menu-arrow"></i>
+            </Link>
+            <Link
+              className="vi-menu-item"
+              to="/Paqueteria"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-clock-history"></i>
+              <span>Historial de Paquetes</span>
+              <i className="bi bi-chevron-right vi-menu-arrow"></i>
+            </Link>
           </div>
 
-          
-
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold ">
-
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-seam-fill" viewBox="0 0 16 16">
-                <path fill-rule="evenodd" d="M15.528 2.973a.75.75 0 0 1 .472.696v8.662a.75.75 0 0 1-.472.696l-7.25 2.9a.75.75 0 0 1-.557 0l-7.25-2.9A.75.75 0 0 1 0 12.331V3.669a.75.75 0 0 1 .471-.696L7.443.184l.01-.003.268-.108a.75.75 0 0 1 .558 0l.269.108.01.003zM10.404 2 4.25 4.461 1.846 3.5 1 3.839v.4l6.5 2.6v7.922l.5.2.5-.2V6.84l6.5-2.6v-.4l-.846-.339L8 5.961 5.596 5l6.154-2.461z" />
-              </svg> Gestión de Paquetes
-            </h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li><Link className="nav-link  text-white" to="/Paqueteria" state={{ abrirModal: true }}>Registrar Paquete</Link></li>
-              <li><Link className="nav-link text-white" to="/Paqueteria">Historial de Paquetes</Link></li>
-            </ul>
+          {/* Sección Visitas */}
+          <div className="vi-menu-section">
+            <h6 className="vi-menu-section-title">Gestión de Visitas</h6>
+            <Link
+              className="vi-menu-item"
+              to="/visitas"
+              state={{ abrirModal: true }}
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-calendar-event"></i>
+              <span>Gestión de Visitas</span>
+              <i className="bi bi-chevron-right vi-menu-arrow"></i>
+            </Link>
           </div>
 
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-people-fill" viewBox="0 0 16 16">
-                <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-5.784 6A2.24 2.24 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.3 6.3 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5" />
-              </svg> Gestión de Visitas
-            </h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li><Link className="nav-link text-white" to="/visitas" state={{ abrirModal: true }}>Registrar Visita</Link></li>
-              <li><Link className="nav-link text-white" to="/visitas">Consultar Visitas</Link></li>
-              <li><Link className="nav-link text-white" to="/parqueaderos">Consultar Parqueaderos</Link></li>
-            </ul>
+          {/* Sección Parqueaderos */}
+          <div className="vi-menu-section">
+            <h6 className="vi-menu-section-title">Parqueaderos</h6>
+            <Link
+              className="vi-menu-item"
+              to="/parqueaderos"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-p-circle"></i>
+              <span>Ver Parqueaderos</span>
+              <i className="bi bi-chevron-right vi-menu-arrow"></i>
+            </Link>
           </div>
+        </div>
 
-          <div className="mt-auto">
-            <div onClick={CERRAR} className="btn btn-light w-100">Cerrar sesión</div>
-          </div>
+        <div className="vi-drawer-footer">
+          <button className="vi-logout-btn" onClick={cerrarSesion}>
+            <i className="bi bi-box-arrow-right"></i>
+            Cerrar Sesión
+          </button>
         </div>
       </aside>
 
-      {/* Contenido principal */}
-      <div className="main-content flex-grow-1">
-        {/* Barra superior */}
-        <div className="d-flex align-items-center justify-content-between px-3 py-2">
-          <div className="logo-container text-center flex-grow-1">
-            <Link to="/"><img src={logo} alt="Logo del sistema" className="logo-img" /></Link>
+      {/* ====== CONTENIDO PRINCIPAL ====== */}
+      <div className="vi-main">
+        {/* Header */}
+        <header className="vi-header">
+          <button
+            className="vi-header-btn"
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            title="Ver perfil"
+            style={{ overflow: "hidden" }}
+          >
+            {fotoUsuario ? (
+              <img
+                src={fotoUsuario}
+                alt="Perfil"
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  objectFit: "cover",
+                  borderRadius: "50%",
+                }}
+              />
+            ) : (
+              <i className="bi bi-person-circle"></i>
+            )}
+          </button>
+
+          {showUserMenu && (
+            <div className="vi-profile-popup">
+              <div className="vi-profile-popup-header">
+                {fotoUsuario ? (
+                  <img
+                    src={fotoUsuario}
+                    alt="Perfil"
+                    style={{
+                      width: "60px",
+                      height: "60px",
+                      objectFit: "cover",
+                      borderRadius: "50%",
+                    }}
+                  />
+                ) : (
+                  <i className="bi bi-person-circle vi-profile-icon"></i>
+                )}
+              </div>
+              <p>
+                <strong>Nombre:</strong>{" "}
+                {usuario?.username || usuario?.nombre || "Usuario"}
+              </p>
+              <p>
+                <strong>Rol:</strong> Vigilante
+              </p>
+              <p style={{ color: "#3b82f6" }}>
+                <strong>Estado:</strong> Activo
+              </p>
+              <button
+                className="btn btn-sm btn-outline-secondary w-100 mt-2"
+                onClick={() => setShowUserMenu(false)}
+              >
+                Cerrar
+              </button>
+            </div>
+          )}
+
+          <Link
+            to="/Vigilante"
+            className="vi-logo-wrapper"
+            title="Ir al Dashboard"
+          >
+            <div className="vi-logo-circle">
+              <img src={logo} alt="Logo" className="vi-logo-img" />
+            </div>
+          </Link>
+
+          <div className="vi-header-actions">
+            <button
+              className="vi-header-btn"
+              onClick={() => {
+                setDataLoading(true);
+                cargarDatos();
+              }}
+              disabled={dataLoading}
+              title="Actualizar datos"
+            >
+              <i
+                className={`bi ${dataLoading ? "bi-hourglass-split" : "bi-arrow-clockwise"}`}
+              ></i>
+            </button>
+            <button
+              className="vi-header-btn vi-hamburger"
+              onClick={() => setMenuOpen(true)}
+              title="Abrir menú"
+            >
+              <i className="bi bi-list"></i>
+            </button>
           </div>
-        
-        </div>
+        </header>
 
         {/* Bienvenida */}
-        <div className="text-center mt-3 my-4">
-          <h2 className="fw-bold ">Bienvenido, Vigilante</h2>
-          <p>Selecciona el módulo que deseas gestionar en la plataforma</p>
+        <div className="vi-welcome">
+          <h2 className="vi-welcome-title">
+            Bienvenido, {usuario?.username || usuario?.nombre || "Usuario"}
+          </h2>
+          <p className="vi-welcome-sub">
+            Selecciona el módulo que deseas gestionar en la plataforma
+          </p>
         </div>
 
-        {/* Tarjetas principales */}
-        <div className="d-flex flex-wrap justify-content-center gap-4 my-4">
-          <div className="module-card">
-            <img src={paquetesImg} alt="Paquetería" />
-            <h5>Gestión de Paquetería</h5>
-            <Link to="/Paqueteria" className="btn btn-success">➜</Link>
-          </div>
-          <div className="module-card">
-            <img src={visitasImg} alt="Visitas" />
-            <h5>Gestión de Visitas</h5>
-            <Link to="/visitas" className="btn btn-success">➜</Link>
-          </div>
+        {/* Tarjetas de módulos */}
+        <div className="vi-modules-grid">
+          {modulos.map((mod, idx) => (
+            <Link
+              to={mod.to}
+              key={idx}
+              className="vi-module-card"
+              style={{
+                background: `linear-gradient(135deg, ${mod.color}cc, ${mod.color})`,
+              }}
+            >
+              <div className="vi-module-icon-wrap">
+                <i className={`bi ${mod.icon}`}></i>
+              </div>
+              <span className="vi-module-title">{mod.title}</span>
+            </Link>
+          ))}
         </div>
 
-        {/* Dashboard */}
-        <div className="d-flex flex-wrap justify-content-center gap-4 my-4">
-              <div className="dashboard-card">
+        {/* Estadísticas */}
+        <div className="vi-stats-section">
+          <h3 className="vi-stats-title">Estadísticas del Día</h3>
+
+          <div className="vi-stats-grid">
+            {/* Visitas del Día */}
+            <Link to="/visitas" className="vi-stat-card vi-stat-card-link">
+              <div className="vi-stat-card-header">
+                <i
+                  className="bi bi-people-fill"
+                  style={{ color: "#3b82f6", fontSize: "28px" }}
+                ></i>
                 <h5>Visitas del Día</h5>
-                <div className="stat-number">{totalVisitas}</div>
-                <p>Ingresos registrados hoy.</p>
-                <Link to="/visitas" className="btn btn-success">
-                  Ver Registro
-                </Link>
+                <i
+                  className="bi bi-chevron-right"
+                  style={{ color: "#9ca3af", marginLeft: "auto" }}
+                ></i>
               </div>
-    
-              <div className="dashboard-card">
-                <h5>Parqueaderos Ocupados</h5>
-                <div className="chart-container">
-                  <canvas id="parqueoChart"></canvas>
+
+              <div className="vi-bar-chart-container">
+                <canvas id="visitasBarChart"></canvas>
+              </div>
+
+              <div className="vi-stat-summary">
+                <div className="vi-stat-summary-item">
+                  <span
+                    className="vi-stat-big-number"
+                    style={{ color: "#3b82f6" }}
+                  >
+                    {visitasHoy}
+                  </span>
+                  <span className="vi-stat-label">Registradas Hoy</span>
                 </div>
-                <Link to="/parqueaderos" className="btn btn-success">
-                  Ver Estado
-                </Link>
+                <div className="vi-stat-divider"></div>
+                <div className="vi-stat-summary-item">
+                  <span
+                    className="vi-stat-big-number"
+                    style={{ color: "#22c55e" }}
+                  >
+                    {visitasActivas}
+                  </span>
+                  <span className="vi-stat-label">Activas Ahora</span>
+                </div>
               </div>
-              <div className="dashboard-card">
-                <h5>Paquetes Recibidos</h5>
-                <div className="stat-number">{totalPaquetes}</div>
-                <p>Total de paquetes que llegaron al conjunto hoy.</p>
-                <Link to="/Paqueteria" className="btn btn-success">
-                  Ver Detalles
-                </Link>
+            </Link>
+
+            {/* Paquetes */}
+            <Link to="/Paqueteria" className="vi-stat-card vi-stat-card-link">
+              <div className="vi-stat-card-header">
+                <i
+                  className="bi bi-box-seam-fill"
+                  style={{ color: "#3b82f6", fontSize: "28px" }}
+                ></i>
+                <h5>Paquetes del Día</h5>
+                <i
+                  className="bi bi-chevron-right"
+                  style={{ color: "#9ca3af", marginLeft: "auto" }}
+                ></i>
               </div>
-            </div>
+
+              <div className="vi-bar-chart-container">
+                <canvas id="paquetesBarChart"></canvas>
+              </div>
+
+              <div className="vi-stat-summary">
+                <div className="vi-stat-summary-item">
+                  <span
+                    className="vi-stat-big-number"
+                    style={{ color: "#22c55e" }}
+                  >
+                    {paquetesEntregados}
+                  </span>
+                  <span className="vi-stat-label">Entregados</span>
+                </div>
+                <div className="vi-stat-divider"></div>
+                <div className="vi-stat-summary-item">
+                  <span
+                    className="vi-stat-big-number"
+                    style={{ color: "#3b82f6" }}
+                  >
+                    {porcentajeEntregados}%
+                  </span>
+                  <span className="vi-stat-label">Eficiencia</span>
+                </div>
+              </div>
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-export default function App() {
-  return (
-    <Routes>
-      <Route path="/" element={<Dashboard />} />
-      <Route path="/VisitasAdmin" element={<VisitasAdmin />} />
-      <Route path="/Paqueteria" element={<Paqueteria />} />
-      <Route path="/visitas" element={<Visitas />} />
-      <Route path="/parqueaderos" element={<Paqueadero />} />
-      <Route path="/Login" element={<Login />} />
-    </Routes>
-  );
-}
+export default Dashboard;
