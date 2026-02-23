@@ -1,6 +1,7 @@
 import express from "express";
 import morgan from "morgan";
 import cors from "cors";
+import { actualizarActividad } from "../middlewares/actividad.middleware.js";
 import personasRoutes from "../routers/personas.router.js";
 import tipodocumentosRoutes from "../routers/tipodocumentos.router.js";
 import rolRouter from "../routers/rol.router.js";
@@ -29,11 +30,21 @@ app.use(morgan("dev"));
 app.use(express.json());
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:54910"],
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:8080",
+      "http://localhost:49947",
+    ],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
-  })
+  }),
 );
+
+// Middleware global: actualiza ultimaActividad en cada petición autenticada
+// Decodifica el token silenciosamente, sin interferir con rutas públicas
+app.use(actualizarActividad);
+
 app.use("/api/", personasRoutes);
 app.use("/api/", tipodocumentosRoutes);
 app.use("/api/", rolRouter);
