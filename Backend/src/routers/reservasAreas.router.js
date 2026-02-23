@@ -1,74 +1,65 @@
 import { Router } from "express";
 import * as reservasAreasController from "../controller/reservasAreas.controller.js";
 import { validarJWT, validarRol } from "../middlewares/auth.middleware.js";
-import validate from "../middlewares/user.middleware.js";
-import * as reservarAreasSchema from "../schemas/reservarAreas.schema.js";
 
 const router = Router();
-// Versión móvil traer usuarios
-router.post("/reportes/:por",validarJWT,validarRol(1),reservasAreasController.reportes);
-router.get("/calendariodereservas",validarJWT,validarRol(1,2),reservasAreasController.calendariosReservas);
-router.get(
-  "/ReservasAreasComunesMovil",
-  validarJWT,
-  validarRol(1, 2),
-  reservasAreasController.mostrarAreasComunesVersionMovil
-);
-router.post(
-  "/reservarAreas",
-  validate(reservarAreasSchema.crearReservarAreasSchema, "body", true),
-  validarJWT,
-  validarRol(1, 2),
-  reservasAreasController.CrearReservaArea
-);
-router.post(
-  "/ReservarAreaMovil",
-  validarJWT,
-  validarRol(1, 2),
-  reservasAreasController.crearReservasParaMovil
-);
-router.get(
-  "/BuscarReserva/:idReservas",
-  validarJWT,
-  validarRol(1, 2),
-  reservasAreasController.buscar
-);
-router.get(
-  "/reservarAreas",
-  validate(reservarAreasSchema.obtenerReservarAreasSchema),
-  validarJWT,
-  validarRol(1, 2),
-  reservasAreasController.ObtenerReservasAreas
-);
-router.patch(
-  "/ActualizarReserva/:idReservas",
-  validarJWT,
-  validarRol(1, 2),
-  validate(reservarAreasSchema.actualizarReservarAreasSchema, true),
-  reservasAreasController.ActualizarReservaAreaParaMovil
-);
-router.get("/reservas-areas", reservasAreasController.listarReservasAreas);
 
+// ========== RUTAS UNIFICADAS DE RESERVAS DE ÁREAS COMUNES ==========
+
+// Listar todas las reservas
 router.get(
-  "/reservarAreas/:idReservas",
-  validate(reservarAreasSchema.obtenerReservarAreasSchema, "params", true),
+  "/reservas-areas",
   validarJWT,
   validarRol(1, 2),
-  reservasAreasController.ObtenerReservaAreaPorId
+  reservasAreasController.listarReservasAreas,
 );
+
+// Obtener reserva por ID
+router.get(
+  "/reservas-areas/:idReservas",
+  validarJWT,
+  validarRol(1, 2),
+  reservasAreasController.obtenerReservaPorId,
+);
+
+// Crear nueva reserva
+router.post(
+  "/reservas-areas",
+  validarJWT,
+  validarRol(1, 2),
+  reservasAreasController.crearReserva,
+);
+
+// Actualizar reserva
 router.patch(
-  "/reservarAreas/:idReservas",
-  validate(reservarAreasSchema.actualizarReservarAreasSchema, "body", true),
+  "/reservas-areas/:idReservas",
   validarJWT,
   validarRol(1, 2),
-  reservasAreasController.ActualizarReservaArea
+  reservasAreasController.actualizarReserva,
 );
+
+// Eliminar (finalizar) reserva
 router.delete(
-  "/reservarAreas/:idReservas",
-  validate(reservarAreasSchema.eliminarReservarAreasSchema, "params", true),
+  "/reservas-areas/:idReservas",
   validarJWT,
   validarRol(1, 2),
-  reservasAreasController.eliminarReservaArea
+  reservasAreasController.eliminarReservaArea,
+);
+
+// Reportes de áreas comunes
+router.post(
+  "/reportes/:por",
+  validarJWT,
+  validarRol(1),
+  reservasAreasController.reportes,
+);
+
+// Calendario de reservas
+router.get(
+  "/calendariodereservas",
+  validarJWT,
+  validarRol(1, 2),
+  reservasAreasController.calendariosReservas,
 );
 
 export default router;

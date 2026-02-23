@@ -1,3 +1,4 @@
+import { Op } from "sequelize";
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -47,12 +48,12 @@ export const crearUsuario = async (req, res) => {
     // Registrar en auditoría - Usar el username (llave primaria) como idRegistroAfectado
     const usuarioActual = req.user?.username || "desconocido";
     const usuarioCreadoUsername = createUser.username; // Capturar el username del usuario recién creado
-    
+
     await registrarAuditoria(
       usuarioActual,
       "usuarios",
       "INSERT",
-      usuarioCreadoUsername
+      usuarioCreadoUsername,
     );
 
     res.status(201).json({
@@ -67,7 +68,6 @@ export const crearUsuario = async (req, res) => {
         numeroDocumento: nuevaPersona.numeroDocumento,
       },
     });
-
   } catch (error) {
     const username = req.user?.username || "desconocido";
     const ruta = "POST /usuarios";
@@ -101,7 +101,7 @@ export const obtenerUsuario = async (req, res) => {
     const usuarios = await User.findAll({
       include: [
         {
-          model: Persona, 
+          model: Persona,
           as: "Persona",
           attributes: [
             "numeroDocumento",
@@ -122,12 +122,12 @@ export const obtenerUsuario = async (req, res) => {
           ],
         },
         {
-          model: Rol, 
+          model: Rol,
           as: "Rol",
           attributes: ["idRol", "nombreRol"],
         },
         {
-          model: Estado, 
+          model: Estado,
           as: "Estado",
           attributes: ["idEstado", "nombreEstado"],
         },
@@ -197,7 +197,6 @@ export const actualizarUsuario = async (req, res) => {
     });
     // volver activar
 
-
     if (!usuario) {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
@@ -249,7 +248,7 @@ export const actualizarUsuario = async (req, res) => {
       usuarioQueActualiza,
       "usuarios",
       "UPDATE",
-      username
+      username,
     );
 
     const { password, ...usuarioSinPass } = usuario.toJSON();
@@ -268,7 +267,7 @@ export const actualizarUsuario = async (req, res) => {
       usuarioQueActualiza,
       ruta,
       error.message,
-      error.stack
+      error.stack,
     );
 
     return res.status(500).json({
@@ -321,8 +320,11 @@ export const loginUsuario = async (req, res) => {
         rol: nombreRol,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "1h" },
     );
+
+    // Registrar actividad al iniciar sesión
+    await usuario.update({ ultimaActividad: new Date() });
 
     const {
       username: nombreUsuario,
@@ -390,10 +392,10 @@ export const buscarUsuarios = async (req, res) => {
   }
 };
 
-export const inactivarUsuario = async (req, res) => {
-  const username = req.params.username;
+export const reactivarUsuario = async (req, res) => {
+  const username = req.params.usernameAtivar;
   const usuarioQueActualiza = req.user?.username || "desconocido";
-  
+
   try {
     const usuario = await User.findByPk(username);
     if (!usuario) {
@@ -402,16 +404,135 @@ export const inactivarUsuario = async (req, res) => {
         status: 404,
       });
     }
-    
+
+    await usuario.update({ estadoId: 1 });
+
+    await registrarAuditoria(
+      usuarioQueActualiza,
+      "usuarios",
+      "PATCH",
+      username,
+    );
+
+    res.status(200).json({
+      message: "El usuario ha sido reactivado correctamente",
+      status: 200,
+    });
+  } catch (error) {
+    const ruta = "PATCH /usuarios/reactivar/:usernameAtivar";
+
+    await registrarFallo(
+      "ERROR",
+      usuarioQueActualiza,
+      ruta,
+      error.message,
+      error.stack,
+    );
+
+    return res.status(500).json({
+      message: "Algo salió mal en la petición :(",
+      status: 500,
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Cerrar sesión del usuario.
+ * Resetea ultimaActividad a null para que deje de aparecer "en línea".
+ */
+export const logoutUsuario = async (req, res) => {
+  try {
+    const username = req.user?.username;
+    if (!username) {
+      return res
+        .status(400)
+        .json({ ok: false, message: "Usuario no identificado" });
+    }
+
+    await User.update({ ultimaActividad: null }, { where: { username } });
+
+    res.status(200).json({
+      ok: true,
+      status: 200,
+      message: "Sesión cerrada correctamente",
+    });
+  } catch (error) {
+    console.error("Error al cerrar sesión:", error);
+    res.status(500).json({
+      ok: false,
+      message: "Error al cerrar sesión",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Obtener usuarios en línea.
+ * Se considera "en línea" si ultimaActividad fue en los últimos 5 minutos.
+ * Devuelve un objeto { [username]: true } para cada usuario en línea.
+ */
+export const obtenerUsuariosEnLinea = async (req, res) => {
+  try {
+    const MINUTOS_UMBRAL = 5;
+    const umbral = new Date(Date.now() - MINUTOS_UMBRAL * 60 * 1000);
+
+    const usuariosOnline = await User.findAll({
+      where: {
+        ultimaActividad: { [Op.gte]: umbral },
+        estadoId: 1,
+      },
+      attributes: ["username", "ultimaActividad"],
+    });
+
+    const enLineaMap = {};
+    usuariosOnline.forEach((u) => {
+      enLineaMap[u.username] = true;
+    });
+
+    res.status(200).json({
+      ok: true,
+      status: 200,
+      message: "Usuarios en línea",
+      enLinea: enLineaMap,
+      total: usuariosOnline.length,
+    });
+  } catch (error) {
+    const username = req.user?.username || "desconocido";
+    const ruta = "GET /usuarios/en-linea";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
+    return res.status(500).json({
+      message: "Algo salió mal en la petición :(",
+      status: 500,
+      error: error.message,
+    });
+  }
+};
+
+export const inactivarUsuario = async (req, res) => {
+  const username = req.params.username;
+  const usuarioQueActualiza = req.user?.username || "desconocido";
+
+  try {
+    const usuario = await User.findByPk(username);
+    if (!usuario) {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+        status: 404,
+      });
+    }
+
     // Realizar la actualización del estado
     await usuario.update({ estadoId: 2 });
-    
+
     // Registrar en auditoría DESPUÉS de confirmar la actualización
     await registrarAuditoria(
       usuarioQueActualiza,
       "usuarios",
       "DELETE",
-      username  // El username es el identificador del usuario afectado
+      username, // El username es el identificador del usuario afectado
     );
 
     res.status(200).json({
@@ -427,7 +548,7 @@ export const inactivarUsuario = async (req, res) => {
       usuarioQueActualiza,
       ruta,
       error.message,
-      error.stack
+      error.stack,
     );
 
     return res.status(500).json({

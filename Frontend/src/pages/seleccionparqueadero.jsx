@@ -2,35 +2,86 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import "../Styles/seleccionParqueadero.css";
 import logo from "../../img/logo.png";
-import motoVerde from "../../img/moto-verde.png";
-import motoRoja from "../../img/moto-roja.png";
+// Motos usan ícono Font Awesome fa-motorcycle
 import carroVerde from "../../img/carro-verde.svg";
 import carroRojo from "../../img/carro-rojo.svg";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import Swal from "sweetalert2";
-import { obtenerParqueaderos, actualizarParqueadero } from "../services/parqueadero.services.jsx";
+import {
+  obtenerParqueaderos,
+  actualizarParqueadero,
+} from "../services/parqueadero.services.jsx";
 
 function SeleccioneParqueadero() {
   const navegacion = useNavigate();
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
-      Swal.fire({ icon: 'warning', title: 'Sesión expirada', text: 'La sesión expiró. Vuelva a iniciar sesión.', timer: 3500, showConfirmButton: false, timerProgressBar: true }).then(() => {
-        localStorage.clear();
-        navegacion('/');
+      Swal.fire({
+        icon: "warning",
+        title: "Sesión expirada",
+        text: "La sesión expiró. Vuelva a iniciar sesión.",
+        timer: 3500,
+        showConfirmButton: false,
+        timerProgressBar: true,
+      }).then(() => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navegacion("/");
       });
     }
   }, [navegacion]);
   const location = useLocation();
-  
+
   // Obtener tipoVehiculoId del estado anterior (desde visitas.jsx)
   const tipoVehiculoId = location.state?.tipoVehiculoId || null;
   const fromVisitas = location.state?.fromVisitas || false;
-  
-  const CerraSesión = () => {
+
+  const CerraSesión = (e) => {
+    if (e) e.preventDefault();
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
     navegacion("/");
   };
+
+  // Funciones para manejar token y usuario
+  const obtenerToken = () => {
+    return localStorage.getItem("token") || localStorage.getItem("authToken");
+  };
+  const verificarTokenVencido = (token) => {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return Date.now() >= payload.exp * 1000;
+    } catch { return true; }
+  };
+  const obtenerUsuarioDelToken = () => {
+    try {
+      const t = obtenerToken();
+      if (!t || verificarTokenVencido(t)) return "Usuario";
+      return JSON.parse(atob(t.split(".")[1])).username || "Usuario";
+    } catch { return "Usuario"; }
+  };
+  const obtenerRolDelToken = () => {
+    try {
+      const t = obtenerToken();
+      if (!t || verificarTokenVencido(t)) return null;
+      return JSON.parse(atob(t.split(".")[1])).rolesId;
+    } catch { return null; }
+  };
+
+  const nombreUsuario = obtenerUsuarioDelToken();
+  const rolesId = obtenerRolDelToken();
+  let rolUsuario;
+  switch (rolesId) {
+    case 1: rolUsuario = "superAdmin"; break;
+    case 2: rolUsuario = "admin"; break;
+    case 3: rolUsuario = "vigilante"; break;
+    default: rolUsuario = "Usuario";
+  }
+  const showAreasComunes = rolesId !== 3;
+  const showUserManagement = rolesId === 1;
+  const dashboardRuta = rolesId === 1 ? "/Superadmin" : rolesId === 2 ? "/Admin" : "/Vigilante";
 
   const [parqueaderos, setParqueaderos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -61,7 +112,8 @@ function SeleccioneParqueadero() {
         setLoading(false);
       } catch (err) {
         console.error("Error al obtener datos del parqueadero:", err);
-        localStorage.clear();
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
         navegacion("/");
       }
     })();
@@ -72,36 +124,73 @@ function SeleccioneParqueadero() {
     const EstadoParqueadero = { estadoId: 4 };
 
     try {
-      const res = await actualizarParqueadero(codigoParqueadero, EstadoParqueadero, token);
+      const res = await actualizarParqueadero(
+        codigoParqueadero,
+        EstadoParqueadero,
+        token,
+      );
+
+      const data = await res.json();
 
       if (!res.ok) {
-        throw new Error("Error al actualizar el estado del parqueadero");
+        // Si el backend dice que hay visita activa
+        if (
+          data.visitaActiva ||
+          (data.message && data.message.includes("visita activa"))
+        ) {
+          Swal.fire({
+            icon: "warning",
+            title: "Parqueadero con visita activa",
+            html: `<p>No es posible liberar el espacio <strong>${codigoParqueadero}</strong> porque tiene una visita en curso.</p><p>Primero debe <strong>finalizar la visita</strong> en el módulo de <strong>Visitas</strong>.</p>`,
+            confirmButtonText: "Entendido",
+            confirmButtonColor: "#7c3aed",
+          });
+          return;
+        }
+        throw new Error(
+          data.message || "Error al actualizar el estado del parqueadero",
+        );
       }
 
       setParqueaderos((prev) =>
         prev.map((u) =>
-          u.codigoParqueadero === codigoParqueadero ? { ...u, estadoId: 4 } : u
-        )
+          u.codigoParqueadero === codigoParqueadero ? { ...u, estadoId: 4 } : u,
+        ),
       );
 
-      Swal.fire({ icon: 'success', title: 'Liberado correctamente', text: `El espacio ${codigoParqueadero} ahora está disponible.`, timer: 3500, showConfirmButton: false });
+      Swal.fire({
+        icon: "success",
+        title: "Liberado correctamente",
+        text: `El espacio ${codigoParqueadero} ahora está disponible.`,
+        timer: 3500,
+        showConfirmButton: false,
+      });
     } catch (error) {
       console.error("No se pudo actualizar el estado del espacio", error);
-      Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+      Swal.fire({
+        icon: "error",
+        title: "Lo siento",
+        text: "Error de conexión. Comuníquese con el área de sistemas.",
+        confirmButtonText: "Entendido",
+      });
     }
   };
 
-  const asignarEspacio = async (codigoParqueadero, tipoVehiculoSeleccionado) => {
+  const asignarEspacio = async (
+    codigoParqueadero,
+    tipoVehiculoSeleccionado,
+  ) => {
     // Si viene desde visitas, solo validar que el tipo coincida
     if (fromVisitas && tipoVehiculoId) {
       // tipoVehiculoId = 1 es Carro, tipoVehiculoId = 2 es Moto
       // tipoVehiculoSeleccionado es el del parqueadero
-      
+
       // Validar que coincidan
       if (parseInt(tipoVehiculoId) !== tipoVehiculoSeleccionado) {
         const tipoVehiculoNombre = tipoVehiculoId === 1 ? "Carro" : "Moto";
-        const tipoEspacioNombre = tipoVehiculoSeleccionado === 1 ? "Carro" : "Moto";
-        
+        const tipoEspacioNombre =
+          tipoVehiculoSeleccionado === 1 ? "Carro" : "Moto";
+
         Swal.fire({
           title: " Advertencia",
           text: `Lo siento, pero el tipo de espacio no es el apropiado para el tipo de vehículo que se está seleccionando. Seleccionaste un ${tipoVehiculoNombre} pero este espacio es para ${tipoEspacioNombre}s.`,
@@ -115,7 +204,11 @@ function SeleccioneParqueadero() {
           if (!result.isConfirmed) {
             // Si el usuario elige regresar a visitas, abrir modal y mantener formulario
             navegacion("/visitas", {
-              state: { fromParqueaderos: true, abrirModal: true, formState: location.state?.formState }
+              state: {
+                fromParqueaderos: true,
+                abrirModal: true,
+                formState: location.state?.formState,
+              },
             });
           }
           // Si elige volver a seleccionar, simplemente cierra el modal y continúa en la página
@@ -124,16 +217,23 @@ function SeleccioneParqueadero() {
       }
 
       // Si el tipo coincide, devolver el código seleccionado a la página de visitas
-      const tipoVehiculoNombre = parseInt(tipoVehiculoId) === 1 ? "Carro" : "Moto";
-      Swal.fire({ icon: 'success', title: 'Validado correctamente', text: `El tipo de parqueadero coincide con tu vehículo (${tipoVehiculoNombre}).`, timer: 3500, showConfirmButton: false }).then(() => {
+      const tipoVehiculoNombre =
+        parseInt(tipoVehiculoId) === 1 ? "Carro" : "Moto";
+      Swal.fire({
+        icon: "success",
+        title: "Validado correctamente",
+        text: `El tipo de parqueadero coincide con tu vehículo (${tipoVehiculoNombre}).`,
+        timer: 3500,
+        showConfirmButton: false,
+      }).then(() => {
         navegacion("/visitas", {
           state: {
             codigoParqueaderoSeleccionado: codigoParqueadero,
             tipoVehiculoId: parseInt(tipoVehiculoId),
             fromParqueaderos: true,
             abrirModal: true,
-            formState: location.state?.formState
-          }
+            formState: location.state?.formState,
+          },
         });
       });
       return;
@@ -154,7 +254,7 @@ function SeleccioneParqueadero() {
 
     if (opcion.isConfirmed) {
       // Redirigir a visitas y abrir el modal de registro
-      navegacion('/visitas', { state: { abrirModal: true } });
+      navegacion("/visitas", { state: { abrirModal: true } });
     }
 
     // No hacemos la asignación aquí: la asignación real debe ocurrir cuando la visita se guarda
@@ -163,10 +263,9 @@ function SeleccioneParqueadero() {
 
   const [slotSeleccionado, setSlotSeleccionado] = useState(null);
   const [estadoSeleccionado, setEstadoSeleccionado] = useState(null);
-  const [tipoVehiculoSeleccionado, setTipoVehiculoSeleccionado] = useState(null);
+  const [tipoVehiculoSeleccionado, setTipoVehiculoSeleccionado] =
+    useState(null);
   const [menuAbierto, setMenuAbierto] = useState(false);
-  const toggleMenu = () => setMenuAbierto(!menuAbierto);
-  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const openBootstrapModal = (id) => {
     const el = document.getElementById(id);
@@ -246,7 +345,9 @@ function SeleccioneParqueadero() {
 
   // Filtrar parqueaderos
   const parqueaderosFiltrados = parqueaderos.filter((p) => {
-    const coincideBusqueda = p.codigoParqueadero.toLowerCase().includes(busqueda.toLowerCase());
+    const coincideBusqueda = p.codigoParqueadero
+      .toLowerCase()
+      .includes(busqueda.toLowerCase());
     const coincideEstado =
       filtroEstado === "todos" ||
       (filtroEstado === "libre" && p.estadoId === 4) ||
@@ -255,7 +356,8 @@ function SeleccioneParqueadero() {
     // Determinar el tipo efectivo a filtrar: si venimos desde Visitas, usamos ese tipo;
     // si no, usamos el filtro que el usuario eligió (filtroTipo).
     const effectiveTipo = tipoVehiculoId ? String(tipoVehiculoId) : filtroTipo;
-    const coincideTipo = effectiveTipo === "todos" || p.tipoVehiculoId === parseInt(effectiveTipo);
+    const coincideTipo =
+      effectiveTipo === "todos" || p.tipoVehiculoId === parseInt(effectiveTipo);
 
     return coincideBusqueda && coincideEstado && coincideTipo;
   });
@@ -266,163 +368,189 @@ function SeleccioneParqueadero() {
   const espaciosOcupados = parqueaderos.filter((p) => p.estadoId === 3).length;
 
   return (
-    <div className="container-fluid p-0" style={{ minHeight: "100vh", backgroundColor: "#f8f9fa" }}>
-      {/* Sidebar */}
-      <aside
-        id="menuTrabajador"
-        className={`workers-menu bg-success text-white ${menuAbierto ? "active" : ""}`}
-      >
-        <div className="p-3 d-flex flex-column h-100">
-          <div className="d-flex align-items-center gap-3 mb-4">
-            <div
-              className="user-circle bg-white d-flex align-items-center justify-content-center"
-              style={{ width: "50px", height: "50px", borderRadius: "50%" }}
-            >
-              <span className="fw-bold text-success">JO</span>
-            </div>
-            <div className="d-flex flex-column">
-              <span className="fw-semibold text-white">Josue</span>
-              <span className="small text-white-50">Vigilante</span>
-            </div>
+    <div className="sp-dashboard">
+      {/* Overlay */}
+      <div
+        className={`sp-overlay ${menuAbierto ? "active" : ""}`}
+        onClick={() => setMenuAbierto(false)}
+      />
+
+      {/* Drawer moderno */}
+      <aside className={`sp-drawer ${menuAbierto ? "open" : ""}`}>
+        <div className="sp-drawer-header">
+          <div className="sp-drawer-avatar">
+            <i className="bi bi-person-fill"></i>
+          </div>
+          <h3 className="sp-drawer-title">Menú {rolUsuario}</h3>
+          <p className="sp-drawer-user">{nombreUsuario || "Usuario"}</p>
+        </div>
+
+        <nav className="sp-drawer-nav">
+          {/* Dashboard */}
+          <div className="sp-menu-section">
+            <p className="sp-menu-section-title">Dashboard</p>
+            <Link className="sp-menu-item" to={dashboardRuta}>
+              <i className="bi bi-speedometer2"></i>
+              <span>Dashboard</span>
+              <i className="bi bi-chevron-right sp-menu-arrow"></i>
+            </Link>
           </div>
 
-          <h5 className="mb-3 mx-4">Menú del Vigilante</h5>
-
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">
-              <i className="bi bi-box-seam-fill me-2"></i>Gestión de Paquetes
-            </h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link className="nav-link text-white" to="/paqueteria" state={{ abrirModal: true }}>
-                  <i className="bi bi-plus-circle me-2"></i>Registrar Paquete
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/paqueteria">
-                  <i className="bi bi-clock-history me-2"></i>Historial de Paquetes
-                </Link>
-              </li>
-            </ul>
+          {/* Principal */}
+          <div className="sp-menu-section">
+            <p className="sp-menu-section-title">Parqueaderos</p>
+            <Link className="sp-menu-item active" to="/parqueaderos">
+              <i className="bi bi-car-front"></i>
+              <span>Gestión Parqueadero</span>
+              <i className="bi bi-chevron-right sp-menu-arrow"></i>
+            </Link>
           </div>
 
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">
-              <i className="bi bi-people-fill me-2"></i>Gestión de Visitas
-            </h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link className="nav-link text-white" to="/visitas" state={{ abrirModal: true }}>
-                  <i className="bi bi-person-plus me-2"></i>Registrar Visita
+          {/* Navegación */}
+          <div className="sp-menu-section">
+            <p className="sp-menu-section-title">Navegación</p>
+            <Link className="sp-menu-item" to="/Paqueteria">
+              <i className="bi bi-box-seam"></i>
+              <span>Paquetería</span>
+              <i className="bi bi-chevron-right sp-menu-arrow"></i>
+            </Link>
+            <Link className="sp-menu-item" to="/visitas">
+              <i className="bi bi-person-badge"></i>
+              <span>Visitas</span>
+              <i className="bi bi-chevron-right sp-menu-arrow"></i>
+            </Link>
+            <Link className="sp-menu-item" to="/CalendarioReservas">
+              <i className="bi bi-calendar3"></i>
+              <span>Calendario</span>
+              <i className="bi bi-chevron-right sp-menu-arrow"></i>
+            </Link>
+            {showAreasComunes && (
+              <>
+                <Link className="sp-menu-item" to="/AreasComunes">
+                  <i className="bi bi-building"></i>
+                  <span>Áreas Comunes</span>
+                  <i className="bi bi-chevron-right sp-menu-arrow"></i>
                 </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/visitas">
-                  <i className="bi bi-list-ul me-2"></i>Historial Visitas
+                <Link className="sp-menu-item" to="/Residentes">
+                  <i className="bi bi-people"></i>
+                  <span>Residentes</span>
+                  <i className="bi bi-chevron-right sp-menu-arrow"></i>
                 </Link>
-              </li>
-            </ul>
+                <Link className="sp-menu-item" to="/reportes">
+                  <i className="bi bi-graph-up"></i>
+                  <span>Reportes</span>
+                  <i className="bi bi-chevron-right sp-menu-arrow"></i>
+                </Link>
+              </>
+            )}
+            {showUserManagement && (
+              <>
+                <Link className="sp-menu-item" to="/GestionUsuario">
+                  <i className="bi bi-person-gear"></i>
+                  <span>Gestión Usuarios</span>
+                  <i className="bi bi-chevron-right sp-menu-arrow"></i>
+                </Link>
+                <Link className="sp-menu-item" to="/auditorias">
+                  <i className="bi bi-shield-check"></i>
+                  <span>Auditorías</span>
+                  <i className="bi bi-chevron-right sp-menu-arrow"></i>
+                </Link>
+              </>
+            )}
           </div>
+        </nav>
 
-          <div className="mt-auto">
-            <button className="btn btn-light w-100" onClick={CerraSesión}>
-              <i className="bi bi-box-arrow-right me-2"></i>Cerrar sesión
-            </button>
-          </div>
+        <div className="sp-drawer-footer">
+          <button className="sp-logout-btn" onClick={CerraSesión}>
+            <i className="bi bi-box-arrow-right"></i>
+            <span>Cerrar sesión</span>
+          </button>
         </div>
       </aside>
 
       {/* Contenido principal */}
-      <div className={`main-content ${menuAbierto ? "shift" : ""}`}>
-        {/* HEADER */}
-        <div className="d-flex align-items-center justify-content-between px-4 py-3 bg-white shadow-sm">
-          <div className="logo-container text-center flex-grow-1">
+      <main className="sp-main">
+        {/* Header */}
+        <header className="sp-header">
+          <div className="sp-header-group">
             <Link to="/">
-              <img src={logo} alt="Logo del sistema" className="logo-img" style={{ maxHeight: "50px" }} />
+              <img src={logo} alt="Logo" className="sp-logo" />
             </Link>
+            <h2 className="sp-title">Gestión de Parqueadero</h2>
           </div>
+          <button className="sp-btn-hamburguer" onClick={() => setMenuAbierto(true)}>
+            <i className="bi bi-list"></i>
+          </button>
+        </header>
 
-          <div className="position-relative">
-            <div
-              className="btn btn-outline-success d-flex align-items-center gap-2"
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              style={{ cursor: "pointer" }}
-            >
-              <i className="bi bi-person-circle"></i> Josue
-            </div>
-
-            {showUserMenu && (
-              <div
-                className="user-menu text-center bg-white shadow p-3 rounded"
-                style={{
-                  position: "absolute",
-                  right: 0,
-                  top: "calc(100% + 10px)",
-                  zIndex: 1000,
-                  minWidth: "200px",
-                  border: "1px solid #dee2e6",
-                }}
-              >
-                <p className="mb-2">
-                  Usuario: <strong>josmon07</strong>
-                </p>
-                <hr />
-                <button className="btn btn-danger btn-sm w-100" onClick={CerraSesión}>
-                  <i className="bi bi-box-arrow-right me-2"></i>Cerrar sesión
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Título y Estadísticas */}
+        {/* Contenido */}
         <div className="container-fluid px-4 py-4">
-          <div className="text-center mb-4">
-            <h2 className="fw-bold text-success mb-2">
-              <i className="bi bi-car-front-fill me-2"></i>Gestión de Parqueadero
-            </h2>
-            <p className="text-muted">Administra los espacios de parqueadero en tiempo real</p>
-          </div>
-
           {/* Tarjetas de Estadísticas */}
           <div className="row g-3 mb-4">
             <div className="col-md-4">
-              <div className="card border-0 shadow-sm" style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
+              <div
+                className="card border-0 shadow-sm"
+                style={{
+                  background:
+                    "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                }}
+              >
                 <div className="card-body text-white">
                   <div className="d-flex justify-content-between align-items-center">
                     <div>
                       <h6 className="text-white-50 mb-1">Total Espacios</h6>
                       <h2 className="fw-bold mb-0">{totalEspacios}</h2>
                     </div>
-                    <i className="bi bi-grid-3x3-gap-fill" style={{ fontSize: "3rem", opacity: 0.3 }}></i>
+                    <i
+                      className="bi bi-grid-3x3-gap-fill"
+                      style={{ fontSize: "3rem", opacity: 0.3 }}
+                    ></i>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="col-md-4">
-              <div className="card border-0 shadow-sm" style={{ background: "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)" }}>
+              <div
+                className="card border-0 shadow-sm"
+                style={{
+                  background:
+                    "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)",
+                }}
+              >
                 <div className="card-body text-white">
                   <div className="d-flex justify-content-between align-items-center">
                     <div>
                       <h6 className="text-white-50 mb-1">Espacios Libres</h6>
                       <h2 className="fw-bold mb-0">{espaciosLibres}</h2>
                     </div>
-                    <i className="bi bi-check-circle-fill" style={{ fontSize: "3rem", opacity: 0.3 }}></i>
+                    <i
+                      className="bi bi-check-circle-fill"
+                      style={{ fontSize: "3rem", opacity: 0.3 }}
+                    ></i>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="col-md-4">
-              <div className="card border-0 shadow-sm" style={{ background: "linear-gradient(135deg, #ee0979 0%, #ff6a00 100%)" }}>
+              <div
+                className="card border-0 shadow-sm"
+                style={{
+                  background:
+                    "linear-gradient(135deg, #ee0979 0%, #ff6a00 100%)",
+                }}
+              >
                 <div className="card-body text-white">
                   <div className="d-flex justify-content-between align-items-center">
                     <div>
                       <h6 className="text-white-50 mb-1">Espacios Ocupados</h6>
                       <h2 className="fw-bold mb-0">{espaciosOcupados}</h2>
                     </div>
-                    <i className="bi bi-x-circle-fill" style={{ fontSize: "3rem", opacity: 0.3 }}></i>
+                    <i
+                      className="bi bi-x-circle-fill"
+                      style={{ fontSize: "3rem", opacity: 0.3 }}
+                    ></i>
                   </div>
                 </div>
               </div>
@@ -436,28 +564,46 @@ function SeleccioneParqueadero() {
                 <div className="d-flex align-items-center gap-2">
                   <img src={carroVerde} width="35" alt="Carro Libre" />
                   <span className="fw-semibold text-success">
-                    <i className="bi bi-circle-fill me-1" style={{ fontSize: "0.5rem" }}></i>
+                    <i
+                      className="bi bi-circle-fill me-1"
+                      style={{ fontSize: "0.5rem" }}
+                    ></i>
                     Carro Libre
                   </span>
                 </div>
                 <div className="d-flex align-items-center gap-2">
-                  <img src={motoVerde} width="35" alt="Moto Libre" />
+                  <i
+                    className="fa-solid fa-motorcycle"
+                    style={{ fontSize: "1.6rem", color: "#28a745" }}
+                  ></i>
                   <span className="fw-semibold text-success">
-                    <i className="bi bi-circle-fill me-1" style={{ fontSize: "0.5rem" }}></i>
+                    <i
+                      className="bi bi-circle-fill me-1"
+                      style={{ fontSize: "0.5rem" }}
+                    ></i>
                     Moto Libre
                   </span>
                 </div>
                 <div className="d-flex align-items-center gap-2">
                   <img src={carroRojo} width="35" alt="Carro Ocupado" />
                   <span className="fw-semibold text-danger">
-                    <i className="bi bi-circle-fill me-1" style={{ fontSize: "0.5rem" }}></i>
+                    <i
+                      className="bi bi-circle-fill me-1"
+                      style={{ fontSize: "0.5rem" }}
+                    ></i>
                     Carro Ocupado
                   </span>
                 </div>
                 <div className="d-flex align-items-center gap-2">
-                  <img src={motoRoja} width="35" alt="Moto Ocupada" />
+                  <i
+                    className="fa-solid fa-motorcycle"
+                    style={{ fontSize: "1.6rem", color: "#dc3545" }}
+                  ></i>
                   <span className="fw-semibold text-danger">
-                    <i className="bi bi-circle-fill me-1" style={{ fontSize: "0.5rem" }}></i>
+                    <i
+                      className="bi bi-circle-fill me-1"
+                      style={{ fontSize: "0.5rem" }}
+                    ></i>
                     Moto Ocupada
                   </span>
                 </div>
@@ -527,13 +673,15 @@ function SeleccioneParqueadero() {
                     style={{
                       cursor: "pointer",
                       transition: "all 0.3s ease",
-                      background: p.estadoId === 4 
-                        ? "linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)" 
-                        : "linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)",
+                      background:
+                        p.estadoId === 4
+                          ? "linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)"
+                          : "linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)",
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = "translateY(-5px)";
-                      e.currentTarget.style.boxShadow = "0 8px 20px rgba(0,0,0,0.15)";
+                      e.currentTarget.style.boxShadow =
+                        "0 8px 20px rgba(0,0,0,0.15)";
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = "translateY(0)";
@@ -542,20 +690,27 @@ function SeleccioneParqueadero() {
                   >
                     <div className="card-body text-center p-3">
                       <div className="mb-2">
-                        <img
-                          src={
-                            p.estadoId === 4
-                              ? p.tipoVehiculoId === 2
-                                ? motoVerde
-                                : carroVerde
-                              : p.tipoVehiculoId === 2
-                              ? motoRoja
-                              : carroRojo
-                          }
-                          width="60"
-                          alt={p.estadoId === 4 ? "Libre" : "Ocupado"}
-                          style={{ filter: "drop-shadow(2px 2px 4px rgba(0,0,0,0.2))" }}
-                        />
+                        {p.tipoVehiculoId === 2 ? (
+                          <i
+                            className="fa-solid fa-motorcycle"
+                            style={{
+                              fontSize: "2.5rem",
+                              color: p.estadoId === 4 ? "#28a745" : "#dc3545",
+                              filter:
+                                "drop-shadow(2px 2px 4px rgba(0,0,0,0.2))",
+                            }}
+                          ></i>
+                        ) : (
+                          <img
+                            src={p.estadoId === 4 ? carroVerde : carroRojo}
+                            width="60"
+                            alt={p.estadoId === 4 ? "Libre" : "Ocupado"}
+                            style={{
+                              filter:
+                                "drop-shadow(2px 2px 4px rgba(0,0,0,0.2))",
+                            }}
+                          />
+                        )}
                       </div>
                       <h6 className="fw-bold mb-1">{p.codigoParqueadero}</h6>
                       <span
@@ -573,19 +728,30 @@ function SeleccioneParqueadero() {
 
           {parqueaderosFiltrados.length === 0 && !loading && (
             <div className="text-center py-5">
-              <i className="bi bi-exclamation-circle text-muted" style={{ fontSize: "4rem" }}></i>
-              <p className="text-muted mt-3">No se encontraron espacios con los criterios seleccionados</p>
+              <i
+                className="bi bi-exclamation-circle text-muted"
+                style={{ fontSize: "4rem" }}
+              ></i>
+              <p className="text-muted mt-3">
+                No se encontraron espacios con los criterios seleccionados
+              </p>
             </div>
           )}
         </div>
 
         {/* Modal para ASIGNAR */}
-        <div className="modal fade" id="modalAsignar" tabIndex="-1" aria-hidden="true">
+        <div
+          className="modal fade"
+          id="modalAsignar"
+          tabIndex="-1"
+          aria-hidden="true"
+        >
           <div className="modal-dialog modal-dialog-centered">
             <div className="modal-content border-0 shadow">
               <div className="modal-header bg-success text-white">
                 <h5 className="modal-title">
-                  <i className="bi bi-check-circle me-2"></i>Asignar espacio {slotSeleccionado}
+                  <i className="bi bi-check-circle me-2"></i>Asignar espacio{" "}
+                  {slotSeleccionado}
                 </h5>
                 <button
                   type="button"
@@ -594,9 +760,13 @@ function SeleccioneParqueadero() {
                 ></button>
               </div>
               <div className="modal-body text-center py-4">
-                <i className="bi bi-car-front-fill text-success mb-3" style={{ fontSize: "4rem" }}></i>
+                <i
+                  className="bi bi-car-front-fill text-success mb-3"
+                  style={{ fontSize: "4rem" }}
+                ></i>
                 <p className="fs-5">
-                  ¿Seguro que desea <strong className="text-success">asignar</strong> el espacio{" "}
+                  ¿Seguro que desea{" "}
+                  <strong className="text-success">asignar</strong> el espacio{" "}
                   <strong className="text-success">{slotSeleccionado}</strong>?
                 </p>
               </div>
@@ -616,12 +786,18 @@ function SeleccioneParqueadero() {
         </div>
 
         {/* Modal para LIBERAR */}
-        <div className="modal fade" id="modalLiberar" tabIndex="-1" aria-hidden="true">
+        <div
+          className="modal fade"
+          id="modalLiberar"
+          tabIndex="-1"
+          aria-hidden="true"
+        >
           <div className="modal-dialog modal-dialog-centered">
             <div className="modal-content border-0 shadow">
               <div className="modal-header bg-danger text-white">
                 <h5 className="modal-title">
-                  <i className="bi bi-unlock me-2"></i>Liberar espacio {slotSeleccionado}
+                  <i className="bi bi-unlock me-2"></i>Liberar espacio{" "}
+                  {slotSeleccionado}
                 </h5>
                 <button
                   type="button"
@@ -630,9 +806,13 @@ function SeleccioneParqueadero() {
                 ></button>
               </div>
               <div className="modal-body text-center py-4">
-                <i className="bi bi-unlock-fill text-danger mb-3" style={{ fontSize: "4rem" }}></i>
+                <i
+                  className="bi bi-unlock-fill text-danger mb-3"
+                  style={{ fontSize: "4rem" }}
+                ></i>
                 <p className="fs-5">
-                  ¿Seguro que desea <strong className="text-danger">liberar</strong> el espacio{" "}
+                  ¿Seguro que desea{" "}
+                  <strong className="text-danger">liberar</strong> el espacio{" "}
                   <strong className="text-danger">{slotSeleccionado}</strong>?
                 </p>
               </div>
@@ -650,7 +830,8 @@ function SeleccioneParqueadero() {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

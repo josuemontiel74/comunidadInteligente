@@ -28,7 +28,7 @@ class _ActualizarState extends State<Actualizar> {
     try {
       final response = await http.get(
         Uri.parse(
-          '${LoginServe.baseUrl}/api/BuscarReserva/${widget.idReservas}',
+          '${LoginServe.baseUrl}/api/reservas-areas/${widget.idReservas}',
         ),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
@@ -229,7 +229,7 @@ class _ActualizarState extends State<Actualizar> {
     if (confirmar != true) return;
 
     final url = Uri.parse(
-      '${LoginServe.baseUrl}/api/ActualizarReserva/${widget.idReservas}',
+      '${LoginServe.baseUrl}/api/reservas-areas/${widget.idReservas}',
     );
     Map<String, dynamic> datosActualizar = {};
 

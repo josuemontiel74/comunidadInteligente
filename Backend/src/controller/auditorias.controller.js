@@ -34,6 +34,17 @@ export const obtenerRegistrosAuditoria = async (req, res) => {
             INNER JOIN visitantes vi ON vis.numeroDocumento = vi.numeroDocumento
             WHERE vis.idVisita = a.idRegistroAfectado
           )
+          WHEN a.tablaAfectada = 'reservasareas' THEN (
+            SELECT ac.nombreArea
+            FROM reservasareas ra
+            INNER JOIN areacomun ac ON ra.areaComunId = ac.idAreaComun
+            WHERE ra.idReservas = a.idRegistroAfectado
+          )
+          WHEN a.tablaAfectada = 'parqueaderos' THEN (
+            SELECT p.codigoParqueadero
+            FROM parqueaderos p
+            WHERE p.codigoParqueadero = a.idRegistroAfectado
+          )
           ELSE NULL
         END AS nombreAfectado
       FROM auditorias a

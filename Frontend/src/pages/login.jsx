@@ -4,13 +4,12 @@ import "../Styles/login.css";
 import logo from "../../img/logo.png";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import Lottie from 'lottie-react';
-import animationData from '../animacion/loginSaluda.json';
+import Lottie from "lottie-react";
+import animationData from "../animacion/loginSaluda.json";
 import ingresar from "../animacion/Unlocked.json";
 import Error from "../animacion/Error.json";
 import { handleSubmit as loginService } from "../services/login.serves.jsx";
 function Login() {
-  
   const navigate = useNavigate();
 
   // Bloquear navegación hacia atrás y adelante en login
@@ -19,9 +18,9 @@ function Login() {
     const handlePopState = () => {
       window.history.pushState(null, "", window.location.href);
     };
-    window.addEventListener('popstate', handlePopState);
+    window.addEventListener("popstate", handlePopState);
     return () => {
-      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener("popstate", handlePopState);
     };
   }, []);
 
@@ -43,7 +42,7 @@ function Login() {
     }
 
     try {
-    const data  = await loginService(username,password);
+      const data = await loginService(username, password);
       // Validar que la respuesta contenga los datos esperados antes de usarlos
       if (!data || !data.usuario || !data.token) {
         setErrorAnim(true);
@@ -51,7 +50,8 @@ function Login() {
         return;
       }
       // Guardar datos en localStorage solo cuando la autenticación fue exitosa
-      localStorage.clear();
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.usuario));
       localStorage.setItem("rol", data.usuario.rolesId);
@@ -78,7 +78,6 @@ function Login() {
           text: "No tienes acceso a la aplicacion :(",
         });
       }
-
     } catch (err) {
       console.error(err);
       Swal.fire({
@@ -90,16 +89,10 @@ function Login() {
   };
 
   return (
-
     <div className="login-container">
-
       <div className="login-box w-100 mx-3">
         <div className="text-center mb-4">
-          <img
-            src={logo}
-            alt="Logo Azahar"
-            style={{ maxHeight: "80px" }}
-          />
+          <img src={logo} alt="Logo Azahar" style={{ maxHeight: "80px" }} />
           <h1 className="mt-3 text-success fw-bold">
             Bienvenido al Conjunto Azahar
           </h1>
@@ -107,16 +100,25 @@ function Login() {
         </div>
         <div className="d-flex justify-content-center">
           {!exito && !errorAnim && (
-            <Lottie animationData={animationData} loop={true} autoplay={true} style={{ width: 310, height: 320 }} />
+            <Lottie
+              animationData={animationData}
+              loop={true}
+              autoplay={true}
+              style={{ width: 310, height: 320 }}
+            />
           )}
 
           {exito && (
-            <Lottie animationData={ingresar} loop={false} autoplay={true} style={{ width: 300, height: 300 }} />
+            <Lottie
+              animationData={ingresar}
+              loop={false}
+              autoplay={true}
+              style={{ width: 300, height: 300 }}
+            />
           )}
 
           {errorAnim && (
-            <div style={{ textAlign: 'center', marginTop: '20px' }}>
-
+            <div style={{ textAlign: "center", marginTop: "20px" }}>
               <h5>Usuario o contraseña incorrecta </h5>
               <Lottie
                 animationData={Error}

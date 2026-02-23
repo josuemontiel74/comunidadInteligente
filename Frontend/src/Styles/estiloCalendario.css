@@ -1,9 +1,9 @@
-﻿/* ============================================
-   SELECCION PARQUEADERO - Tema Slate (modern drawer)
+/* ============================================
+   CALENDARIO — Tema Cyan (modern drawer)
    ============================================ */
 
 /* Layout principal */
-.sp-dashboard {
+.cal-dashboard {
   display: flex;
   min-height: 100vh;
   background: #f8f9fa;
@@ -11,7 +11,7 @@
 }
 
 /* ====== OVERLAY & DRAWER ====== */
-.sp-overlay {
+.cal-overlay {
   display: none;
   position: fixed;
   inset: 0;
@@ -19,17 +19,17 @@
   z-index: 999;
   transition: opacity 0.3s;
 }
-.sp-overlay.active {
+.cal-overlay.active {
   display: block;
 }
 
-.sp-drawer {
+.cal-drawer {
   position: fixed;
   right: -310px;
   top: 0;
   width: 310px;
   height: 100vh;
-  background: linear-gradient(180deg, #334155, #475569, #64748b);
+  background: linear-gradient(180deg, #0e7490, #0891b2, #06b6d4);
   color: white;
   z-index: 1000;
   display: flex;
@@ -37,15 +37,15 @@
   transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
 }
-.sp-drawer.open {
+.cal-drawer.open {
   right: 0;
 }
-.sp-drawer-header {
+.cal-drawer-header {
   padding: 28px 20px 20px;
   text-align: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
-.sp-drawer-avatar {
+.cal-drawer-avatar {
   width: 64px;
   height: 64px;
   background: rgba(255, 255, 255, 0.2);
@@ -56,24 +56,24 @@
   margin: 0 auto 12px;
   font-size: 28px;
 }
-.sp-drawer-title {
+.cal-drawer-title {
   font-size: 17px;
   font-weight: 700;
   margin: 0 0 4px;
 }
-.sp-drawer-user {
+.cal-drawer-user {
   font-size: 13px;
   opacity: 0.85;
 }
-.sp-drawer-nav {
+.cal-drawer-nav {
   flex: 1;
   padding: 16px 12px;
   overflow-y: auto;
 }
-.sp-menu-section {
+.cal-menu-section {
   margin-bottom: 16px;
 }
-.sp-menu-section-title {
+.cal-menu-section-title {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -81,7 +81,7 @@
   margin: 0 0 8px 16px;
   font-weight: 700;
 }
-.sp-menu-item {
+.cal-menu-item {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -94,30 +94,30 @@
   transition: background 0.2s;
   margin-bottom: 4px;
 }
-.sp-menu-item:hover {
+.cal-menu-item:hover {
   background: rgba(255, 255, 255, 0.15);
   color: white;
   text-decoration: none;
 }
-.sp-menu-item.active {
+.cal-menu-item.active {
   background: rgba(255, 255, 255, 0.25);
   font-weight: 700;
 }
-.sp-menu-item i:first-child {
+.cal-menu-item i:first-child {
   font-size: 18px;
   width: 24px;
   text-align: center;
 }
-.sp-menu-arrow {
+.cal-menu-arrow {
   margin-left: auto;
   font-size: 12px;
   opacity: 0.6;
 }
-.sp-drawer-footer {
+.cal-drawer-footer {
   padding: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
-.sp-logout-btn {
+.cal-logout-btn {
   width: 100%;
   padding: 12px;
   background: rgba(255, 255, 255, 0.15);
@@ -133,12 +133,12 @@
   gap: 8px;
   transition: background 0.2s;
 }
-.sp-logout-btn:hover {
+.cal-logout-btn:hover {
   background: rgba(255, 255, 255, 0.25);
 }
 
 /* ====== CONTENIDO PRINCIPAL ====== */
-.sp-main {
+.cal-main {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -146,7 +146,7 @@
 }
 
 /* Header */
-.sp-header {
+.cal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -157,45 +157,45 @@
   top: 0;
   z-index: 100;
 }
-.sp-header-group {
+.cal-header-group {
   display: flex;
   align-items: center;
   gap: 16px;
 }
-.sp-logo {
+.cal-logo {
   height: 46px;
   object-fit: contain;
 }
-.sp-title {
+.cal-title {
   font-size: 22px;
   font-weight: 700;
-  color: #475569;
+  color: #0e7490;
   margin: 0;
 }
-.sp-btn-hamburguer {
+.cal-btn-hamburguer {
   background: none;
   border: none;
   font-size: 28px;
-  color: #475569;
+  color: #0e7490;
   cursor: pointer;
   padding: 4px;
   border-radius: 8px;
   transition: background 0.2s;
 }
-.sp-btn-hamburguer:hover {
-  background: #f1f5f9;
+.cal-btn-hamburguer:hover {
+  background: #ecfeff;
 }
 
 /* ====== RESPONSIVE ====== */
 @media (max-width: 768px) {
-  .sp-drawer {
+  .cal-drawer {
     width: 260px;
     right: -260px;
   }
-  .sp-header {
+  .cal-header {
     padding: 10px 16px;
   }
-  .sp-title {
+  .cal-title {
     font-size: 18px;
   }
 }

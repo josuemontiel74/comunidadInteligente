@@ -111,7 +111,7 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
   }
 
   Future<void> crearReserva() async {
-    final url = Uri.parse('${LoginServe.baseUrl}/api/ReservarAreaMovil');
+    final url = Uri.parse('${LoginServe.baseUrl}/api/reservas-areas');
     final response = await http.post(
       url,
       headers: {

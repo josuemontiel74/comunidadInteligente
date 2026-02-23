@@ -4,6 +4,8 @@ import Vehiculo from "../models/vehiculo.model.js";
 import RecepcionPaquetes from "../models/recepcionPaquetes.model.js";
 import ReservarAreas from "../models/reservasAreas.model.js";
 import Visitas from "../models/visitas.model.js";
+import Usuario from "../models/user.model.js";
+import Ocupante from "../models/ocupante.model.js";
 
 /**
  * Obtiene estadísticas de ocupación de parqueaderos
@@ -92,20 +94,21 @@ export const getPaquetesRecibidosHoy = async (req, res) => {
       },
     });
 
-    // Contar paquetes entregados hoy
+    // Contar paquetes entregados hoy (entregados hoy, sin importar cuándo se recibieron)
     const paquetesEntregados = await RecepcionPaquetes.count({
       where: {
-        fechaRecepcion: {
-          [Op.between]: [inicioDelDia, finDelDia],
-        },
         fechaEntrega: {
-          [Op.ne]: null,
+          [Op.between]: [inicioDelDia, finDelDia],
         },
       },
     });
 
-    // Paquetes pendientes de entrega (recibidos hoy)
-    const paquetesPendientes = paquetesRecibidos - paquetesEntregados;
+    // Paquetes pendientes: todos los que no han sido entregados
+    const paquetesPendientes = await RecepcionPaquetes.count({
+      where: {
+        fechaEntrega: null,
+      },
+    });
 
     res.status(200).json({
       success: true,
@@ -220,16 +223,17 @@ export const getResumenDashboard = async (req, res) => {
     });
 
     // Estadísticas de paquetes
-    const paquetesRecibidos = await RecepcionPaquetes.count({
+    // Pendientes: todos los paquetes sin entregar (cualquier fecha de recepción)
+    const paquetesPendientes = await RecepcionPaquetes.count({
       where: {
-        fechaRecepcion: { [Op.between]: [inicioDelDia, finDelDia] },
+        fechaEntrega: null,
       },
     });
 
+    // Entregados hoy: paquetes cuya fecha de entrega es hoy
     const paquetesEntregados = await RecepcionPaquetes.count({
       where: {
-        fechaRecepcion: { [Op.between]: [inicioDelDia, finDelDia] },
-        fechaEntrega: { [Op.ne]: null },
+        fechaEntrega: { [Op.between]: [inicioDelDia, finDelDia] },
       },
     });
 
@@ -238,6 +242,34 @@ export const getResumenDashboard = async (req, res) => {
       where: {
         fechaReserva: { [Op.between]: [inicioDelDia, finDelDia] },
       },
+    });
+
+    // Estadísticas de visitas
+    const visitasHoy = await Visitas.count({
+      where: {
+        fechaHoraIngreso: { [Op.between]: [inicioDelDia, finDelDia] },
+      },
+    });
+
+    // estadoId 8 = Activa/En curso, estadoId 9 = Finalizada
+    const visitasActivas = await Visitas.count({
+      where: {
+        estadoId: 8,
+      },
+    });
+
+    // Estadísticas de usuarios
+    const usuariosActivos = await Usuario.count({
+      where: { estadoId: 1 },
+    });
+
+    const usuariosInactivos = await Usuario.count({
+      where: { estadoId: 2 },
+    });
+
+    // Estadísticas de residentes (ocupantes activos)
+    const residentesActivos = await Ocupante.count({
+      where: { estadoId: 1 },
     });
 
     res.status(200).json({
@@ -250,7 +282,22 @@ export const getResumenDashboard = async (req, res) => {
         },
         paquetes: {
           entregados: paquetesEntregados,
-          pendientes: paquetesRecibidos - paquetesEntregados,
+          pendientes: paquetesPendientes,
+        },
+        reservas: {
+          hoy: reservasHoy,
+        },
+        visitas: {
+          hoy: visitasHoy,
+          activas: visitasActivas,
+        },
+        usuarios: {
+          activos: usuariosActivos,
+          inactivos: usuariosInactivos,
+          total: usuariosActivos + usuariosInactivos,
+        },
+        residentes: {
+          activos: residentesActivos,
         },
       },
     });

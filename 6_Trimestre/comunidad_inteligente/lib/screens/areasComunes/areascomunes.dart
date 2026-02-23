@@ -195,7 +195,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
     if (confirmar != true) return;
 
     final url = Uri.parse(
-      '${LoginServe.baseUrl}/api/ActualizarReserva/$idReservas',
+      '${LoginServe.baseUrl}/api/reservas-areas/$idReservas',
     );
 
     final response = await http.patch(
@@ -241,7 +241,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
 
     try {
       final response = await http.get(
-        Uri.parse('${LoginServe.baseUrl}/api/ReservasAreasComunesMovil'),
+        Uri.parse('${LoginServe.baseUrl}/api/reservas-areas'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',

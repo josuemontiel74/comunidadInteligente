@@ -1,194 +1,765 @@
+/* ============================================================
+   Dashboard Super Admin – Estilo inspirado en Flutter
+   ============================================================ */
 
-html, body {
-  background-color: #f5f7fa; 
+/* ── Reset & base ─────────────────────────────────────────── */
+html,
+body {
+  margin: 0;
   padding: 0;
   min-height: 100vh;
-}
-
-.main-dashboard {
   background-color: #f5f7fa;
-  min-height: 100vh;
+  font-family: "Segoe UI", Arial, sans-serif;
 }
 
 #root {
-  margin: 0 auto;
   width: 100%;
   height: 100%;
 }
 
-.header-bar {
-  background-color: transparent !important;
-  box-shadow: none !important;
-  border: none !important;
-
+/* ── Loading screen ───────────────────────────────────────── */
+.sa-loading-screen {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
+  justify-content: center;
+  min-height: 100vh;
+  background: #f5f7fa;
 }
 
-.logo-img {
-  height: 70px;
-  width: 70px;
-  margin-left: 100px;
+/* ── Dashboard wrapper ────────────────────────────────────── */
+.sa-dashboard {
+  min-height: 100vh;
+  background: #f5f7fa;
 }
 
-.user-menu {
-  position: absolute;
-  top: 60px;
-  right: 0;
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 15px;
-  width: 180px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.15);
-  z-index: 2000;
-  text-align: left;
+/* ============================================================
+   OVERLAY (backdrop del drawer)
+   ============================================================ */
+.sa-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1040;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.sa-overlay.active {
+  opacity: 1;
+  pointer-events: all;
 }
 
-
-.user-menu p {
-  margin: 0;
-  font-size: 0.9rem;
-}
-
-.user-menu .logout-btn {
-  background: none;
-  border: none;
-  color: red;
-  cursor: pointer;
-  margin-top: 10px;
-}
-
-.worker-menu {
+/* ============================================================
+   DRAWER (menú hamburguesa – sale desde la derecha como Flutter)
+   ============================================================ */
+.sa-drawer {
   position: fixed;
   top: 0;
-  left: 0;
-  width: 280px;
+  right: -340px;
+  width: 320px;
   height: 100vh;
-  background-color: #343a40;
+  background: linear-gradient(180deg, #166534, #16a34a, #22c55e);
   color: white;
   z-index: 1050;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+  transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+.sa-drawer.open {
+  right: 0;
 }
 
-.module-card {
-  width:300px;           
-  height: 300px;           
-  border-radius: 12px;
-  overflow: hidden;
-  text-align: center;
-  background: #ffffff;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
-  padding: 15px;
+/* Drawer header */
+.sa-drawer-header {
+  padding: 30px 20px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
-
-.module-card img {
-  width: 100%;
-  height: 150px;           
-  object-fit: cover;
-  border-radius: 8px;
+.sa-drawer-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-
-.module-card h5 {
-  margin-top: 10px;
-  font-weight: bold;
+.sa-drawer-avatar i {
+  font-size: 44px;
+  color: white;
 }
-
-.module-card a {
-  display: inline-block;
-   width: 50px;
-  height: 50px;
-  font-size: 28px;         
-  text-decoration: none;
-  
-}
-
-.dashboard-card {
-  width: 240px;
-  border-radius: 12px;
-  background: #ffffff;
-  text-align: center;
-  padding: 20px;
-  height: 50x;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
-}
-
-.dashboard-card .stat-number {
-  font-size: 32px;
-  font-weight: bold;
-  color: #198754;
-}
-
-.dashboard-card a {
-  display: inline-block;
-  margin-top: 10px;
-  text-decoration: none;
-  color: #ffffff;
-  font-weight: bold;
-  margin-top: -10px;
-}
-
-body, html, .container-fluid {
+.sa-drawer-title {
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
   margin: 0;
-  padding: 0;
-  height: 100%;
-  font-family: Arial, sans-serif;
+}
+.sa-drawer-user {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 15px;
 }
 
-
-
-
-
-.sidebar-header h3 {
-  margin: 0;
-  font-size: 1.2rem;
+/* Drawer body – scrollable */
+.sa-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 12px;
 }
 
-.sidebar-menu {
-  list-style: none;
-  padding: 0;
-  margin-top: 1rem;
+/* Menu sections */
+.sa-menu-section {
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+}
+.sa-menu-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.6;
+  margin: 0 0 8px 16px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
-.sidebar-menu li {
-  padding: 0.8rem 1rem;
-}
-
-.sidebar-menu li a {
+/* Menu items */
+.sa-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
   color: white;
   text-decoration: none;
-  display: block;
-  transition: background 0.3s;
+  font-size: 15px;
+  font-weight: 500;
+  transition: background 0.2s;
+  margin-bottom: 4px;
 }
-
-.sidebar-menu li a:hover {
-  background-color: #495057;
+.sa-menu-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  text-decoration: none;
 }
-
-.main-content {
-  margin-left: 250px;
-  padding: 2rem;
-}
-
-.titulo {
-  margin-bottom: 2rem;
+.sa-menu-item i:first-child {
+  font-size: 20px;
+  color: white;
+  width: 24px;
   text-align: center;
 }
+.sa-menu-item span {
+  flex: 1;
+}
+.sa-menu-arrow {
+  font-size: 12px;
+  opacity: 0.6;
+}
 
-.chart-container {
-  width: 200px;
-  height: 200px;
+/* Drawer footer */
+.sa-drawer-footer {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+}
+.sa-logout-btn {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background 0.2s;
+}
+.sa-logout-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* ============================================================
+   MAIN CONTENT
+   ============================================================ */
+.sa-main {
+  width: 100%;
+  min-height: 100vh;
+  padding-bottom: 60px;
+}
+
+/* ============================================================
+   HEADER / AppBar (como Flutter)
+   ============================================================ */
+.sa-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  min-height: 90px;
+}
+
+.sa-header-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sa-header-btn:hover {
+  background: #f0fdf4;
+}
+.sa-header-btn i {
+  font-size: 28px;
+  color: #22c55e;
+}
+.sa-header-btn:disabled {
+  opacity: 0.5;
+}
+
+.sa-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Logo central (como Flutter) */
+.sa-logo-wrapper {
+  text-decoration: none;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.sa-logo-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #22c55e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.35);
+  transition: transform 0.2s;
+}
+.sa-logo-circle:hover {
+  transform: scale(1.05);
+}
+.sa-logo-img {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #fff;
+  padding: 5px;
+  object-fit: contain;
+}
+
+/* Profile popup */
+.sa-profile-popup {
+  position: absolute;
+  top: 80px;
+  left: 20px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  width: 240px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  z-index: 200;
+  animation: fadeSlideIn 0.2s ease;
+}
+.sa-profile-popup-header {
+  text-align: center;
+  margin-bottom: 12px;
+}
+.sa-profile-icon {
+  font-size: 48px;
+  color: #22c55e;
+}
+.sa-profile-popup p {
+  font-size: 14px;
+  margin: 6px 0;
+  color: #374151;
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================
+   WELCOME SECTION
+   ============================================================ */
+.sa-welcome {
+  text-align: center;
+  padding: 30px 20px 10px;
+}
+.sa-welcome-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+.sa-welcome-sub {
+  font-size: 14px;
+  color: #6b7280;
+  margin-top: 8px;
+}
+
+/* ============================================================
+   MODULE CARDS (tarjetas con gradiente e iconos como Flutter)
+   ============================================================ */
+.sa-modules-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 24px;
+  padding: 30px 40px;
+}
+
+.sa-module-card {
+  width: 180px;
+  height: 210px;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  text-decoration: none;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.sa-module-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0) 60%
+  );
+  pointer-events: none;
+}
+.sa-module-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  color: #fff;
+}
+
+.sa-module-icon-wrap {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sa-module-icon-wrap i {
+  font-size: 42px;
+  color: #fff;
+}
+.sa-module-title {
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  padding: 0 12px;
+  line-height: 1.3;
+}
+
+/* ============================================================
+   STATISTICS SECTION
+   ============================================================ */
+.sa-stats-section {
+  padding: 20px 40px 40px;
+}
+.sa-stats-title {
+  text-align: center;
+  font-size: 26px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 30px;
+}
+
+.sa-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
-.dashboard-card canvas {
-  width: 100% !important;
-  height: 100% !important;
+/* Stat cards */
+.sa-stat-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  text-decoration: none;
+  color: inherit;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
+}
+.sa-stat-card-link:hover {
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.13);
+  transform: translateY(-2px);
+  color: inherit;
+}
+.sa-stat-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.sa-stat-card-header h5 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+/* Bar chart container */
+.sa-bar-chart-container {
+  height: 180px;
+  margin-bottom: 20px;
+}
+
+/* Donut chart container */
+.sa-donut-chart-container {
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+/* Stat summary (paquetes) */
+.sa-stat-summary {
+  background: #eff6ff;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+.sa-stat-summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.sa-stat-big-number {
+  font-size: 30px;
+  font-weight: 700;
+}
+.sa-stat-label {
+  font-size: 13px;
+  color: #6b7280;
+}
+.sa-stat-divider {
+  width: 1px;
+  height: 40px;
+  background: #d1d5db;
+}
+
+/* Legend (parqueaderos) */
+.sa-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sa-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sa-legend-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.sa-legend-label {
+  flex: 1;
+  font-size: 15px;
+  color: #1f2937;
+}
+.sa-legend-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+/* Info card body (reservas, residentes) */
+.sa-info-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
+  margin-bottom: 20px;
+}
+.sa-info-big-value {
+  font-size: 64px;
+  font-weight: 800;
+  line-height: 1;
+}
+.sa-info-sub-label {
+  font-size: 14px;
+  color: #6b7280;
+  margin-top: 8px;
+  text-align: center;
+}
+
+/* Online users card */
+.sa-online-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 0 16px;
+}
+.sa-online-count {
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1;
+}
+.sa-online-label {
+  font-size: 14px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+.sa-online-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 12px;
+}
+.sa-online-users-list::-webkit-scrollbar {
+  width: 4px;
+}
+.sa-online-users-list::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+.sa-online-user-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.sa-online-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+  animation: sa-pulse-dot 2s infinite;
+}
+@keyframes sa-pulse-dot {
+  0%,
+  100% {
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.8);
+  }
+}
+.sa-online-username {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+.sa-online-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+/* ============================================================
+   RESPONSIVE – Mobile first approach
+   ============================================================ */
+
+/* Tablets y pantallas medianas */
+@media (max-width: 900px) {
+  .sa-modules-grid {
+    padding: 20px;
+    gap: 16px;
+  }
+  .sa-module-card {
+    width: 160px;
+    height: 190px;
+  }
+  .sa-module-icon-wrap {
+    width: 65px;
+    height: 65px;
+  }
+  .sa-module-icon-wrap i {
+    font-size: 34px;
+  }
+  .sa-stats-section {
+    padding: 20px;
+  }
+  .sa-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  .sa-stat-card {
+    max-width: 100%;
+  }
+}
+
+/* Móviles */
+@media (max-width: 600px) {
+  .sa-header {
+    padding: 10px 12px;
+    min-height: 70px;
+  }
+  .sa-logo-circle {
+    width: 60px;
+    height: 60px;
+  }
+  .sa-logo-img {
+    width: 44px;
+    height: 44px;
+  }
+  .sa-header-btn i {
+    font-size: 24px;
+  }
+
+  .sa-welcome {
+    padding: 20px 16px 8px;
+  }
+  .sa-welcome-title {
+    font-size: 24px;
+  }
+  .sa-welcome-sub {
+    font-size: 13px;
+  }
+
+  /* Módulos en scroll horizontal como PageView de Flutter */
+  .sa-modules-grid {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding: 16px;
+    gap: 12px;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .sa-modules-grid::-webkit-scrollbar {
+    display: none;
+  }
+  .sa-module-card {
+    min-width: 165px;
+    width: 165px;
+    height: 200px;
+    scroll-snap-align: center;
+    flex-shrink: 0;
+  }
+
+  .sa-stats-section {
+    padding: 16px;
+  }
+  .sa-stats-title {
+    font-size: 22px;
+    margin-bottom: 20px;
+  }
+  .sa-stat-card {
+    padding: 18px;
+  }
+  .sa-stat-card-header h5 {
+    font-size: 15px;
+  }
+  .sa-bar-chart-container,
+  .sa-donut-chart-container {
+    height: 150px;
+  }
+  .sa-stat-big-number {
+    font-size: 24px;
+  }
+
+  .sa-drawer {
+    width: 290px;
+    right: -310px;
+  }
+  .sa-drawer-header {
+    padding: 24px 16px;
+  }
+  .sa-drawer-avatar {
+    width: 65px;
+    height: 65px;
+  }
+  .sa-drawer-avatar i {
+    font-size: 36px;
+  }
+  .sa-drawer-title {
+    font-size: 19px;
+  }
+
+  .sa-profile-popup {
+    left: 10px;
+    width: 220px;
+    top: 70px;
+  }
+}
+
+/* Pantallas extra pequeñas */
+@media (max-width: 380px) {
+  .sa-module-card {
+    min-width: 150px;
+    width: 150px;
+    height: 185px;
+  }
+  .sa-module-icon-wrap {
+    width: 55px;
+    height: 55px;
+  }
+  .sa-module-icon-wrap i {
+    font-size: 28px;
+  }
+  .sa-module-title {
+    font-size: 13px;
+  }
 }

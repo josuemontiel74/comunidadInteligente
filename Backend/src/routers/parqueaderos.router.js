@@ -11,7 +11,7 @@ router.post(
   validate(ParqueaderoSchema.createParqueaderoSchema, "body", true),
   validarJWT,
   validarRol(1, 2),
-  parqueaderosController.createParqueadero
+  parqueaderosController.createParqueadero,
 );
 
 router.get(
@@ -19,14 +19,24 @@ router.get(
   validate(ParqueaderoSchema.getParqueaderoSchema),
   validarJWT,
   validarRol(1, 2, 3),
-  parqueaderosController.mostraParqueaderos
+  parqueaderosController.mostraParqueaderos,
 );
+
+// Solo SuperAdmin (rol 1) puede cambiar el estado de un parqueadero
+// DEBE ir ANTES de /parqueadero/:codigoParqueadero para evitar conflicto de rutas
+router.patch(
+  "/parqueadero/cambiarEstado/:codigoParqueadero",
+  validarJWT,
+  validarRol(1),
+  parqueaderosController.cambiarEstadoParqueadero,
+);
+
 router.get(
   "/parqueadero/:codigoParqueadero",
   validate(ParqueaderoSchema.getParqueaderoSchema, "params", true),
   validarJWT,
   validarRol(1, 2, 3),
-  parqueaderosController.mostraParqueaderosporId
+  parqueaderosController.mostraParqueaderosporId,
 );
 
 router.patch(
@@ -34,7 +44,7 @@ router.patch(
   validate(ParqueaderoSchema.updateParqueaderoSchema, "body", true),
   validarJWT,
   validarRol(1, 2),
-  parqueaderosController.actualizarParqueadero
+  parqueaderosController.actualizarParqueadero,
 );
 
 router.delete(
@@ -42,7 +52,7 @@ router.delete(
   validate(ParqueaderoSchema.getParqueaderoSchema, "params", true),
   validarJWT,
   validarRol(1, 2),
-  parqueaderosController.eliminarParqueadero
+  parqueaderosController.eliminarParqueadero,
 );
 
 export default router;

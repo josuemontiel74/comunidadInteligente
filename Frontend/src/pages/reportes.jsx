@@ -1,1077 +1,1505 @@
-import React, { useEffect, useRef, useState } from "react";
-import Swal from 'sweetalert2';
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import Swal from "sweetalert2";
 import { Link, useNavigate } from "react-router-dom";
 import Chart from "chart.js/auto";
-import "../Styles/dashboardSuperAdmin.css";
-import logo from "../../img/logo.png";
-import * as echarts from "echarts";
-import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap-icons/font/bootstrap-icons.css';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
+import { jsPDF } from "jspdf";
+import { logoutUsuario } from "../services/gestionUsuarios.jsx";
+import {
+  obtenerReporteParqueaderos,
+  obtenerReporteVisitas,
+  obtenerReportePaquetes,
+  obtenerReporteReservas,
+  obtenerReporteOcupacion,
+  obtenerReporteNinos,
+  obtenerReportePoblacionEspecial,
+} from "../services/reportes.services.jsx";
+import "../Styles/reportes.css";
 
-// URL base del backend
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// ============================================================================
+// HELPERS
+// ============================================================================
+const toInt = (v) => {
+  if (v == null) return 0;
+  const n = parseInt(v, 10);
+  return isNaN(n) ? 0 : n;
+};
 
+const calcPct = (val, total) =>
+  total > 0 ? ((val / total) * 100).toFixed(1) : "0.0";
+
+const formatDateStr = (d) => {
+  const date = new Date(d);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+};
+
+const formatFechaDisplay = (str) => {
+  if (!str) return "N/A";
+  try {
+    const p = str.split("-");
+    if (p.length === 3) {
+      const meses = [
+        "",
+        "Ene",
+        "Feb",
+        "Mar",
+        "Abr",
+        "May",
+        "Jun",
+        "Jul",
+        "Ago",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dic",
+      ];
+      return `${p[2]} ${meses[parseInt(p[1])]} ${p[0]}`;
+    }
+  } catch {
+    /* ignore */
+  }
+  return str;
+};
+
+const hexToRgb = (hex) => {
+  const h = hex.replace("#", "");
+  return [
+    parseInt(h.substring(0, 2), 16),
+    parseInt(h.substring(2, 4), 16),
+    parseInt(h.substring(4, 6), 16),
+  ];
+};
+
+// ============================================================================
+// COMPONENTE PRINCIPAL
+// ============================================================================
 function Reportes() {
-    const navigator = useNavigate();
-    const chartRef = useRef(null);
-    const areasChartRef = useRef(null);
-    const visitasChartRef = useRef(null);
-    const paqueteriaChartRef = useRef(null);
-
-    const [showUserMenu, setShowUserMenu] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [usuario, setUsuario] = useState(null);
-    const [totalVisitas, setTotalVisitas] = useState(0);
-    const [totalPaquetes, setTotalPaquetes] = useState(0);
-    const [parqueaderos, setParqueaderos] = useState([]);
-    
-    // Token y roles
-    const verificarTokenVencido = (token) => {
-        try {
-            const payload = JSON.parse(atob(token.split(".")[1]));
-            const fechaExp = payload.exp * 1000;
-            return Date.now() >= fechaExp;
-        } catch (err) {
-            return true;
-        }
-    };
-
-    const obtenerRolDelToken = (token) => {
-        try {
-            const payload = JSON.parse(atob(token.split(".")[1]));
-            return payload.rolesId;
-        } catch (err) {
-            return null;
-        }
-    };
-
-    const token = localStorage.getItem('token');
-    const tokenValido = token && !verificarTokenVencido(token);
-    const rolesId = token ? obtenerRolDelToken(token) : null;
-    const showUserManagement = tokenValido && rolesId === 1; // solo SuperAdmin
-    const showAreasComunes = tokenValido && rolesId !== 3; // ocultar para Vigilante (3)
-    const [verificadorRol, setVerificadorRol] = useState(rolesId || null);
-
-    useEffect(() => {
-        setVerificadorRol(rolesId || null);
-    }, [rolesId]);
-
-    const [reporte, setReporte] = useState([]);
-    const [paqueteriaRecords, setPaqueteriaRecords] = useState([]);
-    const [tipoReporte, setTipoReporte] = useState(3);
-    const [separateMetricPages, setSeparateMetricPages] = useState(false);
-    const [printingMode, setPrintingMode] = useState(false);
-    const paqRecRef = useRef(null);
-    const paqPendRef = useRef(null);
-    const paqEntRef = useRef(null);
-    const paqRecChartInstance = useRef(null);
-    const paqPendChartInstance = useRef(null);
-    const paqEntChartInstance = useRef(null);
-
-    // Estados para los filtros de fecha
-    const [anioInicio, setAnioInicio] = useState(new Date().getFullYear());
-    const [anioFin, setAnioFin] = useState(new Date().getFullYear());
-    const [mesInicio, setMesInicio] = useState(1);
-    const [mesFin, setMesFin] = useState(12);
-    const [mesSemana, setMesSemana] = useState(new Date().getMonth() + 1);
-    const [anioSemana, setAnioSemana] = useState(new Date().getFullYear());
-
-    // Generar array de años (últimos 10 años + próximos 2)
-    const generarAnios = () => {
-        const anioActual = new Date().getFullYear();
-        const anios = [];
-        for (let i = anioActual - 10; i <= anioActual + 2; i++) {
-            anios.push(i);
-        }
-        return anios;
-    };
-
-    const meses = [
-        { valor: 1, nombre: 'Enero' },
-        { valor: 2, nombre: 'Febrero' },
-        { valor: 3, nombre: 'Marzo' },
-        { valor: 4, nombre: 'Abril' },
-        { valor: 5, nombre: 'Mayo' },
-        { valor: 6, nombre: 'Junio' },
-        { valor: 7, nombre: 'Julio' },
-        { valor: 8, nombre: 'Agosto' },
-        { valor: 9, nombre: 'Septiembre' },
-        { valor: 10, nombre: 'Octubre' },
-        { valor: 11, nombre: 'Noviembre' },
-        { valor: 12, nombre: 'Diciembre' }
-    ];
-
-    // Construir rango según tipo de reporte
-    const construirRango = () => {
-        if (tipoReporte === 1) {
-            return {
-                fechaInicio: `${anioInicio}-01-01`,
-                fechaFin: `${anioFin}-12-31`
-            };
-        } else if (tipoReporte === 2) {
-            return {
-                fechaInicio: `${anioInicio}-${String(mesInicio).padStart(2, '0')}-01`,
-                fechaFin: `${anioFin}-${String(mesFin).padStart(2, '0')}-31`
-            };
-        } else if (tipoReporte === 3) {
-            return {
-                fechaInicio: `${anioSemana}-${String(mesSemana).padStart(2, '0')}-01`,
-                fechaFin: `${anioSemana}-${String(mesSemana).padStart(2, '0')}-31`
-            };
-        }
-        return { fechaInicio: null, fechaFin: null };
-    };
-
-    // Descargar como PDF (implementación avanzada con html2canvas + jsPDF)
-    const downloadPDF = async () => {
-        console.log(' Iniciando generación de PDF...');
-        setPrintingMode(true);
-        const sidebar = document.getElementById('menuTrabajador');
-        const mainContent = document.querySelector('.main-content');
-        const logoEl = document.querySelector('.logo-img');
-        const elementsToHide = document.querySelectorAll('.no-print');
-
-        const graficos = [
-            { selector: '.card.border-success .card-body > div', titulo: 'Áreas Comunes', color: '#198754' },
-            { selector: '.card.border-info .card-body > div', titulo: 'Visitas', color: '#0dcaf0' },
-            { selector: '.card.border-primary .card-body > div', titulo: 'Paquetería', color: '#0d6efd' },
-            { selector: '#parqueoChart', titulo: 'Estado de Parqueaderos', color: '#dc3545' }
-        ];
-
-        // Guardar estados originales
-        const originalStates = {
-            sidebarDisplay: sidebar?.style.display || '',
-            mainWidth: mainContent?.style.width || '',
-            mainMaxWidth: mainContent?.style.maxWidth || '',
-            elementsDisplay: Array.from(elementsToHide).map(el => el.style.display)
-        };
-
-        try {
-            // Aplicar cambios de UI para captura
-            if (sidebar) sidebar.style.display = 'none';
-            if (mainContent) {
-                mainContent.style.width = '100%';
-                mainContent.style.maxWidth = '100%';
-            }
-            elementsToHide.forEach(el => el.style.display = 'none');
-
-            // Esperar short delay para que el DOM se re-renderice
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = pdf.internal.pageSize.getHeight();
-            const margin = 15; // mm
-            const contentWidth = pageWidth - margin * 2;
-            const contentHeight = pageHeight - margin * 2;
-
-            // Agregar logo centrado si existe
-            if (logoEl) {
-                try {
-                    const logoCanvas = await html2canvas(logoEl, { scale: 2.5, backgroundColor: '#ffffff', useCORS: true, allowTaint: true, logging: false });
-                    const logoData = logoCanvas.toDataURL('image/png');
-                    const logoW = 30; // mm
-                    const logoH = (logoCanvas.height * logoW) / logoCanvas.width;
-                    const x = (pageWidth - logoW) / 2;
-                    pdf.addImage(logoData, 'PNG', x, margin, logoW, logoH);
-                } catch (err) {
-                    console.warn(' No se pudo capturar el logo:', err);
-                }
-            } else {
-                console.warn('Logo no encontrado, continúo sin logo');
-            }
-
-            // Título y fecha en la primera página
-            const tituloY = margin + 35;
-            pdf.setFontSize(18);
-            pdf.setTextColor('#111111');
-            pdf.text('Reportes del conjunto', pageWidth / 2, tituloY, { align: 'center' });
-            pdf.setFontSize(11);
-            const fechaStr = new Date().toLocaleString('es-ES');
-            pdf.text(`Generado el: ${fechaStr}`, pageWidth / 2, tituloY + 8, { align: 'center' });
-
-            let cursorY = tituloY + 16;
-
-            // Recorremos los gráficos
-            for (let i = 0; i < graficos.length; i++) {
-                const g = graficos[i];
-                const el = document.querySelector(g.selector);
-                console.log(` Capturando: ${g.titulo} -> selector: ${g.selector}`);
-
-                if (!el) {
-                    console.warn(`Gráfico no encontrado: ${g.selector}`);
-                    continue;
-                }
-
-                try {
-                    const canvas = await html2canvas(el, {
-                        scale: 2.5,
-                        backgroundColor: '#ffffff',
-                        useCORS: true,
-                        allowTaint: true,
-                        logging: false,
-                        removeContainer: false
-                    });
-
-                    // Preparar título de sección
-                    if (cursorY + 12 > contentHeight) {
-                        pdf.addPage();
-                        cursorY = margin;
-                    }
-                    pdf.setFontSize(13);
-                    const rgb = (hex) => {
-                        const h = hex.replace('#','');
-                        return [parseInt(h.substring(0,2),16), parseInt(h.substring(2,4),16), parseInt(h.substring(4,6),16)];
-                    };
-                    pdf.setTextColor(...rgb(g.color));
-                    pdf.text(` ${g.titulo}`, margin, cursorY + 6);
-                    pdf.setTextColor('#111111');
-
-                    // Convertir y ajustar tamaño al ancho disponible
-                    const imgData = canvas.toDataURL('image/png');
-                    const imgWidthMM = contentWidth;
-                    const imgHeightMM = (canvas.height * imgWidthMM) / canvas.width;
-
-                    // Si la imagen entra en la página actual
-                    if (cursorY + imgHeightMM <= pageHeight - margin) {
-                        pdf.addImage(imgData, 'PNG', margin, cursorY + 10, imgWidthMM, imgHeightMM);
-                        cursorY += imgHeightMM + 18;
-                    } else {
-                        // Si es muy alta, la cortamos en secciones y ponemos cada sección en páginas sucesivas
-                        const pxPerMm = canvas.width / imgWidthMM; // px per mm
-                        const maxHeightPxPerPage = Math.floor((pageHeight - margin - (cursorY + 10 - margin)) * pxPerMm);
-                        let remainingY = 0;
-                        while (remainingY < canvas.height) {
-                            const sliceHeightPx = Math.min(maxHeightPxPerPage, canvas.height - remainingY);
-                            const tmpCanvas = document.createElement('canvas');
-                            tmpCanvas.width = canvas.width;
-                            tmpCanvas.height = sliceHeightPx;
-                            const ctx = tmpCanvas.getContext('2d');
-                            ctx.drawImage(canvas, 0, remainingY, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx);
-                            const sliceData = tmpCanvas.toDataURL('image/png');
-                            const sliceHeightMM = (sliceHeightPx * imgWidthMM) / canvas.width;
-
-                            // Si no cabe en la página actual, crear nueva página
-                            if (cursorY + sliceHeightMM > pageHeight - margin) {
-                                pdf.addPage();
-                                cursorY = margin;
-                                // Re-escribir título en nueva página
-                                pdf.setFontSize(13);
-                                pdf.setTextColor(...rgb(g.color));
-                                pdf.text(` ${g.titulo} (continuación)`, margin, cursorY + 6);
-                                pdf.setTextColor('#111111');
-                                cursorY += 12;
-                            }
-
-                            pdf.addImage(sliceData, 'PNG', margin, cursorY + 10, imgWidthMM, sliceHeightMM);
-                            cursorY += sliceHeightMM + 6;
-                            remainingY += sliceHeightPx;
-                        }
-                        cursorY += 6;
-                    }
-
-                    // Añadir un pequeño separador y si queda poco espacio, nueva página
-                    if (cursorY + 40 > pageHeight - margin) {
-                        pdf.addPage();
-                        cursorY = margin;
-                    }
-
-                } catch (err) {
-                    console.error(` Error capturando gráfico ${g.titulo}:`, err);
-                }
-            }
-
-            // Numeración de páginas
-            const totalPages = pdf.getNumberOfPages();
-            for (let p = 1; p <= totalPages; p++) {
-                pdf.setPage(p);
-                pdf.setFontSize(10);
-                pdf.setTextColor('#666666');
-                pdf.text(`Página ${p} de ${totalPages}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
-            }
-
-            // Guardar PDF
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const fileName = `Reporte_Conjunto_${timestamp}.pdf`;
-            pdf.save(fileName);
-            console.log(' PDF generado exitosamente:', fileName);
-
-        } catch (error) {
-            console.error(' Error general generando PDF:', error);
-            alert('Error al generar el PDF. Revisa la consola para más detalles.');
-        } finally {
-            // Restaurar estados
-            try {
-                if (sidebar) sidebar.style.display = originalStates.sidebarDisplay;
-                if (mainContent) {
-                    mainContent.style.width = originalStates.mainWidth;
-                    mainContent.style.maxWidth = originalStates.mainMaxWidth;
-                }
-                elementsToHide.forEach((el, idx) => el.style.display = originalStates.elementsDisplay[idx] || '');
-            } catch (err) {
-                console.warn('⚠️ Error restaurando estado original:', err);
-            }
-            setPrintingMode(false);
-        }
-    };
-
-    // Verificar usuario
-    useEffect(() => {
-        const token = localStorage.getItem("token");
-        const userGuardado = localStorage.getItem("user");
-
-        if (!token) {
-            Swal.fire({ 
-                icon: 'warning', 
-                title: 'Sesión expirada', 
-                text: 'La sesión expiró. Vuelva a iniciar sesión.', 
-                timer: 2000, 
-                showConfirmButton: false, 
-                timerProgressBar: true 
-            }).then(() => {
-                localStorage.clear();
-                navigator('/');
-            });
-            return;
-        }
-
-        if (userGuardado) {
-            try {
-                const usuarioParsed = JSON.parse(userGuardado);
-                setUsuario(usuarioParsed);
-                setLoading(false);
-            } catch (error) {
-                console.error("Error parseando usuario:", error);
-                localStorage.clear();
-                navigator("/");
-            }
-        }
-    }, [navigator]);
-
-    // Obtener reporte de parqueaderos
-    useEffect(() => {
-        async function fetchParqueaderos() {
-            const token = localStorage.getItem("token");
-            if (!token) return;
-
-            try {
-                const rango = construirRango();
-                console.log("🚗 Fetching parqueaderos con rango:", rango);
-                const res = await fetch(
-                    `${API_URL}/api/reportes/parqueaderos?fechaInicio=${rango.fechaInicio}&fechaFin=${rango.fechaFin}`,
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    }
-                );
-                const data = await res.json();
-                console.log(" Respuesta parqueaderos:", data);
-                if (data.success && data.data) {
-                    setParqueaderos(data.data.resumenActual || []);
-                    console.log(" Parqueaderos seteados:", data.data.resumenActual);
-                } else {
-                    console.warn(" No hay datos de parqueaderos");
-                }
-            } catch (error) {
-                console.error(" Error cargando parqueaderos:", error);
-            }
-        }
-        fetchParqueaderos();
-    }, [tipoReporte, anioInicio, anioFin, mesInicio, mesFin, mesSemana, anioSemana]);
-
-    // Obtener datos de áreas comunes (reservas)
-    useEffect(() => {
-        async function fetchAreacomunes() {
-            const token = localStorage.getItem("token");
-            if (!token) return;
-            
-            try {
-                const rango = construirRango();
-                console.log("Fetching reservas con rango:", rango);
-                const res = await fetch(
-                    `${API_URL}/api/reportes/reservas?fechaInicio=${rango.fechaInicio}&fechaFin=${rango.fechaFin}`,
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    }
-                );
-                const data = await res.json();
-                console.log(" Respuesta reservas:", data);
-
-                if (data.success && data.data && data.data.porArea) {
-                    setReporte(data.data.porArea);
-                    console.log("Reservas seteadas:", data.data.porArea);
-                } else {
-                    console.warn("No hay datos en el reporte de reservas");
-                    setReporte([]);
-                }
-            } catch (error) {
-                console.error(" Error cargando áreas comunes:", error);
-                setReporte([]);
-            }
-        }
-        fetchAreacomunes();
-    }, [tipoReporte, anioInicio, anioFin, mesInicio, mesFin, mesSemana, anioSemana]);
-
-    // Gráfico de Áreas Comunes
-    useEffect(() => {
-        if (!areasChartRef.current) {
-            console.log(" No hay referencia al chart de áreas");
-            return;
-        }
-
-        console.log("Iniciando gráfico de áreas comunes con datos:", reporte);
-
-        const myChart = echarts.init(areasChartRef.current);
-
-        if (!reporte || reporte.length === 0) {
-            console.log("Sin datos para graficar áreas comunes");
-            myChart.clear();
-            myChart.setOption({
-                title: { text: 'Áreas Comunes (Sin información en la fecha elegida.)', left: 'center' }
-            });
-            return () => myChart.dispose();
-        }
-
-        const areas = reporte.map(r => r.nombreArea);
-        const cantidades = reporte.map(r => parseInt(r.cantidad || 0));
-        
-        console.log(" Áreas:", areas);
-        console.log(" Cantidades:", cantidades);
-
-        const option = {
-            title: {
-                text: 'Reservas por Área Común',
-                left: 'center'
-            },
-            tooltip: { trigger: 'axis' },
-            legend: { top: 'bottom' },
-            grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
-            xAxis: { type: 'category', data: areas, axisLabel: { rotate: 45 } },
-            yAxis: { type: 'value', name: 'Reservas' },
-            series: [{
-                data: cantidades,
-                type: 'bar',
-                barMaxWidth: '60%',
-                itemStyle: { color: '#198754' }
-            }]
-        };
-
-        myChart.setOption(option, true);
-        console.log(" Gráfico de áreas comunes renderizado");
-
-        const resizeChart = () => myChart.resize();
-        window.addEventListener('resize', resizeChart);
-
-        return () => {
-            window.removeEventListener('resize', resizeChart);
-            myChart.dispose();
-        };
-    }, [reporte, tipoReporte]);
-
-    // Gráfico de Visitas
-    useEffect(() => {
-        async function fetchVisitasReporte() {
-            const token = localStorage.getItem('token');
-            if (!token || !visitasChartRef.current) return;
-
-            const rango = construirRango();
-            try {
-                console.log('Llamando a reportes/visitas con rango:', rango);
-                const res = await fetch(
-                    `${API_URL}/api/reportes/visitas?fechaInicio=${rango.fechaInicio}&fechaFin=${rango.fechaFin}`,
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    }
-                );
-                console.log('Respuesta reportes/visitas status:', res.status);
-                const data = await res.json();
-                console.log('Datos visitas:', data);
-
-                const myChart = echarts.init(visitasChartRef.current);
-
-                if (!data.success || !data.data || !data.data.porDia || data.data.porDia.length === 0) {
-                    myChart.clear();
-                    myChart.setOption({ title: { text: 'Visitas (sin datos)', left: 'center' } });
-                    return;
-                }
-
-                const registros = data.data.porDia;
-                const fechas = registros.map(d => {
-                    const fecha = new Date(d.fecha);
-                    return fecha.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
-                });
-                const cantidades = registros.map(d => parseInt(d.cantidad || 0));
-
-                const option = {
-                    title: {
-                        text: 'Visitas Registradas ',
-                        left: 'center'
-                    },
-                    tooltip: {
-                        trigger: 'axis',
-                        axisPointer: { type: 'shadow' },
-                        formatter: function (params) {
-                            const p = params[0];
-                            return `${p.axisValueLabel}<br/>Visitas: <strong>${p.data}</strong>`;
-                        }
-                    },
-                    xAxis: { type: 'category', data: fechas, axisLabel: { rotate: 45 } },
-                    yAxis: { type: 'value', name: 'Visitas' },
-                    series: [{ data: cantidades, type: 'bar', barMaxWidth: '48%', itemStyle: { color: '#0d6efd' } }]
-                };
-
-                myChart.setOption(option, true);
-
-                const resizeChart = () => myChart.resize();
-                window.addEventListener('resize', resizeChart);
-
-                return () => {
-                    window.removeEventListener('resize', resizeChart);
-                    myChart.dispose();
-                };
-
-            } catch (error) {
-                console.error('Error cargando reporte de visitas:', error);
-            }
-        }
-
-        fetchVisitasReporte();
-    }, [loading, tipoReporte, anioInicio, anioFin, mesInicio, mesFin, mesSemana, anioSemana]);
-
-    // Gráfico de Paquetería
-    useEffect(() => {
-        async function fetchPaqueteriaReporte() {
-            const token = localStorage.getItem('token');
-            if (!token || !paqueteriaChartRef.current) return;
-
-            const rango = construirRango();
-            try {
-                console.log('Llamando a reportes/paquetes con rango:', rango);
-                const res = await fetch(
-                    `${API_URL}/api/reportes/paquetes?fechaInicio=${rango.fechaInicio}&fechaFin=${rango.fechaFin}`,
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    }
-                );
-                console.log('Respuesta reportes/paquetes status:', res.status);
-                const data = await res.json();
-                console.log('Datos paquetería:', data);
-
-                const myChart = echarts.init(paqueteriaChartRef.current);
-
-                if (!data.success || !data.data || !data.data.porDia || data.data.porDia.length === 0) {
-                    myChart.clear();
-                    myChart.setOption({ title: { text: 'Paquetería (sin datos)', left: 'center' } });
-                    return;
-                }
-
-                const registros = data.data.porDia;
-                const fechas = registros.map(d => {
-                    const fecha = new Date(d.fecha);
-                    return fecha.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
-                });
-                const cantidades = registros.map(d => parseInt(d.cantidad || 0));
-
-                // Construir datos para las tres series (esto es una aproximación, ajusta según tu backend)
-                const recibidos = cantidades;
-                const pendientes = registros.map(() => data.data.pendientes || 0);
-                const entregados = registros.map(() => data.data.entregados || 0);
-
-                const option = {
-                    title: { 
-                        text: 'Paquetería Recibida', 
-                        left: 'center' 
-                    },
-                    tooltip: { trigger: 'axis' },
-                    legend: { top: 'bottom' },
-                    xAxis: { type: 'category', data: fechas, axisLabel: { rotate: 45 } },
-                    yAxis: { type: 'value', name: 'Paquetes' },
-                    series: [
-                        { 
-                            name: 'Recibidos', 
-                            data: recibidos, 
-                            type: 'line', 
-                            smooth: true, 
-                            itemStyle: { color: '#0d6efd' }, 
-                            areaStyle: { color: 'rgba(13,110,253,0.12)' } 
-                        }
-                    ]
-                };
-
-                myChart.setOption(option, true);
-
-                const resizeChart = () => myChart.resize();
-                window.addEventListener('resize', resizeChart);
-
-                return () => {
-                    window.removeEventListener('resize', resizeChart);
-                    myChart.dispose();
-                };
-
-            } catch (error) {
-                console.error('Error cargando paquetería:', error);
-            }
-        }
-
-        fetchPaqueteriaReporte();
-    }, [loading, tipoReporte, anioInicio, anioFin, mesInicio, mesFin, mesSemana, anioSemana]);
-
-    // Gráfico de Parqueaderos
-    useEffect(() => {
-        if (loading) return;
-
-        const ctx = document.getElementById("parqueoChart");
-        if (!ctx) return;
-
-        if (chartRef.current) {
-            chartRef.current.destroy();
-        }
-
-        const espaciosLibres = parqueaderos.reduce((sum, p) => sum + parseInt(p.disponibles || 0), 0);
-        const espaciosOcupados = parqueaderos.reduce((sum, p) => sum + parseInt(p.ocupados || 0), 0);
-
-        chartRef.current = new Chart(ctx, {
-            type: "doughnut",
-            data: {
-                labels: ["Ocupados", "Disponibles"],
-                datasets: [{
-                    data: [espaciosOcupados, espaciosLibres],
-                    backgroundColor: ["#dc3545", "#198754"]
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: "bottom" },
-                    title: {
-                        display: true,
-                        text: 'Estado de Parqueaderos'
-                    }
-                }
-            }
+  const navigate = useNavigate();
+
+  // --- Auth ---
+  const [usuario, setUsuario] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  const token = localStorage.getItem("token");
+  const obtenerRol = (t) => {
+    try {
+      return JSON.parse(atob(t.split(".")[1])).rolesId;
+    } catch {
+      return null;
+    }
+  };
+  const rolesId = token ? obtenerRol(token) : null;
+  const showUserManagement = rolesId === 1;
+  const showAreasComunes = rolesId !== 3;
+
+  // --- Filtros de fecha ---
+  const hoy = new Date();
+  const hace30 = new Date(hoy);
+  hace30.setDate(hoy.getDate() - 30);
+  const [fechaInicio, setFechaInicio] = useState(formatDateStr(hace30));
+  const [fechaFin, setFechaFin] = useState(formatDateStr(hoy));
+
+  // --- Datos de reportes ---
+  const [rptParqueaderos, setRptParqueaderos] = useState(null);
+  const [rptVisitas, setRptVisitas] = useState(null);
+  const [rptPaquetes, setRptPaquetes] = useState(null);
+  const [rptReservas, setRptReservas] = useState(null);
+  const [rptOcupacion, setRptOcupacion] = useState(null);
+  const [rptNinos, setRptNinos] = useState(null);
+  const [rptPoblacion, setRptPoblacion] = useState(null);
+
+  // --- Refs Charts ---
+  const parkingChartRef = useRef(null);
+  const parkingInstance = useRef(null);
+  const visitasChartRef = useRef(null);
+  const visitasInstance = useRef(null);
+
+  // ============================================================================
+  // AUTH CHECK
+  // ============================================================================
+  useEffect(() => {
+    const t = localStorage.getItem("token");
+    const u = localStorage.getItem("user");
+    if (!t) {
+      Swal.fire({
+        icon: "warning",
+        title: "Sesión expirada",
+        text: "Vuelva a iniciar sesión.",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+      setTimeout(() => navigate("/"), 2100);
+      return;
+    }
+    try {
+      const payload = JSON.parse(atob(t.split(".")[1]));
+      if (Date.now() >= payload.exp * 1000) {
+        Swal.fire({
+          icon: "warning",
+          title: "Sesión expirada",
+          timer: 2000,
+          showConfirmButton: false,
         });
+        setTimeout(() => {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          navigate("/");
+        }, 2100);
+        return;
+      }
+    } catch {
+      navigate("/");
+      return;
+    }
+    if (u) {
+      try {
+        setUsuario(JSON.parse(u));
+      } catch {
+        /* ignore */
+      }
+    }
+    setLoading(false);
+  }, [navigate]);
 
-        return () => {
-            if (chartRef.current) {
-                chartRef.current.destroy();
-            }
-        };
-    }, [parqueaderos, loading]);
+  // ============================================================================
+  // CARGAR REPORTES
+  // ============================================================================
+  const cargarReportes = useCallback(async () => {
+    const t = localStorage.getItem("token");
+    if (!t) return;
+    setDataLoading(true);
+    try {
+      const [parq, vis, paq, res, ocup, ninos, pobl] = await Promise.all([
+        obtenerReporteParqueaderos(t, fechaInicio, fechaFin),
+        obtenerReporteVisitas(t, fechaInicio, fechaFin),
+        obtenerReportePaquetes(t, fechaInicio, fechaFin),
+        obtenerReporteReservas(t, fechaInicio, fechaFin),
+        obtenerReporteOcupacion(t),
+        obtenerReporteNinos(t),
+        obtenerReportePoblacionEspecial(t),
+      ]);
+      setRptParqueaderos(parq);
+      setRptVisitas(vis);
+      setRptPaquetes(paq);
+      setRptReservas(res);
+      setRptOcupacion(ocup);
+      setRptNinos(ninos);
+      setRptPoblacion(pobl);
+    } catch (err) {
+      console.error("Error cargando reportes:", err);
+    }
+    setDataLoading(false);
+  }, [fechaInicio, fechaFin]);
 
-    const cerrarSesión = (e) => {
-        e.preventDefault();
-        localStorage.clear();
-        navigator("/");
+  useEffect(() => {
+    if (!loading) cargarReportes();
+  }, [loading, cargarReportes]);
+
+  // ============================================================================
+  // CHARTS
+  // ============================================================================
+  // Donut Parqueaderos
+  useEffect(() => {
+    if (!rptParqueaderos || !parkingChartRef.current) return;
+    if (parkingInstance.current) parkingInstance.current.destroy();
+    const resumen = rptParqueaderos.resumenActual || [];
+    const ocupados = resumen.reduce((s, r) => s + toInt(r.ocupados), 0);
+    const disponibles = resumen.reduce((s, r) => s + toInt(r.disponibles), 0);
+    parkingInstance.current = new Chart(parkingChartRef.current, {
+      type: "doughnut",
+      data: {
+        labels: ["Ocupados", "Disponibles"],
+        datasets: [
+          {
+            data: [ocupados, disponibles],
+            backgroundColor: ["#ef4444", "#22c55e"],
+            borderWidth: 2,
+            borderColor: "#fff",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: "65%",
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: { padding: 16, usePointStyle: true },
+          },
+        },
+      },
+    });
+    return () => {
+      if (parkingInstance.current) parkingInstance.current.destroy();
+    };
+  }, [rptParqueaderos]);
+
+  // Bar Chart Visitas
+  useEffect(() => {
+    if (!rptVisitas || !visitasChartRef.current) return;
+    if (visitasInstance.current) visitasInstance.current.destroy();
+    const porDia = rptVisitas.porDia || [];
+    if (porDia.length === 0) return;
+    const labels = porDia.map((d) => {
+      const f = new Date(d.fecha);
+      return f.toLocaleDateString("es-CO", { day: "2-digit", month: "short" });
+    });
+    const data = porDia.map((d) => toInt(d.cantidad));
+    visitasInstance.current = new Chart(visitasChartRef.current, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Visitas",
+            data,
+            backgroundColor: "#8b5cf6",
+            borderRadius: 6,
+            barPercentage: 0.7,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { maxRotation: 45 } },
+          y: { beginAtZero: true, grid: { color: "#f1f5f9" } },
+        },
+      },
+    });
+    return () => {
+      if (visitasInstance.current) visitasInstance.current.destroy();
+    };
+  }, [rptVisitas]);
+
+  // ============================================================================
+  // CERRAR SESIÓN
+  // ============================================================================
+  const cerrarSesion = async (e) => {
+    e.preventDefault();
+    const t = localStorage.getItem("token");
+    if (t) await logoutUsuario(t);
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/");
+  };
+
+  // ============================================================================
+  // EXPORTAR PDF
+  // ============================================================================
+  const exportarPDF = () => {
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pw = pdf.internal.pageSize.getWidth();
+    const ph = pdf.internal.pageSize.getHeight();
+    const m = 15;
+    let y = m;
+
+    const checkPage = (h) => {
+      if (y + h > ph - m) {
+        pdf.addPage();
+        y = m;
+      }
     };
 
-    if (loading) {
-        return <h2 className="text-center text-success mt-5">Verificando sesión...</h2>;
+    const sectionTitle = (text, color) => {
+      checkPage(14);
+      pdf.setFontSize(14);
+      pdf.setTextColor(...hexToRgb(color));
+      pdf.text(text, m, y);
+      y += 8;
+      pdf.setTextColor(30, 30, 30);
+    };
+
+    const stat = (label, value) => {
+      checkPage(7);
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, "normal");
+      pdf.text(`${label}:`, m + 5, y);
+      pdf.setFont(undefined, "bold");
+      const labelW = pdf.getTextWidth(`${label}: `);
+      pdf.text(String(value), m + 5 + labelW + 2, y);
+      pdf.setFont(undefined, "normal");
+      y += 6;
+    };
+
+    const progressBar = (label, val, total, fillColor) => {
+      checkPage(14);
+      const pct = total > 0 ? val / total : 0;
+      pdf.setFontSize(9);
+      pdf.text(
+        `${label}: ${val}/${total} (${(pct * 100).toFixed(1)}%)`,
+        m + 5,
+        y,
+      );
+      y += 5;
+      pdf.setFillColor(230, 230, 230);
+      pdf.rect(m + 5, y, 120, 4, "F");
+      pdf.setFillColor(...hexToRgb(fillColor));
+      if (pct > 0) pdf.rect(m + 5, y, 120 * pct, 4, "F");
+      y += 8;
+    };
+
+    const divider = () => {
+      checkPage(6);
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(m, y, pw - m, y);
+      y += 6;
+    };
+
+    // ====== HEADER ======
+    pdf.setFillColor(124, 58, 237);
+    pdf.rect(0, 0, pw, 38, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(20);
+    pdf.text("Reporte General - Comunidad Inteligente", pw / 2, 16, {
+      align: "center",
+    });
+    pdf.setFontSize(11);
+    pdf.text(`Período: ${fechaInicio}  a  ${fechaFin}`, pw / 2, 25, {
+      align: "center",
+    });
+    pdf.setFontSize(9);
+    pdf.text(`Generado: ${new Date().toLocaleString("es-CO")}`, pw / 2, 33, {
+      align: "center",
+    });
+    pdf.setTextColor(30, 30, 30);
+    y = 48;
+
+    // ====== PARQUEADEROS ======
+    sectionTitle("REPORTE DE PARQUEADEROS", "#7c3aed");
+    const resumen = rptParqueaderos?.resumenActual || [];
+    let totalParq = 0,
+      totalOcup = 0,
+      totalDisp = 0;
+    let carrosOcup = 0,
+      carrosTotal = 0,
+      motosOcup = 0,
+      motosTotal = 0;
+    resumen.forEach((r) => {
+      const nom = (r.nombreVehiculo || "").toLowerCase();
+      const t = toInt(r.totalParqueaderos),
+        o = toInt(r.ocupados),
+        d = toInt(r.disponibles);
+      totalParq += t;
+      totalOcup += o;
+      totalDisp += d;
+      if (nom === "carro") {
+        carrosOcup = o;
+        carrosTotal = t;
+      }
+      if (nom === "moto") {
+        motosOcup = o;
+        motosTotal = t;
+      }
+    });
+    stat("Total Parqueaderos", totalParq);
+    stat("Ocupados", `${totalOcup} (${calcPct(totalOcup, totalParq)}%)`);
+    stat("Disponibles", `${totalDisp} (${calcPct(totalDisp, totalParq)}%)`);
+    progressBar("Carros", carrosOcup, carrosTotal, "#3b82f6");
+    progressBar("Motos", motosOcup, motosTotal, "#f97316");
+    divider();
+
+    // ====== VISITAS ======
+    sectionTitle("REPORTE DE VISITAS", "#22c55e");
+    stat("Total Visitas", toInt(rptVisitas?.totalVisitas));
+    if (rptVisitas?.diaConMasVisitas) {
+      stat(
+        "Día con más visitas",
+        `${rptVisitas.diaConMasVisitas.fecha} (${toInt(rptVisitas.diaConMasVisitas.cantidad)} visitas)`,
+      );
+    }
+    const porVeh = rptVisitas?.porVehiculo || [];
+    porVeh.forEach((v) => stat(v.tipo, toInt(v.cantidad)));
+    divider();
+
+    // ====== PAQUETES ======
+    sectionTitle("REPORTE DE PAQUETES", "#a855f7");
+    const totalPaq = toInt(rptPaquetes?.totalPaquetes);
+    const entregados = toInt(rptPaquetes?.entregados);
+    const pendientes = toInt(rptPaquetes?.pendientes);
+    stat("Total Paquetes", totalPaq);
+    progressBar("Entregados", entregados, totalPaq, "#22c55e");
+    progressBar("Pendientes", pendientes, totalPaq, "#f97316");
+    divider();
+
+    // ====== RESERVAS ======
+    sectionTitle("REPORTE DE RESERVAS", "#7c3aed");
+    stat("Total Reservas", toInt(rptReservas?.totalReservas));
+    stat("Promedio Asistentes", rptReservas?.promedioAsistentes || 0);
+    if (rptReservas?.diaConMasReservas) {
+      stat(
+        "Día pico",
+        `${rptReservas.diaConMasReservas.fecha} (${toInt(rptReservas.diaConMasReservas.cantidad)} reservas)`,
+      );
+    }
+    const porArea = rptReservas?.porArea || [];
+    if (porArea.length > 0) {
+      checkPage(10);
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, "bold");
+      pdf.text("Ranking de áreas:", m + 5, y);
+      pdf.setFont(undefined, "normal");
+      y += 6;
+      porArea.slice(0, 5).forEach((a) => {
+        progressBar(
+          a.nombreArea || "N/A",
+          toInt(a.cantidad),
+          toInt(rptReservas.totalReservas),
+          "#8b5cf6",
+        );
+      });
+    }
+    divider();
+
+    // ====== RESIDENTES HEADER ======
+    checkPage(16);
+    pdf.setFillColor(245, 243, 255);
+    pdf.rect(m, y - 4, pw - m * 2, 12, "F");
+    pdf.setFontSize(16);
+    pdf.setTextColor(109, 40, 217);
+    pdf.text("REPORTES DE RESIDENTES", m + 5, y + 4);
+    pdf.setTextColor(30, 30, 30);
+    y += 16;
+
+    // ====== OCUPACIÓN POR TORRES ======
+    sectionTitle("Ocupación por Torres", "#7c3aed");
+    const oc = rptOcupacion || {};
+    stat("Total Apartamentos", toInt(oc.totalApartamentos));
+    stat("Ocupados", toInt(oc.apartamentosOcupados));
+    stat("Vacíos", toInt(oc.apartamentosVacios));
+    stat("Total Residentes", toInt(oc.totalResidentes));
+    stat("% Ocupación", `${oc.porcentajeOcupacion || 0}%`);
+    const torres = oc.detallePorTorre || [];
+    if (torres.length > 0) {
+      checkPage(10);
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, "bold");
+      pdf.text("Resumen por Torre:", m + 5, y);
+      pdf.setFont(undefined, "normal");
+      y += 6;
+      torres.forEach((t) => {
+        stat(
+          `${t.nombreTorre} — Aptos: ${toInt(t.totalApartamentos)}, Ocupados: ${toInt(t.apartamentosOcupados)}, Personas: ${toInt(t.totalPersonas)}`,
+          "",
+        );
+      });
+    }
+    divider();
+
+    // ====== NIÑOS ======
+    sectionTitle("Niños en la Comunidad", "#ec4899");
+    const ni = rptNinos || {};
+    stat("Total Niños", toInt(ni.totalNinos));
+    stat("Aptos con Niños", toInt(ni.totalApartamentosConNinos));
+    stat("Apartamentos con Niños", toInt(ni.totalApartamentosConNinos));
+    divider();
+
+    // ====== POBLACIÓN ESPECIAL ======
+    sectionTitle("Población Especial", "#6366f1");
+    const pe = rptPoblacion || {};
+    stat("Adultos Mayores (60+)", toInt(pe.totalAdultosMayores));
+    stat("Personas con Discapacidad", toInt(pe.totalDiscapacidad));
+    stat(
+      "Total Población Especial",
+      toInt(pe.totalAdultosMayores) + toInt(pe.totalDiscapacidad),
+    );
+
+    // ====== PÁGINA NUMBERS ======
+    const totalPages = pdf.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      pdf.setPage(p);
+      pdf.setFontSize(8);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text(`Página ${p} de ${totalPages}`, pw / 2, ph - 6, {
+        align: "center",
+      });
+      pdf.text("Comunidad Inteligente", pw - m, ph - 6, { align: "right" });
     }
 
+    pdf.save(`Reporte_Comunidad_${new Date().toISOString().split("T")[0]}.pdf`);
+    Swal.fire({
+      icon: "success",
+      title: "PDF generado",
+      text: "El reporte se descargó correctamente.",
+      timer: 2500,
+      showConfirmButton: false,
+    });
+  };
+
+  // ============================================================================
+  // RENDER HELPERS
+  // ============================================================================
+  const StatRow = ({ icon, label, value, color }) => (
+    <div className="rpt-stat-row">
+      <div className="stat-icon" style={{ background: `${color}15`, color }}>
+        <i
+          className={
+            icon.startsWith("fa-") ? `fa-solid ${icon}` : `bi bi-${icon}`
+          }
+        ></i>
+      </div>
+      <span className="stat-label">{label}</span>
+      <span className="stat-value" style={{ color }}>
+        {value}
+      </span>
+    </div>
+  );
+
+  const ProgressBar = ({ label, value, total, color }) => {
+    const pct = total > 0 ? (value / total) * 100 : 0;
     return (
-        <div className="main-dashboard dashboard-container d-flex">
-            <aside id="menuTrabajador" className="worker-menu bg-success text-white">
-                <div className="p-3 d-flex flex-column h-100">
-                    <div className="d-flex align-items-center gap-3 mb-4">
-                        <div className="user-circle bg-white d-flex align-items-center justify-content-center"
-                            style={{ width: "50px", height: "50px", borderRadius: "50%" }}>
-                            <span className="fw-bold text-success">
-                                {usuario?.username?.substring(0, 2).toUpperCase() || "US"}
-                            </span>
-                        </div>
-                        <div className="d-flex flex-column">
-                            <span className="fw-semibold text-white">
-                                {usuario?.username || usuario?.nombre || "Usuario"}
-                            </span>
-                            <span className="fw-semibold text-white">Super Admin</span>
-                            <span className="small text-white-50">Sesión activa</span>
-                        </div>
-                    </div>
-
-                    <h5 className="mb-3 mx-4">Menú Super Admin</h5>
-
-                    <div className="mb-4">
-                        <h6 className="text-uppercase fw-bold">Gestión de Paquetes</h6>
-                        <ul className="nav flex-column mt-2 gap-2">
-                            <li>
-                                <Link className="nav-link text-white" to="/Paqueteria" state={{ abrirModal: true }}>
-                                    Registrar Paquete
-                                </Link>
-                            </li>
-                            <li>
-                                <Link className="nav-link text-white" to="/Paqueteria">
-                                    Historial de Paquetes
-                                </Link>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <div className="mb-4">
-                        <h6 className="text-uppercase fw-bold">Gestión de Visitas</h6>
-                        <ul className="nav flex-column mt-2 gap-2">
-                            <li>
-                                <Link className="nav-link text-white" to="/visitas" state={{ abrirModal: true }}>
-                                    Crear Visita
-                                </Link>
-                            </li>
-                            <li>
-                                <Link className="nav-link text-white" to="/visitas">
-                                    Consultar Visitas
-                                </Link>
-                            </li>
-                            <li>
-                                <Link className="nav-link text-white" to="/parqueaderos">
-                                    Consultar Parqueaderos
-                                </Link>
-                            </li>
-                        </ul>
-                    </div>
-
-                    {showAreasComunes && (
-                        <div className="mb-4">
-                            <h6 className="text-uppercase fw-bold">Gestión de Áreas Comunes</h6>
-                            <ul className="nav flex-column mt-2 gap-2">
-                                <li>
-                                    <Link className="nav-link text-white" to="/AreasComunes">
-                                        Registrar Reserva
-                                    </Link>
-                                </li>
-                            </ul>
-                        </div>
-                    )}
-
-                    {showUserManagement && (
-                        <div className="mb-4">
-                            <h6 className="text-uppercase fw-bold">Gestión de Usuarios</h6>
-                            <ul className="nav flex-column mt-2 gap-2">
-                                <li>
-                                    <Link className="nav-link text-white" to="/GestionUsuario" state={{ abrirModal: true }}>
-                                        Registrar Usuario
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link className="nav-link text-white" to="/GestionUsuario">
-                                        Consultar Usuarios
-                                    </Link>
-                                </li>
-                            </ul>
-                        </div>
-                    )}
-
-                    <div className="mb-4">
-                        <h6 className="text-uppercase fw-bold">Gestión Residentes</h6>
-                        <ul className="nav flex-column mt-2 gap-2">
-                            <li>
-                                <Link className="nav-link text-white" to="/Residentes" state={{ abrirModal: true }}>
-                                    Crear Residente
-                                </Link>
-                            </li>
-                            <li>
-                                <Link className="nav-link text-white" to="/Residentes">
-                                    Consultar Residente
-                                </Link>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <div className="mt-auto text-center logout-container">
-                        <button onClick={cerrarSesión} className="btn btn-light w-100">
-                            Cerrar sesión
-                        </button>
-                    </div>
-                </div>
-            </aside>
-
-            <div className="main-content flex-grow-1">
-                <div className="container-md d-flex align-items-center justify-content-between px-3 py-2">
-                    <div className="logo-container text-center flex-grow-1">
-                        <Link to="/Superadmin">
-                            <img src={logo} alt="Logo del sistema" className="logo-img" />
-                        </Link>
-                    </div>
-                    <div className="position-relative">
-                        <div
-                            className="btn btn-outline-success d-flex align-items-center gap-2"
-                            onClick={() => setShowUserMenu(!showUserMenu)}
-                            style={{ cursor: "pointer" }}
-                        >
-                            {usuario?.username || usuario?.nombre || "Usuario"}
-                        </div>
-                        {showUserMenu && (
-                            <div className="user-menu text-center">
-                                <p>
-                                    Usuario: <strong>{usuario?.username || usuario?.nombre || "Usuario"}</strong>
-                                </p>
-                                <p>
-                                    Rol: <strong>Super Admin</strong>
-                                </p>
-                                <hr />
-                                <div className="text-center">
-                                    <button onClick={cerrarSesión} className="btn btn-danger d-block mx-auto">
-                                        Cerrar sesión
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-                
-                <div className="text-center mt-3 my-4">
-                    <h3 className="fw-bold"> Reportes del conjunto</h3>
-                </div>
-
-                <div id="report-container" className="container-fluid px-4">
-
-                    <div className={`d-flex justify-content-end gap-2 mb-3 ${printingMode ? 'd-none' : ''} no-print`}>
-
-                    </div>
-                    {/* Botones de tipo de reporte */}
-                    <div className={`d-flex flex-wrap justify-content-center gap-3 mb-4 ${printingMode ? 'd-none' : ''} no-print`}>
-
-                        <button className="btn btn-danger d-flex align-items-center px-4 shadow-sm fw-semibold"
-                            onClick={() => downloadPDF()}>
-                            <i className="bi bi-filetype-pdf me-2 fs-5"></i>
-                            Descargar PDF
-                        </button>
-
-                        <button
-                            onClick={() => setTipoReporte(2)}
-                            className={`btn d-flex align-items-center px-4 shadow-sm fw-semibold 
-            ${tipoReporte === 2 ? 'btn-success' : 'btn-outline-success'}`}
-                        >
-                            <i className="bi bi-calendar-month me-2 fs-5"></i>
-                            Reporte por Mes
-                        </button>
-
-                        <button
-                            onClick={() => setTipoReporte(1)}
-                            className={`btn d-flex align-items-center px-4 shadow-sm fw-semibold 
-            ${tipoReporte === 1 ? 'btn-success' : 'btn-outline-success'}`}
-                        >
-                            <i className="bi bi-calendar-range me-2 fs-5"></i>
-                            Reporte por Año
-                        </button>
-
-                        <button
-                            onClick={() => setTipoReporte(3)}
-                            className={`btn d-flex align-items-center px-4 shadow-sm fw-semibold 
-            ${tipoReporte === 3 ? 'btn-success' : 'btn-outline-success'}`}
-                        >
-                            <i className="bi bi-calendar-week me-2 fs-5"></i>
-                            Reporte por Semanas
-                        </button>
-
-                    </div>
-
-
-                    {/* Filtros según tipo de reporte */}
-                    <div className={`card border-0 shadow-lg mb-4 ${printingMode ? 'd-none' : ''} no-print`}>
-                        <div className="card-header bg-success text-white py-3">
-                            <h5 className="mb-0">
-                                <i className="bi bi-funnel-fill me-2"></i> Filtros de Fecha
-                            </h5>
-                        </div>
-
-                        <div className="card-body">
-
-                            <h5 className="card-title mb-3">
-                                <i className="bi bi-funnel me-2"></i>
-                                Filtros de Fecha
-                            </h5>
-
-                            {/* Filtros para reporte por año */}
-                            {tipoReporte === 1 && (
-                                <div className="row g-4">
-                                    <div className="col-md-6">
-                                        <label className="form-label fw-bold">Año Inicio</label>
-                                        <select className="form-select shadow-sm"
-                                            value={anioInicio}
-                                            onChange={(e) => setAnioInicio(parseInt(e.target.value))}
-                                        >
-                                            {generarAnios().map(anio => (
-                                                <option key={anio} value={anio}>{anio}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    <div className="col-md-6">
-                                        <label className="form-label fw-bold">Año Fin</label>
-                                        <select className="form-select shadow-sm"
-                                            value={anioFin}
-                                            onChange={(e) => setAnioFin(parseInt(e.target.value))}
-                                        >
-                                            {generarAnios().map(anio => (
-                                                <option key={anio} value={anio}>{anio}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-                            )}
-
-
-                            {/* Filtros para reporte por mes */}
-                            {tipoReporte === 2 && (
-                                <div className="row g-4">
-                                    <div className="col-md-3">
-                                        <label className="form-label fw-bold">Mes Inicio</label>
-                                        <select className="form-select shadow-sm"
-                                            value={mesInicio}
-                                            onChange={(e) => setMesInicio(parseInt(e.target.value))}
-                                        >
-                                            {meses.map(m => (
-                                                <option key={m.valor} value={m.valor}>{m.nombre}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    <div className="col-md-3">
-                                        <label className="form-label fw-bold">Año Inicio</label>
-                                        <select className="form-select shadow-sm"
-                                            value={anioInicio}
-                                            onChange={(e) => setAnioInicio(parseInt(e.target.value))}
-                                        >
-                                            {generarAnios().map(anio => (
-                                                <option key={anio} value={anio}>{anio}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    <div className="col-md-3">
-                                        <label className="form-label fw-bold">Mes Fin</label>
-                                        <select className="form-select shadow-sm"
-                                            value={mesFin}
-                                            onChange={(e) => setMesFin(parseInt(e.target.value))}
-                                        >
-                                            {meses.map(m => (
-                                                <option key={m.valor} value={m.valor}>{m.nombre}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    <div className="col-md-3">
-                                        <label className="form-label fw-bold">Año Fin</label>
-                                        <select className="form-select shadow-sm"
-                                            value={anioFin}
-                                            onChange={(e) => setAnioFin(parseInt(e.target.value))}
-                                        >
-                                            {generarAnios().map(anio => (
-                                                <option key={anio} value={anio}>{anio}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Filtros para reporte por semana */}
-                            {tipoReporte === 3 && (
-                                <div className="row g-4">
-                                    <div className="col-md-6">
-                                        <label className="form-label fw-bold">Mes</label>
-                                        <select className="form-select shadow-sm"
-                                            value={mesSemana}
-                                            onChange={(e) => setMesSemana(parseInt(e.target.value))}
-                                        >
-                                            {meses.map(m => (
-                                                <option key={m.valor} value={m.valor}>{m.nombre}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    <div className="col-md-6">
-                                        <label className="form-label fw-bold">Año</label>
-                                        <select className="form-select shadow-sm"
-                                            value={anioSemana}
-                                            onChange={(e) => setAnioSemana(parseInt(e.target.value))}
-                                        >
-                                            {generarAnios().map(anio => (
-                                                <option key={anio} value={anio}>{anio}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-                            )}
-
-                        </div>
-                    </div>
-
-                    {/* Gráficos */}
-                    <div className="row g-4">
-                        <div className="col-md-12">
-                            <div className="card shadow-sm border-success">
-                                <div className="card-header bg-success text-white">
-                                    <h5 className="mb-0">
-                                        <i className="bi bi-graph-up me-2"></i>
-                                        Áreas Comunes
-                                    </h5>
-                                </div>
-                                <div className="card-body overflow-auto" style={{ maxHeight: '100%' }}>
-                                    <div ref={areasChartRef} style={{ width: '100%', height: '400px' }}>
-
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="col-md-12">
-                            <div className="card shadow-sm border-info">
-                                <div className="card-header bg-info text-white">
-                                    <h5 className="mb-0">
-                                        <i className="bi bi-calendar-event me-2"></i>
-                                        Visitas
-                                    </h5>
-                                </div>
-                                <div className="card-body">
-                                    <div ref={visitasChartRef} style={{ width: '100%', height: '300px' }}></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="col-md-12">
-                            <div className="card shadow-sm border-primary">
-                                <div className="card-header bg-primary text-white">
-                                    <h5 className="mb-0">
-                                        <i className="bi bi-box-seam me-2"></i>
-                                        Paquetería
-                                    </h5>
-                                </div>
-                                <div className="card-body">
-                                    <div ref={paqueteriaChartRef} style={{ width: '100%', height: '300px' }}></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="col-md-12">
-                            <div className="card shadow-sm border-danger">
-                                <div className="card-header bg-danger text-white">
-                                    <h5 className="mb-0">
-                                        <i className="bi bi-car-front me-2"></i>
-                                        Estado de Parqueaderos
-                                    </h5>
-                                </div>
-                                <div className="card-body">
-                                    <canvas id="parqueoChart" style={{ maxHeight: '300px' }}></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+      <div className="rpt-progress">
+        <div className="progress-header">
+          <span className="progress-label">{label}</span>
+          <span className="progress-pct">{pct.toFixed(1)}%</span>
         </div>
+        <div className="progress-track">
+          <div
+            className="progress-fill"
+            style={{ width: `${pct}%`, background: color }}
+          ></div>
+        </div>
+      </div>
     );
+  };
+
+  const CircularStat = ({ icon, label, value, color }) => (
+    <div className="rpt-circular-stat">
+      <div
+        className="circle-icon"
+        style={{ background: `${color}15`, color, borderColor: color }}
+      >
+        <i className={`bi bi-${icon}`}></i>
+      </div>
+      <div className="circle-value" style={{ color }}>
+        {value}
+      </div>
+      <div className="circle-label">{label}</div>
+    </div>
+  );
+
+  // ============================================================================
+  // RENDER - DATOS EXTRAÍDOS
+  // ============================================================================
+  const resumenP = rptParqueaderos?.resumenActual || [];
+  const totalParqueaderos = resumenP.reduce(
+    (s, r) => s + toInt(r.totalParqueaderos),
+    0,
+  );
+  const totalOcupados = resumenP.reduce((s, r) => s + toInt(r.ocupados), 0);
+  const totalDisponibles = resumenP.reduce(
+    (s, r) => s + toInt(r.disponibles),
+    0,
+  );
+
+  let carrosOcupados = 0,
+    carrosTotal = 0,
+    motosOcupadas = 0,
+    motosTotal = 0;
+  resumenP.forEach((r) => {
+    const nom = (r.nombreVehiculo || "").toLowerCase();
+    if (nom === "carro") {
+      carrosOcupados = toInt(r.ocupados);
+      carrosTotal = toInt(r.totalParqueaderos);
+    }
+    if (nom === "moto") {
+      motosOcupadas = toInt(r.ocupados);
+      motosTotal = toInt(r.totalParqueaderos);
+    }
+  });
+
+  const totalVisitas = toInt(rptVisitas?.totalVisitas);
+  const diaConMasVisitas = rptVisitas?.diaConMasVisitas;
+  const porVehiculo = rptVisitas?.porVehiculo || [];
+
+  const totalPaquetes = toInt(rptPaquetes?.totalPaquetes);
+  const paqEntregados = toInt(rptPaquetes?.entregados);
+  const paqPendientes = toInt(rptPaquetes?.pendientes);
+
+  const totalReservas = toInt(rptReservas?.totalReservas);
+  const reservasPorArea = rptReservas?.porArea || [];
+  const reservasPorEstado = rptReservas?.porEstado || [];
+  const promedioAsistentes = rptReservas?.promedioAsistentes || 0;
+  const diaConMasReservas = rptReservas?.diaConMasReservas;
+
+  const picoOcupacion = (rptParqueaderos?.picoOcupacion || []).slice(0, 8);
+  const maxPico =
+    picoOcupacion.length > 0
+      ? Math.max(...picoOcupacion.map((h) => toInt(h.cantidadVisitas)))
+      : 1;
+
+  const oc = rptOcupacion || {};
+  const ninosData = rptNinos || {};
+  const poblData = rptPoblacion || {};
+
+  // ============================================================================
+  // LOADING & AUTH GUARD
+  // ============================================================================
+  if (loading) {
+    return (
+      <div className="rpt-loading">
+        <div className="rpt-spinner"></div>
+        <p style={{ color: "#7c3aed", fontWeight: 600 }}>
+          Verificando sesión...
+        </p>
+      </div>
+    );
+  }
+
+  // ============================================================================
+  // JSX RETURN
+  // ============================================================================
+  return (
+    <div className="rpt-dashboard">
+      {/* ===================== OVERLAY ===================== */}
+      <div
+        className={`rpt-overlay ${menuOpen ? "active" : ""}`}
+        onClick={() => setMenuOpen(false)}
+      />
+
+      {/* ===================== DRAWER ===================== */}
+      <aside className={`rpt-drawer ${menuOpen ? "open" : ""}`}>
+        <div className="rpt-drawer-header">
+          <div className="rpt-drawer-avatar">
+            <i className="bi bi-shield-lock-fill"></i>
+          </div>
+          <h4 className="rpt-drawer-title">
+            {rolesId === 1
+              ? "Menú Super Admin"
+              : rolesId === 2
+                ? "Menú Admin"
+                : "Menú Vigilante"}
+          </h4>
+          <span className="rpt-drawer-user">
+            {usuario?.username || "Usuario"}
+          </span>
+        </div>
+
+        <div className="rpt-drawer-body">
+          <div className="rpt-menu-section">
+            <h6 className="rpt-menu-section-title">Navegación</h6>
+            <Link
+              className="rpt-menu-item"
+              to={
+                rolesId === 1
+                  ? "/Superadmin"
+                  : rolesId === 2
+                    ? "/Admin"
+                    : "/Vigilante"
+              }
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-speedometer2"></i>
+              <span>Dashboard</span>
+              <i className="bi bi-chevron-right rpt-menu-arrow"></i>
+            </Link>
+            <Link
+              className="rpt-menu-item active"
+              to="/Reportes"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-graph-up-arrow"></i>
+              <span>Reportes</span>
+              <i className="bi bi-chevron-right rpt-menu-arrow"></i>
+            </Link>
+          </div>
+
+          <div className="rpt-menu-section">
+            <h6 className="rpt-menu-section-title">Módulos</h6>
+            <Link
+              className="rpt-menu-item"
+              to="/Paqueteria"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-box-seam"></i>
+              <span>Paquetería</span>
+              <i className="bi bi-chevron-right rpt-menu-arrow"></i>
+            </Link>
+            <Link
+              className="rpt-menu-item"
+              to="/visitas"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-people"></i>
+              <span>Visitas</span>
+              <i className="bi bi-chevron-right rpt-menu-arrow"></i>
+            </Link>
+            <Link
+              className="rpt-menu-item"
+              to="/parqueaderos"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-p-circle"></i>
+              <span>Parqueaderos</span>
+              <i className="bi bi-chevron-right rpt-menu-arrow"></i>
+            </Link>
+            {showAreasComunes && (
+              <Link
+                className="rpt-menu-item"
+                to="/AreasComunes"
+                onClick={() => setMenuOpen(false)}
+              >
+                <i className="bi bi-calendar2-week"></i>
+                <span>Áreas Comunes</span>
+                <i className="bi bi-chevron-right rpt-menu-arrow"></i>
+              </Link>
+            )}
+            {showAreasComunes && (
+              <Link
+                className="rpt-menu-item"
+                to="/Residentes"
+                onClick={() => setMenuOpen(false)}
+              >
+                <i className="bi bi-house-door"></i>
+                <span>Residentes</span>
+                <i className="bi bi-chevron-right rpt-menu-arrow"></i>
+              </Link>
+            )}
+            {showUserManagement && (
+              <Link
+                className="rpt-menu-item"
+                to="/GestionUsuario"
+                onClick={() => setMenuOpen(false)}
+              >
+                <i className="bi bi-person-gear"></i>
+                <span>Gestión Usuarios</span>
+                <i className="bi bi-chevron-right rpt-menu-arrow"></i>
+              </Link>
+            )}
+          </div>
+        </div>
+
+        <div className="rpt-drawer-footer">
+          <button className="rpt-logout-btn" onClick={cerrarSesion}>
+            <i className="bi bi-box-arrow-right"></i>
+            Cerrar Sesión
+          </button>
+        </div>
+      </aside>
+
+      {/* ===================== MAIN ===================== */}
+      <div className="rpt-main">
+        {/* Header */}
+        <header className="rpt-header">
+          <button
+            className="rpt-header-btn"
+            onClick={() => navigate(-1)}
+            title="Volver"
+          >
+            <i className="bi bi-arrow-left"></i>
+          </button>
+          <div className="rpt-header-center">
+            <h5 className="rpt-header-title">Reportes y Estadísticas</h5>
+          </div>
+          <div className="rpt-header-actions">
+            <button
+              className="rpt-header-btn"
+              onClick={cargarReportes}
+              disabled={dataLoading}
+              title="Actualizar"
+            >
+              <i
+                className={`bi ${dataLoading ? "bi-hourglass-split" : "bi-arrow-clockwise"}`}
+              ></i>
+            </button>
+            <button
+              className="rpt-header-btn rpt-hamburger"
+              onClick={() => setMenuOpen(true)}
+              title="Abrir menú"
+            >
+              <i className="bi bi-list"></i>
+            </button>
+          </div>
+        </header>
+
+        {/* Título */}
+        <div className="rpt-page-title">
+          <h3>
+            <i className="bi bi-graph-up-arrow me-2"></i>Reportes y Estadísticas
+          </h3>
+          <p>Consulta los datos de tu comunidad en tiempo real</p>
+        </div>
+
+        {/* Filtros */}
+        <div className="rpt-filter-bar">
+          <div className="filter-row">
+            <div className="filter-group">
+              <label>
+                <i className="bi bi-calendar-event me-1"></i>Desde
+              </label>
+              <input
+                type="date"
+                value={fechaInicio}
+                onChange={(e) => setFechaInicio(e.target.value)}
+              />
+            </div>
+            <div className="filter-group">
+              <label>
+                <i className="bi bi-calendar-check me-1"></i>Hasta
+              </label>
+              <input
+                type="date"
+                value={fechaFin}
+                onChange={(e) => setFechaFin(e.target.value)}
+              />
+            </div>
+            <button
+              className="btn-actualizar"
+              onClick={cargarReportes}
+              disabled={dataLoading}
+            >
+              <i className="bi bi-arrow-clockwise"></i>
+              {dataLoading ? "Cargando..." : "Actualizar"}
+            </button>
+            <button
+              className="btn-pdf"
+              onClick={exportarPDF}
+              disabled={dataLoading}
+            >
+              <i className="bi bi-filetype-pdf"></i>
+              Exportar PDF
+            </button>
+          </div>
+        </div>
+
+        {/* Contenido */}
+        <div className="rpt-content">
+          {dataLoading ? (
+            <div className="rpt-loading" style={{ minHeight: "40vh" }}>
+              <div className="rpt-spinner"></div>
+              <p style={{ color: "#7c3aed" }}>Cargando reportes...</p>
+            </div>
+          ) : (
+            <>
+              {/* ==================== PARQUEADEROS ==================== */}
+              <div className="rpt-card">
+                <div className="rpt-card-header">
+                  <div
+                    className="header-icon"
+                    style={{ background: "#dbeafe", color: "#2563eb" }}
+                  >
+                    <i className="bi bi-p-circle-fill"></i>
+                  </div>
+                  <h4>Reporte de Parqueaderos</h4>
+                </div>
+                <div className="rpt-card-body">
+                  <div className="row g-4">
+                    <div className="col-md-5">
+                      <StatRow
+                        icon="p-square"
+                        label="Total Parqueaderos"
+                        value={totalParqueaderos}
+                        color="#2563eb"
+                      />
+                      <StatRow
+                        icon="lock-fill"
+                        label="Ocupados"
+                        value={`${totalOcupados} (${calcPct(totalOcupados, totalParqueaderos)}%)`}
+                        color="#ef4444"
+                      />
+                      <StatRow
+                        icon="unlock-fill"
+                        label="Disponibles"
+                        value={`${totalDisponibles} (${calcPct(totalDisponibles, totalParqueaderos)}%)`}
+                        color="#22c55e"
+                      />
+                      <hr />
+                      <p
+                        className="fw-semibold text-muted mb-2"
+                        style={{ fontSize: 13 }}
+                      >
+                        Por tipo de vehículo:
+                      </p>
+                      <StatRow
+                        icon="car-front-fill"
+                        label="Carros"
+                        value={`${carrosOcupados} / ${carrosTotal}`}
+                        color="#3b82f6"
+                      />
+                      <StatRow
+                        icon="fa-motorcycle"
+                        label="Motos"
+                        value={`${motosOcupadas} / ${motosTotal}`}
+                        color="#f97316"
+                      />
+                      <div className="mt-3">
+                        <ProgressBar
+                          label="Carros Ocupados"
+                          value={carrosOcupados}
+                          total={carrosTotal}
+                          color="#3b82f6"
+                        />
+                        <ProgressBar
+                          label="Motos Ocupadas"
+                          value={motosOcupadas}
+                          total={motosTotal}
+                          color="#f97316"
+                        />
+                      </div>
+                    </div>
+                    <div className="col-md-7">
+                      <div
+                        className="rpt-chart-container"
+                        style={{ height: 280 }}
+                      >
+                        <canvas ref={parkingChartRef}></canvas>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ==================== PICO OCUPACIÓN ==================== */}
+              {picoOcupacion.length > 0 && (
+                <div className="rpt-card">
+                  <div className="rpt-card-header">
+                    <div
+                      className="header-icon"
+                      style={{ background: "#ede9fe", color: "#6d28d9" }}
+                    >
+                      <i className="bi bi-bar-chart-fill"></i>
+                    </div>
+                    <h4>Horas Pico de Ocupación</h4>
+                  </div>
+                  <div className="rpt-card-body">
+                    <p className="text-muted mb-3" style={{ fontSize: 13 }}>
+                      Top horas con mayor flujo de visitas
+                    </p>
+                    {picoOcupacion.map((h, i) => {
+                      const hora = toInt(h.hora);
+                      const cant = toInt(h.cantidadVisitas);
+                      const carros = toInt(h.carros);
+                      const motos = toInt(h.motos);
+                      const pct = cant / maxPico;
+                      return (
+                        <div key={i} className="rpt-hbar-row">
+                          <span className="rpt-hbar-label">
+                            {String(hora).padStart(2, "0")}:00
+                          </span>
+                          <div className="rpt-hbar-track">
+                            <div
+                              className="rpt-hbar-fill"
+                              style={{
+                                width: `${pct * 100}%`,
+                                background:
+                                  "linear-gradient(90deg, #8b5cf6, #7c3aed)",
+                              }}
+                            >
+                              {pct > 0.25 && (
+                                <span className="rpt-hbar-text">
+                                  {cant} visitas (C:{carros} M:{motos})
+                                </span>
+                              )}
+                            </div>
+                            {pct <= 0.25 && (
+                              <span className="rpt-hbar-text-dark">
+                                {cant} visitas (C:{carros} M:{motos})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ==================== VISITAS ==================== */}
+              <div className="rpt-card">
+                <div className="rpt-card-header">
+                  <div
+                    className="header-icon"
+                    style={{ background: "#dcfce7", color: "#16a34a" }}
+                  >
+                    <i className="bi bi-people-fill"></i>
+                  </div>
+                  <h4>Reporte de Visitas</h4>
+                </div>
+                <div className="rpt-card-body">
+                  <StatRow
+                    icon="check-circle-fill"
+                    label="Total de visitas"
+                    value={totalVisitas}
+                    color="#16a34a"
+                  />
+                  {porVehiculo.map((v, i) => (
+                    <StatRow
+                      key={i}
+                      icon={
+                        v.tipo.includes("Con") ? "car-front" : "person-walking"
+                      }
+                      label={v.tipo}
+                      value={toInt(v.cantidad)}
+                      color="#64748b"
+                    />
+                  ))}
+                  {diaConMasVisitas && (
+                    <div className="rpt-dia-pico">
+                      <i className="bi bi-trophy-fill pico-icon"></i>
+                      <div className="pico-info">
+                        <div className="pico-label">Día con más visitas</div>
+                        <div className="pico-date">
+                          {formatFechaDisplay(
+                            diaConMasVisitas.fecha?.toString(),
+                          )}
+                        </div>
+                      </div>
+                      <span className="pico-count">
+                        {toInt(diaConMasVisitas.cantidad)} visitas
+                      </span>
+                    </div>
+                  )}
+                  {(rptVisitas?.porDia || []).length > 0 && (
+                    <div
+                      className="rpt-chart-container mt-3"
+                      style={{ height: 260 }}
+                    >
+                      <canvas ref={visitasChartRef}></canvas>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ==================== PAQUETES ==================== */}
+              <div className="rpt-card">
+                <div className="rpt-card-header">
+                  <div
+                    className="header-icon"
+                    style={{ background: "#f3e8ff", color: "#9333ea" }}
+                  >
+                    <i className="bi bi-box-seam-fill"></i>
+                  </div>
+                  <h4>Reporte de Paquetes</h4>
+                </div>
+                <div className="rpt-card-body">
+                  <StatRow
+                    icon="box-seam"
+                    label="Total de paquetes"
+                    value={totalPaquetes}
+                    color="#9333ea"
+                  />
+                  <StatRow
+                    icon="check-circle"
+                    label="Entregados"
+                    value={`${paqEntregados} (${calcPct(paqEntregados, totalPaquetes)}%)`}
+                    color="#22c55e"
+                  />
+                  <StatRow
+                    icon="clock-history"
+                    label="Pendientes"
+                    value={`${paqPendientes} (${calcPct(paqPendientes, totalPaquetes)}%)`}
+                    color="#f97316"
+                  />
+                  <div className="mt-3">
+                    <ProgressBar
+                      label="Entregados"
+                      value={paqEntregados}
+                      total={totalPaquetes}
+                      color="#22c55e"
+                    />
+                    <ProgressBar
+                      label="Pendientes"
+                      value={paqPendientes}
+                      total={totalPaquetes}
+                      color="#f97316"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* ==================== RESERVAS ==================== */}
+              <div className="rpt-card">
+                <div className="rpt-card-header">
+                  <div
+                    className="header-icon"
+                    style={{ background: "#ede9fe", color: "#7c3aed" }}
+                  >
+                    <i className="bi bi-calendar-event-fill"></i>
+                  </div>
+                  <h4>Reporte de Reservas</h4>
+                </div>
+                <div className="rpt-card-body">
+                  <div className="rpt-mini-cards">
+                    <div
+                      className="rpt-mini-card"
+                      style={{ background: "#f5f3ff", borderColor: "#c4b5fd" }}
+                    >
+                      <div className="mini-icon" style={{ color: "#7c3aed" }}>
+                        <i className="bi bi-calendar-check"></i>
+                      </div>
+                      <div className="mini-value" style={{ color: "#7c3aed" }}>
+                        {totalReservas}
+                      </div>
+                      <div className="mini-label">Total Reservas</div>
+                    </div>
+                    <div
+                      className="rpt-mini-card"
+                      style={{ background: "#faf5ff", borderColor: "#d8b4fe" }}
+                    >
+                      <div className="mini-icon" style={{ color: "#9333ea" }}>
+                        <i className="bi bi-people"></i>
+                      </div>
+                      <div className="mini-value" style={{ color: "#9333ea" }}>
+                        {typeof promedioAsistentes === "number"
+                          ? promedioAsistentes.toFixed(1)
+                          : promedioAsistentes}
+                      </div>
+                      <div className="mini-label">Prom. Asistentes</div>
+                    </div>
+                  </div>
+
+                  {diaConMasReservas && (
+                    <div className="rpt-dia-pico">
+                      <i className="bi bi-star-fill pico-icon"></i>
+                      <div className="pico-info">
+                        <div className="pico-label">Día Pico</div>
+                        <div className="pico-date">
+                          {formatFechaDisplay(
+                            diaConMasReservas.fecha?.toString(),
+                          )}
+                        </div>
+                      </div>
+                      <span className="pico-count">
+                        {toInt(diaConMasReservas.cantidad)} reservas
+                      </span>
+                    </div>
+                  )}
+
+                  {reservasPorEstado.length > 0 && (
+                    <>
+                      <h6 className="fw-bold mt-3 mb-2">Por Estado:</h6>
+                      {reservasPorEstado.map((est, i) => {
+                        const nombre = est.nombreEstado || "N/A";
+                        const cant = toInt(est.cantidad);
+                        let color = "#94a3b8";
+                        if (nombre.toLowerCase().includes("finalizada"))
+                          color = "#22c55e";
+                        else if (nombre.toLowerCase().includes("curso"))
+                          color = "#3b82f6";
+                        else if (nombre.toLowerCase().includes("pendiente"))
+                          color = "#f97316";
+                        return (
+                          <div key={i} className="rpt-estado-row">
+                            <div
+                              className="rpt-estado-dot"
+                              style={{ background: color }}
+                            ></div>
+                            <span className="rpt-estado-name">{nombre}</span>
+                            <div className="rpt-estado-bar">
+                              <div
+                                className="rpt-estado-fill"
+                                style={{
+                                  width: `${totalReservas > 0 ? (cant / totalReservas) * 100 : 0}%`,
+                                  background: color,
+                                }}
+                              ></div>
+                            </div>
+                            <span className="rpt-estado-count">{cant}</span>
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+
+                  {reservasPorArea.length > 0 && (
+                    <>
+                      <h6 className="fw-bold mt-3 mb-2">Por Área Común:</h6>
+                      {reservasPorArea.slice(0, 5).map((area, i) => (
+                        <ProgressBar
+                          key={i}
+                          label={area.nombreArea || "N/A"}
+                          value={toInt(area.cantidad)}
+                          total={totalReservas}
+                          color="#8b5cf6"
+                        />
+                      ))}
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* ==================== SECCIÓN RESIDENTES ==================== */}
+              <div
+                className="rpt-section-divider"
+                style={{
+                  background:
+                    "linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)",
+                  borderColor: "#c4b5fd",
+                  color: "#6d28d9",
+                }}
+              >
+                <i className="bi bi-people-fill section-icon"></i>
+                <h3>Reportes de Residentes</h3>
+              </div>
+
+              {/* ==================== OCUPACIÓN POR TORRES ==================== */}
+              <div className="rpt-card">
+                <div className="rpt-card-header">
+                  <div
+                    className="header-icon"
+                    style={{ background: "#ede9fe", color: "#6d28d9" }}
+                  >
+                    <i className="bi bi-building-fill"></i>
+                  </div>
+                  <h4>Ocupación por Torres</h4>
+                </div>
+                <div className="rpt-card-body">
+                  <div className="rpt-circular-stats">
+                    <CircularStat
+                      icon="house-door"
+                      label="Total Aptos"
+                      value={toInt(oc.totalApartamentos)}
+                      color="#2563eb"
+                    />
+                    <CircularStat
+                      icon="check-circle"
+                      label="Ocupados"
+                      value={toInt(oc.apartamentosOcupados)}
+                      color="#22c55e"
+                    />
+                    <CircularStat
+                      icon="dash-circle"
+                      label="Vacíos"
+                      value={toInt(oc.apartamentosVacios)}
+                      color="#f97316"
+                    />
+                    <CircularStat
+                      icon="people"
+                      label="Residentes"
+                      value={toInt(oc.totalResidentes)}
+                      color="#9333ea"
+                    />
+                    <CircularStat
+                      icon="pie-chart"
+                      label="Ocupación"
+                      value={`${oc.porcentajeOcupacion || 0}%`}
+                      color="#7c3aed"
+                    />
+                  </div>
+
+                  {(oc.detallePorTorre || []).length > 0 ? (
+                    <>
+                      <h6 className="fw-bold mb-2">Residentes por Torre:</h6>
+                      <div className="rpt-table-wrapper">
+                        <table className="rpt-table">
+                          <thead>
+                            <tr>
+                              <th>Torre</th>
+                              <th>Apartamentos</th>
+                              <th>Ocupados</th>
+                              <th>Personas</th>
+                              <th>Prom/Apto</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(oc.detallePorTorre || []).map((t, i) => (
+                              <tr key={i}>
+                                <td className="fw-semibold">{t.nombreTorre}</td>
+                                <td>{toInt(t.totalApartamentos)}</td>
+                                <td>{toInt(t.apartamentosOcupados)}</td>
+                                <td>
+                                  <span
+                                    className="rpt-badge"
+                                    style={{ background: "#7c3aed" }}
+                                  >
+                                    {toInt(t.totalPersonas)}
+                                  </span>
+                                </td>
+                                <td>{t.promedioPersonasPorApto || 0}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="rpt-empty">
+                      <i className="bi bi-building"></i>
+                      <p>No hay datos de ocupación disponibles</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ==================== NIÑOS ==================== */}
+              <div className="rpt-card">
+                <div className="rpt-card-header">
+                  <div
+                    className="header-icon"
+                    style={{ background: "#fce7f3", color: "#db2777" }}
+                  >
+                    <i className="bi bi-emoji-smile-fill"></i>
+                  </div>
+                  <h4>Niños en la Comunidad</h4>
+                  <div className="ms-auto">
+                    <span
+                      className="rpt-badge"
+                      style={{
+                        background: "#ec4899",
+                        fontSize: 13,
+                        padding: "5px 14px",
+                      }}
+                    >
+                      <i className="bi bi-emoji-heart-eyes me-1"></i>
+                      Total: {toInt(ninosData.totalNinos)}
+                    </span>
+                  </div>
+                </div>
+                <div className="rpt-card-body">
+                  {(ninosData.detalleApartamentos || []).length > 0 ? (
+                    <div className="rpt-table-wrapper">
+                      <table className="rpt-table">
+                        <thead>
+                          <tr>
+                            <th>Torre</th>
+                            <th>Apartamento</th>
+                            <th>Niños</th>
+                            <th>Ocupante</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(ninosData.detalleApartamentos || []).map((a, i) => (
+                            <tr key={i}>
+                              <td>{a.nombreTorre || "-"}</td>
+                              <td>{a.numeroApartamento || "-"}</td>
+                              <td>
+                                <span
+                                  className="rpt-badge"
+                                  style={{ background: "#ec4899" }}
+                                >
+                                  {toInt(a.ocupantesConNinos)}
+                                </span>
+                              </td>
+                              <td>{a.nombreOcupantes || "-"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="rpt-empty">
+                      <i className="bi bi-emoji-smile"></i>
+                      <p>No hay datos de niños disponibles</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ==================== POBLACIÓN ESPECIAL ==================== */}
+              <div className="rpt-card">
+                <div className="rpt-card-header">
+                  <div
+                    className="header-icon"
+                    style={{ background: "#e0e7ff", color: "#4f46e5" }}
+                  >
+                    <i className="bi bi-universal-access"></i>
+                  </div>
+                  <h4>Población Especial</h4>
+                </div>
+                <div className="rpt-card-body">
+                  <div className="rpt-pop-cards">
+                    <div
+                      className="rpt-pop-card"
+                      style={{ background: "#fffbeb", borderColor: "#fde68a" }}
+                    >
+                      <div className="pop-icon" style={{ color: "#d97706" }}>
+                        <i className="bi bi-person-hearts"></i>
+                      </div>
+                      <div className="pop-value" style={{ color: "#b45309" }}>
+                        {toInt(poblData.totalAdultosMayores)}
+                      </div>
+                      <div className="pop-label">Adultos Mayores</div>
+                      <div className="pop-sublabel">(60+ años)</div>
+                    </div>
+                    <div
+                      className="rpt-pop-card"
+                      style={{ background: "#eef2ff", borderColor: "#c7d2fe" }}
+                    >
+                      <div className="pop-icon" style={{ color: "#4f46e5" }}>
+                        <i className="bi bi-person-wheelchair"></i>
+                      </div>
+                      <div className="pop-value" style={{ color: "#4338ca" }}>
+                        {toInt(poblData.totalDiscapacidad)}
+                      </div>
+                      <div className="pop-label">Personas con</div>
+                      <div className="pop-sublabel">Discapacidad</div>
+                    </div>
+                  </div>
+
+                  {(poblData.detalleApartamentos || []).length > 0 ? (
+                    <>
+                      <div
+                        className="d-flex align-items-center gap-2 mb-2 p-2 rounded"
+                        style={{ background: "#f3e8ff" }}
+                      >
+                        <i
+                          className="bi bi-people-fill"
+                          style={{ color: "#7c3aed" }}
+                        ></i>
+                        <strong style={{ color: "#6d28d9", fontSize: 14 }}>
+                          Detalle de Población Especial
+                        </strong>
+                      </div>
+                      <div className="rpt-table-wrapper">
+                        <table className="rpt-table">
+                          <thead>
+                            <tr>
+                              <th>Torre</th>
+                              <th>Apartamento</th>
+                              <th>Tipo</th>
+                              <th>Ocupante</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(poblData.detalleApartamentos || []).map(
+                              (p, i) => {
+                                const tipo = p.tipoPoblacion || "-";
+                                const esAdulto = tipo
+                                  .toLowerCase()
+                                  .includes("adulto");
+                                return (
+                                  <tr key={i}>
+                                    <td>{p.nombreTorre || "-"}</td>
+                                    <td>{p.numeroApartamento || "-"}</td>
+                                    <td>
+                                      <span
+                                        className="rpt-badge"
+                                        style={{
+                                          background: esAdulto
+                                            ? "#d97706"
+                                            : "#4f46e5",
+                                        }}
+                                      >
+                                        {tipo}
+                                      </span>
+                                    </td>
+                                    <td>{p.nombreOcupantes || "-"}</td>
+                                  </tr>
+                                );
+                              },
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="rpt-empty">
+                      <i className="bi bi-universal-access"></i>
+                      <p>No hay datos de población especial disponibles</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default Reportes;
