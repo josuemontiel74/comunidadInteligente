@@ -8,9 +8,9 @@ export const createUserSchema = Joi.object({
   password: Joi.string().min(6).required(),
   estadoId: Joi.number().default(1),
   primerNombre: Joi.string().min(1).max(20),
-  segundoNombre: Joi.string().min(1).max(45).required(),
+  segundoNombre: Joi.string().max(45).allow(null, "").optional(),
   primerApellido: Joi.string().min(1).max(30),
-  segundoApellido: Joi.string().min(1).max(30).required(),
+  segundoApellido: Joi.string().max(30).allow(null, "").optional(),
   telefono: Joi.string().min(7).max(10).required(),
   correoElectronico: Joi.string().email().max(45).required(),
 });

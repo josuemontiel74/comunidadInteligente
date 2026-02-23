@@ -10,41 +10,47 @@ router.post(
   validarJWT,
   validarRol(1),
   validate(userSchema.createUserSchema, "body", true),
-  userController.crearUsuario
+  userController.crearUsuario,
 );
 router.get(
   "/usuario",
   validarJWT,
   validarRol(1),
   validate(userSchema.getUserSchema),
-  userController.obtenerUsuario
+  userController.obtenerUsuario,
+);
+router.post("/usuario/logout", validarJWT, userController.logoutUsuario);
+router.get(
+  "/usuario/en-linea",
+  validarJWT,
+  validarRol(1, 2),
+  userController.obtenerUsuariosEnLinea,
 );
 router.get(
   "/usuario/:username",
   validarJWT,
   validarRol(1),
   validate(userSchema.getUserSchema, "params", true),
-  userController.obtenerUsuarioPorId
+  userController.obtenerUsuarioPorId,
 );
 router.post(
   "/login",
   validate(userSchema.loginSchema),
-  userController.loginUsuario
+  userController.loginUsuario,
 );
-
 router.get(
   "/usuario/buscar/:estadoId",
   validarJWT,
   validarRol(1),
   validate(userSchema.searchByEstadoSchema, "params", true),
-  userController.buscarUsuarios
+  userController.buscarUsuarios,
 );
 router.patch(
   "/usuario/:username",
   validarJWT,
   validarRol(1),
 
-  userController.actualizarUsuario
+  userController.actualizarUsuario,
 );
 /**router.patch(
   "/usuario/reactivar/:usernameAtivar",
@@ -58,6 +64,6 @@ router.delete(
   validarJWT,
   validarRol(1),
   validate(userSchema.deleteUserSchema, "params", true),
-  userController.inactivarUsuario
+  userController.inactivarUsuario,
 );
 export default router;

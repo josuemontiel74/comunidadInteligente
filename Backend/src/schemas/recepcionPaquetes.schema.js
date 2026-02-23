@@ -1,13 +1,12 @@
 import Joi from "joi";
 
-
 export const crearRecepcionPaquete = Joi.object({
   apartamentoId: Joi.number().integer().required(),
   nombreDestinatario: Joi.string().max(100).required(),
   empresaMensajeria: Joi.string().max(45).required(),
   fechaRecepcion: Joi.date().required(),
   fechaEntrega: Joi.date().optional().allow(null),
-  observaciones: Joi.string().optional().allow(null),
+  observaciones: Joi.string().optional().allow(null, ""),
   estadoId: Joi.number().integer().optional(),
 });
 
@@ -18,7 +17,7 @@ export const actualizarRecepcionPaquete = Joi.object({
   empresaMensajeria: Joi.string().max(45).optional(),
   fechaRecepcion: Joi.date().optional(),
   fechaEntrega: Joi.date().optional().allow(null),
-  observaciones: Joi.string().optional().allow(null),
+  observaciones: Joi.string().optional().allow(null, ""),
   estadoId: Joi.number().integer().optional(),
 });
 
