@@ -125,3 +125,27 @@ export const obtenerUsuariosEnLinea = async (token) => {
 
 
 
+export const logoutUsuario = async (token) => {
+  try {
+    await fetch(`${BASE}/usuario/logout`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+  } catch {
+    // Silencioso: no bloquear el logout local si falla
+  }
+};
+
+export const obtenerUsuariosEnLinea = async (token) => {
+  const res = await fetch(`${BASE}/usuario/en-linea`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) return {};
+  const data = await res.json();
+  return data.enLinea || {};
+};
