@@ -30,6 +30,11 @@ class Usuario extends Model {
           allowNull: true,
           defaultValue: null,
         },
+        fotoPerfil: {
+          type: DataTypes.TEXT("long"),
+          allowNull: true,
+          defaultValue: null,
+        },
       },
       {
         sequelize,
