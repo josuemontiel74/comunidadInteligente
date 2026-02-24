@@ -1,0 +1,38 @@
+# Dependencias
+node_modules/
+*/node_modules/
+
+# Variables de entorno — NUNCA subir al repositorio
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Build outputs
+dist/
+build/
+.dart_tool/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor
+.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+/build/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
