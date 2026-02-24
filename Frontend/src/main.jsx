@@ -1,4 +1,4 @@
-import React, { StrictMode } from "react";
+import React from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -6,36 +6,27 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 
 import App from "./App.jsx";
 
-// Suprimir errores de ResizeObserver que Chart.js puede lanzar durante scroll
-// (no son errores de la app, son del navegador al redimensionar el canvas)
-const _origOnError = window.onerror;
-window.onerror = function (message, ...args) {
-  if (
-    typeof message === "string" &&
-    (message.includes("ResizeObserver loop") ||
-      message.includes("ResizeObserver loop completed"))
-  ) {
-    return true; // suprimir sin propagar
-  }
-  return _origOnError ? _origOnError(message, ...args) : false;
-};
-window.addEventListener("unhandledrejection", (e) => {
-  if (e.reason && String(e.reason).includes("ResizeObserver")) {
-    e.preventDefault();
-  }
+// ── Modo oscuro: aplicar preferencia guardada antes del primer render ─────────
+// Así todos los módulos tienen el tema correcto desde el instante 0,
+// sin parpadeo ("flash of white"), aunque el usuario no pase por un dashboard.
+if (localStorage.getItem("ci_modo_oscuro") === "1") {
+  document.documentElement.setAttribute("data-modo", "oscuro");
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Silenciar el error de ResizeObserver (no afecta funcionalidad)
+window.addEventListener("error", (e) => {
+  if (e.message && e.message.includes("ResizeObserver"))
+    e.stopImmediatePropagation();
 });
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null, info: null };
+    this.state = { hasError: false, error: null };
   }
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
-  }
-  componentDidCatch(error, info) {
-    console.error("ErrorBoundary caught:", error, info);
-    this.setState({ info });
   }
   render() {
     if (this.state.hasError) {
@@ -45,9 +36,6 @@ class ErrorBoundary extends React.Component {
           <pre style={{ whiteSpace: "pre-wrap" }}>
             {String(this.state.error)}
           </pre>
-          <pre style={{ whiteSpace: "pre-wrap", fontSize: 12, color: "#666" }}>
-            {this.state.info?.componentStack}
-          </pre>
         </div>
       );
     }
@@ -56,11 +44,9 @@ class ErrorBoundary extends React.Component {
 }
 
 createRoot(document.getElementById("root")).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </ErrorBoundary>
-  </StrictMode>,
+  <ErrorBoundary>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </ErrorBoundary>,
 );
