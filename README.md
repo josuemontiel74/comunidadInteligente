@@ -69,7 +69,7 @@ comunidadInteligente/
 
 ## Estado actual del proyecto
 
-### ✅ Completado
+### Completado
 
 #### Backend
 - API REST con autenticación JWT y control de roles
@@ -106,8 +106,8 @@ comunidadInteligente/
 - Modelo relacional documentado y actualizado (`.mwb` + `.png`)
 - Backup automatizado disponible en `Backend/backups/`
 
-### 🔄 En desarrollo
-- Modo oscuro (frontend web)
+### En desarrollo
+- Modo oscuro (App Móvil Flutter)
 - Pantalla de descarga de la app móvil
 - Optimización de consultas en reportes avanzados
 
@@ -136,32 +136,5 @@ cd 6_Trimestre/comunidad_inteligente
 flutter pub get
 flutter run
 ```
-
----
-
-## Variables de entorno requeridas
-
-**Backend `.env`**
-```env
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=comunidadinteligente
-DB_USER=root
-DB_PASSWORD=tu_password
-JWT_SECRET=tu_secreto
-SERVER_PORT=3001
-```
-
-**Frontend `.env`**
-```env
-VITE_API_URL=http://localhost:3001
-```
-
----
-
-## Equipo de desarrollo
-
-Proyecto Productivo — Institución Educativa  
-Rama activa: `feature/josue`
 
 ---
