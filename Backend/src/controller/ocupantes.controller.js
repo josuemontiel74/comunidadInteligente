@@ -1,9 +1,23 @@
 import dayjs from "dayjs";
+import { Op } from "sequelize";
 import Ocupante from "../models/ocupante.model.js";
 import Persona from "../models/personas.model.js";
 import { sequelize } from "../config/connect.db.js";
 import { registrarAuditoria } from "../services/auditorias.service.js";
 import { registrarFallo } from "../services/logger.service.js";
+
+// ── Validación de nombres ───────────────────────────────────────────────────
+const NOMBRE_REGEX = /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s\-']+$/;
+const validarCamposNombre = (campos) => {
+  for (const [campo, valor] of Object.entries(campos)) {
+    if (valor !== undefined && valor !== null && valor !== "") {
+      if (!NOMBRE_REGEX.test(String(valor).trim())) {
+        return `El campo "${campo}" no puede contener números ni caracteres especiales`;
+      }
+    }
+  }
+  return null;
+};
 
 export const crearOcupante = async (req, res) => {
   const t = await sequelize.transaction();
@@ -23,6 +37,38 @@ export const crearOcupante = async (req, res) => {
       telefono: dataOcupante.telefono,
       correoElectronico: dataOcupante.correoElectronico,
     };
+
+    // ── Validar nombres antes de guardar ──────────────────────────────────
+    const errorNombre = validarCamposNombre({
+      "Primer nombre": dataOcupante.primerNombre,
+      "Segundo nombre": dataOcupante.segundoNombre,
+      "Primer apellido": dataOcupante.primerApellido,
+      "Segundo apellido": dataOcupante.segundoApellido,
+    });
+    if (errorNombre) {
+      await t.rollback();
+      return res.status(400).json({ message: errorNombre, status: 400 });
+    }
+
+    // ── Verificar que el apartamento no tenga ya un ocupante activo del mismo tipo ──
+    if (dataOcupante.apartamentosId && dataOcupante.tipoOcupacion) {
+      const ocupanteExistente = await Ocupante.findOne({
+        where: {
+          apartamentosId: dataOcupante.apartamentosId,
+          tipoOcupacion: dataOcupante.tipoOcupacion,
+          estadoId: { [Op.notIn]: [2, 3, 4] }, // excluir inactivos/finalizados
+        },
+        transaction: t,
+      });
+      if (ocupanteExistente) {
+        await t.rollback();
+        const tipo = dataOcupante.tipoOcupacion === "propietario" ? "propietario" : "arrendatario";
+        return res.status(409).json({
+          message: `El apartamento ya tiene un ${tipo} activo. Finalice el proceso actual antes de registrar uno nuevo.`,
+          status: 409,
+        });
+      }
+    }
 
     if (dataOcupante.numeroDocumento) {
       [persona, created] = await Persona.findOrCreate({

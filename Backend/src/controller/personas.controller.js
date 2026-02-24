@@ -1,9 +1,35 @@
 import personasModel from "../models/personas.model.js";
 import User from "../models/user.model.js";
+
+// ── Validación de nombres: solo letras, espacios, guiones y apóstrofes ──────
+const NOMBRE_REGEX = /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s\-']+$/;
+const validarCamposNombre = (campos) => {
+  for (const [campo, valor] of Object.entries(campos)) {
+    if (valor !== undefined && valor !== null && valor !== "") {
+      if (!NOMBRE_REGEX.test(String(valor).trim())) {
+        return `El campo "${campo}" no puede contener números ni caracteres especiales`;
+      }
+    }
+  }
+  return null;
+};
+
 export const createPersona = async (req, res) => {
   try {
     await personasModel.sync();
     const dataPersona = req.body;
+
+    // Validar que los nombres no contengan números
+    const errorNombre = validarCamposNombre({
+      "Primer nombre": dataPersona.primerNombre,
+      "Segundo nombre": dataPersona.segundoNombre,
+      "Primer apellido": dataPersona.primerApellido,
+      "Segundo apellido": dataPersona.segundoApellido,
+    });
+    if (errorNombre) {
+      return res.status(400).json({ message: errorNombre, status: 400 });
+    }
+
     const createPersona = await personasModel.create({
       numeroDocumento: dataPersona.numeroDocumento,
       tipoDocumentoId: dataPersona.tipoDocumentoId,
@@ -91,6 +117,17 @@ export const UpdatePersona = async (req, res) => {
       return res
         .status(400)
         .json({ message: "El numeroDocumento es obligatorio" });
+    }
+
+    // Validar que los nombres no contengan números
+    const errorNombre = validarCamposNombre({
+      "Primer nombre": data.primerNombre,
+      "Segundo nombre": data.segundoNombre,
+      "Primer apellido": data.primerApellido,
+      "Segundo apellido": data.segundoApellido,
+    });
+    if (errorNombre) {
+      return res.status(400).json({ message: errorNombre, status: 400 });
     }
 
     // Actualizar solo los campos editables (numeroDocumento no se toca)

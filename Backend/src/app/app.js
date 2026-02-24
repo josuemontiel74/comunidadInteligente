@@ -1,6 +1,8 @@
 import express from "express";
 import morgan from "morgan";
 import cors from "cors";
+import helmet from "helmet";
+import { limiterGeneral } from "../middlewares/rateLimiters.js";
 import { actualizarActividad } from "../middlewares/actividad.middleware.js";
 import personasRoutes from "../routers/personas.router.js";
 import tipodocumentosRoutes from "../routers/tipodocumentos.router.js";
@@ -26,12 +28,19 @@ import reportesRoutes from "../routers/reportes.router.js";
 import auditoriasRoutes from "../routers/auditorias.router.js";
 
 const app = express();
+
+// ── Seguridad: cabeceras HTTP seguras ──────────────────────────────────────
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+}));
+
+app.use(limiterGeneral);
 app.use(morgan("dev"));
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(
   cors({
-    origin: true,
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   }),
