@@ -65,7 +65,7 @@
   font-size: 13px;
   opacity: 0.85;
 }
-.cal-drawer-nav {
+.cal-drawer-body {
   flex: 1;
   padding: 16px 12px;
   overflow-y: auto;

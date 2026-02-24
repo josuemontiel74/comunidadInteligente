@@ -1,0 +1,1037 @@
+/* ============================================================
+   MODO OSCURO – Comunidad Inteligente
+   Se activa cuando el <html> tiene  data-modo="oscuro"
+   Cubre TODOS los módulos: dashboards + Gestión Usuarios, Residentes,
+   Áreas Comunes, Parqueaderos, Paquetería, Reportes, Auditorías,
+   Calendario, Visitas y cualquier módulo Bootstrap genérico.
+   ============================================================ */
+
+/* ── Transición suave al alternar ─────────────────────────────── */
+*,
+*::before,
+*::after {
+  transition:
+    background-color 0.25s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease !important;
+}
+
+/* ── Fondo global y wrappers ──────────────────────────────────── */
+[data-modo="oscuro"] body,
+[data-modo="oscuro"] html {
+  background-color: #0f172a !important;
+}
+
+[data-modo="oscuro"] .adm-dashboard,
+[data-modo="oscuro"] .adm-loading-screen,
+[data-modo="oscuro"] .adm-main,
+[data-modo="oscuro"] .sa-dashboard,
+[data-modo="oscuro"] .sa-loading-screen,
+[data-modo="oscuro"] .sa-main,
+[data-modo="oscuro"] .vi-dashboard,
+[data-modo="oscuro"] .vi-loading-screen,
+[data-modo="oscuro"] .vi-main {
+  background: #0f172a !important;
+}
+
+/* ── HEADER ───────────────────────────────────────────────────── */
+[data-modo="oscuro"] .adm-header,
+[data-modo="oscuro"] .sa-header,
+[data-modo="oscuro"] .vi-header {
+  background: #1e293b !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* Iconos de botones en header */
+[data-modo="oscuro"] .adm-header-btn i,
+[data-modo="oscuro"] .vi-header-btn i {
+  color: #cbd5e1 !important;
+}
+[data-modo="oscuro"] .sa-header-btn i {
+  color: #4ade80 !important;
+}
+
+/* Hover de botones en header */
+[data-modo="oscuro"] .adm-header-btn:hover,
+[data-modo="oscuro"] .vi-header-btn:hover {
+  background: #334155 !important;
+}
+[data-modo="oscuro"] .sa-header-btn:hover {
+  background: #14532d !important;
+}
+
+/* Borde del dot de estado (que coincida con el fondo oscuro del header) */
+[data-modo="oscuro"] .adm-profile-status-dot,
+[data-modo="oscuro"] .sa-profile-status-dot,
+[data-modo="oscuro"] .vi-profile-status-dot {
+  border-color: #1e293b !important;
+}
+
+/* ── SECCIÓN BIENVENIDA ───────────────────────────────────────── */
+[data-modo="oscuro"] .adm-welcome-title,
+[data-modo="oscuro"] .sa-welcome-title,
+[data-modo="oscuro"] .vi-welcome-title {
+  color: #f1f5f9 !important;
+}
+
+[data-modo="oscuro"] .adm-welcome-sub,
+[data-modo="oscuro"] .sa-welcome-sub,
+[data-modo="oscuro"] .vi-welcome-sub {
+  color: #94a3b8 !important;
+}
+
+/* ── TARJETAS DE ESTADÍSTICAS ─────────────────────────────────── */
+[data-modo="oscuro"] .adm-stat-card,
+[data-modo="oscuro"] .sa-stat-card,
+[data-modo="oscuro"] .vi-stat-card {
+  background: #1e293b !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+  color: #f1f5f9 !important;
+}
+
+[data-modo="oscuro"] .adm-stat-card-link,
+[data-modo="oscuro"] .sa-stat-card-link,
+[data-modo="oscuro"] .vi-stat-card-link {
+  color: #f1f5f9 !important;
+}
+
+[data-modo="oscuro"] .adm-stat-card-header h5,
+[data-modo="oscuro"] .sa-stat-card-header h5,
+[data-modo="oscuro"] .vi-stat-card-header h5 {
+  color: #f1f5f9 !important;
+}
+
+/* Título de sección estadísticas */
+[data-modo="oscuro"] .adm-stats-title,
+[data-modo="oscuro"] .sa-stats-title,
+[data-modo="oscuro"] .vi-stats-title {
+  color: #f1f5f9 !important;
+}
+
+/* Cajas de resumen (paquetes, reservas) */
+[data-modo="oscuro"] .adm-stat-summary,
+[data-modo="oscuro"] .sa-stat-summary,
+[data-modo="oscuro"] .vi-stat-summary {
+  background: #0f172a !important;
+  border: 1px solid #334155 !important;
+}
+
+/* Labels y divisores */
+[data-modo="oscuro"] .adm-stat-label,
+[data-modo="oscuro"] .sa-stat-label,
+[data-modo="oscuro"] .vi-stat-label {
+  color: #94a3b8 !important;
+}
+
+[data-modo="oscuro"] .adm-stat-divider,
+[data-modo="oscuro"] .sa-stat-divider,
+[data-modo="oscuro"] .vi-stat-divider {
+  background: #334155 !important;
+}
+
+/* Leyenda (admin/SA parqueaderos) */
+[data-modo="oscuro"] .adm-legend-label,
+[data-modo="oscuro"] .adm-legend-value,
+[data-modo="oscuro"] .sa-legend-label,
+[data-modo="oscuro"] .sa-legend-value {
+  color: #e2e8f0 !important;
+}
+
+/* Valor grande en info card */
+[data-modo="oscuro"] .adm-info-sub-label,
+[data-modo="oscuro"] .sa-info-sub-label {
+  color: #94a3b8 !important;
+}
+
+/* ── POPUP DE PERFIL ──────────────────────────────────────────── */
+[data-modo="oscuro"] .adm-profile-popup,
+[data-modo="oscuro"] .sa-profile-popup,
+[data-modo="oscuro"] .vi-profile-popup {
+  background: #1e293b !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-modo="oscuro"] .adm-profile-popup p,
+[data-modo="oscuro"] .sa-profile-popup p,
+[data-modo="oscuro"] .vi-profile-popup p {
+  color: #e2e8f0 !important;
+}
+
+/* Botón cerrar dentro del popup */
+[data-modo="oscuro"] .adm-profile-popup button,
+[data-modo="oscuro"] .sa-profile-popup button,
+[data-modo="oscuro"] .vi-profile-popup button {
+  background: #334155 !important;
+  color: #f1f5f9 !important;
+  border-color: #475569 !important;
+}
+
+/* ── LISTA DE USUARIOS EN LÍNEA (Solo SA) ─────────────────────── */
+[data-modo="oscuro"] .sa-online-users-list {
+  background: #0f172a !important;
+}
+
+[data-modo="oscuro"] .sa-online-user-item {
+  background: #1e293b !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-modo="oscuro"] .sa-online-username {
+  color: #f1f5f9 !important;
+}
+
+[data-modo="oscuro"] .sa-online-label,
+[data-modo="oscuro"] .sa-online-empty {
+  color: #94a3b8 !important;
+}
+
+/* ── USER MENU (header dropdown) ─────────────────────────────── */
+[data-modo="oscuro"] .adm-user-menu,
+[data-modo="oscuro"] .sa-user-menu,
+[data-modo="oscuro"] .vi-user-menu {
+  background: #1e293b !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+  color: #f1f5f9 !important;
+}
+
+/* ── BOTÓN MODO OSCURO (luna / sol) ──────────────────────────── */
+
+/* Sol: amarillo cálido en modo oscuro */
+[data-modo="oscuro"] .mo-btn i {
+  color: #fbbf24 !important;
+}
+
+/* Luna: tono pizarra en modo claro */
+.mo-btn i {
+  color: #64748b;
+}
+
+/* El botón en sí hereda el aspecto del header-btn del dashboard,
+   pero forzamos el tamaño correcto del ícono si no lo hereda */
+.mo-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================================
+   MÓDULOS – wrappers de página, contenido, header
+   Prefijos: gu (Gestión Usuarios), res (Residentes), ac (Áreas Comunes),
+   parq (Parqueaderos), paq (Paquetería), rpt (Reportes), aud (Auditorías),
+   cal (Calendario), vis (Visitas), sp (Selección Parqueadero)
+   ============================================================ */
+
+/* Fondo de página de cada módulo */
+[data-modo="oscuro"] .gu-main,
+[data-modo="oscuro"] .gu-content,
+[data-modo="oscuro"] .res-main,
+[data-modo="oscuro"] .res-content,
+[data-modo="oscuro"] .ac-main,
+[data-modo="oscuro"] .ac-content,
+[data-modo="oscuro"] .ac-dashboard,
+[data-modo="oscuro"] .parq-main,
+[data-modo="oscuro"] .parq-content,
+[data-modo="oscuro"] .paq-main,
+[data-modo="oscuro"] .rpt-main,
+[data-modo="oscuro"] .rpt-content,
+[data-modo="oscuro"] .aud-main,
+[data-modo="oscuro"] .cal-main,
+[data-modo="oscuro"] .vis-main,
+[data-modo="oscuro"] .sp-main {
+  background: #0f172a !important;
+}
+
+/* Headers de módulo (barra superior con logo y botones) */
+[data-modo="oscuro"] .gu-header,
+[data-modo="oscuro"] .res-header,
+[data-modo="oscuro"] .ac-header,
+[data-modo="oscuro"] .parq-header,
+[data-modo="oscuro"] .paq-header,
+[data-modo="oscuro"] .rpt-header,
+[data-modo="oscuro"] .aud-header,
+[data-modo="oscuro"] .cal-header,
+[data-modo="oscuro"] .vis-header,
+[data-modo="oscuro"] .sp-header {
+  background: #1e293b !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* Íconos en botones de header de módulos */
+[data-modo="oscuro"] .gu-header-btn i,
+[data-modo="oscuro"] .res-header-btn i,
+[data-modo="oscuro"] .ac-header-btn i,
+[data-modo="oscuro"] .parq-header-btn i,
+[data-modo="oscuro"] .paq-header-btn i,
+[data-modo="oscuro"] .rpt-header-btn i,
+[data-modo="oscuro"] .aud-header-btn i,
+[data-modo="oscuro"] .cal-header-btn i,
+[data-modo="oscuro"] .vis-header-btn i,
+[data-modo="oscuro"] .sp-header-btn i {
+  color: #cbd5e1 !important;
+}
+
+/* Hover de botones de header de módulos */
+[data-modo="oscuro"] .gu-header-btn:hover,
+[data-modo="oscuro"] .res-header-btn:hover,
+[data-modo="oscuro"] .ac-header-btn:hover,
+[data-modo="oscuro"] .parq-header-btn:hover,
+[data-modo="oscuro"] .paq-header-btn:hover,
+[data-modo="oscuro"] .rpt-header-btn:hover,
+[data-modo="oscuro"] .aud-header-btn:hover,
+[data-modo="oscuro"] .cal-header-btn:hover,
+[data-modo="oscuro"] .vis-header-btn:hover,
+[data-modo="oscuro"] .sp-header-btn:hover {
+  background: #334155 !important;
+}
+
+/* Borde del dot de estado en módulos */
+[data-modo="oscuro"] [class$="-profile-status-dot"] {
+  border-color: #1e293b !important;
+}
+
+/* ── TARJETAS DE CONTENIDO de módulos ────────────────────────── */
+/* Cubre: gu-card, parq-card, paq-card, res-card, ac-card,
+          rpt-card, aud-card y cualquier -card nuevo */
+[data-modo="oscuro"] [class$="-card"],
+[data-modo="oscuro"] [class*="-card "],
+[data-modo="oscuro"] .gu-user-row,
+[data-modo="oscuro"] .res-row,
+[data-modo="oscuro"] .parq-spot,
+[data-modo="oscuro"] .paq-item,
+[data-modo="oscuro"] .rpt-card,
+[data-modo="oscuro"] .aud-row,
+[data-modo="oscuro"] .ac-card {
+  background: #1e293b !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+  color: #f1f5f9 !important;
+}
+
+/* Títulos dentro de tarjetas */
+[data-modo="oscuro"] [class$="-card"] h5,
+[data-modo="oscuro"] [class$="-card"] h4,
+[data-modo="oscuro"] [class$="-card"] h3,
+[data-modo="oscuro"] [class$="-card"] p,
+[data-modo="oscuro"] [class$="-card"] span {
+  color: #e2e8f0 !important;
+}
+
+/* Secciones de resumen / summary dentro de módulos */
+[data-modo="oscuro"] [class$="-stat-summary"],
+[data-modo="oscuro"] [class$="-summary"] {
+  background: #0f172a !important;
+  border: 1px solid #334155 !important;
+}
+
+/* ── TÍTULOS DE SECCIONES ─────────────────────────────────────── */
+[data-modo="oscuro"] [class$="-title"],
+[data-modo="oscuro"] [class$="-subtitle"],
+[data-modo="oscuro"] [class$="-welcome-title"],
+[data-modo="oscuro"] [class$="-page-title"] h3,
+[data-modo="oscuro"] [class$="-stats-title"] {
+  color: #f1f5f9 !important;
+}
+
+[data-modo="oscuro"] [class$="-sub"],
+[data-modo="oscuro"] [class$="-welcome-sub"],
+[data-modo="oscuro"] [class$="-label"],
+[data-modo="oscuro"] [class$="-page-title"] p {
+  color: #94a3b8 !important;
+}
+
+/* ── BOOTSTRAP – elementos genéricos ─────────────────────────── */
+
+/* Fondo general del body */
+[data-modo="oscuro"] body {
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+}
+
+/* Cards de Bootstrap */
+[data-modo="oscuro"] .card {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+[data-modo="oscuro"] .card-header,
+[data-modo="oscuro"] .card-footer {
+  background-color: #263248 !important;
+  border-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+[data-modo="oscuro"] .card-body {
+  color: #e2e8f0 !important;
+}
+
+/* Modales de Bootstrap */
+[data-modo="oscuro"] .modal-content {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+[data-modo="oscuro"] .modal-header {
+  background-color: #263248 !important;
+  border-bottom-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+[data-modo="oscuro"] .modal-header .modal-title {
+  color: #f1f5f9 !important;
+}
+[data-modo="oscuro"] .modal-body {
+  background-color: #1e293b !important;
+  color: #e2e8f0 !important;
+}
+[data-modo="oscuro"] .modal-footer {
+  background-color: #1e293b !important;
+  border-top-color: #334155 !important;
+}
+/* X de cerrar modal */
+[data-modo="oscuro"] .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%) !important;
+}
+
+/* Tablas de Bootstrap */
+[data-modo="oscuro"] .table {
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+[data-modo="oscuro"] .table > :not(caption) > * > * {
+  background-color: #1e293b !important;
+  color: #e2e8f0 !important;
+  border-bottom-color: #334155 !important;
+}
+[data-modo="oscuro"] .table-striped > tbody > tr:nth-of-type(odd) > * {
+  background-color: #263248 !important;
+  color: #e2e8f0 !important;
+}
+[data-modo="oscuro"] .table-hover > tbody > tr:hover > * {
+  background-color: #2d3f55 !important;
+  color: #f1f5f9 !important;
+}
+[data-modo="oscuro"] thead tr th,
+[data-modo="oscuro"] thead tr {
+  background-color: #263248 !important;
+  color: #cbd5e1 !important;
+  border-color: #334155 !important;
+}
+
+/* Formularios */
+[data-modo="oscuro"]
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+[data-modo="oscuro"] select,
+[data-modo="oscuro"] textarea,
+[data-modo="oscuro"] .form-control,
+[data-modo="oscuro"] .form-select {
+  background-color: #263248 !important;
+  color: #f1f5f9 !important;
+  border-color: #475569 !important;
+}
+[data-modo="oscuro"] input::placeholder,
+[data-modo="oscuro"] textarea::placeholder {
+  color: #64748b !important;
+}
+[data-modo="oscuro"] input:focus,
+[data-modo="oscuro"] select:focus,
+[data-modo="oscuro"] textarea:focus,
+[data-modo="oscuro"] .form-control:focus,
+[data-modo="oscuro"] .form-select:focus {
+  background-color: #2d3f55 !important;
+  color: #f1f5f9 !important;
+  border-color: #60a5fa !important;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.25) !important;
+}
+[data-modo="oscuro"] label,
+[data-modo="oscuro"] .form-label {
+  color: #cbd5e1 !important;
+}
+
+/* Botones outline/secondary de Bootstrap */
+[data-modo="oscuro"] .btn-outline-secondary {
+  color: #94a3b8 !important;
+  border-color: #475569 !important;
+}
+[data-modo="oscuro"] .btn-outline-secondary:hover {
+  background-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+[data-modo="oscuro"] .btn-light {
+  background-color: #334155 !important;
+  border-color: #475569 !important;
+  color: #f1f5f9 !important;
+}
+[data-modo="oscuro"] .btn-white,
+[data-modo="oscuro"] .btn-secondary {
+  background-color: #334155 !important;
+  border-color: #475569 !important;
+  color: #f1f5f9 !important;
+}
+
+/* Badges */
+[data-modo="oscuro"] .badge.bg-light {
+  background-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+/* Alertas */
+[data-modo="oscuro"] .alert {
+  border-color: #334155 !important;
+}
+
+/* Dropdowns */
+[data-modo="oscuro"] .dropdown-menu {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+[data-modo="oscuro"] .dropdown-item {
+  color: #e2e8f0 !important;
+}
+[data-modo="oscuro"] .dropdown-item:hover {
+  background-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+[data-modo="oscuro"] .dropdown-divider {
+  border-color: #334155 !important;
+}
+
+/* List groups */
+[data-modo="oscuro"] .list-group-item {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+/* Pagination */
+[data-modo="oscuro"] .page-link {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #94a3b8 !important;
+}
+[data-modo="oscuro"] .page-item.active .page-link {
+  background-color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+  color: #fff !important;
+}
+[data-modo="oscuro"] .page-item.disabled .page-link {
+  background-color: #1e293b !important;
+  color: #475569 !important;
+}
+
+/* ── SCROLLBAR en modo oscuro ────────────────────────────────── */
+[data-modo="oscuro"] ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+[data-modo="oscuro"] ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+[data-modo="oscuro"] ::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+[data-modo="oscuro"] ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* ============================================================
+   CORRECCIONES ESPECÍFICAS – cuadros blancos y contraste tablas
+   Paquetería, Parqueaderos, Gestión Usuarios, Visitas, Residentes,
+   Áreas Comunes, Reportes, Auditorías y resto de módulos.
+   ============================================================ */
+
+/* ── Wrappers de dashboard de módulos ─────────────────────────── */
+[data-modo="oscuro"] .gu-dashboard,
+[data-modo="oscuro"] .parq-dashboard,
+[data-modo="oscuro"] .paq-dashboard,
+[data-modo="oscuro"] .res-dashboard,
+[data-modo="oscuro"] .rpt-dashboard,
+[data-modo="oscuro"] .aud-dashboard,
+[data-modo="oscuro"] .vis-dashboard,
+[data-modo="oscuro"] .cal-dashboard {
+  background: #0f172a !important;
+}
+
+/* ── TOOLBARS – cuadros blancos de filtros ─────────────────────── */
+[data-modo="oscuro"] .paq-toolbar,
+[data-modo="oscuro"] .gu-toolbar,
+[data-modo="oscuro"] .parq-toolbar,
+[data-modo="oscuro"] .res-toolbar,
+[data-modo="oscuro"] .ac-toolbar,
+[data-modo="oscuro"] .rpt-toolbar,
+[data-modo="oscuro"] .aud-toolbar,
+[data-modo="oscuro"] .vis-toolbar {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* ── STAT BOXES – cajas de contadores ─────────────────────────── */
+[data-modo="oscuro"] .paq-stat-box,
+[data-modo="oscuro"] .gu-stat-box,
+[data-modo="oscuro"] .parq-stat-box,
+[data-modo="oscuro"] .res-stat-box,
+[data-modo="oscuro"] .ac-stat-box,
+[data-modo="oscuro"] .rpt-stat-box,
+[data-modo="oscuro"] .vis-stat-box,
+[data-modo="oscuro"] [class$="-stat-box"] {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+}
+[data-modo="oscuro"] [class$="-stat-label"] {
+  color: #94a3b8 !important;
+}
+[data-modo="oscuro"] [class$="-stat-value"] {
+  color: #f1f5f9 !important;
+}
+
+/* ── CONTENEDORES DE TABLA ────────────────────────────────────── */
+[data-modo="oscuro"] .paq-table-container,
+[data-modo="oscuro"] .gu-table-container,
+[data-modo="oscuro"] .parq-table-container,
+[data-modo="oscuro"] .res-table-container,
+[data-modo="oscuro"] .ac-table-container,
+[data-modo="oscuro"] .rpt-table-container,
+[data-modo="oscuro"] .vis-table-container,
+[data-modo="oscuro"] [class$="-table-container"] {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* ── TABLAS – fondo ───────────────────────────────────────────── */
+[data-modo="oscuro"] .paq-table,
+[data-modo="oscuro"] .gu-table,
+[data-modo="oscuro"] .parq-table,
+[data-modo="oscuro"] .res-table,
+[data-modo="oscuro"] .ac-table,
+[data-modo="oscuro"] .vis-table,
+[data-modo="oscuro"] [class$="-table"] {
+  background: #1e293b !important;
+}
+
+/* Encabezados de tabla */
+[data-modo="oscuro"] .paq-table thead tr,
+[data-modo="oscuro"] .gu-table thead,
+[data-modo="oscuro"] .parq-table thead tr,
+[data-modo="oscuro"] .res-table thead tr,
+[data-modo="oscuro"] .ac-table thead tr,
+[data-modo="oscuro"] .vis-table thead tr,
+[data-modo="oscuro"] [class$="-table"] thead,
+[data-modo="oscuro"] [class$="-table"] thead tr {
+  background: #263248 !important;
+}
+
+[data-modo="oscuro"] .paq-table th,
+[data-modo="oscuro"] .gu-table thead th,
+[data-modo="oscuro"] .parq-table th,
+[data-modo="oscuro"] .res-table th,
+[data-modo="oscuro"] .ac-table th,
+[data-modo="oscuro"] .vis-table th,
+[data-modo="oscuro"] [class$="-table"] th {
+  color: #e2e8f0 !important;
+  border-bottom-color: #475569 !important;
+  background: #263248 !important;
+}
+
+/* Celdas del cuerpo – TEXTO CON ALTO CONTRASTE */
+[data-modo="oscuro"] .paq-table td,
+[data-modo="oscuro"] .gu-table tbody td,
+[data-modo="oscuro"] .parq-table td,
+[data-modo="oscuro"] .res-table td,
+[data-modo="oscuro"] .ac-table td,
+[data-modo="oscuro"] .vis-table td,
+[data-modo="oscuro"] [class$="-table"] td {
+  color: #e2e8f0 !important;
+  border-top-color: #334155 !important;
+}
+
+/* Hover de fila */
+[data-modo="oscuro"] .paq-table-row:hover,
+[data-modo="oscuro"] .gu-table tbody tr:hover,
+[data-modo="oscuro"] .parq-table tbody tr:hover,
+[data-modo="oscuro"] .res-table tbody tr:hover,
+[data-modo="oscuro"] .ac-table tbody tr:hover,
+[data-modo="oscuro"] [class$="-table"] tbody tr:hover {
+  background: #2d3f55 !important;
+}
+
+/* ── CHIPS / FILTROS INACTIVOS ──────────────────────────────── */
+[data-modo="oscuro"] .paq-chip:not(.active),
+[data-modo="oscuro"] .gu-chip:not(.active),
+[data-modo="oscuro"] .parq-chip:not(.active),
+[data-modo="oscuro"] .res-chip:not(.active),
+[data-modo="oscuro"] .ac-chip:not(.active),
+[data-modo="oscuro"] [class$="-chip"]:not(.active) {
+  background: #263248 !important;
+  border-color: #475569 !important;
+  color: #94a3b8 !important;
+}
+[data-modo="oscuro"] .paq-chip:not(.active):hover,
+[data-modo="oscuro"] .gu-chip:not(.active):hover,
+[data-modo="oscuro"] .parq-chip:not(.active):hover,
+[data-modo="oscuro"] [class$="-chip"]:not(.active):hover {
+  background: #334155 !important;
+  border-color: #60a5fa !important;
+  color: #e2e8f0 !important;
+}
+
+/* ── TOGGLE DE VISTA (lista / tarjetas) ──────────────────────── */
+[data-modo="oscuro"] .gu-view-toggle {
+  background: #263248 !important;
+}
+[data-modo="oscuro"] .gu-view-btn {
+  color: #94a3b8 !important;
+}
+[data-modo="oscuro"] .gu-view-btn:hover {
+  background: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+/* ── TEXTOS SECUNDARIOS (labels, resultados) ─────────────────── */
+[data-modo="oscuro"] .gu-results-info,
+[data-modo="oscuro"] .gu-filter-label,
+[data-modo="oscuro"] .parq-filter-label,
+[data-modo="oscuro"] .paq-filter-label,
+[data-modo="oscuro"] .gu-filter-search-icon,
+[data-modo="oscuro"] .paq-filter-search-icon,
+[data-modo="oscuro"] .parq-filter-search-icon,
+[data-modo="oscuro"] .gu-filter-select-icon,
+[data-modo="oscuro"] .paq-filter-select-icon,
+[data-modo="oscuro"] .parq-filter-select-icon {
+  color: #94a3b8 !important;
+}
+
+/* ── BADGES de estado – contraste adecuado ───────────────────── */
+[data-modo="oscuro"] .gu-badge-activo {
+  background: rgba(46, 125, 50, 0.25) !important;
+  color: #4ade80 !important;
+}
+[data-modo="oscuro"] .gu-badge-inactivo {
+  background: rgba(198, 40, 40, 0.25) !important;
+  color: #f87171 !important;
+}
+[data-modo="oscuro"] .gu-badge-rol {
+  background: rgba(123, 31, 162, 0.35) !important;
+  color: #d8b4fe !important;
+}
+[data-modo="oscuro"] .paq-badge-recibido {
+  background: rgba(194, 65, 12, 0.25) !important;
+  color: #fb923c !important;
+}
+[data-modo="oscuro"] .paq-badge-entregado {
+  background: rgba(21, 128, 61, 0.25) !important;
+  color: #4ade80 !important;
+}
+
+/* ── CARDS MOBILE – detalles internos ────────────────────────── */
+[data-modo="oscuro"] .paq-card-name {
+  color: #f1f5f9 !important;
+}
+[data-modo="oscuro"] .paq-card-info-label {
+  color: #94a3b8 !important;
+}
+[data-modo="oscuro"] .paq-card-footer {
+  background: #263248 !important;
+  border-top-color: #334155 !important;
+}
+
+/* ── LINKS en tablas ─────────────────────────────────────────── */
+[data-modo="oscuro"] .gu-table a,
+[data-modo="oscuro"] .parq-table a,
+[data-modo="oscuro"] .paq-table a {
+  color: #93c5fd !important;
+}
+
+/* ============================================================
+   CORRECCIONES RONDA 2 — Tarjetas parqueaderos, cards GU grid,
+   toggle residentes, labels fechas reportes, botones header rpt.
+   ============================================================ */
+
+/* ── PARQUEADEROS – tarjetas de plazas ───────────────────────── */
+[data-modo="oscuro"] .parq-card {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+[data-modo="oscuro"] .parq-card.disponible {
+  border-color: #4ade80 !important;
+  box-shadow: 0 2px 12px rgba(74, 222, 128, 0.15) !important;
+}
+[data-modo="oscuro"] .parq-card.disponible:hover {
+  border-color: #86efac !important;
+  box-shadow: 0 8px 20px rgba(74, 222, 128, 0.25) !important;
+}
+[data-modo="oscuro"] .parq-card.ocupado {
+  border-color: #f87171 !important;
+  box-shadow: 0 2px 12px rgba(248, 113, 113, 0.15) !important;
+}
+[data-modo="oscuro"] .parq-card.no-disponible {
+  border-color: #fbbf24 !important;
+  box-shadow: 0 2px 12px rgba(251, 191, 36, 0.12) !important;
+  background: repeating-linear-gradient(
+    -45deg,
+    #1e293b,
+    #1e293b 8px,
+    rgba(251, 191, 36, 0.06) 8px,
+    rgba(251, 191, 36, 0.06) 16px
+  ) !important;
+}
+[data-modo="oscuro"] .parq-card-header {
+  background: #1e293b !important;
+}
+[data-modo="oscuro"] .parq-card-codigo {
+  color: #e2e8f0 !important;
+}
+[data-modo="oscuro"] .parq-card-tipo {
+  color: #94a3b8 !important;
+}
+[data-modo="oscuro"] .parq-card-icon {
+  color: #f87171 !important;
+}
+[data-modo="oscuro"] .parq-card-footer {
+  background: #263248 !important;
+  border-top-color: #334155 !important;
+}
+[data-modo="oscuro"] .parq-selection-banner {
+  background: linear-gradient(135deg, #1a2e1a, #1f3a2a) !important;
+  border-color: #4ade80 !important;
+  color: #86efac !important;
+}
+[data-modo="oscuro"] .parq-selection-banner-btn {
+  background: #263248 !important;
+  border-color: #4ade80 !important;
+  color: #86efac !important;
+}
+[data-modo="oscuro"] .parq-selection-banner-btn:hover {
+  background: #2e7d32 !important;
+  color: white !important;
+}
+
+/* ── GESTIÓN USUARIOS – vista cuadrícula (cards) ─────────────── */
+[data-modo="oscuro"] .gu-card {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.4) !important;
+}
+[data-modo="oscuro"] .gu-card-name {
+  color: #f1f5f9 !important;
+}
+[data-modo="oscuro"] .gu-card-username {
+  color: #94a3b8 !important;
+}
+[data-modo="oscuro"] .gu-card-row-text {
+  color: #cbd5e1 !important;
+}
+[data-modo="oscuro"] .gu-card-actions {
+  border-top-color: #334155 !important;
+}
+/* Fondos de íconos de fila en modo oscuro */
+[data-modo="oscuro"] .gu-card-row-icon.doc {
+  background: rgba(29, 78, 216, 0.25) !important;
+  color: #93c5fd !important;
+}
+[data-modo="oscuro"] .gu-card-row-icon.rol {
+  background: rgba(123, 31, 162, 0.25) !important;
+  color: #d8b4fe !important;
+}
+[data-modo="oscuro"] .gu-card-row-icon.estado {
+  background: rgba(46, 125, 50, 0.25) !important;
+  color: #4ade80 !important;
+}
+[data-modo="oscuro"] .gu-card-row-icon.tel {
+  background: rgba(230, 81, 0, 0.25) !important;
+  color: #fdba74 !important;
+}
+[data-modo="oscuro"] .gu-card-row-icon.email {
+  background: rgba(198, 40, 40, 0.25) !important;
+  color: #fca5a5 !important;
+}
+/* Botones de acción dentro de las cards */
+[data-modo="oscuro"] .gu-card-btn.detalles {
+  background: #263248 !important;
+  border-color: #7b1fa2 !important;
+  color: #d8b4fe !important;
+}
+[data-modo="oscuro"] .gu-card-btn.detalles:hover {
+  background: rgba(123, 31, 162, 0.25) !important;
+}
+[data-modo="oscuro"] .gu-card-btn.editar {
+  background: #263248 !important;
+  border-color: #1976d2 !important;
+  color: #93c5fd !important;
+}
+[data-modo="oscuro"] .gu-card-btn.editar:hover {
+  background: rgba(29, 78, 216, 0.25) !important;
+}
+
+/* ── RESIDENTES – toggle lista/cuadrícula ────────────────────── */
+[data-modo="oscuro"] .res-view-toggle {
+  background: #263248 !important;
+}
+[data-modo="oscuro"] .res-view-btn {
+  color: #94a3b8 !important;
+}
+[data-modo="oscuro"] .res-view-btn:hover {
+  background: rgba(20, 184, 166, 0.12) !important;
+  color: #2dd4bf !important;
+}
+
+/* Residentes – tarjetas (cuadrícula) */
+[data-modo="oscuro"] .res-card {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+[data-modo="oscuro"] .res-card:hover {
+  border-color: #2dd4bf !important;
+  box-shadow: 0 8px 25px rgba(45, 212, 191, 0.2) !important;
+}
+[data-modo="oscuro"] .res-card-header {
+  background: linear-gradient(135deg, #1a2e2c, #1e3a35) !important;
+  border-bottom-color: #334155 !important;
+}
+[data-modo="oscuro"] .res-card-name {
+  color: #2dd4bf !important;
+}
+[data-modo="oscuro"] .res-card-doc {
+  color: #94a3b8 !important;
+}
+[data-modo="oscuro"] .res-card-row {
+  border-bottom-color: #334155 !important;
+}
+[data-modo="oscuro"] .res-card-row .label {
+  color: #94a3b8 !important;
+}
+[data-modo="oscuro"] .res-card-row .value {
+  color: #e2e8f0 !important;
+}
+[data-modo="oscuro"] .res-card-condition.inactive {
+  background: #334155 !important;
+  color: #94a3b8 !important;
+}
+/* Residentes – tabla */
+[data-modo="oscuro"] .res-table-wrapper {
+  background: #1e293b !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+[data-modo="oscuro"] .res-table td {
+  color: #e2e8f0 !important;
+  border-bottom-color: #334155 !important;
+}
+[data-modo="oscuro"] .res-table tbody tr:hover {
+  background: rgba(45, 212, 191, 0.06) !important;
+}
+/* Residentes – badges */
+[data-modo="oscuro"] .res-badge-activo {
+  background: rgba(22, 101, 52, 0.3) !important;
+  color: #4ade80 !important;
+}
+[data-modo="oscuro"] .res-badge-finalizado {
+  background: rgba(153, 27, 27, 0.3) !important;
+  color: #f87171 !important;
+}
+[data-modo="oscuro"] .res-badge-propietario {
+  background: rgba(30, 64, 175, 0.3) !important;
+  color: #93c5fd !important;
+}
+[data-modo="oscuro"] .res-badge-arrendatario {
+  background: rgba(154, 52, 18, 0.3) !important;
+  color: #fdba74 !important;
+}
+/* Residentes – toolbar */
+[data-modo="oscuro"] .res-toolbar {
+  background: #1e293b !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+}
+[data-modo="oscuro"] .res-search-box input,
+[data-modo="oscuro"] .res-filter-select {
+  background: #263248 !important;
+  border-color: #475569 !important;
+  color: #e2e8f0 !important;
+}
+[data-modo="oscuro"] .res-search-box input:focus,
+[data-modo="oscuro"] .res-filter-select:focus {
+  border-color: #2dd4bf !important;
+}
+
+/* ── REPORTES – botones de header (atrás, hamburguesa, actualizar) */
+[data-modo="oscuro"] .rpt-header-btn {
+  background: #1e293b !important;
+  border-color: #475569 !important;
+  color: #a78bfa !important;
+}
+[data-modo="oscuro"] .rpt-header-btn:hover {
+  background: #334155 !important;
+  border-color: #7c3aed !important;
+}
+
+/* Reportes – barra de filtros de fecha */
+[data-modo="oscuro"] .rpt-filter-bar {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+}
+[data-modo="oscuro"] .rpt-filter-bar label {
+  color: #e2e8f0 !important;
+}
+[data-modo="oscuro"] .rpt-filter-bar input[type="date"],
+[data-modo="oscuro"] .rpt-filter-bar select {
+  background: #263248 !important;
+  border-color: #475569 !important;
+  color: #e2e8f0 !important;
+}
+[data-modo="oscuro"] .rpt-filter-bar input[type="date"]:focus {
+  border-color: #8b5cf6 !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2) !important;
+}
+[data-modo="oscuro"] .rpt-page-title h3 {
+  color: #a78bfa !important;
+}
+[data-modo="oscuro"] .rpt-page-title p {
+  color: #94a3b8 !important;
+}
+
+/* ── AUDITORÍAS – fondo blanco del área de filtros ───────────── */
+[data-modo="oscuro"] .aud-filters {
+  background: #1e293b !important;
+}
+[data-modo="oscuro"] .aud-filter-input,
+[data-modo="oscuro"] .aud-filter-select {
+  background: #263248 !important;
+  border-color: #475569 !important;
+  color: #e2e8f0 !important;
+}
+[data-modo="oscuro"] .aud-filter-input:focus {
+  border-color: #4f46e5 !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2) !important;
+}
+[data-modo="oscuro"] .aud-filter-select:focus {
+  border-color: #4f46e5 !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2) !important;
+}
+[data-modo="oscuro"] .aud-filter-search-icon,
+[data-modo="oscuro"] .aud-filter-select-icon {
+  color: #818cf8 !important;
+}
+
+/* ── RESIDENTES – toggle lista/cuadrícula (aspecto completo) ─── */
+[data-modo="oscuro"] .res-view-toggle {
+  background: #263248 !important;
+  border: 1px solid #334155 !important;
+}
+[data-modo="oscuro"] .res-view-btn {
+  background: transparent !important;
+  color: #94a3b8 !important;
+}
+[data-modo="oscuro"] .res-view-btn:hover {
+  background: rgba(45, 212, 191, 0.1) !important;
+  color: #2dd4bf !important;
+}
+[data-modo="oscuro"] .res-view-btn.active {
+  background: linear-gradient(135deg, #0d9488, #14b8a6) !important;
+  color: white !important;
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.4) !important;
+}

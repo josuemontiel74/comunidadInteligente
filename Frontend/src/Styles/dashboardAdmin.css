@@ -16,7 +16,7 @@ body {
 }
 
 /* Loading */
-.ad-loading-screen {
+.adm-loading-screen {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -26,13 +26,16 @@ body {
 }
 
 /* Dashboard wrapper */
-.ad-dashboard {
+.adm-dashboard {
   min-height: 100vh;
   background: #f5f7fa;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 /* ── OVERLAY ─────────────────────────────────────────── */
-.ad-overlay {
+.adm-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
@@ -41,13 +44,13 @@ body {
   pointer-events: none;
   transition: opacity 0.3s ease;
 }
-.ad-overlay.active {
+.adm-overlay.active {
   opacity: 1;
   pointer-events: all;
 }
 
 /* ── DRAWER ──────────────────────────────────────────── */
-.ad-drawer {
+.adm-drawer {
   position: fixed;
   top: 0;
   right: -340px;
@@ -62,11 +65,11 @@ body {
   transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
-.ad-drawer.open {
+.adm-drawer.open {
   right: 0;
 }
 
-.ad-drawer-header {
+.adm-drawer-header {
   padding: 30px 20px;
   display: flex;
   flex-direction: column;
@@ -75,7 +78,7 @@ body {
   flex-shrink: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
-.ad-drawer-avatar {
+.adm-drawer-avatar {
   width: 80px;
   height: 80px;
   border-radius: 50%;
@@ -84,30 +87,30 @@ body {
   align-items: center;
   justify-content: center;
 }
-.ad-drawer-avatar i {
+.adm-drawer-avatar i {
   font-size: 44px;
   color: white;
 }
-.ad-drawer-title {
+.adm-drawer-title {
   color: #fff;
   font-size: 22px;
   font-weight: 700;
   margin: 0;
 }
-.ad-drawer-user {
+.adm-drawer-user {
   color: rgba(255, 255, 255, 0.85);
   font-size: 14px;
 }
 
-.ad-drawer-body {
+.adm-drawer-body {
   flex: 1;
   overflow-y: auto;
   padding: 16px 12px;
 }
-.ad-menu-section {
+.adm-menu-section {
   margin-bottom: 16px;
 }
-.ad-menu-section-title {
+.adm-menu-section-title {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -115,7 +118,7 @@ body {
   opacity: 0.6;
   margin: 0 0 8px 16px;
 }
-.ad-menu-item {
+.adm-menu-item {
   display: flex;
   align-items: center;
   gap: 14px;
@@ -128,33 +131,33 @@ body {
   transition: background 0.15s;
   margin-bottom: 4px;
 }
-.ad-menu-item:hover {
+.adm-menu-item:hover {
   background: rgba(255, 255, 255, 0.15);
   color: white;
   text-decoration: none;
 }
-.ad-menu-item i {
+.adm-menu-item i {
   font-size: 18px;
   color: white;
 }
-.ad-menu-item:hover i {
+.adm-menu-item:hover i {
   color: white;
 }
-.ad-menu-item span {
+.adm-menu-item span {
   flex: 1;
   font-size: 15px;
   font-weight: 500;
 }
-.ad-menu-arrow {
+.adm-menu-arrow {
   font-size: 12px !important;
   opacity: 0.6;
 }
 
-.ad-drawer-footer {
+.adm-drawer-footer {
   padding: 16px 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
-.ad-logout-btn {
+.adm-logout-btn {
   width: 100%;
   padding: 12px;
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -170,17 +173,17 @@ body {
   cursor: pointer;
   transition: background 0.2s;
 }
-.ad-logout-btn:hover {
+.adm-logout-btn:hover {
   background: rgba(255, 255, 255, 0.25);
 }
 
 /* ── MAIN AREA ───────────────────────────────────────── */
-.ad-main {
+.adm-main {
   min-height: 100vh;
 }
 
 /* ── HEADER ──────────────────────────────────────────── */
-.ad-header {
+.adm-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -192,7 +195,7 @@ body {
   z-index: 100;
   min-height: 80px;
 }
-.ad-header-btn {
+.adm-header-btn {
   background: none;
   border: none;
   cursor: pointer;
@@ -204,27 +207,56 @@ body {
   justify-content: center;
   transition: background 0.15s;
 }
-.ad-header-btn:hover {
+.adm-header-btn:hover {
   background: #f3f4f6;
 }
-.ad-header-btn i {
+.adm-header-btn i {
   font-size: 28px;
   color: #374151;
 }
-.ad-header-actions {
+/* Wrapper con dot de estado amarillo */
+.adm-profile-btn-wrap {
+  position: relative;
+  display: inline-flex;
+  overflow: visible;
+}
+.adm-profile-status-dot {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #eab308;
+  border: 2px solid white;
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.4);
+  animation: adm-profile-pulse 2s ease-in-out infinite;
+}
+@keyframes adm-profile-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(234, 179, 8, 0.15);
+  }
+}
+.adm-header-actions {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
 /* Logo central – AMARILLO */
-.ad-logo-wrapper {
+.adm-logo-wrapper {
   text-decoration: none;
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
 }
-.ad-logo-circle {
+.adm-logo-circle {
   width: 80px;
   height: 80px;
   border-radius: 50%;
@@ -236,10 +268,10 @@ body {
   box-shadow: 0 4px 16px rgba(234, 179, 8, 0.35);
   transition: transform 0.2s;
 }
-.ad-logo-circle:hover {
+.adm-logo-circle:hover {
   transform: scale(1.05);
 }
-.ad-logo-img {
+.adm-logo-img {
   width: 58px;
   height: 58px;
   border-radius: 50%;
@@ -249,7 +281,7 @@ body {
 }
 
 /* Profile popup */
-.ad-profile-popup {
+.adm-profile-popup {
   position: absolute;
   top: 80px;
   left: 20px;
@@ -261,15 +293,15 @@ body {
   z-index: 200;
   animation: adFadeIn 0.2s ease;
 }
-.ad-profile-popup-header {
+.adm-profile-popup-header {
   text-align: center;
   margin-bottom: 12px;
 }
-.ad-profile-icon {
+.adm-profile-icon {
   font-size: 48px;
   color: #eab308;
 }
-.ad-profile-popup p {
+.adm-profile-popup p {
   font-size: 14px;
   margin: 6px 0;
   color: #374151;
@@ -287,31 +319,39 @@ body {
 }
 
 /* ── WELCOME ─────────────────────────────────────────── */
-.ad-welcome {
+.adm-welcome {
   text-align: center;
   padding: 30px 20px 10px;
+  width: 100%;
+  box-sizing: border-box;
 }
-.ad-welcome-title {
+.adm-welcome-title {
   font-size: 32px;
   font-weight: 700;
   color: #1f2937;
   margin: 0;
+  word-break: break-word;
 }
-.ad-welcome-sub {
+.adm-welcome-sub {
   font-size: 14px;
   color: #6b7280;
   margin-top: 8px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  padding: 0 8px;
 }
 
 /* ── MODULE CARDS ────────────────────────────────────── */
-.ad-modules-grid {
+.adm-modules-grid {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 24px;
-  padding: 30px 40px;
+  padding: 30px 24px;
+  box-sizing: border-box;
+  width: 100%;
 }
-.ad-module-card {
+.adm-module-card {
   width: 180px;
   height: 210px;
   border-radius: 20px;
@@ -330,7 +370,7 @@ body {
   position: relative;
   overflow: hidden;
 }
-.ad-module-card::before {
+.adm-module-card::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -341,12 +381,12 @@ body {
   );
   pointer-events: none;
 }
-.ad-module-card:hover {
+.adm-module-card:hover {
   transform: translateY(-6px);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
   color: #fff;
 }
-.ad-module-icon-wrap {
+.adm-module-icon-wrap {
   width: 80px;
   height: 80px;
   border-radius: 50%;
@@ -355,11 +395,11 @@ body {
   align-items: center;
   justify-content: center;
 }
-.ad-module-icon-wrap i {
+.adm-module-icon-wrap i {
   font-size: 42px;
   color: #fff;
 }
-.ad-module-title {
+.adm-module-title {
   font-size: 15px;
   font-weight: 700;
   text-align: center;
@@ -368,17 +408,19 @@ body {
 }
 
 /* ── STATS ───────────────────────────────────────────── */
-.ad-stats-section {
-  padding: 20px 40px 40px;
+.adm-stats-section {
+  padding: 20px 24px 40px;
+  box-sizing: border-box;
+  width: 100%;
 }
-.ad-stats-title {
+.adm-stats-title {
   text-align: center;
   font-size: 26px;
   font-weight: 700;
   color: #1f2937;
   margin-bottom: 30px;
 }
-.ad-stats-grid {
+.adm-stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 24px;
@@ -386,7 +428,7 @@ body {
   margin: 0 auto;
 }
 
-.ad-stat-card {
+.adm-stat-card {
   background: #fff;
   border-radius: 20px;
   padding: 24px;
@@ -397,31 +439,36 @@ body {
     box-shadow 0.2s,
     transform 0.2s;
 }
-.ad-stat-card-link:hover {
+.adm-stat-card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+.adm-stat-card-link:hover {
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.13);
   transform: translateY(-2px);
   color: inherit;
 }
-.ad-stat-card-header {
+.adm-stat-card-header {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 24px;
 }
-.ad-stat-card-header h5 {
+.adm-stat-card-header h5 {
   font-size: 17px;
   font-weight: 700;
   color: #1f2937;
   margin: 0;
 }
 
-.ad-bar-chart-container {
+.adm-bar-chart-container {
   position: relative;
   width: 100%;
   height: 180px;
   margin-bottom: 20px;
 }
-.ad-donut-chart-container {
+.adm-donut-chart-container {
   position: relative;
   width: 100%;
   height: 180px;
@@ -431,7 +478,7 @@ body {
   margin-bottom: 24px;
 }
 
-.ad-stat-summary {
+.adm-stat-summary {
   background: #fefce8;
   border-radius: 12px;
   padding: 16px;
@@ -439,56 +486,56 @@ body {
   align-items: center;
   justify-content: space-around;
 }
-.ad-stat-summary-item {
+.adm-stat-summary-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
 }
-.ad-stat-big-number {
+.adm-stat-big-number {
   font-size: 30px;
   font-weight: 700;
 }
-.ad-stat-label {
+.adm-stat-label {
   font-size: 13px;
   color: #6b7280;
 }
-.ad-stat-divider {
+.adm-stat-divider {
   width: 1px;
   height: 40px;
   background: #d1d5db;
 }
 
 /* Legend */
-.ad-legend {
+.adm-legend {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-.ad-legend-item {
+.adm-legend-item {
   display: flex;
   align-items: center;
   gap: 12px;
 }
-.ad-legend-dot {
+.adm-legend-dot {
   width: 16px;
   height: 16px;
   border-radius: 50%;
   flex-shrink: 0;
 }
-.ad-legend-label {
+.adm-legend-label {
   flex: 1;
   font-size: 15px;
   color: #1f2937;
 }
-.ad-legend-value {
+.adm-legend-value {
   font-size: 15px;
   font-weight: 700;
   color: #1f2937;
 }
 
 /* Info card body (reservas) */
-.ad-info-card-body {
+.adm-info-card-body {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -496,12 +543,12 @@ body {
   padding: 24px 0;
   margin-bottom: 20px;
 }
-.ad-info-big-value {
+.adm-info-big-value {
   font-size: 64px;
   font-weight: 800;
   line-height: 1;
 }
-.ad-info-sub-label {
+.adm-info-sub-label {
   font-size: 14px;
   color: #6b7280;
   margin-top: 8px;
@@ -510,137 +557,193 @@ body {
 
 /* ── RESPONSIVE ──────────────────────────────────────── */
 @media (max-width: 900px) {
-  .ad-modules-grid {
-    padding: 20px;
+  .adm-modules-grid {
+    padding: 20px 16px;
     gap: 16px;
   }
-  .ad-module-card {
+  .adm-module-card {
     width: 160px;
     height: 190px;
   }
-  .ad-module-icon-wrap {
+  .adm-module-icon-wrap {
     width: 65px;
     height: 65px;
   }
-  .ad-module-icon-wrap i {
+  .adm-module-icon-wrap i {
     font-size: 34px;
   }
-  .ad-stats-section {
-    padding: 20px;
+  .adm-stats-section {
+    padding: 20px 16px;
   }
-  .ad-stats-grid {
+  .adm-stats-grid {
     grid-template-columns: 1fr;
   }
-  .ad-stat-card {
+  .adm-stat-card {
     max-width: 100%;
   }
 }
 
 @media (max-width: 600px) {
-  .ad-header {
-    padding: 10px 12px;
-    min-height: 70px;
+  .adm-header {
+    padding: 8px 12px;
+    min-height: 64px;
   }
-  .ad-logo-circle {
-    width: 60px;
-    height: 60px;
+  .adm-header-actions {
+    gap: 2px;
   }
-  .ad-logo-img {
-    width: 44px;
-    height: 44px;
+  .adm-header-btn {
+    width: 38px;
+    height: 38px;
   }
-  .ad-header-btn i {
-    font-size: 24px;
+  .adm-logo-circle {
+    width: 56px;
+    height: 56px;
   }
-  .ad-welcome {
-    padding: 20px 16px 8px;
+  .adm-logo-img {
+    width: 40px;
+    height: 40px;
   }
-  .ad-welcome-title {
-    font-size: 24px;
+  .adm-header-btn i {
+    font-size: 22px;
   }
-  .ad-welcome-sub {
+  .adm-welcome {
+    padding: 16px 14px 6px;
+  }
+  .adm-welcome-title {
+    font-size: 20px;
+  }
+  .adm-welcome-sub {
     font-size: 13px;
+    padding: 0 4px;
   }
-  .ad-modules-grid {
+  .adm-modules-grid {
     flex-wrap: nowrap;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
-    padding: 16px;
+    padding: 14px 12px;
     gap: 12px;
     justify-content: flex-start;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
-  .ad-modules-grid::-webkit-scrollbar {
+  .adm-modules-grid::-webkit-scrollbar {
     display: none;
   }
-  .ad-module-card {
-    min-width: 165px;
-    width: 165px;
-    height: 200px;
-    scroll-snap-align: center;
+  .adm-module-card {
+    min-width: 150px;
+    width: 150px;
+    height: 185px;
+    scroll-snap-align: start;
     flex-shrink: 0;
   }
-  .ad-stats-section {
-    padding: 16px;
+  .adm-stats-section {
+    padding: 12px 12px 24px;
   }
-  .ad-stats-title {
+  .adm-stats-title {
     font-size: 22px;
     margin-bottom: 20px;
   }
-  .ad-stat-card {
+  .adm-stat-card {
     padding: 18px;
   }
-  .ad-stat-card-header h5 {
+  .adm-stat-card-header h5 {
     font-size: 15px;
   }
-  .ad-bar-chart-container,
-  .ad-donut-chart-container {
+  .adm-bar-chart-container,
+  .adm-donut-chart-container {
     height: 150px;
     position: relative;
     width: 100%;
   }
-  .ad-stat-big-number {
+  .adm-stat-big-number {
     font-size: 24px;
   }
-  .ad-drawer {
-    width: 290px;
-    right: -310px;
+  .adm-drawer {
+    width: 280px;
+    right: -300px;
   }
-  .ad-drawer-header {
-    padding: 24px 16px;
+  .adm-drawer-header {
+    padding: 20px 14px;
   }
-  .ad-drawer-avatar {
-    width: 65px;
-    height: 65px;
+  .adm-drawer-avatar {
+    width: 60px;
+    height: 60px;
   }
-  .ad-drawer-avatar i {
-    font-size: 36px;
+  .adm-drawer-avatar i {
+    font-size: 32px;
   }
-  .ad-drawer-title {
-    font-size: 19px;
+  .adm-drawer-title {
+    font-size: 18px;
   }
-  .ad-profile-popup {
-    left: 10px;
-    width: 220px;
-    top: 70px;
+  .adm-profile-popup {
+    left: 8px;
+    width: 200px;
+    top: 66px;
   }
 }
 
 @media (max-width: 380px) {
-  .ad-module-card {
+  .adm-module-card {
     min-width: 150px;
     width: 150px;
     height: 185px;
   }
-  .ad-module-icon-wrap {
+  .adm-module-icon-wrap {
     width: 55px;
     height: 55px;
   }
-  .ad-module-icon-wrap i {
+  .adm-module-icon-wrap i {
     font-size: 28px;
   }
-  .ad-module-title {
+  .adm-module-title {
     font-size: 13px;
   }
+}
+
+/* ── ANIMACIONES ──────────────────────────────────── */
+@keyframes adm-fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes adm-fadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+/* Entrada escalonada del contenido */
+.adm-welcome {
+  animation: adm-fadeInUp 0.45s ease both;
+}
+.adm-modules-grid {
+  animation: adm-fadeInUp 0.45s 0.08s ease both;
+}
+.adm-stats-section {
+  animation: adm-fadeInUp 0.45s 0.16s ease both;
+}
+
+/* Press effect en tarjetas de módulo */
+.adm-module-card:active {
+  transform: scale(0.92) !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.1s ease;
+}
+
+/* Desvanecimiento al cerrar sesión */
+.adm-saliendo {
+  animation: adm-fadeOut 0.38s ease forwards;
+  pointer-events: none;
 }

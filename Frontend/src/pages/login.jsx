@@ -1,34 +1,40 @@
 import React, { useState } from "react";
-import "bootstrap/dist/css/bootstrap.min.css";
 import "../Styles/login.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
 import logo from "../../img/logo.png";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import Lottie from "lottie-react";
-import animationData from "../animacion/loginSaluda.json";
-import ingresar from "../animacion/Unlocked.json";
-import Error from "../animacion/Error.json";
 import { handleSubmit as loginService } from "../services/login.serves.jsx";
+
+const DARK_KEY = "ci_modo_oscuro";
+const WA_URL = "https://chat.whatsapp.com/FPvNvN2Ubvc4AyK2IDM67p?mode=gi_t";
+const MAX_INTENTOS = 3;
+
 function Login() {
   const navigate = useNavigate();
 
-  // Bloquear navegación hacia atrás y adelante en login
+  const [oscuro, setOscuro] = useState(
+    () => localStorage.getItem(DARK_KEY) === "1",
+  );
+
+  // Aplicar/quitar modo oscuro en <html>
   React.useEffect(() => {
-    window.history.pushState(null, "", window.location.href);
-    const handlePopState = () => {
-      window.history.pushState(null, "", window.location.href);
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, []);
+    const html = document.documentElement;
+    if (oscuro) {
+      html.setAttribute("data-modo", "oscuro");
+      localStorage.setItem(DARK_KEY, "1");
+    } else {
+      html.removeAttribute("data-modo");
+      localStorage.removeItem(DARK_KEY);
+    }
+  }, [oscuro]);
 
-  const [errorAnim, setErrorAnim] = useState(false);
-
+  const [feedback, setFeedback] = useState(null); // null | "ok" | "error"
+  const [intentos, setIntentos] = useState(0);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [exito, setExito] = useState(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -43,43 +49,43 @@ function Login() {
 
     try {
       const data = await loginService(username, password);
-      // Validar que la respuesta contenga los datos esperados antes de usarlos
       if (!data || !data.usuario || !data.token) {
-        setErrorAnim(true);
-        setTimeout(() => setErrorAnim(false), 3000);
+        const nuevos = intentos + 1;
+        setIntentos(nuevos);
+        setFeedback("error");
+        setTimeout(() => setFeedback(null), 3500);
         return;
       }
-      // Guardar datos en localStorage solo cuando la autenticación fue exitosa
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.usuario));
       localStorage.setItem("rol", data.usuario.rolesId);
-      console.log(" Token guardado:", localStorage.getItem("token"));
+
       if (data.usuario.estadoId != 2) {
+        setFeedback("ok");
         setExito(true);
         setTimeout(() => {
-          const tokenAntes = localStorage.getItem("token");
-          console.log("🔑 Token antes de navegar:", tokenAntes);
+          // replace:true elimina /login del historial — el usuario
+          // no puede volver al login con el botón atrás tras autenticarse
           if (data.usuario.rolesId === 1) {
-            navigate("/Superadmin");
+            navigate("/Superadmin", { replace: true });
           } else if (data.usuario.rolesId === 2) {
-            navigate("/Admin");
+            navigate("/Admin", { replace: true });
           } else if (data.usuario.rolesId === 3) {
-            navigate("/Vigilante");
+            navigate("/Vigilante", { replace: true });
           } else {
-            navigate("/");
+            navigate("/", { replace: true });
           }
         }, 3160);
       } else {
         Swal.fire({
           icon: "error",
-          title: "Si Acceso",
-          text: "No tienes acceso a la aplicacion :(",
+          title: "Sin acceso",
+          text: "No tienes acceso a la aplicación :(",
         });
       }
     } catch (err) {
-      console.error(err);
       Swal.fire({
         icon: "error",
         title: "Error de conexión",
@@ -89,75 +95,109 @@ function Login() {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-box w-100 mx-3">
-        <div className="text-center mb-4">
-          <img src={logo} alt="Logo Azahar" style={{ maxHeight: "80px" }} />
-          <h1 className="mt-3 text-success fw-bold">
-            Bienvenido al Conjunto Azahar
-          </h1>
-          <p>Inicia sesión para continuar</p>
+    <div className="lgn-root">
+      {/* Fondo desenfocado con imagen del conjunto */}
+      <div className="lgn-bg" />
+      {/* Overlay — se oscurece más en modo oscuro */}
+      <div className="lgn-overlay" />
+
+      {/* Botón modo oscuro — esquina superior derecha */}
+      <button
+        className="lgn-dark-btn"
+        onClick={() => setOscuro((v) => !v)}
+        title={oscuro ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+      >
+        <i className={`bi ${oscuro ? "bi-sun-fill" : "bi-moon-stars-fill"}`} />
+      </button>
+
+      {/* Tarjeta centrada */}
+      <div className="lgn-card">
+        {/* Logo circular */}
+        <div
+          className="lgn-logo-wrap"
+          onClick={() => navigate("/")}
+          style={{ cursor: "pointer" }}
+          title="Ir a la página principal"
+        >
+          <img src={logo} alt="Logo Azahar" className="lgn-logo" />
         </div>
-        <div className="d-flex justify-content-center">
-          {!exito && !errorAnim && (
-            <Lottie
-              animationData={animationData}
-              loop={true}
-              autoplay={true}
-              style={{ width: 310, height: 320 }}
-            />
-          )}
 
-          {exito && (
-            <Lottie
-              animationData={ingresar}
-              loop={false}
-              autoplay={true}
-              style={{ width: 300, height: 300 }}
-            />
-          )}
+        <h1 className="lgn-title">
+          Bienvenido al
+          <br />
+          <span className="lgn-title-highlight">Conjunto Azahar</span>
+        </h1>
+        <p className="lgn-sub">Ingresa tus credenciales para continuar</p>
 
-          {errorAnim && (
-            <div style={{ textAlign: "center", marginTop: "20px" }}>
-              <h5>Usuario o contraseña incorrecta </h5>
-              <Lottie
-                animationData={Error}
-                loop={false}
-                autoplay={true}
-                style={{ width: 300, height: 300 }}
-              />
+        {/* Banner de feedback */}
+        <div className="lgn-feedback-area">
+          {feedback === "ok" && (
+            <div className="lgn-feedback lgn-feedback--ok">
+              <i className="bi bi-check-circle-fill" />
+              <span>¡Bienvenido/a! Ingresando al sistema…</span>
+            </div>
+          )}
+          {feedback === "error" && (
+            <div className="lgn-feedback lgn-feedback--err">
+              <i className="bi bi-x-circle-fill" />
+              <span>Usuario o contraseña incorrecta</span>
+            </div>
+          )}
+          {feedback === null && intentos >= MAX_INTENTOS && (
+            <div className="lgn-feedback lgn-feedback--warn">
+              <i className="bi bi-question-circle-fill" />
+              <span>
+                ¿Olvidaste tu contraseña? Contacta al administrador del conjunto
+                o escríbenos por{" "}
+                <a
+                  href={WA_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="lgn-wa-link"
+                >
+                  <i className="bi bi-whatsapp" /> WhatsApp
+                </a>
+              </span>
             </div>
           )}
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-3">
-            <label className="form-label">Usuario</label>
+        {/* Formulario */}
+        <form onSubmit={handleSubmit} className="lgn-form">
+          <div className="lgn-field">
+            <label className="lgn-label">
+              <i className="bi bi-person-fill" /> Usuario
+            </label>
             <input
               type="text"
-              className="form-control"
-              placeholder="Usuario"
+              className="lgn-input"
+              placeholder="Ingresa tu usuario"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
             />
           </div>
-          <div className="mb-4">
-            <label className="form-label">Contraseña</label>
+          <div className="lgn-field">
+            <label className="lgn-label">
+              <i className="bi bi-lock-fill" /> Contraseña
+            </label>
             <input
               type="password"
-              className="form-control"
+              className="lgn-input"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
             />
           </div>
-
-          <div className="d-flex justify-content-center mb-3">
-            <button type="submit" className="btn btn-success w-50">
-              Iniciar sesión
-            </button>
-          </div>
+          <button type="submit" className="lgn-btn-submit">
+            <i className="bi bi-box-arrow-in-right" /> Iniciar sesión
+          </button>
         </form>
+
+        <p className="lgn-footer-txt">
+          <i className="bi bi-geo-alt-fill" /> Soacha, Cundinamarca · Colombia
+        </p>
       </div>
     </div>
   );

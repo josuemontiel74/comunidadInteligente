@@ -187,7 +187,6 @@ function Visitas() {
         setVisitas([]);
       }
     } catch (err) {
-      console.error("Error al cargar visitas:", err);
       setError("Error al cargar las visitas.");
     } finally {
       setLoading(false);
@@ -260,7 +259,6 @@ function Visitas() {
       }));
       setParqueaderosDisponibles(conMarca);
     } catch (err) {
-      console.error("Error al cargar parqueaderos:", err);
       setParqueaderosDisponibles([]);
     }
   }, []);
@@ -569,7 +567,6 @@ function Visitas() {
       resetForm();
       await cargarVisitas();
     } catch (err) {
-      console.error("Error al guardar visita:", err);
       Swal.fire({
         icon: "error",
         title: "Lo siento",
@@ -611,7 +608,6 @@ function Visitas() {
             showConfirmButton: false,
           });
         } catch (err) {
-          console.error("Error al finalizar visita:", err);
           Swal.fire({
             icon: "error",
             title: "Lo siento",

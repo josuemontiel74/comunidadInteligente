@@ -28,6 +28,7 @@ export const obtenerUsuarios = async (token) => {
       nombreRol: u.Rol?.nombreRol || "",
       nombreEstado: u.Estado?.nombreEstado || "",
       nombreDocumento: p.TipoDocumento?.nombreDocumento || "",
+      fotoPerfil: u.fotoPerfil || null,
     };
   });
 };
@@ -112,31 +113,20 @@ export const logoutUsuario = async (token) => {
   }
 };
 
-export const obtenerUsuariosEnLinea = async (token) => {
-  const res = await fetch(`${BASE}/usuario/en-linea`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  if (!res.ok) return {};
-  const data = await res.json();
-  return data.enLinea || {};
-};
-
-
-
-export const logoutUsuario = async (token) => {
-  try {
-    await fetch(`${BASE}/usuario/logout`, {
-      method: "POST",
+export const actualizarFotoPerfil = async (username, fotoPerfil, token) => {
+  const res = await fetch(
+    `${BASE}/usuario/${encodeURIComponent(username)}/foto`,
+    {
+      method: "PUT",
       headers: {
-        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-    });
-  } catch {
-    // Silencioso: no bloquear el logout local si falla
-  }
+      body: JSON.stringify({ fotoPerfil }),
+    },
+  );
+  if (!res.ok) throw new Error(`Error al actualizar foto: ${res.status}`);
+  return res.json();
 };
 
 export const obtenerUsuariosEnLinea = async (token) => {

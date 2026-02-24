@@ -61,9 +61,7 @@ const actualizarEstadosReservas = async () => {
         }
       }
     }
-  } catch (error) {
-    console.error("Error al actualizar estados de reservas:", error.message);
-  }
+  } catch (error) {}
 };
 
 // ============================================================
@@ -138,7 +136,6 @@ export const listarReservasAreas = async (req, res) => {
       error.message,
       error.stack,
     );
-    console.error("Error:", error.message);
     res.status(500).json({ ok: false, error: error.message });
   }
 };
@@ -214,7 +211,6 @@ export const obtenerReservaPorId = async (req, res) => {
       error.message,
       error.stack,
     );
-    console.error("Error:", error.message);
     res.status(500).json({ ok: false, error: error.message });
   }
 };
@@ -341,7 +337,6 @@ export const crearReserva = async (req, res) => {
       error.message,
       error.stack,
     );
-    console.error(error.message);
     return res.status(500).json({ ok: false, error: error.message });
   }
 };
@@ -496,7 +491,6 @@ export const actualizarReserva = async (req, res) => {
       error.message,
       error.stack,
     );
-    console.error(error);
     return res.status(500).json({ ok: false, error: error.message });
   }
 };
@@ -621,7 +615,6 @@ export const reportes = async (req, res) => {
 
     res.status(200).json({ ok: true, areascomunesReporte });
   } catch (error) {
-    console.error("Error en reportes:", error.message);
     res.status(500).json({ ok: false, message: error.message });
   }
 };
@@ -656,7 +649,6 @@ export const calendariosReservas = async (req, res) => {
 
     return res.status(200).json({ ok: true, caledarioreservas });
   } catch (error) {
-    console.error("Error en calendario:", error);
     return res
       .status(500)
       .json({ ok: false, message: "Error interno del servidor" });

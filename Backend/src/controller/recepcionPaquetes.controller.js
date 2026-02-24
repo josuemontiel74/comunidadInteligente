@@ -49,7 +49,7 @@ export const crearRecepcionPaquete = async (req, res) => {
       usuarioActual,
       "recepcionpaquetes",
       "INSERT",
-      nuevoPaquete.idPaquete
+      nuevoPaquete.idPaquete,
     );
 
     res.status(201).json({
@@ -94,7 +94,6 @@ export const obtenerRecepcionPaquetesSQL = async (req, res) => {
 
     await registrarFallo("ERROR", username, ruta, error.message, error.stack);
 
-    console.error(error);
     res.status(500).json({ error: "Error al obtener los paquetes" });
   }
 };
@@ -169,7 +168,7 @@ export const actualizarRecepcionPaquete = async (req, res) => {
     // Validar y agregar apartamentoId si se proporciona
     if (req.body.apartamentoId !== undefined) {
       const apartamentoExiste = await Apartamento.findByPk(
-        req.body.apartamentoId
+        req.body.apartamentoId,
       );
       if (!apartamentoExiste) {
         return res.status(400).json({
@@ -230,7 +229,7 @@ export const actualizarRecepcionPaquete = async (req, res) => {
         usuarioActual,
         "recepcionpaquetes",
         "UPDATE",
-        idPaquete
+        idPaquete,
       );
 
       res.status(200).json({
@@ -284,7 +283,7 @@ export const FinalizarRecepcionPaquete = async (req, res) => {
       usuarioActual,
       "recepcionpaquetes",
       "DELETE",
-      idPaquete
+      idPaquete,
     );
 
     res.status(200).json({
@@ -310,29 +309,28 @@ export const FinalizarRecepcionPaquete = async (req, res) => {
 export const paqueteDelDia = async (req, res) => {
   try {
     const paqueteDia = await RecepcionPaquetes.count({
-      where: where(fn("Date", col("fechaRecepcion")), "=", fn("CURDATE"))
-    })
+      where: where(fn("Date", col("fechaRecepcion")), "=", fn("CURDATE")),
+    });
     res.status(200).json({
       ok: true,
-      paqueteDia
-    })
+      paqueteDia,
+    });
   } catch (error) {
-    console.log("Ocurrio un erro a la hora de trea la informacion", error.message);
+    res.status(500).json({ error: "Error al obtener visitas del día" });
   }
-}
+};
 
 export const informePaqueteria = async (req, res) => {
   try {
-    const reportPor = parseInt(req.params.por, 10); 
+    const reportPor = parseInt(req.params.por, 10);
     const rango = req.body.rango || req.body;
     let { fechaInicio, fechaFin } = rango;
 
-  
     if (!fechaInicio || !fechaFin) {
-      return res.status(400).json({ msg: "Las fechas de inicio y fin son obligatorias." });
+      return res
+        .status(400)
+        .json({ msg: "Las fechas de inicio y fin son obligatorias." });
     }
-    console.log(reportPor);
-   
     const dateInicio = new Date(fechaInicio);
     const dateFin = new Date(fechaFin);
 
@@ -342,14 +340,12 @@ export const informePaqueteria = async (req, res) => {
 
     // Corregir orden de fechas si están invertidas
     if (dateInicio > dateFin) {
-      
       [fechaInicio, fechaFin] = [fechaFin, fechaInicio];
     } else {
-      
-      fechaInicio = dateInicio.toISOString().split('T')[0]; 
-      fechaFin = dateFin.toISOString().split('T')[0];
+      fechaInicio = dateInicio.toISOString().split("T")[0];
+      fechaFin = dateFin.toISOString().split("T")[0];
     }
-    
+
     const queryConfig = {
       where: {
         fechaRecepcion: {
@@ -357,22 +353,28 @@ export const informePaqueteria = async (req, res) => {
         },
       },
 
-      raw: true, 
+      raw: true,
     };
 
     let informepaqueteria;
     switch (reportPor) {
-      case 1: 
+      case 1:
         informepaqueteria = await RecepcionPaquetes.findAll({
           attributes: [
             [fn("YEAR", col("fechaRecepcion")), "anio"],
             [fn("COUNT", col("idPaquete")), "recibidos"],
-            [literal(`SUM(CASE WHEN estadoId = 14 THEN 1 ELSE 0 END)`), "pendientes"], 
-            [literal(`SUM(CASE WHEN estadoId = 15 THEN 1 ELSE 0 END)`), "entregados"],
+            [
+              literal(`SUM(CASE WHEN estadoId = 14 THEN 1 ELSE 0 END)`),
+              "pendientes",
+            ],
+            [
+              literal(`SUM(CASE WHEN estadoId = 15 THEN 1 ELSE 0 END)`),
+              "entregados",
+            ],
           ],
           ...queryConfig,
           group: [fn("YEAR", col("fechaRecepcion"))],
-          order: [[fn("YEAR", col("fechaRecepcion")), 'ASC']], 
+          order: [[fn("YEAR", col("fechaRecepcion")), "ASC"]],
         });
         break;
 
@@ -380,10 +382,16 @@ export const informePaqueteria = async (req, res) => {
         informepaqueteria = await RecepcionPaquetes.findAll({
           attributes: [
             [fn("YEAR", col("fechaRecepcion")), "anio"],
-            [fn("MONTH", col("fechaRecepcion")), "mes"], 
+            [fn("MONTH", col("fechaRecepcion")), "mes"],
             [fn("COUNT", col("idPaquete")), "recibidos"],
-            [literal(`SUM(CASE WHEN estadoId = 14 THEN 1 ELSE 0 END)`), "pendientes"],
-            [literal(`SUM(CASE WHEN estadoId = 15 THEN 1 ELSE 0 END)`), "entregados"],
+            [
+              literal(`SUM(CASE WHEN estadoId = 14 THEN 1 ELSE 0 END)`),
+              "pendientes",
+            ],
+            [
+              literal(`SUM(CASE WHEN estadoId = 15 THEN 1 ELSE 0 END)`),
+              "entregados",
+            ],
           ],
           ...queryConfig,
           group: [
@@ -391,50 +399,56 @@ export const informePaqueteria = async (req, res) => {
             fn("MONTH", col("fechaRecepcion")),
           ],
           order: [
-            [fn("YEAR", col("fechaRecepcion")), 'ASC'],
-            [fn("MONTH", col("fechaRecepcion")), 'ASC'],
+            [fn("YEAR", col("fechaRecepcion")), "ASC"],
+            [fn("MONTH", col("fechaRecepcion")), "ASC"],
           ],
         });
         break;
 
-      case 3: 
+      case 3:
         informepaqueteria = await RecepcionPaquetes.findAll({
           attributes: [
             [fn("YEAR", col("fechaRecepcion")), "anio"],
-            [fn("MONTH", col("fechaRecepcion")), "mes"], 
-            [literal(`FLOOR((DAYOFMONTH(fechaRecepcion) - 1) / 7) + 1`), "semana"], 
+            [fn("MONTH", col("fechaRecepcion")), "mes"],
+            [
+              literal(`FLOOR((DAYOFMONTH(fechaRecepcion) - 1) / 7) + 1`),
+              "semana",
+            ],
             [fn("COUNT", col("idPaquete")), "recibidos"],
-            [literal(`SUM(CASE WHEN estadoId = 14 THEN 1 ELSE 0 END)`), "pendientes"],
-            [literal(`SUM(CASE WHEN estadoId = 15 THEN 1 ELSE 0 END)`), "entregados"],
+            [
+              literal(`SUM(CASE WHEN estadoId = 14 THEN 1 ELSE 0 END)`),
+              "pendientes",
+            ],
+            [
+              literal(`SUM(CASE WHEN estadoId = 15 THEN 1 ELSE 0 END)`),
+              "entregados",
+            ],
           ],
           ...queryConfig,
           group: [
             fn("YEAR", col("fechaRecepcion")),
             fn("MONTH", col("fechaRecepcion")),
-            "semana", 
+            "semana",
           ],
           order: [
-            [fn("YEAR", col("fechaRecepcion")), 'ASC'],
-            [fn("MONTH", col("fechaRecepcion")), 'ASC'],
-            ["semana", 'ASC'], 
+            [fn("YEAR", col("fechaRecepcion")), "ASC"],
+            [fn("MONTH", col("fechaRecepcion")), "ASC"],
+            ["semana", "ASC"],
           ],
         });
         break;
 
       default:
-       
-        return res.status(400).json({ msg: `El parámetro 'por' (${reportPor}) no es válido.` });
+        return res
+          .status(400)
+          .json({ msg: `El parámetro 'por' (${reportPor}) no es válido.` });
     }
 
-   
     return res.status(200).json({
       ok: true,
       informe: informepaqueteria,
     });
-
   } catch (error) {
-    console.error("Error al generar informe de paquetería:", error);
-
     return res.status(500).json({
       ok: false,
       msg: "Lo siento, ocurrió un error al procesar el informe.",

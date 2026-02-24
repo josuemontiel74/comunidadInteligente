@@ -1,12 +1,13 @@
 const BASE = "http://localhost:3001/api";
 
-export async function obtenerResumenDashboard(token) {
+export async function obtenerResumenDashboard(token, signal) {
   return fetch(`${BASE}/dashboard/resumen`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
+    signal,
   });
 }
 

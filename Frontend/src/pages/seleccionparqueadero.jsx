@@ -53,35 +53,49 @@ function SeleccioneParqueadero() {
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
       return Date.now() >= payload.exp * 1000;
-    } catch { return true; }
+    } catch {
+      return true;
+    }
   };
   const obtenerUsuarioDelToken = () => {
     try {
       const t = obtenerToken();
       if (!t || verificarTokenVencido(t)) return "Usuario";
       return JSON.parse(atob(t.split(".")[1])).username || "Usuario";
-    } catch { return "Usuario"; }
+    } catch {
+      return "Usuario";
+    }
   };
   const obtenerRolDelToken = () => {
     try {
       const t = obtenerToken();
       if (!t || verificarTokenVencido(t)) return null;
       return JSON.parse(atob(t.split(".")[1])).rolesId;
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   };
 
   const nombreUsuario = obtenerUsuarioDelToken();
   const rolesId = obtenerRolDelToken();
   let rolUsuario;
   switch (rolesId) {
-    case 1: rolUsuario = "superAdmin"; break;
-    case 2: rolUsuario = "admin"; break;
-    case 3: rolUsuario = "vigilante"; break;
-    default: rolUsuario = "Usuario";
+    case 1:
+      rolUsuario = "superAdmin";
+      break;
+    case 2:
+      rolUsuario = "admin";
+      break;
+    case 3:
+      rolUsuario = "vigilante";
+      break;
+    default:
+      rolUsuario = "Usuario";
   }
   const showAreasComunes = rolesId !== 3;
   const showUserManagement = rolesId === 1;
-  const dashboardRuta = rolesId === 1 ? "/Superadmin" : rolesId === 2 ? "/Admin" : "/Vigilante";
+  const dashboardRuta =
+    rolesId === 1 ? "/Superadmin" : rolesId === 2 ? "/Admin" : "/Vigilante";
 
   const [parqueaderos, setParqueaderos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -107,11 +121,9 @@ function SeleccioneParqueadero() {
         const res = await obtenerParqueaderos(token);
         if (!res.ok) throw new Error("No autorizado");
         const data = await res.json();
-        console.log("Datos del parqueadero:", data.body);
         setParqueaderos(data.body);
         setLoading(false);
       } catch (err) {
-        console.error("Error al obtener datos del parqueadero:", err);
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         navegacion("/");
@@ -166,7 +178,6 @@ function SeleccioneParqueadero() {
         showConfirmButton: false,
       });
     } catch (error) {
-      console.error("No se pudo actualizar el estado del espacio", error);
       Swal.fire({
         icon: "error",
         title: "Lo siento",
@@ -284,7 +295,7 @@ function SeleccioneParqueadero() {
         document.body.appendChild(backdrop);
       }
     } catch (e) {
-      console.warn("No se pudo abrir modal vía Bootstrap: ", e);
+      // No se pudo abrir modal via Bootstrap
     }
   };
 
@@ -307,7 +318,7 @@ function SeleccioneParqueadero() {
         backdrops.forEach((b) => b.remove());
       }
     } catch (e) {
-      console.warn("No se pudo cerrar modal vía Bootstrap: ", e);
+      // No se pudo cerrar modal via Bootstrap
     }
   };
 
@@ -329,7 +340,7 @@ function SeleccioneParqueadero() {
       await asignarEspacio(slotSeleccionado, tipoVehiculoSeleccionado);
       closeBootstrapModal("modalAsignar");
     } catch (error) {
-      console.error("Error al asignar espacio:", error);
+      // Error al asignar espacio
     }
   };
 
@@ -339,7 +350,7 @@ function SeleccioneParqueadero() {
       await liberarEspacio(slotSeleccionado);
       closeBootstrapModal("modalLiberar");
     } catch (error) {
-      console.error("Error liberando espacio:", error);
+      // Error liberando espacio
     }
   };
 
@@ -385,10 +396,10 @@ function SeleccioneParqueadero() {
           <p className="sp-drawer-user">{nombreUsuario || "Usuario"}</p>
         </div>
 
-        <nav className="sp-drawer-nav">
+        <div className="sp-drawer-body">
           {/* Dashboard */}
           <div className="sp-menu-section">
-            <p className="sp-menu-section-title">Dashboard</p>
+            <h6 className="sp-menu-section-title">Dashboard</h6>
             <Link className="sp-menu-item" to={dashboardRuta}>
               <i className="bi bi-speedometer2"></i>
               <span>Dashboard</span>
@@ -398,7 +409,7 @@ function SeleccioneParqueadero() {
 
           {/* Principal */}
           <div className="sp-menu-section">
-            <p className="sp-menu-section-title">Parqueaderos</p>
+            <h6 className="sp-menu-section-title">Parqueaderos</h6>
             <Link className="sp-menu-item active" to="/parqueaderos">
               <i className="bi bi-car-front"></i>
               <span>Gestión Parqueadero</span>
@@ -408,7 +419,7 @@ function SeleccioneParqueadero() {
 
           {/* Navegación */}
           <div className="sp-menu-section">
-            <p className="sp-menu-section-title">Navegación</p>
+            <h6 className="sp-menu-section-title">Navegación</h6>
             <Link className="sp-menu-item" to="/Paqueteria">
               <i className="bi bi-box-seam"></i>
               <span>Paquetería</span>
@@ -458,7 +469,7 @@ function SeleccioneParqueadero() {
               </>
             )}
           </div>
-        </nav>
+        </div>
 
         <div className="sp-drawer-footer">
           <button className="sp-logout-btn" onClick={CerraSesión}>
@@ -478,7 +489,10 @@ function SeleccioneParqueadero() {
             </Link>
             <h2 className="sp-title">Gestión de Parqueadero</h2>
           </div>
-          <button className="sp-btn-hamburguer" onClick={() => setMenuAbierto(true)}>
+          <button
+            className="sp-btn-hamburguer"
+            onClick={() => setMenuAbierto(true)}
+          >
             <i className="bi bi-list"></i>
           </button>
         </header>
@@ -635,9 +649,9 @@ function SeleccioneParqueadero() {
                   value={filtroEstado}
                   onChange={(e) => setFiltroEstado(e.target.value)}
                 >
-                  <option value="todos">📋 Todos los estados</option>
-                  <option value="libre">✅ Solo libres</option>
-                  <option value="ocupado">❌ Solo ocupados</option>
+                  <option value="todos">Todos los estados</option>
+                  <option value="libre">Solo libres</option>
+                  <option value="ocupado">Solo ocupados</option>
                 </select>
 
                 <select
@@ -829,7 +843,6 @@ function SeleccioneParqueadero() {
               </div>
             </div>
           </div>
-        </div>
         </div>
       </main>
     </div>

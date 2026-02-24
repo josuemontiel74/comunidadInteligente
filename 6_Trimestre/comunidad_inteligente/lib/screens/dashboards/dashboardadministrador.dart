@@ -614,6 +614,7 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
   }
 
   // Construir item del menú
+  // ignore: unused_element
   Widget _buildMenuItem(BuildContext context, IconData icon, String title) {
     return ListTile(
       leading: Icon(icon, color: Colors.orange.shade600, size: 24),

@@ -33,6 +33,7 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
     });
   }
 
+  // ignore: unused_element
   void _mostrarDetalleRegistro(Auditoria auditoria) {
     showDialog(
       context: context,

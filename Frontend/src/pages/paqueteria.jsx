@@ -218,7 +218,6 @@ function Paqueteria() {
         : data.paquetes || data.data || [];
       setPaquetes(lista);
     } catch (err) {
-      console.error("Error al cargar paquetes:", err);
       setError("Error al cargar los datos de paquetería.");
     } finally {
       setLoading(false);
@@ -359,7 +358,6 @@ function Paqueteria() {
         );
       }
     } catch (err) {
-      console.error(err);
       Swal.fire({
         icon: "error",
         title: "Error de conexión",
@@ -460,7 +458,6 @@ function Paqueteria() {
         );
       }
     } catch (err) {
-      console.error(err);
       Swal.fire({
         icon: "error",
         title: "Error de conexión",
@@ -506,7 +503,6 @@ function Paqueteria() {
             Swal.fire("Error al entregar", "", "error");
           }
         } catch (err) {
-          console.error(err);
           Swal.fire("Error de conexión", "", "error");
         }
       }

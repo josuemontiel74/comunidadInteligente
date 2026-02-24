@@ -8,6 +8,9 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { obtenerResumenDashboard } from "../services/dashboard.services.jsx";
 import { logoutUsuario } from "../services/gestionUsuarios.jsx";
+import DescargaAppMovil from "./DescargaAppMovil.jsx";
+import ModoOscuro from "./ModoOscuro.jsx";
+import WhatsAppModal from "./WhatsAppModal.jsx";
 
 const PHOTO_STORAGE_KEY = "gu_user_photos";
 const getUserProfilePhoto = (key) => {
@@ -26,6 +29,7 @@ function Dashboard() {
 
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [saliendo, setSaliendo] = useState(false);
   const [loading, setLoading] = useState(true);
   const [fotoUsuario, setFotoUsuario] = useState(null);
   const [dataLoading, setDataLoading] = useState(true);
@@ -36,6 +40,23 @@ function Dashboard() {
   const [paquetesPendientes, setPaquetesPendientes] = useState(0);
   const [visitasHoy, setVisitasHoy] = useState(0);
   const [visitasActivas, setVisitasActivas] = useState(0);
+
+  // Modo oscuro – reactive para re-renderizar gráficas
+  const [oscuro, setOscuro] = useState(
+    () => document.documentElement.getAttribute("data-modo") === "oscuro",
+  );
+  useEffect(() => {
+    const obs = new MutationObserver(() =>
+      setOscuro(
+        document.documentElement.getAttribute("data-modo") === "oscuro",
+      ),
+    );
+    obs.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-modo"],
+    });
+    return () => obs.disconnect();
+  }, []);
 
   // Token helpers
   const verificarTokenVencido = (token) => {
@@ -105,7 +126,8 @@ function Dashboard() {
   useEffect(() => {
     if (usuario) {
       setFotoUsuario(
-        getUserProfilePhoto(usuario.numeroDocumento) ||
+        usuario.fotoPerfil ||
+          getUserProfilePhoto(usuario.numeroDocumento) ||
           getUserProfilePhoto(usuario.username) ||
           null,
       );
@@ -130,7 +152,6 @@ function Dashboard() {
         setVisitasActivas(datos.visitas?.activas ?? 0);
       }
     } catch (error) {
-      console.error("Error al cargar datos del dashboard:", error);
     } finally {
       setDataLoading(false);
     }
@@ -181,11 +202,16 @@ function Dashboard() {
         scales: {
           y: {
             beginAtZero: true,
-            ticks: { stepSize: 1, color: "#6b7280" },
-            grid: { color: "rgba(0,0,0,0.05)" },
+            ticks: { stepSize: 1, color: oscuro ? "#94a3b8" : "#6b7280" },
+            grid: {
+              color: oscuro ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+            },
           },
           x: {
-            ticks: { color: "#374151", font: { weight: "500" } },
+            ticks: {
+              color: oscuro ? "#e2e8f0" : "#374151",
+              font: { weight: "500" },
+            },
             grid: { display: false },
           },
         },
@@ -195,7 +221,7 @@ function Dashboard() {
     return () => {
       if (visitasChartRef.current) visitasChartRef.current.destroy();
     };
-  }, [loading, dataLoading, visitasHoy, visitasActivas]);
+  }, [loading, dataLoading, visitasHoy, visitasActivas, oscuro]);
 
   // Gráfico de barras para paquetes
   useEffect(() => {
@@ -236,11 +262,16 @@ function Dashboard() {
         scales: {
           y: {
             beginAtZero: true,
-            ticks: { stepSize: 1, color: "#6b7280" },
-            grid: { color: "rgba(0,0,0,0.05)" },
+            ticks: { stepSize: 1, color: oscuro ? "#94a3b8" : "#6b7280" },
+            grid: {
+              color: oscuro ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+            },
           },
           x: {
-            ticks: { color: "#374151", font: { weight: "500" } },
+            ticks: {
+              color: oscuro ? "#e2e8f0" : "#374151",
+              font: { weight: "500" },
+            },
             grid: { display: false },
           },
         },
@@ -250,15 +281,18 @@ function Dashboard() {
     return () => {
       if (paquetesChartRef.current) paquetesChartRef.current.destroy();
     };
-  }, [loading, dataLoading, paquetesEntregados, paquetesPendientes]);
+  }, [loading, dataLoading, paquetesEntregados, paquetesPendientes, oscuro]);
 
   const cerrarSesion = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (token) await logoutUsuario(token);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigator("/");
+    setSaliendo(true);
+    setTimeout(async () => {
+      const token = localStorage.getItem("token");
+      if (token) await logoutUsuario(token);
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      navigator("/login", { replace: true });
+    }, 380);
   };
 
   if (loading) {
@@ -307,7 +341,7 @@ function Dashboard() {
   ];
 
   return (
-    <div className="vi-dashboard">
+    <div className={`vi-dashboard${saliendo ? " vi-saliendo" : ""}`}>
       {/* ====== OFFCANVAS MENU ====== */}
       <div
         className={`vi-overlay ${menuOpen ? "active" : ""}`}
@@ -338,55 +372,48 @@ function Dashboard() {
         </div>
 
         <div className="vi-drawer-body">
-          {/* Sección Paquetes */}
+          {/* Navegación */}
           <div className="vi-menu-section">
-            <h6 className="vi-menu-section-title">Gestión de Paquetes</h6>
+            <h6 className="vi-menu-section-title">Navegación</h6>
             <Link
-              className="vi-menu-item"
-              to="/Paqueteria"
-              state={{ abrirModal: true }}
+              className="vi-menu-item active"
+              to="/Vigilante"
               onClick={() => setMenuOpen(false)}
             >
-              <i className="bi bi-plus-box"></i>
-              <span>Registrar Paquete</span>
-              <i className="bi bi-chevron-right vi-menu-arrow"></i>
-            </Link>
-            <Link
-              className="vi-menu-item"
-              to="/Paqueteria"
-              onClick={() => setMenuOpen(false)}
-            >
-              <i className="bi bi-clock-history"></i>
-              <span>Historial de Paquetes</span>
+              <i className="bi bi-speedometer2"></i>
+              <span>Dashboard</span>
               <i className="bi bi-chevron-right vi-menu-arrow"></i>
             </Link>
           </div>
 
-          {/* Sección Visitas */}
+          {/* Módulos */}
           <div className="vi-menu-section">
-            <h6 className="vi-menu-section-title">Gestión de Visitas</h6>
+            <h6 className="vi-menu-section-title">Módulos</h6>
+            <Link
+              className="vi-menu-item"
+              to="/Paqueteria"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-box-seam"></i>
+              <span>Paquetería</span>
+              <i className="bi bi-chevron-right vi-menu-arrow"></i>
+            </Link>
             <Link
               className="vi-menu-item"
               to="/visitas"
-              state={{ abrirModal: true }}
               onClick={() => setMenuOpen(false)}
             >
-              <i className="bi bi-calendar-event"></i>
-              <span>Gestión de Visitas</span>
+              <i className="bi bi-people"></i>
+              <span>Visitas</span>
               <i className="bi bi-chevron-right vi-menu-arrow"></i>
             </Link>
-          </div>
-
-          {/* Sección Parqueaderos */}
-          <div className="vi-menu-section">
-            <h6 className="vi-menu-section-title">Parqueaderos</h6>
             <Link
               className="vi-menu-item"
               to="/parqueaderos"
               onClick={() => setMenuOpen(false)}
             >
               <i className="bi bi-p-circle"></i>
-              <span>Ver Parqueaderos</span>
+              <span>Parqueaderos</span>
               <i className="bi bi-chevron-right vi-menu-arrow"></i>
             </Link>
           </div>
@@ -404,27 +431,32 @@ function Dashboard() {
       <div className="vi-main">
         {/* Header */}
         <header className="vi-header">
-          <button
-            className="vi-header-btn"
-            onClick={() => setShowUserMenu(!showUserMenu)}
-            title="Ver perfil"
-            style={{ overflow: "hidden" }}
-          >
-            {fotoUsuario ? (
-              <img
-                src={fotoUsuario}
-                alt="Perfil"
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  objectFit: "cover",
-                  borderRadius: "50%",
-                }}
-              />
-            ) : (
-              <i className="bi bi-person-circle"></i>
-            )}
-          </button>
+          <div className="vi-profile-btn-wrap">
+            <button
+              className="vi-header-btn"
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              title="Ver perfil"
+            >
+              {fotoUsuario ? (
+                <img
+                  src={fotoUsuario}
+                  alt="Perfil"
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    objectFit: "cover",
+                    borderRadius: "50%",
+                  }}
+                />
+              ) : (
+                <i className="bi bi-person-circle"></i>
+              )}
+            </button>
+            <span
+              className="vi-profile-status-dot"
+              title="Vigilante activo"
+            ></span>
+          </div>
 
           {showUserMenu && (
             <div className="vi-profile-popup">
@@ -474,6 +506,8 @@ function Dashboard() {
           </Link>
 
           <div className="vi-header-actions">
+            <DescargaAppMovil btnClass="vi-header-btn" />
+            <ModoOscuro btnClass="vi-header-btn" />
             <button
               className="vi-header-btn"
               onClick={() => {
@@ -615,6 +649,7 @@ function Dashboard() {
           </div>
         </div>
       </div>
+      <WhatsAppModal />
     </div>
   );
 }

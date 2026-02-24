@@ -1083,6 +1083,8 @@ class _ReportesScreenState extends State<ReportesScreen> {
     final diaConMasReservas = data['diaConMasReservas'] ?? {};
 
     final areaMasUsada = porArea.isNotEmpty ? porArea[0] : null;
+    // ignore: unused_local_variable
+    final _ = areaMasUsada; // reservado para uso futuro
 
     return Card(
       elevation: 4,
@@ -2802,6 +2804,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
   }
 
   /// Color según la edad del niño
+  // ignore: unused_element
   Color _colorPorEdad(int edad) {
     if (edad <= 5) return Colors.purple;
     if (edad <= 10) return Colors.blue;

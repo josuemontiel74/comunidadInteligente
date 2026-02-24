@@ -59,7 +59,6 @@ export const obtenerRegistrosAuditoria = async (req, res) => {
       data: resultados,
     });
   } catch (error) {
-    console.error("Error al obtener registros de auditoría:", error);
     return res.status(500).json({
       success: false,
       message:

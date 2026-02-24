@@ -8,6 +8,9 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { obtenerResumenDashboard } from "../services/dashboard.services.jsx";
 import { logoutUsuario } from "../services/gestionUsuarios.jsx";
+import DescargaAppMovil from "./DescargaAppMovil.jsx";
+import ModoOscuro from "./ModoOscuro.jsx";
+import WhatsAppModal from "./WhatsAppModal.jsx";
 
 const PHOTO_STORAGE_KEY = "gu_user_photos";
 const getUserProfilePhoto = (key) => {
@@ -32,6 +35,7 @@ function Dashboard() {
 
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [saliendo, setSaliendo] = useState(false);
   const [loading, setLoading] = useState(true);
   const [fotoUsuario, setFotoUsuario] = useState(null);
   const [dataLoading, setDataLoading] = useState(true);
@@ -47,6 +51,23 @@ function Dashboard() {
   const [visitasActivas, setVisitasActivas] = useState(0);
   const [reservasHoy, setReservasHoy] = useState(0);
   const [residentesActivos, setResidentesActivos] = useState(0);
+
+  // Modo oscuro – reactive para re-renderizar gráficas
+  const [oscuro, setOscuro] = useState(
+    () => document.documentElement.getAttribute("data-modo") === "oscuro",
+  );
+  useEffect(() => {
+    const obs = new MutationObserver(() =>
+      setOscuro(
+        document.documentElement.getAttribute("data-modo") === "oscuro",
+      ),
+    );
+    obs.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-modo"],
+    });
+    return () => obs.disconnect();
+  }, []);
 
   // Token helpers
   const verificarTokenVencido = (token) => {
@@ -116,7 +137,8 @@ function Dashboard() {
   useEffect(() => {
     if (usuario) {
       setFotoUsuario(
-        getUserProfilePhoto(usuario.numeroDocumento) ||
+        usuario.fotoPerfil ||
+          getUserProfilePhoto(usuario.numeroDocumento) ||
           getUserProfilePhoto(usuario.username) ||
           null,
       );
@@ -146,7 +168,6 @@ function Dashboard() {
         setResidentesActivos(datos.residentes?.activos ?? 0);
       }
     } catch (error) {
-      console.error("Error al cargar datos del dashboard:", error);
     } finally {
       setDataLoading(false);
     }
@@ -213,12 +234,12 @@ function Dashboard() {
               if (width === 0 || height === 0) return;
               drawCtx.save();
               drawCtx.font = "bold 28px Arial";
-              drawCtx.fillStyle = "#1f2937";
+              drawCtx.fillStyle = oscuro ? "#e2e8f0" : "#1f2937";
               drawCtx.textAlign = "center";
               drawCtx.textBaseline = "middle";
               drawCtx.fillText(ocupados, width / 2, height / 2 - 10);
               drawCtx.font = "14px Arial";
-              drawCtx.fillStyle = "#6b7280";
+              drawCtx.fillStyle = oscuro ? "#94a3b8" : "#6b7280";
               drawCtx.fillText("Ocupados", width / 2, height / 2 + 14);
               drawCtx.restore();
             },
@@ -226,7 +247,7 @@ function Dashboard() {
         ],
       });
     } catch (err) {
-      console.error("Error creando gráfico de parqueaderos:", err);
+      // Error creando gráfico de parqueaderos
     }
 
     return () => {
@@ -235,7 +256,14 @@ function Dashboard() {
         chartRef.current = null;
       }
     };
-  }, [loading, dataLoading, parqueosCarros, parqueosMotos, parqueosLibres]);
+  }, [
+    loading,
+    dataLoading,
+    parqueosCarros,
+    parqueosMotos,
+    parqueosLibres,
+    oscuro,
+  ]);
 
   // Gráfico de barras paquetes
   useEffect(() => {
@@ -280,18 +308,23 @@ function Dashboard() {
           scales: {
             y: {
               beginAtZero: true,
-              ticks: { stepSize: 1, color: "#6b7280" },
-              grid: { color: "rgba(0,0,0,0.05)" },
+              ticks: { stepSize: 1, color: oscuro ? "#94a3b8" : "#6b7280" },
+              grid: {
+                color: oscuro ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+              },
             },
             x: {
-              ticks: { color: "#374151", font: { weight: "500" } },
+              ticks: {
+                color: oscuro ? "#e2e8f0" : "#374151",
+                font: { weight: "500" },
+              },
               grid: { display: false },
             },
           },
         },
       });
     } catch (err) {
-      console.error("Error creando gráfico de paquetes:", err);
+      // Error creando gráfico de paquetes
     }
 
     return () => {
@@ -300,7 +333,7 @@ function Dashboard() {
         barChartRef.current = null;
       }
     };
-  }, [loading, dataLoading, paquetesEntregados, paquetesPendientes]);
+  }, [loading, dataLoading, paquetesEntregados, paquetesPendientes, oscuro]);
 
   // Gráfico de barras visitas
   useEffect(() => {
@@ -345,18 +378,23 @@ function Dashboard() {
           scales: {
             y: {
               beginAtZero: true,
-              ticks: { stepSize: 1, color: "#6b7280" },
-              grid: { color: "rgba(0,0,0,0.05)" },
+              ticks: { stepSize: 1, color: oscuro ? "#94a3b8" : "#6b7280" },
+              grid: {
+                color: oscuro ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+              },
             },
             x: {
-              ticks: { color: "#374151", font: { weight: "500" } },
+              ticks: {
+                color: oscuro ? "#e2e8f0" : "#374151",
+                font: { weight: "500" },
+              },
               grid: { display: false },
             },
           },
         },
       });
     } catch (err) {
-      console.error("Error creando gráfico de visitas:", err);
+      // Error creando gráfico de visitas
     }
 
     return () => {
@@ -365,20 +403,23 @@ function Dashboard() {
         visitasChartRef.current = null;
       }
     };
-  }, [loading, dataLoading, visitasHoy, visitasActivas]);
+  }, [loading, dataLoading, visitasHoy, visitasActivas, oscuro]);
 
   const cerrarSesion = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (token) await logoutUsuario(token);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigator("/");
+    setSaliendo(true);
+    setTimeout(async () => {
+      const token = localStorage.getItem("token");
+      if (token) await logoutUsuario(token);
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      navigator("/login", { replace: true });
+    }, 380);
   };
 
   if (loading) {
     return (
-      <div className="ad-loading-screen">
+      <div className="adm-loading-screen">
         <div
           className="spinner-border"
           role="status"
@@ -441,15 +482,15 @@ function Dashboard() {
   ];
 
   return (
-    <div className="ad-dashboard">
+    <div className={`adm-dashboard${saliendo ? " adm-saliendo" : ""}`}>
       {/* ====== OFFCANVAS MENU ====== */}
       <div
-        className={`ad-overlay ${menuOpen ? "active" : ""}`}
+        className={`adm-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
       />
-      <aside className={`ad-drawer ${menuOpen ? "open" : ""}`}>
-        <div className="ad-drawer-header">
-          <div className="ad-drawer-avatar">
+      <aside className={`adm-drawer ${menuOpen ? "open" : ""}`}>
+        <div className="adm-drawer-header">
+          <div className="adm-drawer-avatar">
             {fotoUsuario ? (
               <img
                 src={fotoUsuario}
@@ -465,125 +506,89 @@ function Dashboard() {
               <i className="bi bi-person-gear"></i>
             )}
           </div>
-          <h4 className="ad-drawer-title">Menú Administrador</h4>
-          <span className="ad-drawer-user">
+          <h4 className="adm-drawer-title">Menú Administrador</h4>
+          <span className="adm-drawer-user">
             {usuario?.username || usuario?.nombre || "Usuario"}
           </span>
         </div>
 
-        <div className="ad-drawer-body">
-          {/* Sección Paquetes */}
-          <div className="ad-menu-section">
-            <h6 className="ad-menu-section-title">Gestión de Paquetes</h6>
+        <div className="adm-drawer-body">
+          {/* Navegación */}
+          <div className="adm-menu-section">
+            <h6 className="adm-menu-section-title">Navegación</h6>
             <Link
-              className="ad-menu-item"
-              to="/Paqueteria"
-              state={{ abrirModal: true }}
+              className="adm-menu-item active"
+              to="/Admin"
               onClick={() => setMenuOpen(false)}
             >
-              <i className="bi bi-plus-box"></i>
-              <span>Registrar Paquete</span>
-              <i className="bi bi-chevron-right ad-menu-arrow"></i>
-            </Link>
-            <Link
-              className="ad-menu-item"
-              to="/Paqueteria"
-              onClick={() => setMenuOpen(false)}
-            >
-              <i className="bi bi-clock-history"></i>
-              <span>Historial de Paquetes</span>
-              <i className="bi bi-chevron-right ad-menu-arrow"></i>
+              <i className="bi bi-speedometer2"></i>
+              <span>Dashboard</span>
+              <i className="bi bi-chevron-right adm-menu-arrow"></i>
             </Link>
           </div>
 
-          {/* Sección Visitas */}
-          <div className="ad-menu-section">
-            <h6 className="ad-menu-section-title">Gestión de Visitas</h6>
+          {/* Módulos */}
+          <div className="adm-menu-section">
+            <h6 className="adm-menu-section-title">Módulos</h6>
             <Link
-              className="ad-menu-item"
-              to="/visitas"
-              state={{ abrirModal: true }}
+              className="adm-menu-item"
+              to="/Paqueteria"
               onClick={() => setMenuOpen(false)}
             >
-              <i className="bi bi-calendar-event"></i>
-              <span>Gestión de Visitas</span>
-              <i className="bi bi-chevron-right ad-menu-arrow"></i>
+              <i className="bi bi-box-seam"></i>
+              <span>Paquetería</span>
+              <i className="bi bi-chevron-right adm-menu-arrow"></i>
             </Link>
             <Link
-              className="ad-menu-item"
+              className="adm-menu-item"
+              to="/visitas"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-people"></i>
+              <span>Visitas</span>
+              <i className="bi bi-chevron-right adm-menu-arrow"></i>
+            </Link>
+            <Link
+              className="adm-menu-item"
               to="/parqueaderos"
               onClick={() => setMenuOpen(false)}
             >
               <i className="bi bi-p-circle"></i>
-              <span>Consultar Parqueadero</span>
-              <i className="bi bi-chevron-right ad-menu-arrow"></i>
+              <span>Parqueaderos</span>
+              <i className="bi bi-chevron-right adm-menu-arrow"></i>
             </Link>
-          </div>
-
-          {/* Sección Áreas Comunes */}
-          <div className="ad-menu-section">
-            <h6 className="ad-menu-section-title">Gestión de Áreas Comunes</h6>
             <Link
-              className="ad-menu-item"
+              className="adm-menu-item"
               to="/AreasComunes"
               onClick={() => setMenuOpen(false)}
             >
-              <i className="bi bi-gear"></i>
-              <span>Gestionar Áreas</span>
-              <i className="bi bi-chevron-right ad-menu-arrow"></i>
+              <i className="bi bi-calendar2-event"></i>
+              <span>Áreas Comunes</span>
+              <i className="bi bi-chevron-right adm-menu-arrow"></i>
             </Link>
             <Link
-              className="ad-menu-item"
-              to="/AreasComunes"
+              className="adm-menu-item"
+              to="/Residentes"
               onClick={() => setMenuOpen(false)}
             >
-              <i className="bi bi-calendar-plus"></i>
-              <span>Registrar Reserva</span>
-              <i className="bi bi-chevron-right ad-menu-arrow"></i>
+              <i className="bi bi-house-door"></i>
+              <span>Residentes</span>
+              <i className="bi bi-chevron-right adm-menu-arrow"></i>
             </Link>
-          </div>
-
-          {/* Sección Reportes */}
-          <div className="ad-menu-section">
-            <h6 className="ad-menu-section-title">Reportes</h6>
             <Link
-              className="ad-menu-item"
+              className="adm-menu-item"
               to="/Reportes"
               onClick={() => setMenuOpen(false)}
             >
-              <i className="bi bi-bar-chart-line"></i>
-              <span>Ver Reportes</span>
-              <i className="bi bi-chevron-right ad-menu-arrow"></i>
-            </Link>
-          </div>
-
-          {/* Sección Residentes */}
-          <div className="ad-menu-section">
-            <h6 className="ad-menu-section-title">Gestión de Residentes</h6>
-            <Link
-              className="ad-menu-item"
-              to="/Residentes"
-              state={{ abrirModal: true }}
-              onClick={() => setMenuOpen(false)}
-            >
-              <i className="bi bi-house-add"></i>
-              <span>Registrar Residentes</span>
-              <i className="bi bi-chevron-right ad-menu-arrow"></i>
-            </Link>
-            <Link
-              className="ad-menu-item"
-              to="/Residentes"
-              onClick={() => setMenuOpen(false)}
-            >
-              <i className="bi bi-list-ul"></i>
-              <span>Consultar Residentes</span>
-              <i className="bi bi-chevron-right ad-menu-arrow"></i>
+              <i className="bi bi-graph-up-arrow"></i>
+              <span>Reportes</span>
+              <i className="bi bi-chevron-right adm-menu-arrow"></i>
             </Link>
           </div>
         </div>
 
-        <div className="ad-drawer-footer">
-          <button className="ad-logout-btn" onClick={cerrarSesion}>
+        <div className="adm-drawer-footer">
+          <button className="adm-logout-btn" onClick={cerrarSesion}>
             <i className="bi bi-box-arrow-right"></i>
             Cerrar Sesión
           </button>
@@ -591,34 +596,39 @@ function Dashboard() {
       </aside>
 
       {/* ====== CONTENIDO PRINCIPAL ====== */}
-      <div className="ad-main">
+      <div className="adm-main">
         {/* Header */}
-        <header className="ad-header">
-          <button
-            className="ad-header-btn"
-            onClick={() => setShowUserMenu(!showUserMenu)}
-            title="Ver perfil"
-            style={{ overflow: "hidden" }}
-          >
-            {fotoUsuario ? (
-              <img
-                src={fotoUsuario}
-                alt="Perfil"
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  objectFit: "cover",
-                  borderRadius: "50%",
-                }}
-              />
-            ) : (
-              <i className="bi bi-person-circle"></i>
-            )}
-          </button>
+        <header className="adm-header">
+          <div className="adm-profile-btn-wrap">
+            <button
+              className="adm-header-btn"
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              title="Ver perfil"
+            >
+              {fotoUsuario ? (
+                <img
+                  src={fotoUsuario}
+                  alt="Perfil"
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    objectFit: "cover",
+                    borderRadius: "50%",
+                  }}
+                />
+              ) : (
+                <i className="bi bi-person-circle"></i>
+              )}
+            </button>
+            <span
+              className="adm-profile-status-dot"
+              title="Administrador activo"
+            ></span>
+          </div>
 
           {showUserMenu && (
-            <div className="ad-profile-popup">
-              <div className="ad-profile-popup-header">
+            <div className="adm-profile-popup">
+              <div className="adm-profile-popup-header">
                 {fotoUsuario ? (
                   <img
                     src={fotoUsuario}
@@ -631,7 +641,7 @@ function Dashboard() {
                     }}
                   />
                 ) : (
-                  <i className="bi bi-person-circle ad-profile-icon"></i>
+                  <i className="bi bi-person-circle adm-profile-icon"></i>
                 )}
               </div>
               <p>
@@ -653,15 +663,21 @@ function Dashboard() {
             </div>
           )}
 
-          <Link to="/Admin" className="ad-logo-wrapper" title="Ir al Dashboard">
-            <div className="ad-logo-circle">
-              <img src={logo} alt="Logo" className="ad-logo-img" />
+          <Link
+            to="/Admin"
+            className="adm-logo-wrapper"
+            title="Ir al Dashboard"
+          >
+            <div className="adm-logo-circle">
+              <img src={logo} alt="Logo" className="adm-logo-img" />
             </div>
           </Link>
 
-          <div className="ad-header-actions">
+          <div className="adm-header-actions">
+            <DescargaAppMovil btnClass="adm-header-btn" />
+            <ModoOscuro btnClass="adm-header-btn" />
             <button
-              className="ad-header-btn"
+              className="adm-header-btn"
               onClick={() => {
                 setDataLoading(true);
                 cargarDatos();
@@ -674,7 +690,7 @@ function Dashboard() {
               ></i>
             </button>
             <button
-              className="ad-header-btn ad-hamburger"
+              className="adm-header-btn adm-hamburger"
               onClick={() => setMenuOpen(true)}
               title="Abrir menú"
             >
@@ -684,42 +700,42 @@ function Dashboard() {
         </header>
 
         {/* Bienvenida */}
-        <div className="ad-welcome">
-          <h2 className="ad-welcome-title">
+        <div className="adm-welcome">
+          <h2 className="adm-welcome-title">
             Bienvenido, {usuario?.username || usuario?.nombre || "Usuario"}
           </h2>
-          <p className="ad-welcome-sub">
+          <p className="adm-welcome-sub">
             Selecciona el módulo que deseas gestionar en la plataforma
           </p>
         </div>
 
         {/* Tarjetas de módulos */}
-        <div className="ad-modules-grid">
+        <div className="adm-modules-grid">
           {modulos.map((mod, idx) => (
             <Link
               to={mod.to}
               key={idx}
-              className="ad-module-card"
+              className="adm-module-card"
               style={{
                 background: `linear-gradient(135deg, ${mod.color}cc, ${mod.color})`,
               }}
             >
-              <div className="ad-module-icon-wrap">
+              <div className="adm-module-icon-wrap">
                 <i className={`bi ${mod.icon}`}></i>
               </div>
-              <span className="ad-module-title">{mod.title}</span>
+              <span className="adm-module-title">{mod.title}</span>
             </Link>
           ))}
         </div>
 
         {/* Estadísticas */}
-        <div className="ad-stats-section">
-          <h3 className="ad-stats-title">Estadísticas del Día</h3>
+        <div className="adm-stats-section">
+          <h3 className="adm-stats-title">Estadísticas del Día</h3>
 
-          <div className="ad-stats-grid">
+          <div className="adm-stats-grid">
             {/* Paquetes */}
-            <div className="ad-stat-card">
-              <div className="ad-stat-card-header">
+            <div className="adm-stat-card">
+              <div className="adm-stat-card-header">
                 <i
                   className="bi bi-box-seam-fill"
                   style={{ color: "#3b82f6", fontSize: "28px" }}
@@ -727,36 +743,39 @@ function Dashboard() {
                 <h5>Paquetes Entregados Hoy</h5>
               </div>
 
-              <div className="ad-bar-chart-container">
+              <div className="adm-bar-chart-container">
                 <canvas ref={paquetesCanvasRef}></canvas>
               </div>
 
-              <div className="ad-stat-summary">
-                <div className="ad-stat-summary-item">
+              <div className="adm-stat-summary">
+                <div className="adm-stat-summary-item">
                   <span
-                    className="ad-stat-big-number"
+                    className="adm-stat-big-number"
                     style={{ color: "#22c55e" }}
                   >
                     {paquetesEntregados}
                   </span>
-                  <span className="ad-stat-label">Entregados</span>
+                  <span className="adm-stat-label">Entregados</span>
                 </div>
-                <div className="ad-stat-divider"></div>
-                <div className="ad-stat-summary-item">
+                <div className="adm-stat-divider"></div>
+                <div className="adm-stat-summary-item">
                   <span
-                    className="ad-stat-big-number"
+                    className="adm-stat-big-number"
                     style={{ color: "#3b82f6" }}
                   >
                     {porcentajeEntregados}%
                   </span>
-                  <span className="ad-stat-label">Eficiencia</span>
+                  <span className="adm-stat-label">Eficiencia</span>
                 </div>
               </div>
             </div>
 
             {/* Parqueaderos */}
-            <Link to="/parqueaderos" className="ad-stat-card ad-stat-card-link">
-              <div className="ad-stat-card-header">
+            <Link
+              to="/parqueaderos"
+              className="adm-stat-card adm-stat-card-link"
+            >
+              <div className="adm-stat-card-header">
                 <i
                   className="bi bi-p-circle-fill"
                   style={{ color: "#a855f7", fontSize: "28px" }}
@@ -768,18 +787,18 @@ function Dashboard() {
                 ></i>
               </div>
 
-              <div className="ad-donut-chart-container">
+              <div className="adm-donut-chart-container">
                 <canvas ref={parqueoCanvasRef}></canvas>
               </div>
 
-              <div className="ad-legend">
-                <div className="ad-legend-item">
+              <div className="adm-legend">
+                <div className="adm-legend-item">
                   <span
-                    className="ad-legend-dot"
+                    className="adm-legend-dot"
                     style={{ backgroundColor: "#0d9488" }}
                   ></span>
-                  <span className="ad-legend-label">Carros</span>
-                  <span className="ad-legend-value">
+                  <span className="adm-legend-label">Carros</span>
+                  <span className="adm-legend-value">
                     {parqueosCarros} (
                     {totalParqueos > 0
                       ? ((parqueosCarros / totalParqueos) * 100).toFixed(0)
@@ -787,13 +806,13 @@ function Dashboard() {
                     %)
                   </span>
                 </div>
-                <div className="ad-legend-item">
+                <div className="adm-legend-item">
                   <span
-                    className="ad-legend-dot"
+                    className="adm-legend-dot"
                     style={{ backgroundColor: "#f97316" }}
                   ></span>
-                  <span className="ad-legend-label">Motos</span>
-                  <span className="ad-legend-value">
+                  <span className="adm-legend-label">Motos</span>
+                  <span className="adm-legend-value">
                     {parqueosMotos} (
                     {totalParqueos > 0
                       ? ((parqueosMotos / totalParqueos) * 100).toFixed(0)
@@ -801,13 +820,13 @@ function Dashboard() {
                     %)
                   </span>
                 </div>
-                <div className="ad-legend-item">
+                <div className="adm-legend-item">
                   <span
-                    className="ad-legend-dot"
+                    className="adm-legend-dot"
                     style={{ backgroundColor: "#d1d5db" }}
                   ></span>
-                  <span className="ad-legend-label">Libres</span>
-                  <span className="ad-legend-value">
+                  <span className="adm-legend-label">Libres</span>
+                  <span className="adm-legend-value">
                     {parqueosLibres} (
                     {totalParqueos > 0
                       ? ((parqueosLibres / totalParqueos) * 100).toFixed(0)
@@ -819,8 +838,8 @@ function Dashboard() {
             </Link>
 
             {/* Visitas del Día */}
-            <Link to="/visitas" className="ad-stat-card ad-stat-card-link">
-              <div className="ad-stat-card-header">
+            <Link to="/visitas" className="adm-stat-card adm-stat-card-link">
+              <div className="adm-stat-card-header">
                 <i
                   className="bi bi-people-fill"
                   style={{ color: "#22c55e", fontSize: "28px" }}
@@ -832,36 +851,39 @@ function Dashboard() {
                 ></i>
               </div>
 
-              <div className="ad-bar-chart-container">
+              <div className="adm-bar-chart-container">
                 <canvas ref={visitasCanvasRef}></canvas>
               </div>
 
-              <div className="ad-stat-summary">
-                <div className="ad-stat-summary-item">
+              <div className="adm-stat-summary">
+                <div className="adm-stat-summary-item">
                   <span
-                    className="ad-stat-big-number"
+                    className="adm-stat-big-number"
                     style={{ color: "#22c55e" }}
                   >
                     {visitasHoy}
                   </span>
-                  <span className="ad-stat-label">Registradas Hoy</span>
+                  <span className="adm-stat-label">Registradas Hoy</span>
                 </div>
-                <div className="ad-stat-divider"></div>
-                <div className="ad-stat-summary-item">
+                <div className="adm-stat-divider"></div>
+                <div className="adm-stat-summary-item">
                   <span
-                    className="ad-stat-big-number"
+                    className="adm-stat-big-number"
                     style={{ color: "#3b82f6" }}
                   >
                     {visitasActivas}
                   </span>
-                  <span className="ad-stat-label">Activas Ahora</span>
+                  <span className="adm-stat-label">Activas Ahora</span>
                 </div>
               </div>
             </Link>
 
             {/* Reservas del Día */}
-            <Link to="/AreasComunes" className="ad-stat-card ad-stat-card-link">
-              <div className="ad-stat-card-header">
+            <Link
+              to="/AreasComunes"
+              className="adm-stat-card adm-stat-card-link"
+            >
+              <div className="adm-stat-card-header">
                 <i
                   className="bi bi-calendar-event-fill"
                   style={{ color: "#f97316", fontSize: "28px" }}
@@ -873,40 +895,44 @@ function Dashboard() {
                 ></i>
               </div>
 
-              <div className="ad-info-card-body">
-                <div className="ad-info-big-value" style={{ color: "#f97316" }}>
+              <div className="adm-info-card-body">
+                <div
+                  className="adm-info-big-value"
+                  style={{ color: "#f97316" }}
+                >
                   {reservasHoy}
                 </div>
-                <span className="ad-info-sub-label">
+                <span className="adm-info-sub-label">
                   Áreas comunes reservadas hoy
                 </span>
               </div>
 
-              <div className="ad-stat-summary">
-                <div className="ad-stat-summary-item">
+              <div className="adm-stat-summary">
+                <div className="adm-stat-summary-item">
                   <span
-                    className="ad-stat-big-number"
+                    className="adm-stat-big-number"
                     style={{ color: "#f97316" }}
                   >
                     {reservasHoy}
                   </span>
-                  <span className="ad-stat-label">Total Hoy</span>
+                  <span className="adm-stat-label">Total Hoy</span>
                 </div>
-                <div className="ad-stat-divider"></div>
-                <div className="ad-stat-summary-item">
+                <div className="adm-stat-divider"></div>
+                <div className="adm-stat-summary-item">
                   <span
-                    className="ad-stat-big-number"
+                    className="adm-stat-big-number"
                     style={{ color: "#14b8a6" }}
                   >
                     {residentesActivos}
                   </span>
-                  <span className="ad-stat-label">Residentes</span>
+                  <span className="adm-stat-label">Residentes</span>
                 </div>
               </div>
             </Link>
           </div>
         </div>
       </div>
+      <WhatsAppModal />
     </div>
   );
 }

@@ -111,7 +111,7 @@ function VisitasAdmin() {
           </td>
 
           <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">🏠 Inicio</h6>
+            <h6 className="text-uppercase fw-bold">Inicio</h6>
             <ul className="nav flex-column">
               <li>
                 <p className="nav-link text-white">Inicio</p>
@@ -120,7 +120,7 @@ function VisitasAdmin() {
           </div>
 
           <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">📦 Gestión de Paquetes</h6>
+            <h6 className="text-uppercase fw-bold">Gestión de Paquetes</h6>
             <ul className="nav flex-column mt-2 gap-2">
               <li>
                 <p className="nav-link text-white">Registrar Paquete</p>
@@ -132,7 +132,7 @@ function VisitasAdmin() {
           </div>
 
           <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">📋 Gestión de Visitas</h6>
+            <h6 className="text-uppercase fw-bold">Gestión de Visitas</h6>
             <ul className="nav flex-column mt-2 gap-2">
               <li>
                 <p className="nav-link text-white">Registrar Visita</p>
@@ -147,7 +147,7 @@ function VisitasAdmin() {
           </div>
 
           <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">🏢 Áreas Comunes</h6>
+            <h6 className="text-uppercase fw-bold">Áreas Comunes</h6>
             <ul className="nav flex-column mt-2 gap-2">
               <li>
                 <p>va algo pero no recuerdo </p>
@@ -159,7 +159,7 @@ function VisitasAdmin() {
           </div>
 
           <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">👥 Residentes</h6>
+            <h6 className="text-uppercase fw-bold">Residentes</h6>
             <ul className="nav flex-column mt-2 gap-2">
               <li>
                 <p> va algo no recuerdo</p>
@@ -180,7 +180,7 @@ function VisitasAdmin() {
 
       <section class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h3 class="fw-bold text-success">📋 Historial de Visitas</h3>
+          <h3 class="fw-bold text-success">Historial de Visitas</h3>
 
           <div class="d-flex gap-2">
             <button class="btn btn-success" id="btnRegistrarVisita">

@@ -72,10 +72,21 @@
   opacity: 0.85;
 }
 
-.ac-drawer-nav {
+.ac-drawer-body {
   flex: 1;
   padding: 16px 12px;
   overflow-y: auto;
+}
+.ac-menu-section {
+  margin-bottom: 16px;
+}
+.ac-menu-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.6;
+  margin: 0 0 8px 16px;
+  font-weight: 700;
 }
 .ac-menu-item {
   display: flex;

@@ -275,6 +275,7 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
     return doc?.toString() ?? 'N/A';
   }
 
+  // ignore: unused_element
   String _obtenerNombreEstado(dynamic usuario) {
     // Leer del objeto Estado (viene con JOIN)
     final estado = usuario['Estado'];
@@ -869,6 +870,7 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
     );
   }
 
+  // ignore: unused_element
   String _obtenerIniciales(String nombreCompleto) {
     final partes = nombreCompleto.split(' ').where((p) => p.isNotEmpty);
     if (partes.isEmpty) return '?';
@@ -968,7 +970,10 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
                   Expanded(
                     child: Text(
                       'El número de documento "${numeroDocumentoController.text}" no podrá ser modificado después.',
-                      style: TextStyle(color: Colors.orange.shade900, fontSize: 13),
+                      style: TextStyle(
+                        color: Colors.orange.shade900,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ],
@@ -1838,7 +1843,7 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
 
       // Campos de persona - Verificar si hay algún cambio en persona
       bool hayaCambioenPersona = false;
-      
+
       if (numeroDocumentoController.text.trim() !=
           (persona['numeroDocumento']?.toString() ?? '')) {
         body['numeroDocumento'] = numeroDocumentoController.text.trim();

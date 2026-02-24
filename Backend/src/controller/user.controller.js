@@ -331,6 +331,7 @@ export const loginUsuario = async (req, res) => {
       numeroDocumento,
       rolesId,
       estadoId,
+      fotoPerfil,
     } = usuario;
 
     res.status(200).json({
@@ -343,7 +344,8 @@ export const loginUsuario = async (req, res) => {
         numeroDocumento,
         rolesId,
         estadoId,
-        rol: nombreRol, // Ahora devuelve el nombre del rol desde la BD
+        rol: nombreRol,
+        fotoPerfil: fotoPerfil || null,
       },
     });
   } catch (error) {
@@ -439,7 +441,8 @@ export const reactivarUsuario = async (req, res) => {
 
 /**
  * Cerrar sesión del usuario.
- * Resetea ultimaActividad a null para que deje de aparecer "en línea".
+ * NO resetea ultimaActividad — el usuario seguirá apareciendo "en línea"
+ * hasta que expire el umbral de 5 minutos de forma natural.
  */
 export const logoutUsuario = async (req, res) => {
   try {
@@ -450,15 +453,12 @@ export const logoutUsuario = async (req, res) => {
         .json({ ok: false, message: "Usuario no identificado" });
     }
 
-    await User.update({ ultimaActividad: null }, { where: { username } });
-
     res.status(200).json({
       ok: true,
       status: 200,
       message: "Sesión cerrada correctamente",
     });
   } catch (error) {
-    console.error("Error al cerrar sesión:", error);
     res.status(500).json({
       ok: false,
       message: "Error al cerrar sesión",
@@ -506,6 +506,49 @@ export const obtenerUsuariosEnLinea = async (req, res) => {
     return res.status(500).json({
       message: "Algo salió mal en la petición :(",
       status: 500,
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Actualizar solo la foto de perfil de un usuario.
+ * Body: { fotoPerfil: "data:image/...;base64,..." }  o  { fotoPerfil: null }
+ */
+export const actualizarFotoPerfil = async (req, res) => {
+  const { username } = req.params;
+  const { fotoPerfil } = req.body;
+  const requester = req.user?.username || "desconocido";
+
+  try {
+    const usuario = await User.findByPk(username);
+    if (!usuario) {
+      return res
+        .status(404)
+        .json({ ok: false, message: "Usuario no encontrado" });
+    }
+
+    await usuario.update({ fotoPerfil: fotoPerfil || null });
+
+    await registrarAuditoria(requester, "usuarios", "UPDATE", username);
+
+    res.status(200).json({
+      ok: true,
+      status: 200,
+      message: "Foto de perfil actualizada",
+      fotoPerfil: fotoPerfil || null,
+    });
+  } catch (error) {
+    await registrarFallo(
+      "ERROR",
+      requester,
+      "PUT /usuario/:username/foto",
+      error.message,
+      error.stack,
+    );
+    return res.status(500).json({
+      ok: false,
+      message: "Error al actualizar la foto de perfil",
       error: error.message,
     });
   }

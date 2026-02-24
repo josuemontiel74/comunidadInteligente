@@ -64,7 +64,6 @@ export const getEstadisticasParqueaderos = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error al obtener estadísticas de parqueaderos:", error);
     res.status(500).json({
       success: false,
       message: "Error al obtener estadísticas de parqueaderos",
@@ -120,7 +119,6 @@ export const getPaquetesRecibidosHoy = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error al obtener paquetes recibidos hoy:", error);
     res.status(500).json({
       success: false,
       message: "Error al obtener paquetes recibidos hoy",
@@ -176,7 +174,6 @@ export const getReservasHoy = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error al obtener reservas de hoy:", error);
     res.status(500).json({
       success: false,
       message: "Error al obtener reservas de hoy",
@@ -302,7 +299,6 @@ export const getResumenDashboard = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error al obtener resumen del dashboard:", error);
     res.status(500).json({
       success: false,
       message: "Error al obtener resumen del dashboard",

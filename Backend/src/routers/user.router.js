@@ -66,4 +66,10 @@ router.delete(
   validate(userSchema.deleteUserSchema, "params", true),
   userController.inactivarUsuario,
 );
+router.put(
+  "/usuario/:username/foto",
+  validarJWT,
+  validarRol(1),
+  userController.actualizarFotoPerfil,
+);
 export default router;

@@ -1,11 +1,11 @@
-
 .registro-container {
   min-height: 100vh;
   width: 100vw;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(rgba(20, 79, 2, 0.6), rgba(33, 33, 33, 0.6)),
+  background:
+    linear-gradient(rgba(20, 79, 2, 0.6), rgba(33, 33, 33, 0.6)),
     url("../../img/fondo.jpg");
   background-size: cover;
   background-position: center;
@@ -69,4 +69,25 @@
 
 .btn-submit:hover {
   background: #0e3802;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .registro-box {
+    max-width: 95vw;
+    padding: 2rem 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .registro-box {
+    padding: 1.5rem 1.2rem;
+    border-radius: 0.875rem;
+  }
+  .registro-title {
+    font-size: 1.2rem;
+  }
+  .btn-submit {
+    font-size: 0.95rem;
+  }
 }

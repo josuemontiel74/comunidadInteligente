@@ -59,7 +59,6 @@ export const createParqueadero = async (req, res) => {
       data: newParqueadero,
     });
   } catch (error) {
-    console.error("Error creando parqueadero:", error);
     return res.status(500).json({
       message: "Algo salió mal, no se pudo crear el parqueadero",
       status: 500,
@@ -214,7 +213,6 @@ export const actualizarParqueadero = async (req, res) => {
       data: parqueadero,
     });
   } catch (error) {
-    console.error("Error actualizando parqueadero:", error);
     return res.status(500).json({
       message: "Algo salió mal, no se pudo actualizar el parqueadero",
       status: 500,
@@ -338,7 +336,6 @@ export const cambiarEstadoParqueadero = async (req, res) => {
       data: parqueadero,
     });
   } catch (error) {
-    console.error("Error cambiando estado de parqueadero:", error);
     return res.status(500).json({
       message: "Error al cambiar el estado del parqueadero",
       status: 500,

@@ -13,7 +13,7 @@ export async function registrarFallo(
   username,
   rutaAfectada,
   mensajeError,
-  stackTrace
+  stackTrace,
 ) {
   try {
     const sql = `
@@ -34,10 +34,6 @@ export async function registrarFallo(
       replacements: values,
     });
   } catch (dbError) {
-    console.error(
-      "⛔️ ERROR CRÍTICO: Falló el registro del error en la tabla logErrores."
-    );
-    console.error("Error original a registrar:", mensajeError);
-    console.error("Error al registrar el log:", dbError.message);
+    // fallo critico al registrar en logErrores
   }
 }

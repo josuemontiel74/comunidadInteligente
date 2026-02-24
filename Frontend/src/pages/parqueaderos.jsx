@@ -125,7 +125,6 @@ function Parqueaderos() {
         setParqueaderos([]);
       }
     } catch (err) {
-      console.error("Error al cargar parqueaderos:", err);
       setError("Error al cargar los parqueaderos.");
     } finally {
       setLoading(false);
@@ -303,7 +302,6 @@ function Parqueaderos() {
             }
           }
         } catch (err) {
-          console.error("Error al cambiar estado:", err);
           Swal.fire({
             icon: "error",
             title: "Error",

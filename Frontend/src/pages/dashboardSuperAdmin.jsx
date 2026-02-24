@@ -11,6 +11,9 @@ import {
   obtenerUsuariosEnLinea,
   logoutUsuario,
 } from "../services/gestionUsuarios.jsx";
+import DescargaAppMovil from "./DescargaAppMovil.jsx";
+import ModoOscuro from "./ModoOscuro.jsx";
+import WhatsAppModal from "./WhatsAppModal.jsx";
 
 const PHOTO_STORAGE_KEY = "gu_user_photos";
 const getUserProfilePhoto = (key) => {
@@ -30,6 +33,7 @@ function Dashboard() {
 
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [saliendo, setSaliendo] = useState(false);
   const [loading, setLoading] = useState(true);
   const [fotoUsuario, setFotoUsuario] = useState(null);
   const [dataLoading, setDataLoading] = useState(true);
@@ -46,6 +50,23 @@ function Dashboard() {
   const [reservasHoy, setReservasHoy] = useState(0);
   const [residentesActivos, setResidentesActivos] = useState(0);
   const [usuariosEnLinea, setUsuariosEnLinea] = useState([]);
+
+  // Modo oscuro – reactive para re-renderizar gráficas
+  const [oscuro, setOscuro] = useState(
+    () => document.documentElement.getAttribute("data-modo") === "oscuro",
+  );
+  useEffect(() => {
+    const obs = new MutationObserver(() =>
+      setOscuro(
+        document.documentElement.getAttribute("data-modo") === "oscuro",
+      ),
+    );
+    obs.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-modo"],
+    });
+    return () => obs.disconnect();
+  }, []);
   const [totalEnLinea, setTotalEnLinea] = useState(0);
 
   // Token / roles helpers
@@ -131,7 +152,8 @@ function Dashboard() {
   useEffect(() => {
     if (usuario) {
       setFotoUsuario(
-        getUserProfilePhoto(usuario.numeroDocumento) ||
+        usuario.fotoPerfil ||
+          getUserProfilePhoto(usuario.numeroDocumento) ||
           getUserProfilePhoto(usuario.username) ||
           null,
       );
@@ -168,10 +190,9 @@ function Dashboard() {
         setUsuariosEnLinea(nombres);
         setTotalEnLinea(nombres.length);
       } catch (err) {
-        console.error("Error al obtener usuarios en línea:", err);
+        // Error al obtener usuarios en linea
       }
     } catch (error) {
-      console.error("Error al cargar datos del dashboard:", error);
     } finally {
       setDataLoading(false);
     }
@@ -233,12 +254,12 @@ function Dashboard() {
             drawCtx.save();
             const ocupados = parqueosCarros + parqueosMotos;
             drawCtx.font = "bold 28px Arial";
-            drawCtx.fillStyle = "#1f2937";
+            drawCtx.fillStyle = oscuro ? "#e2e8f0" : "#1f2937";
             drawCtx.textAlign = "center";
             drawCtx.textBaseline = "middle";
             drawCtx.fillText(ocupados, width / 2, height / 2 - 10);
             drawCtx.font = "14px Arial";
-            drawCtx.fillStyle = "#6b7280";
+            drawCtx.fillStyle = oscuro ? "#94a3b8" : "#6b7280";
             drawCtx.fillText("Ocupados", width / 2, height / 2 + 14);
             drawCtx.restore();
           },
@@ -249,7 +270,14 @@ function Dashboard() {
     return () => {
       if (chartRef.current) chartRef.current.destroy();
     };
-  }, [loading, dataLoading, parqueosCarros, parqueosMotos, parqueosLibres]);
+  }, [
+    loading,
+    dataLoading,
+    parqueosCarros,
+    parqueosMotos,
+    parqueosLibres,
+    oscuro,
+  ]);
 
   // Gráfico de barras para paquetes
   useEffect(() => {
@@ -290,11 +318,16 @@ function Dashboard() {
         scales: {
           y: {
             beginAtZero: true,
-            ticks: { stepSize: 1, color: "#6b7280" },
-            grid: { color: "rgba(0,0,0,0.05)" },
+            ticks: { stepSize: 1, color: oscuro ? "#94a3b8" : "#6b7280" },
+            grid: {
+              color: oscuro ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+            },
           },
           x: {
-            ticks: { color: "#374151", font: { weight: "500" } },
+            ticks: {
+              color: oscuro ? "#e2e8f0" : "#374151",
+              font: { weight: "500" },
+            },
             grid: { display: false },
           },
         },
@@ -304,7 +337,7 @@ function Dashboard() {
     return () => {
       if (barChartRef.current) barChartRef.current.destroy();
     };
-  }, [loading, dataLoading, paquetesEntregados, paquetesPendientes]);
+  }, [loading, dataLoading, paquetesEntregados, paquetesPendientes, oscuro]);
 
   // Gráfico de barras para visitas del día
   useEffect(() => {
@@ -345,11 +378,16 @@ function Dashboard() {
         scales: {
           y: {
             beginAtZero: true,
-            ticks: { stepSize: 1, color: "#6b7280" },
-            grid: { color: "rgba(0,0,0,0.05)" },
+            ticks: { stepSize: 1, color: oscuro ? "#94a3b8" : "#6b7280" },
+            grid: {
+              color: oscuro ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+            },
           },
           x: {
-            ticks: { color: "#374151", font: { weight: "500" } },
+            ticks: {
+              color: oscuro ? "#e2e8f0" : "#374151",
+              font: { weight: "500" },
+            },
             grid: { display: false },
           },
         },
@@ -359,7 +397,7 @@ function Dashboard() {
     return () => {
       if (visitasChartRef.current) visitasChartRef.current.destroy();
     };
-  }, [loading, dataLoading, visitasHoy, visitasActivas]);
+  }, [loading, dataLoading, visitasHoy, visitasActivas, oscuro]);
 
   // Auto-refresh cada 30 segundos para usuarios en línea
   useEffect(() => {
@@ -381,11 +419,14 @@ function Dashboard() {
 
   const cerrarSesion = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (token) await logoutUsuario(token);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigator("/");
+    setSaliendo(true);
+    setTimeout(async () => {
+      const token = localStorage.getItem("token");
+      if (token) await logoutUsuario(token);
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      navigator("/login", { replace: true });
+    }, 380);
   };
 
   if (loading) {
@@ -471,7 +512,7 @@ function Dashboard() {
   ];
 
   return (
-    <div className="sa-dashboard">
+    <div className={`sa-dashboard${saliendo ? " sa-saliendo" : ""}`}>
       {/* ====== OFFCANVAS MENU (hamburguesa como Flutter) ====== */}
       <div
         className={`sa-overlay ${menuOpen ? "active" : ""}`}
@@ -502,41 +543,39 @@ function Dashboard() {
         </div>
 
         <div className="sa-drawer-body">
-          {/* Sección Paquetes */}
+          {/* Navegación */}
           <div className="sa-menu-section">
-            <h6 className="sa-menu-section-title">Gestión de Paquetes</h6>
+            <h6 className="sa-menu-section-title">Navegación</h6>
             <Link
-              className="sa-menu-item"
-              to="/Paqueteria"
-              state={{ abrirModal: true }}
+              className="sa-menu-item active"
+              to="/Superadmin"
               onClick={() => setMenuOpen(false)}
             >
-              <i className="bi bi-plus-box"></i>
-              <span>Registrar Paquete</span>
-              <i className="bi bi-chevron-right sa-menu-arrow"></i>
-            </Link>
-            <Link
-              className="sa-menu-item"
-              to="/Paqueteria"
-              onClick={() => setMenuOpen(false)}
-            >
-              <i className="bi bi-clock-history"></i>
-              <span>Historial de Paquetes</span>
+              <i className="bi bi-speedometer2"></i>
+              <span>Dashboard</span>
               <i className="bi bi-chevron-right sa-menu-arrow"></i>
             </Link>
           </div>
 
-          {/* Sección Visitas */}
+          {/* Módulos */}
           <div className="sa-menu-section">
-            <h6 className="sa-menu-section-title">Gestión de Visitas</h6>
+            <h6 className="sa-menu-section-title">Módulos</h6>
+            <Link
+              className="sa-menu-item"
+              to="/Paqueteria"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-box-seam"></i>
+              <span>Paquetería</span>
+              <i className="bi bi-chevron-right sa-menu-arrow"></i>
+            </Link>
             <Link
               className="sa-menu-item"
               to="/visitas"
-              state={{ abrirModal: true }}
               onClick={() => setMenuOpen(false)}
             >
-              <i className="bi bi-calendar-event"></i>
-              <span>Gestión de Visitas</span>
+              <i className="bi bi-people"></i>
+              <span>Visitas</span>
               <i className="bi bi-chevron-right sa-menu-arrow"></i>
             </Link>
             <Link
@@ -545,116 +584,60 @@ function Dashboard() {
               onClick={() => setMenuOpen(false)}
             >
               <i className="bi bi-p-circle"></i>
-              <span>Consultar Parqueadero</span>
+              <span>Parqueaderos</span>
               <i className="bi bi-chevron-right sa-menu-arrow"></i>
             </Link>
-          </div>
-
-          {/* Sección Áreas Comunes */}
-          {showAreasComunes && (
-            <div className="sa-menu-section">
-              <h6 className="sa-menu-section-title">
-                Gestión de Áreas Comunes
-              </h6>
+            {showAreasComunes && (
               <Link
                 className="sa-menu-item"
                 to="/AreasComunes"
                 onClick={() => setMenuOpen(false)}
               >
-                <i className="bi bi-gear"></i>
-                <span>Gestionar Áreas</span>
+                <i className="bi bi-calendar2-event"></i>
+                <span>Áreas Comunes</span>
                 <i className="bi bi-chevron-right sa-menu-arrow"></i>
               </Link>
-              <Link
-                className="sa-menu-item"
-                to="/AreasComunes"
-                onClick={() => setMenuOpen(false)}
-              >
-                <i className="bi bi-calendar-plus"></i>
-                <span>Registrar Reserva</span>
-                <i className="bi bi-chevron-right sa-menu-arrow"></i>
-              </Link>
-            </div>
-          )}
-
-          {/* Sección Reportes */}
-          <div className="sa-menu-section">
-            <h6 className="sa-menu-section-title">Reportes</h6>
+            )}
+            <Link
+              className="sa-menu-item"
+              to="/Residentes"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-house-door"></i>
+              <span>Residentes</span>
+              <i className="bi bi-chevron-right sa-menu-arrow"></i>
+            </Link>
             <Link
               className="sa-menu-item"
               to="/Reportes"
               onClick={() => setMenuOpen(false)}
             >
-              <i className="bi bi-bar-chart-line"></i>
-              <span>Ver Reportes</span>
+              <i className="bi bi-graph-up-arrow"></i>
+              <span>Reportes</span>
               <i className="bi bi-chevron-right sa-menu-arrow"></i>
             </Link>
-          </div>
-
-          {/* Sección Auditorías (solo superadmin) */}
-          {showUserManagement && (
-            <div className="sa-menu-section">
-              <h6 className="sa-menu-section-title">Auditorías</h6>
-              <Link
-                className="sa-menu-item"
-                to="/Auditorias"
-                onClick={() => setMenuOpen(false)}
-              >
-                <i className="bi bi-journal-text"></i>
-                <span>Registro de Auditoría</span>
-                <i className="bi bi-chevron-right sa-menu-arrow"></i>
-              </Link>
-            </div>
-          )}
-
-          {/* Sección Usuarios */}
-          {showUserManagement && (
-            <div className="sa-menu-section">
-              <h6 className="sa-menu-section-title">Gestión de Usuarios</h6>
-              <Link
-                className="sa-menu-item"
-                to="/GestionUsuario"
-                state={{ abrirModal: true }}
-                onClick={() => setMenuOpen(false)}
-              >
-                <i className="bi bi-person-plus"></i>
-                <span>Registrar Usuario</span>
-                <i className="bi bi-chevron-right sa-menu-arrow"></i>
-              </Link>
-              <Link
-                className="sa-menu-item"
-                to="/GestionUsuario"
-                onClick={() => setMenuOpen(false)}
-              >
-                <i className="bi bi-people"></i>
-                <span>Consultar Usuarios</span>
-                <i className="bi bi-chevron-right sa-menu-arrow"></i>
-              </Link>
-            </div>
-          )}
-
-          {/* Sección Residentes */}
-          <div className="sa-menu-section">
-            <h6 className="sa-menu-section-title">Gestión de Residentes</h6>
-            <Link
-              className="sa-menu-item"
-              to="/Residentes"
-              state={{ abrirModal: true }}
-              onClick={() => setMenuOpen(false)}
-            >
-              <i className="bi bi-house-add"></i>
-              <span>Registrar Residentes</span>
-              <i className="bi bi-chevron-right sa-menu-arrow"></i>
-            </Link>
-            <Link
-              className="sa-menu-item"
-              to="/Residentes"
-              onClick={() => setMenuOpen(false)}
-            >
-              <i className="bi bi-list-ul"></i>
-              <span>Consultar Residentes</span>
-              <i className="bi bi-chevron-right sa-menu-arrow"></i>
-            </Link>
+            {showUserManagement && (
+              <>
+                <Link
+                  className="sa-menu-item"
+                  to="/Auditorias"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-journal-text"></i>
+                  <span>Auditorías</span>
+                  <i className="bi bi-chevron-right sa-menu-arrow"></i>
+                </Link>
+                <Link
+                  className="sa-menu-item"
+                  to="/GestionUsuario"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-person-gear"></i>
+                  <span>Gestión Usuarios</span>
+                  <i className="bi bi-chevron-right sa-menu-arrow"></i>
+                </Link>
+              </>
+            )}
           </div>
         </div>
 
@@ -670,27 +653,33 @@ function Dashboard() {
       <div className="sa-main">
         {/* Header / AppBar (como Flutter) */}
         <header className="sa-header">
-          <button
-            className="sa-header-btn"
-            onClick={() => setShowUserMenu(!showUserMenu)}
-            title="Ver perfil"
-            style={{ overflow: "hidden" }}
-          >
-            {fotoUsuario ? (
-              <img
-                src={fotoUsuario}
-                alt="Perfil"
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  objectFit: "cover",
-                  borderRadius: "50%",
-                }}
-              />
-            ) : (
-              <i className="bi bi-person-circle"></i>
-            )}
-          </button>
+          <div className="sa-profile-btn-wrap">
+            <button
+              className="sa-header-btn"
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              title="Ver perfil"
+              style={{ overflow: "hidden" }}
+            >
+              {fotoUsuario ? (
+                <img
+                  src={fotoUsuario}
+                  alt="Perfil"
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    objectFit: "cover",
+                    borderRadius: "50%",
+                  }}
+                />
+              ) : (
+                <i className="bi bi-person-circle"></i>
+              )}
+            </button>
+            <span
+              className="sa-profile-status-dot"
+              title="Super Administrador activo"
+            ></span>
+          </div>
 
           {showUserMenu && (
             <div className="sa-profile-popup">
@@ -740,6 +729,8 @@ function Dashboard() {
           </Link>
 
           <div className="sa-header-actions">
+            <DescargaAppMovil btnClass="sa-header-btn" />
+            <ModoOscuro btnClass="sa-header-btn" />
             <button
               className="sa-header-btn"
               onClick={() => {
@@ -1040,6 +1031,7 @@ function Dashboard() {
           </div>
         </div>
       </div>
+      <WhatsAppModal />
     </div>
   );
 }
