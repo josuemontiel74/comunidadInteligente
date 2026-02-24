@@ -69,7 +69,7 @@ comunidadInteligente/
 
 ## Estado actual del proyecto
 
-### ✅ Completado
+### Completado
 
 #### Backend
 - API REST con autenticación JWT y control de roles
@@ -106,7 +106,7 @@ comunidadInteligente/
 - Modelo relacional documentado y actualizado (`.mwb` + `.png`)
 - Backup automatizado disponible en `Backend/backups/`
 
-### 🔄 En desarrollo
+### En desarrollo
 - Modo oscuro (frontend web)
 - Pantalla de descarga de la app móvil
 - Optimización de consultas en reportes avanzados
