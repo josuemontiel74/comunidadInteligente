@@ -128,10 +128,13 @@ const traducirMensajeBackend = (errData) => {
 
 const getUserProfilePhoto = () => {
   try {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    // Prioridad 1: foto guardada en la BD (viene en el objeto user del login)
+    if (user.fotoPerfil) return user.fotoPerfil;
+    // Prioridad 2: caché local de fotos
     const photosStr = localStorage.getItem("gu_user_photos");
     if (!photosStr) return null;
     const photos = JSON.parse(photosStr);
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
     const key = user.numeroDocumento || user.username || "";
     return photos[key] || null;
   } catch {
@@ -749,86 +752,113 @@ function Residentes() {
               <i className="bi bi-people-fill"></i>
             </div>
           )}
-          <p className="res-drawer-title">{getMenuTitle()}</p>
-          <p className="res-drawer-user">{nombreUsuario}</p>
+          <h4 className="res-drawer-title">{getMenuTitle()}</h4>
+          <span className="res-drawer-user">{nombreUsuario}</span>
         </div>
-        <nav className="res-drawer-nav">
+        <div className="res-drawer-body">
           <div className="res-menu-section">
-            <p className="res-menu-section-title">Gestión de Paquetes</p>
+            <h6 className="res-menu-section-title">Navegación</h6>
             <Link
               className="res-menu-item"
-              to="/Paqueteria"
-              state={{ abrirModal: true }}
+              to={
+                rolesId === 1
+                  ? "/Superadmin"
+                  : rolesId === 2
+                    ? "/Admin"
+                    : "/VigilanteDashboard"
+              }
+              onClick={() => setMenuOpen(false)}
             >
-              <i className="bi bi-plus-circle"></i> Registrar Paquete
+              <i className="bi bi-speedometer2"></i>
+              <span>Dashboard</span>
               <i className="bi bi-chevron-right res-menu-arrow"></i>
             </Link>
-            <Link className="res-menu-item" to="/Paqueteria">
-              <i className="bi bi-box-seam"></i> Historial de Paquetes
-              <i className="bi bi-chevron-right res-menu-arrow"></i>
-            </Link>
-          </div>
-          <div className="res-menu-section">
-            <p className="res-menu-section-title">Gestión de Visitas</p>
-            <Link
-              className="res-menu-item"
-              to="/visitas"
-              state={{ abrirModal: true }}
-            >
-              <i className="bi bi-person-plus"></i> Crear Visita
-              <i className="bi bi-chevron-right res-menu-arrow"></i>
-            </Link>
-            <Link className="res-menu-item" to="/visitas">
-              <i className="bi bi-people"></i> Consultar Visitas
-              <i className="bi bi-chevron-right res-menu-arrow"></i>
-            </Link>
-            <Link className="res-menu-item" to="/parqueaderos">
-              <i className="bi bi-car-front"></i> Parqueaderos
-              <i className="bi bi-chevron-right res-menu-arrow"></i>
-            </Link>
-          </div>
-          {showAreasComunes && (
-            <div className="res-menu-section">
-              <p className="res-menu-section-title">Gestión Áreas Comunes</p>
-              <Link className="res-menu-item" to="/AreasComunes">
-                <i className="bi bi-calendar-check"></i> Reservar Área
-                <i className="bi bi-chevron-right res-menu-arrow"></i>
-              </Link>
-            </div>
-          )}
-          {showUserManagement && (
-            <div className="res-menu-section">
-              <p className="res-menu-section-title">Gestión de Usuarios</p>
-              <Link
-                className="res-menu-item"
-                to="/GestionUsuario"
-                state={{ abrirModal: true }}
-              >
-                <i className="bi bi-person-plus"></i> Registrar Usuario
-                <i className="bi bi-chevron-right res-menu-arrow"></i>
-              </Link>
-              <Link className="res-menu-item" to="/GestionUsuario">
-                <i className="bi bi-person-lines-fill"></i> Consultar Usuarios
-                <i className="bi bi-chevron-right res-menu-arrow"></i>
-              </Link>
-            </div>
-          )}
-          <div className="res-menu-section">
-            <p className="res-menu-section-title">Gestión Residentes</p>
             <Link
               className="res-menu-item active"
               to="/Residentes"
-              state={{ abrirModal: true }}
+              onClick={() => setMenuOpen(false)}
             >
-              <i className="bi bi-person-plus"></i> Crear Residente
-              <i className="bi bi-chevron-right res-menu-arrow"></i>
-            </Link>
-            <Link className="res-menu-item active" to="/Residentes">
-              <i className="bi bi-house-door"></i> Consultar Residentes
+              <i className="bi bi-house-door"></i>
+              <span>Residentes</span>
               <i className="bi bi-chevron-right res-menu-arrow"></i>
             </Link>
           </div>
-        </nav>
+
+          <div className="res-menu-section">
+            <h6 className="res-menu-section-title">Módulos</h6>
+            <Link
+              className="res-menu-item"
+              to="/Paqueteria"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-box-seam"></i>
+              <span>Paquetería</span>
+              <i className="bi bi-chevron-right res-menu-arrow"></i>
+            </Link>
+            <Link
+              className="res-menu-item"
+              to="/visitas"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-people"></i>
+              <span>Visitas</span>
+              <i className="bi bi-chevron-right res-menu-arrow"></i>
+            </Link>
+            <Link
+              className="res-menu-item"
+              to="/parqueaderos"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-p-circle"></i>
+              <span>Parqueaderos</span>
+              <i className="bi bi-chevron-right res-menu-arrow"></i>
+            </Link>
+            {showAreasComunes && (
+              <Link
+                className="res-menu-item"
+                to="/AreasComunes"
+                onClick={() => setMenuOpen(false)}
+              >
+                <i className="bi bi-calendar-event"></i>
+                <span>Áreas Comunes</span>
+                <i className="bi bi-chevron-right res-menu-arrow"></i>
+              </Link>
+            )}
+            {(rolesId === 1 || rolesId === 2) && (
+              <Link
+                className="res-menu-item"
+                to="/Reportes"
+                onClick={() => setMenuOpen(false)}
+              >
+                <i className="bi bi-graph-up-arrow"></i>
+                <span>Reportes</span>
+                <i className="bi bi-chevron-right res-menu-arrow"></i>
+              </Link>
+            )}
+            {showUserManagement && (
+              <>
+                <Link
+                  className="res-menu-item"
+                  to="/GestionUsuario"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-person-gear"></i>
+                  <span>Gestión Usuarios</span>
+                  <i className="bi bi-chevron-right res-menu-arrow"></i>
+                </Link>
+                <Link
+                  className="res-menu-item"
+                  to="/Auditorias"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-journal-text"></i>
+                  <span>Auditorías</span>
+                  <i className="bi bi-chevron-right res-menu-arrow"></i>
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
         <div className="res-drawer-footer">
           <button className="res-logout-btn" onClick={cerrarSesion}>
             <i className="bi bi-box-arrow-right"></i> Cerrar sesión

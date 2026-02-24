@@ -106,7 +106,6 @@ function Auditorias() {
       const data = await obtenerRegistrosAuditoria(token);
       setAuditorias(data);
     } catch (err) {
-      console.error("Error al cargar auditorías:", err);
       setError("Error al cargar los datos de auditoría.");
     } finally {
       setLoading(false);

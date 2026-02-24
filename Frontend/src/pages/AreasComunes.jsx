@@ -62,7 +62,6 @@ function AreasComunes() {
       sessionStorage.getItem("token") ||
       sessionStorage.getItem("authToken");
     if (!token) {
-      console.warn("No se encontró token, usando token de desarrollo");
       return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Impvc3VlMjAyMyIsInJvbGVzSWQiOjEsImlhdCI6MTc1OTUxNTQwMCwiZXhwIjoxNzU5NTE5MDAwfQ.wKzrnUttdHRGkHnnZL1LR1amxt2ZQ4PZR85khZauShQ";
     }
     return token;
@@ -296,7 +295,7 @@ function AreasComunes() {
         setCalendarData(d.body || d.mostrarCalendario || d.reservas || []);
       }
     } catch {
-      console.warn("No se pudo cargar el calendario");
+      /* fallback calendario */
     }
   }, [token]);
 
@@ -952,129 +951,112 @@ function AreasComunes() {
       <aside className={`ac-drawer ${menuOpen ? "open" : ""}`}>
         <div className="ac-drawer-header">
           <div className="ac-drawer-avatar">
-            <i className="bi bi-person-fill" />
+            <i className="bi bi-calendar2-event" />
           </div>
-          <h6 className="ac-drawer-title">{nombreUsuario}</h6>
-          <small className="ac-drawer-user">{rolUsuario}</small>
+          <h4 className="ac-drawer-title">{nombreUsuario}</h4>
+          <span className="ac-drawer-user">{rolUsuario}</span>
         </div>
 
-        <nav className="ac-drawer-nav">
+        <div className="ac-drawer-body">
           {/* Navegación */}
-          <small
-            style={{
-              fontSize: 11,
-              textTransform: "uppercase",
-              opacity: 0.7,
-              padding: "0 16px",
-              marginBottom: 4,
-            }}
-          >
-            Navegación
-          </small>
-          <Link
-            className="ac-menu-item"
-            to={dashboardPath}
-            onClick={() => setMenuOpen(false)}
-          >
-            <i className="bi bi-speedometer2" />
-            Dashboard
-            <i className="bi bi-chevron-right ac-menu-arrow" />
-          </Link>
-          {rolesId === 1 && (
+          <div className="ac-menu-section">
+            <h6 className="ac-menu-section-title">Navegación</h6>
             <Link
               className="ac-menu-item"
-              to="/Auditorias"
+              to={dashboardPath}
               onClick={() => setMenuOpen(false)}
             >
-              <i className="bi bi-shield-check" />
-              Auditorías
+              <i className="bi bi-speedometer2" />
+              <span>Dashboard</span>
               <i className="bi bi-chevron-right ac-menu-arrow" />
             </Link>
-          )}
+            <Link
+              className="ac-menu-item active"
+              to="/AreasComunes"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-calendar2-event" />
+              <span>Áreas Comunes</span>
+              <i className="bi bi-chevron-right ac-menu-arrow" />
+            </Link>
+          </div>
 
           {/* Módulos */}
-          <small
-            style={{
-              fontSize: 11,
-              textTransform: "uppercase",
-              opacity: 0.7,
-              padding: "0 16px",
-              marginTop: 12,
-              marginBottom: 4,
-            }}
-          >
-            Módulos
-          </small>
-          <Link
-            className="ac-menu-item"
-            to="/Paqueteria"
-            onClick={() => setMenuOpen(false)}
-          >
-            <i className="bi bi-box-seam" />
-            Paquetería
-            <i className="bi bi-chevron-right ac-menu-arrow" />
-          </Link>
-          <Link
-            className="ac-menu-item"
-            to="/visitas"
-            onClick={() => setMenuOpen(false)}
-          >
-            <i className="bi bi-person-badge" />
-            Visitas
-            <i className="bi bi-chevron-right ac-menu-arrow" />
-          </Link>
-          <Link
-            className="ac-menu-item"
-            to="/parqueaderos"
-            onClick={() => setMenuOpen(false)}
-          >
-            <i className="bi bi-car-front" />
-            Parqueaderos
-            <i className="bi bi-chevron-right ac-menu-arrow" />
-          </Link>
-          <Link
-            className="ac-menu-item active"
-            to="/AreasComunes"
-            onClick={() => setMenuOpen(false)}
-          >
-            <i className="bi bi-calendar2-event" />
-            Áreas Comunes
-            <i className="bi bi-chevron-right ac-menu-arrow" />
-          </Link>
-          {(rolesId === 1 || rolesId === 2) && (
-            <>
-              <Link
-                className="ac-menu-item"
-                to="/Residentes"
-                onClick={() => setMenuOpen(false)}
-              >
-                <i className="bi bi-people" />
-                Residentes
-                <i className="bi bi-chevron-right ac-menu-arrow" />
-              </Link>
-              <Link
-                className="ac-menu-item"
-                to="/Reportes"
-                onClick={() => setMenuOpen(false)}
-              >
-                <i className="bi bi-graph-up-arrow" />
-                Reportes
-                <i className="bi bi-chevron-right ac-menu-arrow" />
-              </Link>
-            </>
-          )}
-          {rolesId === 1 && (
+          <div className="ac-menu-section">
+            <h6 className="ac-menu-section-title">Módulos</h6>
             <Link
               className="ac-menu-item"
-              to="/GestionUsuario"
+              to="/Paqueteria"
               onClick={() => setMenuOpen(false)}
             >
-              <i className="bi bi-gear" />
-              Gestión Usuarios
+              <i className="bi bi-box-seam" />
+              <span>Paquetería</span>
               <i className="bi bi-chevron-right ac-menu-arrow" />
             </Link>
-          )}
-        </nav>
+            <Link
+              className="ac-menu-item"
+              to="/visitas"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-person-badge" />
+              <span>Visitas</span>
+              <i className="bi bi-chevron-right ac-menu-arrow" />
+            </Link>
+            <Link
+              className="ac-menu-item"
+              to="/parqueaderos"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-car-front" />
+              <span>Parqueaderos</span>
+              <i className="bi bi-chevron-right ac-menu-arrow" />
+            </Link>
+            {(rolesId === 1 || rolesId === 2) && (
+              <>
+                <Link
+                  className="ac-menu-item"
+                  to="/Residentes"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-people" />
+                  <span>Residentes</span>
+                  <i className="bi bi-chevron-right ac-menu-arrow" />
+                </Link>
+                <Link
+                  className="ac-menu-item"
+                  to="/Reportes"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-graph-up-arrow" />
+                  <span>Reportes</span>
+                  <i className="bi bi-chevron-right ac-menu-arrow" />
+                </Link>
+              </>
+            )}
+            {rolesId === 1 && (
+              <>
+                <Link
+                  className="ac-menu-item"
+                  to="/GestionUsuario"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-person-gear" />
+                  <span>Gestión Usuarios</span>
+                  <i className="bi bi-chevron-right ac-menu-arrow" />
+                </Link>
+                <Link
+                  className="ac-menu-item"
+                  to="/Auditorias"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-shield-check" />
+                  <span>Auditorías</span>
+                  <i className="bi bi-chevron-right ac-menu-arrow" />
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
 
         <div className="ac-drawer-footer">
           <button className="ac-logout-btn" onClick={cerrarSesion}>

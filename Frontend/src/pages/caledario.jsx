@@ -94,7 +94,6 @@ export default function CalendarioReservas() {
       const token = obtenerToken();
 
       if (!token) {
-        console.error("No se encontró token de autenticación");
         setLoading(false);
         return;
       }
@@ -104,11 +103,9 @@ export default function CalendarioReservas() {
         const data = await response.json();
         setReservas(data.caledarioreservas || []);
       } else {
-        console.error("Error en la respuesta del calendario:", response.status);
         setReservas([]);
       }
     } catch (error) {
-      console.error("Error al cargar reservas:", error);
       setReservas([]);
     } finally {
       setLoading(false);
@@ -385,9 +382,9 @@ export default function CalendarioReservas() {
       title: obtenerNombreArea(reserva.areaComunId),
       html: `
         <div style="text-align: left;">
-          <p><strong>🕐 Horario:</strong> ${formatearHora(reserva.horaInicio)} - ${formatearHora(reserva.horaFin)}</p>
-          <p><strong>⏱️ Duración:</strong> ${horas}h ${minutos}min</p>
-          <p><strong>📍 Área ID:</strong> ${reserva.areaComunId}</p>
+          <p><strong>Horario:</strong> ${formatearHora(reserva.horaInicio)} - ${formatearHora(reserva.horaFin)}</p>
+          <p><strong>Duración:</strong> ${horas}h ${minutos}min</p>
+          <p><strong>Área ID:</strong> ${reserva.areaComunId}</p>
           <hr />
           <p><strong>Solicitante:</strong> ${extraerSolicitante(reserva).nombre || "N/A"}</p>
           <p><strong>Documento:</strong> ${extraerSolicitante(reserva).documento || "N/A"}</p>
@@ -437,10 +434,10 @@ export default function CalendarioReservas() {
           <p className="cal-drawer-user">{nombreUsuario || "Usuario"}</p>
         </div>
 
-        <nav className="cal-drawer-nav">
+        <div className="cal-drawer-body">
           {/* Dashboard */}
           <div className="cal-menu-section">
-            <p className="cal-menu-section-title">Dashboard</p>
+            <h6 className="cal-menu-section-title">Dashboard</h6>
             <Link className="cal-menu-item" to={dashboardRuta}>
               <i className="bi bi-speedometer2"></i>
               <span>Dashboard</span>
@@ -450,7 +447,7 @@ export default function CalendarioReservas() {
 
           {/* Principal */}
           <div className="cal-menu-section">
-            <p className="cal-menu-section-title">Calendario</p>
+            <h6 className="cal-menu-section-title">Calendario</h6>
             <Link className="cal-menu-item active" to="/CalendarioReservas">
               <i className="bi bi-calendar3"></i>
               <span>Ver Calendario</span>
@@ -460,7 +457,7 @@ export default function CalendarioReservas() {
 
           {/* Navegación */}
           <div className="cal-menu-section">
-            <p className="cal-menu-section-title">Navegación</p>
+            <h6 className="cal-menu-section-title">Navegación</h6>
             <Link className="cal-menu-item" to="/Paqueteria">
               <i className="bi bi-box-seam"></i>
               <span>Paquetería</span>
@@ -510,7 +507,7 @@ export default function CalendarioReservas() {
               </>
             )}
           </div>
-        </nav>
+        </div>
 
         <div className="cal-drawer-footer">
           <button className="cal-logout-btn" onClick={cerrarSesión}>

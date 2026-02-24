@@ -187,7 +187,7 @@ function Reportes() {
       setRptNinos(ninos);
       setRptPoblacion(pobl);
     } catch (err) {
-      console.error("Error cargando reportes:", err);
+      // Error cargando reportes
     }
     setDataLoading(false);
   }, [fechaInicio, fechaFin]);

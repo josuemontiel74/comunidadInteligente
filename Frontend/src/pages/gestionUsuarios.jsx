@@ -20,6 +20,7 @@ import {
   activarUsuarioService,
   obtenerUsuariosEnLinea,
   logoutUsuario,
+  actualizarFotoPerfil,
 } from "../services/gestionUsuarios.jsx";
 
 const ROLES_MAP = {
@@ -152,6 +153,7 @@ function GestionUsuarios() {
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [filtroRol, setFiltroRol] = useState("todos");
+  const [soloEnLinea, setSoloEnLinea] = useState(false);
   const [paginaActual, setPaginaActual] = useState(1);
   const registrosPorPagina = 10;
   const [showModalRegistrar, setShowModalRegistrar] = useState(false);
@@ -261,8 +263,23 @@ function GestionUsuarios() {
     try {
       const data = await obtenerUsuarios(token);
       setUsuarios(data);
+      // Hidratar localStorage con fotos que vienen de la BD
+      const photosLocales = getPhotos();
+      let actualizadas = false;
+      data.forEach((u) => {
+        if (u.fotoPerfil) {
+          const key = u.numeroDocumento || u.username;
+          if (photosLocales[key] !== u.fotoPerfil) {
+            photosLocales[key] = u.fotoPerfil;
+            actualizadas = true;
+          }
+        }
+      });
+      if (actualizadas) {
+        localStorage.setItem(PHOTO_STORAGE_KEY, JSON.stringify(photosLocales));
+        setUserPhotos({ ...photosLocales });
+      }
     } catch (err) {
-      console.error("Error al cargar usuarios:", err);
     } finally {
       setLoading(false);
     }
@@ -322,13 +339,23 @@ function GestionUsuarios() {
           (filtroEstado === "inactivo" && u.estadoId === 2);
         const coincideRol =
           filtroRol === "todos" || u.rolesId === parseInt(filtroRol);
-        return coincideBusqueda && coincideEstado && coincideRol;
+        const coincideEnLinea = !soloEnLinea || !!usuariosEnLinea[u.username];
+        return (
+          coincideBusqueda && coincideEstado && coincideRol && coincideEnLinea
+        );
       })
       .sort((a, b) => {
         if (a.estadoId !== b.estadoId) return a.estadoId - b.estadoId;
         return 0;
       });
-  }, [usuarios, busqueda, filtroEstado, filtroRol]);
+  }, [
+    usuarios,
+    busqueda,
+    filtroEstado,
+    filtroRol,
+    soloEnLinea,
+    usuariosEnLinea,
+  ]);
 
   const totalUsuarios = usuarios.length;
   const activos = usuarios.filter((u) => u.estadoId === 1).length;
@@ -386,10 +413,23 @@ function GestionUsuarios() {
       return;
     }
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       const key = photoTarget.numeroDocumento || photoTarget.username;
       savePhoto(key, ev.target.result);
       setUserPhotos(getPhotos());
+      // Guardar en la BD
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          await actualizarFotoPerfil(
+            photoTarget.username,
+            ev.target.result,
+            token,
+          );
+        } catch (err) {
+          // No se pudo sincronizar foto
+        }
+      }
       setPhotoTarget(null);
       Swal.fire({
         icon: "success",
@@ -409,12 +449,21 @@ function GestionUsuarios() {
     }, 100);
   };
 
-  const eliminarFoto = (user) => {
+  const eliminarFoto = async (user) => {
     const key = user.numeroDocumento || user.username;
     const photos = getPhotos();
     delete photos[key];
     localStorage.setItem(PHOTO_STORAGE_KEY, JSON.stringify(photos));
     setUserPhotos({ ...photos });
+    // Eliminar en la BD
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        await actualizarFotoPerfil(user.username, null, token);
+      } catch (err) {
+        // No se pudo eliminar foto
+      }
+    }
     Swal.fire({
       icon: "info",
       title: "Foto eliminada",
@@ -655,9 +704,17 @@ function GestionUsuarios() {
       if (formPhoto) {
         const photoKey =
           formData.numeroDocumento || dataRes.usuario?.username || "";
+        const usernameCreado = dataRes.usuario?.username || "";
         if (photoKey) {
           savePhoto(photoKey, formPhoto);
           setUserPhotos(getPhotos());
+        }
+        if (usernameCreado && token) {
+          try {
+            await actualizarFotoPerfil(usernameCreado, formPhoto, token);
+          } catch (err) {
+            // No se pudo sincronizar foto
+          }
         }
       }
       Swal.fire({
@@ -673,7 +730,6 @@ function GestionUsuarios() {
       await cargarUsuarios();
       setShowModalRegistrar(false);
     } catch (err) {
-      console.error(err);
       Swal.fire({
         icon: "error",
         title: "Lo siento",
@@ -711,7 +767,6 @@ function GestionUsuarios() {
         }));
       }
     } catch (err) {
-      console.error("Error cargando datos para editar:", err);
       setFormData({
         username: user.username || "",
         originalUsername: user.username || "",
@@ -829,6 +884,13 @@ function GestionUsuarios() {
           savePhoto(photoKey, formPhoto);
           setUserPhotos(getPhotos());
         }
+        if (targetUsername && token) {
+          try {
+            await actualizarFotoPerfil(targetUsername, formPhoto, token);
+          } catch (err) {
+            // No se pudo sincronizar foto
+          }
+        }
       }
       Swal.fire({
         icon: "success",
@@ -840,7 +902,6 @@ function GestionUsuarios() {
       setShowModalEditar(false);
       resetForm();
     } catch (err) {
-      console.error(err);
       Swal.fire({
         icon: "error",
         title: "Lo siento",
@@ -897,7 +958,6 @@ function GestionUsuarios() {
         showConfirmButton: false,
       });
     } catch (err) {
-      console.error(err);
       Swal.fire({ icon: "error", title: "Error de conexion" });
     }
   };
@@ -935,7 +995,6 @@ function GestionUsuarios() {
         showConfirmButton: false,
       });
     } catch (err) {
-      console.error(err);
       Swal.fire({ icon: "error", title: "Error de conexion" });
     }
   };
@@ -1036,9 +1095,9 @@ function GestionUsuarios() {
             {usuarioLog?.username || "Usuario"}
           </span>
         </div>
-        <div className="gu-drawer-nav">
+        <div className="gu-drawer-body">
           <div className="gu-menu-section">
-            <h6 className="gu-menu-section-title">Navegacion</h6>
+            <h6 className="gu-menu-section-title">Navegación</h6>
             <Link
               className="gu-menu-item"
               to="/Superadmin"
@@ -1059,7 +1118,7 @@ function GestionUsuarios() {
             </Link>
           </div>
           <div className="gu-menu-section">
-            <h6 className="gu-menu-section-title">Modulos</h6>
+            <h6 className="gu-menu-section-title">Módulos</h6>
             <Link
               className="gu-menu-item"
               to="/Paqueteria"
@@ -1291,6 +1350,23 @@ function GestionUsuarios() {
                   <option value="2">Administrador</option>
                   <option value="3">Vigilante</option>
                 </select>
+              </div>
+              <div className="gu-switch-group">
+                <span className="gu-switch-dot-indicator"></span>
+                <span className="gu-filter-label">Solo en línea</span>
+                <button
+                  className={`gu-toggle ${soloEnLinea ? "active" : ""}`}
+                  onClick={() => setSoloEnLinea(!soloEnLinea)}
+                  role="switch"
+                  aria-checked={soloEnLinea}
+                  title={
+                    soloEnLinea
+                      ? "Mostrando solo usuarios en línea"
+                      : "Mostrar solo usuarios en línea"
+                  }
+                >
+                  <span className="gu-toggle-thumb"></span>
+                </button>
               </div>
             </div>
             {usuariosFiltrados.length > 0 && (
