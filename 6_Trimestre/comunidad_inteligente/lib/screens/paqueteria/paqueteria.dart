@@ -26,6 +26,7 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
   final TextEditingController _searchController = TextEditingController();
 
   // Método helper para mostrar SnackBar de forma segura
+  // ignore: unused_element
   void _mostrarSnackBar(String mensaje, {Color? backgroundColor}) {
     if (!mounted) return;
 
