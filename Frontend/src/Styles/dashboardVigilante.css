@@ -29,6 +29,9 @@ body {
 .vi-dashboard {
   min-height: 100vh;
   background: #f5f7fa;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 /* ── OVERLAY ─────────────────────────────────────────── */
@@ -177,6 +180,8 @@ body {
 /* ── MAIN AREA ───────────────────────────────────────── */
 .vi-main {
   min-height: 100vh;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 /* ── HEADER ──────────────────────────────────────────── */
@@ -203,6 +208,35 @@ body {
   align-items: center;
   justify-content: center;
   transition: background 0.15s;
+}
+/* Wrapper con dot de estado azul */
+.vi-profile-btn-wrap {
+  position: relative;
+  display: inline-flex;
+  overflow: visible;
+}
+.vi-profile-status-dot {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #3b82f6;
+  border: 2px solid white;
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+  animation: vi-profile-pulse 2s ease-in-out infinite;
+}
+@keyframes vi-profile-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.15);
+  }
 }
 .vi-header-btn:hover {
   background: #f3f4f6;
@@ -290,17 +324,23 @@ body {
 .vi-welcome {
   text-align: center;
   padding: 30px 20px 10px;
+  width: 100%;
+  box-sizing: border-box;
 }
 .vi-welcome-title {
   font-size: 32px;
   font-weight: 700;
   color: #1f2937;
   margin: 0;
+  word-break: break-word;
 }
 .vi-welcome-sub {
   font-size: 14px;
   color: #6b7280;
   margin-top: 8px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  padding: 0 8px;
 }
 
 /* ── MODULE CARDS ────────────────────────────────────── */
@@ -309,7 +349,9 @@ body {
   flex-wrap: wrap;
   justify-content: center;
   gap: 24px;
-  padding: 30px 40px;
+  padding: 30px 24px;
+  box-sizing: border-box;
+  width: 100%;
 }
 .vi-module-card {
   width: 200px;
@@ -369,7 +411,9 @@ body {
 
 /* ── STATS ───────────────────────────────────────────── */
 .vi-stats-section {
-  padding: 20px 40px 40px;
+  padding: 20px 24px 40px;
+  box-sizing: border-box;
+  width: 100%;
 }
 .vi-stats-title {
   text-align: center;
@@ -381,7 +425,7 @@ body {
 .vi-stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
+  gap: 20px;
   max-width: 900px;
   margin: 0 auto;
 }
@@ -451,7 +495,7 @@ body {
 /* ── RESPONSIVE ──────────────────────────────────────── */
 @media (max-width: 900px) {
   .vi-modules-grid {
-    padding: 20px;
+    padding: 20px 16px;
     gap: 16px;
   }
   .vi-module-card {
@@ -459,43 +503,52 @@ body {
     height: 200px;
   }
   .vi-stats-section {
-    padding: 20px;
+    padding: 20px 16px;
   }
   .vi-stats-grid {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
 }
 
 @media (max-width: 600px) {
   .vi-header {
-    padding: 10px 12px;
-    min-height: 70px;
+    padding: 8px 12px;
+    min-height: 64px;
   }
-  .vi-logo-circle {
-    width: 60px;
-    height: 60px;
+  .vi-header-actions {
+    gap: 2px;
   }
-  .vi-logo-img {
-    width: 44px;
-    height: 44px;
+  .vi-header-btn {
+    width: 38px;
+    height: 38px;
   }
   .vi-header-btn i {
-    font-size: 24px;
+    font-size: 22px;
+  }
+  .vi-logo-circle {
+    width: 56px;
+    height: 56px;
+  }
+  .vi-logo-img {
+    width: 40px;
+    height: 40px;
   }
   .vi-welcome {
-    padding: 20px 16px 8px;
+    padding: 16px 14px 6px;
   }
   .vi-welcome-title {
-    font-size: 24px;
+    font-size: 20px;
   }
   .vi-welcome-sub {
     font-size: 13px;
+    padding: 0 4px;
   }
   .vi-modules-grid {
     flex-wrap: nowrap;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
-    padding: 16px;
+    padding: 14px 12px;
     gap: 12px;
     justify-content: flex-start;
     -webkit-overflow-scrolling: touch;
@@ -505,49 +558,69 @@ body {
     display: none;
   }
   .vi-module-card {
-    min-width: 170px;
-    width: 170px;
-    height: 210px;
-    scroll-snap-align: center;
+    min-width: 150px;
+    width: 150px;
+    height: 185px;
+    scroll-snap-align: start;
     flex-shrink: 0;
   }
+  .vi-module-icon-wrap {
+    width: 64px;
+    height: 64px;
+  }
+  .vi-module-icon-wrap i {
+    font-size: 34px;
+  }
+  .vi-module-title {
+    font-size: 13px;
+  }
   .vi-stats-section {
-    padding: 16px;
+    padding: 12px 12px 24px;
   }
   .vi-stats-title {
-    font-size: 22px;
-    margin-bottom: 20px;
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+  .vi-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
   .vi-stat-card {
-    padding: 18px;
+    padding: 16px;
+  }
+  .vi-stat-card-header h5 {
+    font-size: 14px;
   }
   .vi-bar-chart-container {
-    height: 150px;
+    height: 140px;
   }
   .vi-stat-big-number {
-    font-size: 24px;
+    font-size: 22px;
+  }
+  .vi-stat-label {
+    font-size: 12px;
   }
   .vi-drawer {
-    width: 290px;
-    right: -310px;
+    width: 280px;
+    right: -300px;
   }
   .vi-drawer-header {
-    padding: 24px 16px;
+    padding: 20px 14px;
   }
   .vi-drawer-avatar {
-    width: 65px;
-    height: 65px;
+    width: 60px;
+    height: 60px;
   }
   .vi-drawer-avatar i {
-    font-size: 36px;
+    font-size: 32px;
   }
   .vi-drawer-title {
-    font-size: 19px;
+    font-size: 18px;
   }
   .vi-profile-popup {
-    left: 10px;
-    width: 220px;
-    top: 70px;
+    left: 8px;
+    width: 200px;
+    top: 66px;
   }
 }
 
@@ -567,4 +640,52 @@ body {
   .vi-module-title {
     font-size: 13px;
   }
+}
+
+/* ── ANIMACIONES ──────────────────────────────────── */
+@keyframes vi-fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes vi-fadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+/* Entrada escalonada del contenido */
+.vi-welcome {
+  animation: vi-fadeInUp 0.45s ease both;
+}
+.vi-modules-grid {
+  animation: vi-fadeInUp 0.45s 0.08s ease both;
+}
+.vi-stats-section {
+  animation: vi-fadeInUp 0.45s 0.16s ease both;
+}
+
+/* Press effect en tarjetas de módulo */
+.vi-module-card:active {
+  transform: scale(0.92) !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.1s ease;
+}
+
+/* Desvanecimiento al cerrar sesión */
+.vi-saliendo {
+  animation: vi-fadeOut 0.38s ease forwards;
+  pointer-events: none;
 }

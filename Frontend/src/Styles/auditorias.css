@@ -609,3 +609,18 @@
     display: block !important;
   }
 }
+
+@media (max-width: 480px) {
+  .aud-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .aud-filter-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .aud-search-input {
+    width: 100%;
+  }
+}

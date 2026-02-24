@@ -70,7 +70,7 @@
   font-size: 13px;
   opacity: 0.85;
 }
-.gu-drawer-nav {
+.gu-drawer-body {
   flex: 1;
   padding: 16px 12px;
   overflow-y: auto;
@@ -403,6 +403,61 @@
   font-size: 13px;
   color: #9e9e9e;
   margin-top: 10px;
+}
+
+/* Switch "Solo en línea" */
+.gu-switch-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 4px;
+}
+.gu-switch-dot-indicator {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
+  flex-shrink: 0;
+  animation: gu-pulse 2s ease-in-out infinite;
+}
+@keyframes gu-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.08);
+  }
+}
+.gu-toggle {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  border: none;
+  background: #e0e0e0;
+  cursor: pointer;
+  transition: background 0.25s;
+  padding: 0;
+  flex-shrink: 0;
+}
+.gu-toggle.active {
+  background: linear-gradient(135deg, #4a148c, #7b1fa2);
+}
+.gu-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: left 0.25s;
+}
+.gu-toggle.active .gu-toggle-thumb {
+  left: calc(100% - 19px);
 }
 
 /* ====== TABLE ====== */

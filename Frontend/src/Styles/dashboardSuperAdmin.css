@@ -31,6 +31,9 @@ body {
 .sa-dashboard {
   min-height: 100vh;
   background: #f5f7fa;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 /* ============================================================
@@ -223,6 +226,33 @@ body {
   align-items: center;
   justify-content: center;
 }
+/* Wrapper con dot de estado verde */
+.sa-profile-btn-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.sa-profile-status-dot {
+  position: absolute;
+  bottom: 3px;
+  right: 3px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #22c55e;
+  border: 2px solid white;
+  pointer-events: none;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.4);
+  animation: sa-profile-pulse 2s ease-in-out infinite;
+}
+@keyframes sa-profile-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.15);
+  }
+}
 .sa-header-btn:hover {
   background: #f0fdf4;
 }
@@ -309,26 +339,32 @@ body {
   }
 }
 
-/* ============================================================
+/* =====
    WELCOME SECTION
    ============================================================ */
 .sa-welcome {
   text-align: center;
   padding: 30px 20px 10px;
+  width: 100%;
+  box-sizing: border-box;
 }
 .sa-welcome-title {
   font-size: 32px;
   font-weight: 700;
   color: #1f2937;
   margin: 0;
+  word-break: break-word;
 }
 .sa-welcome-sub {
   font-size: 14px;
   color: #6b7280;
   margin-top: 8px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  padding: 0 8px;
 }
 
-/* ============================================================
+/* =====
    MODULE CARDS (tarjetas con gradiente e iconos como Flutter)
    ============================================================ */
 .sa-modules-grid {
@@ -336,7 +372,9 @@ body {
   flex-wrap: wrap;
   justify-content: center;
   gap: 24px;
-  padding: 30px 40px;
+  padding: 30px 24px;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .sa-module-card {
@@ -396,11 +434,13 @@ body {
   line-height: 1.3;
 }
 
-/* ============================================================
+/* =====
    STATISTICS SECTION
    ============================================================ */
 .sa-stats-section {
-  padding: 20px 40px 40px;
+  padding: 20px 24px 40px;
+  box-sizing: border-box;
+  width: 100%;
 }
 .sa-stats-title {
   text-align: center;
@@ -624,7 +664,7 @@ body {
 /* Tablets y pantallas medianas */
 @media (max-width: 900px) {
   .sa-modules-grid {
-    padding: 20px;
+    padding: 20px 16px;
     gap: 16px;
   }
   .sa-module-card {
@@ -639,7 +679,7 @@ body {
     font-size: 34px;
   }
   .sa-stats-section {
-    padding: 20px;
+    padding: 20px 16px;
   }
   .sa-stats-grid {
     grid-template-columns: 1fr;
@@ -652,29 +692,37 @@ body {
 /* Móviles */
 @media (max-width: 600px) {
   .sa-header {
-    padding: 10px 12px;
-    min-height: 70px;
+    padding: 8px 12px;
+    min-height: 64px;
+  }
+  .sa-header-actions {
+    gap: 2px;
+  }
+  .sa-header-btn {
+    width: 38px;
+    height: 38px;
   }
   .sa-logo-circle {
-    width: 60px;
-    height: 60px;
+    width: 56px;
+    height: 56px;
   }
   .sa-logo-img {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
   }
   .sa-header-btn i {
-    font-size: 24px;
+    font-size: 22px;
   }
 
   .sa-welcome {
-    padding: 20px 16px 8px;
+    padding: 16px 14px 6px;
   }
   .sa-welcome-title {
-    font-size: 24px;
+    font-size: 20px;
   }
   .sa-welcome-sub {
     font-size: 13px;
+    padding: 0 4px;
   }
 
   /* Módulos en scroll horizontal como PageView de Flutter */
@@ -682,7 +730,7 @@ body {
     flex-wrap: nowrap;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
-    padding: 16px;
+    padding: 14px 12px;
     gap: 12px;
     justify-content: flex-start;
     -webkit-overflow-scrolling: touch;
@@ -692,15 +740,15 @@ body {
     display: none;
   }
   .sa-module-card {
-    min-width: 165px;
-    width: 165px;
-    height: 200px;
-    scroll-snap-align: center;
+    min-width: 150px;
+    width: 150px;
+    height: 185px;
+    scroll-snap-align: start;
     flex-shrink: 0;
   }
 
   .sa-stats-section {
-    padding: 16px;
+    padding: 12px 12px 24px;
   }
   .sa-stats-title {
     font-size: 22px;
@@ -721,27 +769,27 @@ body {
   }
 
   .sa-drawer {
-    width: 290px;
-    right: -310px;
+    width: 280px;
+    right: -300px;
   }
   .sa-drawer-header {
-    padding: 24px 16px;
+    padding: 20px 14px;
   }
   .sa-drawer-avatar {
-    width: 65px;
-    height: 65px;
+    width: 60px;
+    height: 60px;
   }
   .sa-drawer-avatar i {
-    font-size: 36px;
+    font-size: 32px;
   }
   .sa-drawer-title {
-    font-size: 19px;
+    font-size: 18px;
   }
 
   .sa-profile-popup {
-    left: 10px;
-    width: 220px;
-    top: 70px;
+    left: 8px;
+    width: 200px;
+    top: 66px;
   }
 }
 
@@ -762,4 +810,52 @@ body {
   .sa-module-title {
     font-size: 13px;
   }
+}
+
+/* ── ANIMACIONES ──────────────────────────────────── */
+@keyframes sa-fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes sa-fadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+/* Entrada escalonada del contenido */
+.sa-welcome {
+  animation: sa-fadeInUp 0.45s ease both;
+}
+.sa-modules-grid {
+  animation: sa-fadeInUp 0.45s 0.08s ease both;
+}
+.sa-stats-section {
+  animation: sa-fadeInUp 0.45s 0.16s ease both;
+}
+
+/* Press effect en tarjetas de módulo */
+.sa-module-card:active {
+  transform: scale(0.92) !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.1s ease;
+}
+
+/* Desvanecimiento al cerrar sesión */
+.sa-saliendo {
+  animation: sa-fadeOut 0.38s ease forwards;
+  pointer-events: none;
 }
