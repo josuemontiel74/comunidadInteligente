@@ -53,7 +53,7 @@ export const crearOcupante = async (req, res) => {
         tieneDiscapacidad: dataOcupante.tieneDiscapacidad,
         estadoId: 5,
       },
-      { transaction: t }
+      { transaction: t },
     );
 
     await t.commit();
@@ -64,7 +64,7 @@ export const crearOcupante = async (req, res) => {
       usuarioActual,
       "ocupantes",
       "INSERT",
-      createOcupante.idOcupante
+      createOcupante.idOcupante,
     );
 
     res.status(201).json({
@@ -137,7 +137,6 @@ JOIN estados AS es
 
     await registrarFallo("ERROR", username, ruta, error.message, error.stack);
 
-    console.error("Error al listar ocupantes:", error);
     res.status(500).json({
       error: "Error interno al listar ocupantes",
       status: 500,
@@ -172,7 +171,6 @@ export const obtenerOcupante = async (req, res) => {
 };
 
 export const obtenerOcupantePorId = async (req, res) => {
-
   try {
     const id = req.params.idOcupante;
     const ocupante = await Ocupante.findOne({
@@ -193,7 +191,6 @@ export const obtenerOcupantePorId = async (req, res) => {
         status: 404,
       });
     }
-    console.log(ocupante)
   } catch (error) {
     const username = req.user?.username || "desconocido";
     const ruta = "GET /ocupantes/:id";
@@ -213,7 +210,6 @@ export const actualizarOcupante = async (req, res) => {
   try {
     const id = req.params.idOcupante;
     const dataOcupante = req.body;
-    console.log(dataOcupante.numeroDocumento);
     const [updated] = await Ocupante.update(
       {
         apartamentosId: dataOcupante.apartamentosId,
@@ -226,7 +222,7 @@ export const actualizarOcupante = async (req, res) => {
         tieneDiscapacidad: dataOcupante.tieneDiscapacidad,
         estadoId: dataOcupante.estadoId,
       },
-      { where: { idOcupante: id }, transaction: t }
+      { where: { idOcupante: id }, transaction: t },
     );
 
     if (!updated) {
@@ -251,7 +247,7 @@ export const actualizarOcupante = async (req, res) => {
         {
           where: { numeroDocumento: dataOcupante.numeroDocumento },
           transaction: t,
-        }
+        },
       );
     }
 
@@ -280,10 +276,8 @@ export const actualizarOcupante = async (req, res) => {
       message: "Lo siento, no se pudo actualizar el ocupante",
       status: 500,
       error: error.message,
-    
     });
- 
-}
+  }
 };
 
 export const finalizarOcupante = async (req, res) => {
@@ -294,7 +288,7 @@ export const finalizarOcupante = async (req, res) => {
         estadoId: 6,
         fechaFin: dayjs().format("YYYY-MM-DD"),
       },
-      { where: { idOcupante: id } }
+      { where: { idOcupante: id } },
     );
     if (updated) {
       // Registrar en auditoría

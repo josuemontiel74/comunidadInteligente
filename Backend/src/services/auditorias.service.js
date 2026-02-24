@@ -12,7 +12,7 @@ export async function registrarAuditoria(
   username,
   tabla,
   operacion,
-  idRegistroAfectado
+  idRegistroAfectado,
 ) {
   const pkAfectada = String(idRegistroAfectado);
 
@@ -24,13 +24,7 @@ export async function registrarAuditoria(
 
   try {
     await sequelize.query(sql, { replacements: values });
-    // Opcional: console.log(`[AUDITORIA OK]: ${operacion} en ${tabla}:${pkAfectada} por ${username}`);
   } catch (error) {
     // La falla en la auditoría NO debe impedir la operación principal
-    console.error("ERROR AL REGISTRAR AUDITORÍA:", {
-      error: error.message,
-      accion: `${operacion} en ${tabla}`,
-      usuario: username,
-    });
   }
 }

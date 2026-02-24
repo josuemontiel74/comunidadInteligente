@@ -14,7 +14,7 @@ const sequelize = new Sequelize(
     dialect: process.env.DB_DIALECT || "mysql",
     timezone: "-05:00",
     logging: false,
-  }
+  },
 );
 
 // inicializa los modelos aquí
@@ -23,10 +23,7 @@ const models = initModels(sequelize);
 async function testConnection() {
   try {
     await sequelize.authenticate();
-    console.log("La conexión ha sido establecida con éxito.");
-  } catch (error) {
-    console.error("No se pudo conectar a la base de datos:", error);
-  }
+  } catch (error) {}
 }
 
 testConnection();
