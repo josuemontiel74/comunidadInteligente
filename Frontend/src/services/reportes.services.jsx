@@ -14,7 +14,6 @@ export async function obtenerReporteParqueaderos(token, fechaInicio, fechaFin) {
     const data = await res.json();
     return data.success ? data.data : null;
   } catch (e) {
-    console.error("Error reporte parqueaderos:", e);
     return null;
   }
 }
@@ -28,7 +27,6 @@ export async function obtenerReporteVisitas(token, fechaInicio, fechaFin) {
     const data = await res.json();
     return data.success ? data.data : null;
   } catch (e) {
-    console.error("Error reporte visitas:", e);
     return null;
   }
 }
@@ -42,7 +40,6 @@ export async function obtenerReportePaquetes(token, fechaInicio, fechaFin) {
     const data = await res.json();
     return data.success ? data.data : null;
   } catch (e) {
-    console.error("Error reporte paquetes:", e);
     return null;
   }
 }
@@ -56,7 +53,6 @@ export async function obtenerReporteReservas(token, fechaInicio, fechaFin) {
     const data = await res.json();
     return data.success ? data.data : null;
   } catch (e) {
-    console.error("Error reporte reservas:", e);
     return null;
   }
 }
@@ -69,7 +65,6 @@ export async function obtenerReporteOcupacion(token) {
     const data = await res.json();
     return data.success ? data.data : null;
   } catch (e) {
-    console.error("Error reporte ocupación:", e);
     return null;
   }
 }
@@ -82,7 +77,6 @@ export async function obtenerReporteNinos(token) {
     const data = await res.json();
     return data.success ? data.data : null;
   } catch (e) {
-    console.error("Error reporte niños:", e);
     return null;
   }
 }
@@ -96,7 +90,6 @@ export async function obtenerReportePoblacionEspecial(token) {
     const data = await res.json();
     return data.success ? data.data : null;
   } catch (e) {
-    console.error("Error reporte población especial:", e);
     return null;
   }
 }

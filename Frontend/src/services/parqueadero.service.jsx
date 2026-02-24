@@ -62,7 +62,6 @@ const parqueaderoService = {
       const data = await this.handleResponse(response);
       return data.body || [];
     } catch (error) {
-      console.error("Error al obtener parqueaderos:", error);
       throw error;
     }
   },
@@ -85,7 +84,6 @@ const parqueaderoService = {
       const data = await this.handleResponse(response);
       return data.body;
     } catch (error) {
-      console.error("Error al obtener parqueadero:", error);
       throw error;
     }
   },
@@ -115,7 +113,6 @@ const parqueaderoService = {
       const data = await this.handleResponse(response);
       return data;
     } catch (error) {
-      console.error("Error al asignar espacio:", error);
       throw error;
     }
   },
@@ -143,7 +140,6 @@ const parqueaderoService = {
       const data = await this.handleResponse(response);
       return data;
     } catch (error) {
-      console.error("Error al liberar espacio:", error);
       throw error;
     }
   },
@@ -168,7 +164,6 @@ const parqueaderoService = {
       const data = await this.handleResponse(response);
       return data;
     } catch (error) {
-      console.error("Error al actualizar estado:", error);
       throw error;
     }
   },
@@ -199,7 +194,6 @@ const parqueaderoService = {
 
       return stats;
     } catch (error) {
-      console.error("Error al obtener estadísticas:", error);
       throw error;
     }
   },
@@ -255,7 +249,6 @@ const parqueaderoService = {
         await this.obtenerParqueaderoPorCodigo(codigoParqueadero);
       return parqueadero.estadoId === 4;
     } catch (error) {
-      console.error("Error al verificar disponibilidad:", error);
       throw error;
     }
   },
@@ -269,7 +262,6 @@ const parqueaderoService = {
       const parqueaderos = await this.obtenerParqueaderos();
       return parqueaderos.filter((p) => p.estadoId === 4);
     } catch (error) {
-      console.error("Error al obtener espacios disponibles:", error);
       throw error;
     }
   },
@@ -283,7 +275,6 @@ const parqueaderoService = {
       const parqueaderos = await this.obtenerParqueaderos();
       return parqueaderos.filter((p) => p.estadoId === 3);
     } catch (error) {
-      console.error("Error al obtener espacios ocupados:", error);
       throw error;
     }
   },
