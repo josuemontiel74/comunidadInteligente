@@ -19,6 +19,25 @@ function ProtectedRoute() {
   const navigate = useNavigate();
   const swalShownRef = useRef(false);
 
+  // Bloquear el botón "atrás" del navegador solo cuando el destino
+  // sea una ruta no protegida (/login o /). Dentro de la app la
+  // navegación entre módulos debe funcionar con normalidad.
+  useEffect(() => {
+    // Añade UNA entrada extra para tener margen de retroceso
+    window.history.pushState(null, "", window.location.pathname);
+    const bloquearAtras = () => {
+      const destino = window.location.pathname;
+      // Solo cancelar si el usuario salió hacia rutas públicas
+      if (destino === "/" || destino === "/login") {
+        window.history.go(1);
+      }
+      // Si el destino es cualquier ruta protegida, dejar que React
+      // Router resuelva la navegación con normalidad
+    };
+    window.addEventListener("popstate", bloquearAtras);
+    return () => window.removeEventListener("popstate", bloquearAtras);
+  }, []);
+
   // Solo verifica expiración periódicamente (60 s), sin tocar el render
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -33,7 +52,7 @@ function ProtectedRoute() {
           timer: 2000,
           showConfirmButton: false,
           timerProgressBar: true,
-        }).then(() => navigate("/"));
+        }).then(() => navigate("/login"));
       }
     }, 60000); // cada 60 s – sin impacto en el render
 
@@ -42,7 +61,7 @@ function ProtectedRoute() {
 
   // Verificación sincrónica: si no hay token válido, redirigir sin mostrar nada
   if (!tokenEsValido()) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return <Outlet />;
