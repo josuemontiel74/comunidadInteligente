@@ -857,7 +857,7 @@ function AreasComunes() {
 </style></head>
 <body>
   <div class="ticket-center">
-    <div class="ticket-title">AZAHARR</div>
+    <div class="ticket-title">AZAHAR</div>
     <div class="ticket-subtitle">Conjunto Residencial</div>
     <div class="ticket-subtitle">NIT: 900.XXX.XXX-X</div>
   </div>

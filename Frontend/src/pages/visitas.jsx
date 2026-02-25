@@ -241,7 +241,7 @@ function Visitas() {
 </style></head>
 <body>
   <div class="c">
-    <div class="titulo">AZAHARR</div>
+    <div class="titulo">AZAHAR</div>
     <div class="sub">Conjunto Residencial</div>
     <div class="sub">NIT: 900.XXX.XXX-X</div>
     <br/>
@@ -271,7 +271,7 @@ function Visitas() {
   <hr/>
   <div class="pie">
     Impreso: ${fechaImpresion}<br/>
-    Vigilancia &mdash; Conjunto Residencial AZAHARR<br/>
+    Vigilancia &mdash; Conjunto Residencial AZAHAR<br/>
     Documento v&aacute;lido solo para la fecha indicada.
   </div>
 </body></html>`;
@@ -578,6 +578,16 @@ function Visitas() {
         Swal.fire("Error", "Ingresa la matrícula del vehículo", "error");
         return;
       }
+      const placaLimpia = formData.matricula.trim().toUpperCase();
+      const placaRegex = /^[A-Z]{3}[0-9]{2,3}[A-Z]?$/;
+      if (!placaRegex.test(placaLimpia)) {
+        Swal.fire(
+          "Matrícula inválida",
+          "La matrícula debe seguir el formato colombiano: ABC123 (carro) o ABC12D / ABC12 (moto). Sin caracteres especiales.",
+          "error",
+        );
+        return;
+      }
       if (!formData.tipoVehiculoId) {
         Swal.fire("Error", "Selecciona el tipo de vehículo", "error");
         return;
@@ -627,11 +637,23 @@ function Visitas() {
           : await res.text();
 
       if (!res.ok) {
-        Swal.fire(
-          "Error",
-          data.error || "No se pudo guardar la visita",
-          "error",
-        );
+        if (data?.codigo === "VISITA_DUPLICADA") {
+          Swal.fire({
+            icon: "warning",
+            title: "Lo siento",
+            text:
+              data.error ||
+              "Ya hay una persona con este número de documento en visita. Todavía no ha salido.",
+            confirmButtonText: "Entendido",
+            confirmButtonColor: "#4CAF50",
+          });
+        } else {
+          Swal.fire(
+            "Error",
+            data.error || "No se pudo guardar la visita",
+            "error",
+          );
+        }
         return;
       }
 
@@ -1126,19 +1148,9 @@ function Visitas() {
                             {v.matricula ? (
                               <span>
                                 {v.nombreVehiculo === "Moto" ? (
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="1em"
-                                    height="1em"
-                                    fill="currentColor"
-                                    viewBox="0 0 24 24"
-                                    className="text-warning me-1"
-                                    style={{ verticalAlign: "-0.125em" }}
-                                  >
-                                    <path d="M4 18a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0-2a1 1 0 1 0 0-2 1 1 0 0 0 0 2m16 2a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0-2a1 1 0 1 0 0-2 1 1 0 0 0 0 2M15.4 5H11v2h3.6l1.4 1.4-3.4 3.6H8.6L5.4 9H2v2h2.6l3.4 3.4V17a3 3 0 0 0 6 0v-2.6L17.4 11h2l-4-6zM13 17a2 2 0 0 1-4 0v-1.6l1.6-1.4H13v3z" />
-                                  </svg>
+                                  <i className="bi bi-scooter text-success me-1"></i>
                                 ) : (
-                                  <i className="bi bi-car-front text-primary me-1"></i>
+                                  <i className="bi bi-car-front text-success me-1"></i>
                                 )}
                                 {v.matricula}
                               </span>
@@ -1243,8 +1255,8 @@ function Visitas() {
                         </div>
                         {v.matricula && (
                           <div className="vis-card-info-row">
-                            <div className="vis-card-info-icon gray">
-                              <i className="bi bi-car-front"></i>
+                            <div className="vis-card-info-icon green">
+                              <i className={v.nombreVehiculo === "Moto" ? "bi bi-scooter" : "bi bi-car-front"}></i>
                             </div>
                             <div>
                               <div className="vis-card-info-label">
@@ -1891,12 +1903,14 @@ function Visitas() {
             </div>
 
             <div className="vis-modal-footer vis-modal-footer-acciones">
-              <button
-                className="vis-btn-imprimir vis-btn-ingreso"
-                onClick={() => imprimirReciboVisita(modalDetalle, "INGRESO")}
-              >
-                <i className="bi bi-printer"></i> Imprimir Recibo
-              </button>
+              {modalDetalle.matricula && (
+                <button
+                  className="vis-btn-imprimir vis-btn-ingreso"
+                  onClick={() => imprimirReciboVisita(modalDetalle, "INGRESO")}
+                >
+                  <i className="bi bi-printer"></i> Imprimir Recibo
+                </button>
+              )}
               <button
                 className="vis-btn-cerrar"
                 onClick={() => setModalDetalle(null)}
