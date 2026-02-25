@@ -4,6 +4,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "../Styles/estiloVisitas.css";
 import Swal from "sweetalert2";
+import { validarNombreCompleto, validarDocumento } from "../utils/validaciones.js";
 import {
   obtenerVisitasJoin,
   crearVisita,
@@ -552,12 +553,10 @@ function Visitas() {
       );
       return;
     }
-    if (!formData.nombreVisitante || formData.nombreVisitante.length < 10) {
-      Swal.fire(
-        "Error",
-        "El nombre debe tener al menos 10 caracteres",
-        "error",
-      );
+    // Validar nombre del visitante: solo letras, sin números ni caracteres aleatorios
+    const errNomVis = validarNombreCompleto(formData.nombreVisitante);
+    if (errNomVis) {
+      Swal.fire("Nombre inválido", errNomVis, "error");
       return;
     }
     if (!formData.tipoDocumentoId) {
@@ -1177,7 +1176,9 @@ function Visitas() {
                                 {v.matricula}
                               </span>
                             ) : (
-                              <span className="vis-sin-vehiculo">Sin vehículo</span>
+                              <span className="vis-sin-vehiculo">
+                                Sin vehículo
+                              </span>
                             )}
                           </td>
                           <td>

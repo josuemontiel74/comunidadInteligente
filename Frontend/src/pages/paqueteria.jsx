@@ -2,6 +2,11 @@ import React, { useEffect, useState, useCallback } from "react";
 import Swal from "sweetalert2";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import "../Styles/estiloPaqueteria.css";
+import {
+  validarNombreCompleto,
+  validarTransportadora,
+  TRANSPORTADORAS_CO,
+} from "../utils/validaciones.js";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import {
@@ -311,6 +316,17 @@ function Paqueteria() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
+    const errNombre = validarNombreCompleto(formCrear.residente);
+    if (errNombre) {
+      Swal.fire("Nombre inválido", errNombre, "error");
+      return;
+    }
+    const errTransp = validarTransportadora(formCrear.transportadora);
+    if (errTransp) {
+      Swal.fire("Transportadora inválida", errTransp, "error");
+      return;
+    }
+
     setEnviando(true);
     try {
       const body = {
@@ -405,6 +421,17 @@ function Paqueteria() {
     e.preventDefault();
     const token = localStorage.getItem("token");
     if (!token || !paqueteEditar) return;
+
+    const errNombreE = validarNombreCompleto(formEditar.residente);
+    if (errNombreE) {
+      Swal.fire("Nombre inválido", errNombreE, "error");
+      return;
+    }
+    const errTranspE = validarTransportadora(formEditar.transportadora);
+    if (errTranspE) {
+      Swal.fire("Transportadora inválida", errTranspE, "error");
+      return;
+    }
 
     setEnviando(true);
     try {
@@ -1220,6 +1247,7 @@ function Paqueteria() {
                   </label>
                   <input
                     type="text"
+                    list="transportadoras-list-crear"
                     className="paq-form-control"
                     value={formCrear.transportadora}
                     onChange={(e) =>
@@ -1231,6 +1259,11 @@ function Paqueteria() {
                     required
                     placeholder="Ej: Servientrega, Inter Rapidísimo..."
                   />
+                  <datalist id="transportadoras-list-crear">
+                    {TRANSPORTADORAS_CO.map((t) => (
+                      <option key={t} value={t} />
+                    ))}
+                  </datalist>
                 </div>
 
                 <div className="paq-form-group">
@@ -1398,6 +1431,7 @@ function Paqueteria() {
                   </label>
                   <input
                     type="text"
+                    list="transportadoras-list-editar"
                     className="paq-form-control"
                     value={formEditar.transportadora}
                     onChange={(e) =>
@@ -1408,6 +1442,11 @@ function Paqueteria() {
                     }
                     required
                   />
+                  <datalist id="transportadoras-list-editar">
+                    {TRANSPORTADORAS_CO.map((t) => (
+                      <option key={t} value={t} />
+                    ))}
+                  </datalist>
                 </div>
 
                 <div className="paq-form-group">

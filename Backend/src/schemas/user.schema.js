@@ -7,11 +7,13 @@ export const createUserSchema = Joi.object({
   rolesId: Joi.number().integer().required(),
   password: Joi.string().min(6).required(),
   estadoId: Joi.number().default(1),
-  primerNombre: Joi.string().min(1).max(20),
-  segundoNombre: Joi.string().max(45).allow(null, "").optional(),
-  primerApellido: Joi.string().min(1).max(30),
-  segundoApellido: Joi.string().max(30).allow(null, "").optional(),
-  telefono: Joi.string().min(7).max(10).required(),
+  primerNombre: Joi.string().min(1).max(20).pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
+  segundoNombre: Joi.string().max(45).allow(null, "").optional()
+    .pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
+  primerApellido: Joi.string().min(1).max(30).pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
+  segundoApellido: Joi.string().max(30).allow(null, "").optional()
+    .pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
+  telefono: Joi.string().pattern(/^3\d{9}$/).required(),
   correoElectronico: Joi.string().email().max(45).required(),
 });
 
@@ -22,11 +24,11 @@ export const updateUserSchema = Joi.object({
   rolesId: Joi.number().integer(),
   password: Joi.string().min(6),
   estadoId: Joi.number().integer(),
-  primerNombre: Joi.string().min(1).max(50),
-  segundoNombre: Joi.string().min(1).max(50).allow(null, ""),
-  primerApellido: Joi.string().min(1).max(50),
-  segundoApellido: Joi.string().min(1).max(50).allow(null, ""),
-  telefono: Joi.string().min(7).max(15).allow(null, ""),
+  primerNombre: Joi.string().min(1).max(50).pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
+  segundoNombre: Joi.string().min(1).max(50).allow(null, "").pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
+  primerApellido: Joi.string().min(1).max(50).pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
+  segundoApellido: Joi.string().min(1).max(50).allow(null, "").pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
+  telefono: Joi.string().pattern(/^3\d{9}$/).allow(null, ""),
   correoElectronico: Joi.string().email().max(100).allow(null, ""),
 }).min(1);
 
