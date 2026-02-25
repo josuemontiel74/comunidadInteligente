@@ -9,6 +9,10 @@ import {
   validarDocumento,
 } from "../utils/validaciones.js";
 import {
+  validarNombreCompleto,
+  validarDocumento,
+} from "../utils/validaciones.js";
+import {
   obtenerVisitasJoin,
   crearVisita,
   actualizarVisita,
