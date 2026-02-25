@@ -283,7 +283,9 @@ function Residentes() {
         torresId: o.torresId,
         apartamentosId: o.apartamentosId,
         numeroApartamento: o.numeroApartamento || o.apartamentosId,
-        estado: o.nombreEstado === "activa" ? "Activo" : "Finalizado",
+        estado: ["activo", "activa"].includes(o.nombreEstado?.toLowerCase())
+          ? "Activo"
+          : "Finalizado",
         estadoId: o.estadoId,
         nombreEstado: o.nombreEstado,
         nombreCompleto: [
