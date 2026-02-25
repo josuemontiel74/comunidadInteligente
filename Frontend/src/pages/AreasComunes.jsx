@@ -981,6 +981,12 @@ function AreasComunes() {
       <div
         className={`ac-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setMenuOpen(false);
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="Cerrar menú"
       />
 
       {/* ══════════ DRAWER ══════════ */}
@@ -1419,8 +1425,21 @@ function AreasComunes() {
 
       {/* ══════════ MODAL — REGISTRAR / EDITAR ══════════ */}
       {modalAbierto && (
-        <div className="ac-modal-overlay" onClick={cerrarModal}>
-          <div className="ac-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="ac-modal-overlay"
+          onClick={cerrarModal}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") cerrarModal();
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar"
+        >
+          <div
+            className="ac-modal"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             <div className="ac-modal-header">
               <h5>
                 {editIndex !== null ? "Editar Reserva" : "Registrar Reserva"}
@@ -1700,8 +1719,18 @@ function AreasComunes() {
         <div
           className="ac-modal-overlay"
           onClick={() => setShowModalDetalles(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setShowModalDetalles(false);
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar"
         >
-          <div className="ac-modal" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="ac-modal"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             <div className="ac-modal-header">
               <h5>Detalles de la Reserva</h5>
               <button
@@ -1815,10 +1844,17 @@ function AreasComunes() {
         <div
           className="ac-modal-overlay"
           onClick={() => setShowCalendario(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setShowCalendario(false);
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar"
         >
           <div
             className="ac-modal ac-calendar-modal"
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
           >
             <div className="ac-modal-header">
               <h5>Calendario de Reservas</h5>
@@ -1880,6 +1916,12 @@ function AreasComunes() {
                       key={cell.day}
                       className={cls}
                       onClick={() => !past && setSelectedDay(cell.day)}
+                      onKeyDown={(e) => {
+                        if ((e.key === "Enter" || e.key === " ") && !past)
+                          setSelectedDay(cell.day);
+                      }}
+                      role="button"
+                      tabIndex={past ? -1 : 0}
                     >
                       {cell.day}
                       {tieneReservas && !past && (
@@ -1939,10 +1981,17 @@ function AreasComunes() {
         <div
           className="ac-modal-overlay"
           onClick={() => setShowModalAreas(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setShowModalAreas(false);
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar"
         >
           <div
             className="ac-modal ac-modal-areas"
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
           >
             <div className="ac-modal-header">
               <h2>

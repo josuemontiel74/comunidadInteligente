@@ -853,6 +853,12 @@ function Residentes() {
       <div
         className={`res-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setMenuOpen(false);
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="Cerrar menú"
       />
 
       {/* DRAWER */}
@@ -1352,8 +1358,21 @@ function Residentes() {
 
       {/* ===== MODAL CREAR / EDITAR ===== */}
       {modalAbierto && (
-        <div className="res-modal-overlay" onClick={cerrarModal}>
-          <div className="res-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="res-modal-overlay"
+          onClick={cerrarModal}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") cerrarModal();
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar"
+        >
+          <div
+            className="res-modal"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             <div className="res-modal-header">
               <h3>
                 <i
@@ -1641,10 +1660,17 @@ function Residentes() {
         <div
           className="res-modal-overlay res-torres-overlay"
           onClick={() => setModalTorres(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setModalTorres(false);
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar"
         >
           <div
             className="res-modal res-torres-modal"
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
           >
             <div className="res-modal-header">
               {torreSeleccionada !== null ? (
@@ -1715,6 +1741,12 @@ function Residentes() {
                         key={tid}
                         className="res-torre-card"
                         onClick={() => setTorreSeleccionada(tid)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ")
+                            setTorreSeleccionada(tid);
+                        }}
+                        role="button"
+                        tabIndex={0}
                         title={`Ver apartamentos Torre ${letra}`}
                       >
                         <div className="res-torre-letter">{letra}</div>
@@ -1867,11 +1899,18 @@ function Residentes() {
         <div
           className="res-modal-overlay"
           onClick={() => setShowModalDetalles(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setShowModalDetalles(false);
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar"
         >
           <div
             className="res-modal"
             style={{ maxWidth: 800 }}
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
           >
             <div className="res-modal-header">
               <h3>

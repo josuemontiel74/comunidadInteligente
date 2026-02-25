@@ -582,6 +582,12 @@ function Paqueteria() {
       <div
         className={`paq-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setMenuOpen(false);
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="Cerrar menú"
       />
       <aside className={`paq-drawer ${menuOpen ? "open" : ""}`}>
         <div className="paq-drawer-header">
@@ -1154,8 +1160,21 @@ function Paqueteria() {
 
       {/* ====== MODAL CREAR PAQUETE ====== */}
       {modalCrear && (
-        <div className="paq-modal-overlay" onClick={() => setModalCrear(false)}>
-          <div className="paq-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="paq-modal-overlay"
+          onClick={() => setModalCrear(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setModalCrear(false);
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar"
+        >
+          <div
+            className="paq-modal"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             <div className="paq-modal-header">
               <div className="paq-modal-header-left">
                 <i
@@ -1333,8 +1352,21 @@ function Paqueteria() {
             setModalEditar(false);
             setPaqueteEditar(null);
           }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              setModalEditar(false);
+              setPaqueteEditar(null);
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar"
         >
-          <div className="paq-modal" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="paq-modal"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             <div className="paq-modal-header">
               <div className="paq-modal-header-left">
                 <i
@@ -1512,10 +1544,17 @@ function Paqueteria() {
         <div
           className="paq-modal-overlay"
           onClick={() => setModalDetalle(null)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setModalDetalle(null);
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar"
         >
           <div
             className="paq-modal"
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
             style={{ maxWidth: "480px" }}
           >
             <div className="paq-modal-header">

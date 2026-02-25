@@ -347,6 +347,12 @@ function Parqueaderos() {
       <div
         className={`parq-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setMenuOpen(false);
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="Cerrar menú"
       />
       <aside className={`parq-drawer ${menuOpen ? "open" : ""}`}>
         <div className="parq-drawer-header">
@@ -793,6 +799,17 @@ function Parqueaderos() {
                           seleccionarParqueadero(p.codigoParqueadero);
                         }
                       }}
+                      onKeyDown={(e) => {
+                        if (
+                          (e.key === "Enter" || e.key === " ") &&
+                          disponible &&
+                          modoSeleccion
+                        ) {
+                          seleccionarParqueadero(p.codigoParqueadero);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={modoSeleccion && disponible ? 0 : -1}
                     >
                       <div className="parq-card-header">
                         <div className="parq-card-codigo">

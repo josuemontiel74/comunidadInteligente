@@ -4,7 +4,35 @@
    ============================================================================ */
 
 /* ===================== VARIABLES ===================== */
-:root {
+/* Modo claro (por defecto) */
+.rpt-dashboard {
+  --rpt-bg: #f4f6fb;
+  --rpt-surface: #ffffff;
+  --rpt-surface2: #f8f9fc;
+  --rpt-surface3: #f1f3f7;
+  --rpt-border: #e2e8f0;
+  --rpt-border2: #cbd5e1;
+  --rpt-text: #1e293b;
+  --rpt-text-sub: #334155;
+  --rpt-text-muted: #64748b;
+  --rpt-text-faint: #94a3b8;
+  --rpt-accent: #8b5cf6;
+  --rpt-accent-dark: #7c3aed;
+  --rpt-accent-glow: rgba(139, 92, 246, 0.12);
+  --rpt-header-bg: #ffffff;
+  --rpt-row-hover: #f1f5f9;
+  --rpt-progress-track: #e2e8f0;
+  /* drawer – modo claro */
+  --rpt-drawer-bg: linear-gradient(180deg, #f5f0ff 0%, #ede5ff 100%);
+  --rpt-drawer-border: rgba(139, 92, 246, 0.25);
+  --rpt-drawer-text: #2e1065;
+  --rpt-drawer-text-sub: rgba(46, 16, 101, 0.65);
+  --rpt-drawer-section-title: rgba(46, 16, 101, 0.5);
+  --rpt-drawer-item: rgba(46, 16, 101, 0.82);
+  --rpt-drawer-sep: rgba(0, 0, 0, 0.1);
+}
+/* Modo oscuro */
+[data-modo="oscuro"] .rpt-dashboard {
   --rpt-bg: #0e0e1a;
   --rpt-surface: #1a1a2e;
   --rpt-surface2: #222238;
@@ -21,6 +49,14 @@
   --rpt-header-bg: #12122a;
   --rpt-row-hover: #1e1e3a;
   --rpt-progress-track: #2a2a45;
+  /* drawer – modo oscuro */
+  --rpt-drawer-bg: linear-gradient(180deg, #1a0a40 0%, #0f0025 100%);
+  --rpt-drawer-border: rgba(255, 255, 255, 0.1);
+  --rpt-drawer-text: #ffffff;
+  --rpt-drawer-text-sub: rgba(255, 255, 255, 0.65);
+  --rpt-drawer-section-title: rgba(255, 255, 255, 0.45);
+  --rpt-drawer-item: rgba(255, 255, 255, 0.85);
+  --rpt-drawer-sep: rgba(255, 255, 255, 0.1);
 }
 
 /* ===================== LAYOUT ===================== */
@@ -51,24 +87,23 @@
   right: -320px;
   width: 300px;
   height: 100vh;
-  background: linear-gradient(180deg, #1a0a40 0%, #0f0025 100%);
-  color: white;
+  background: var(--rpt-drawer-bg);
+  color: var(--rpt-drawer-text);
   z-index: 1050;
   display: flex;
   flex-direction: column;
   transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: -4px 0 32px rgba(0, 0, 0, 0.6);
-  border-left: 1px solid var(--rpt-border);
+  box-shadow: -4px 0 32px rgba(0, 0, 0, 0.25);
+  border-left: 1px solid var(--rpt-drawer-border);
 }
 .rpt-drawer.open {
   right: 0;
 }
-.rpt-drawer.open { right: 0; }
 
 .rpt-drawer-header {
   padding: 28px 22px 18px;
   text-align: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--rpt-drawer-sep);
 }
 .rpt-drawer-avatar {
   width: 60px;
@@ -86,11 +121,11 @@
   margin: 0;
   font-size: 17px;
   font-weight: 700;
-  color: #fff;
+  color: var(--rpt-drawer-text);
 }
 .rpt-drawer-user {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--rpt-drawer-text-sub);
 }
 
 .rpt-drawer-body {
@@ -106,7 +141,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--rpt-drawer-section-title);
   margin-bottom: 8px;
   padding-left: 6px;
 }
@@ -116,19 +151,19 @@
   gap: 12px;
   padding: 10px 14px;
   border-radius: 10px;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--rpt-drawer-item);
   text-decoration: none;
   font-size: 14px;
   transition: background 0.2s;
 }
 .rpt-menu-item:hover {
   background: rgba(139, 92, 246, 0.18);
-  color: white;
+  color: var(--rpt-drawer-text);
 }
 .rpt-menu-item.active {
   background: rgba(139, 92, 246, 0.28);
   font-weight: 600;
-  color: white;
+  color: var(--rpt-drawer-text);
 }
 .rpt-menu-item i:first-child {
   font-size: 18px;
@@ -145,7 +180,7 @@
 
 .rpt-drawer-footer {
   padding: 16px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--rpt-drawer-sep);
 }
 .rpt-logout-btn {
   width: 100%;
@@ -809,7 +844,11 @@
   font-size: 18px;
   margin-top: 2px;
 }
-.rpt-info-alert.warning i { color: #fbbf24; font-size: 18px; margin-top: 2px; }
+.rpt-info-alert.warning i {
+  color: #fbbf24;
+  font-size: 18px;
+  margin-top: 2px;
+}
 
 /* ===================== BOOTSTRAP OVERRIDE ===================== */
 .rpt-card-body .text-muted {
@@ -868,9 +907,4 @@
   .rpt-mini-cards {
     grid-template-columns: 1fr;
   }
-}
-
-/* ── DRAWER MODO OSCURO ── */
-[data-modo="oscuro"] .rpt-drawer {
-  background: linear-gradient(180deg, #12072d 0%, #0a001a 100%) !important;
 }

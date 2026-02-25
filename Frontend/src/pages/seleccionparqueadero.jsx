@@ -384,6 +384,12 @@ function SeleccioneParqueadero() {
       <div
         className={`sp-overlay ${menuAbierto ? "active" : ""}`}
         onClick={() => setMenuAbierto(false)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setMenuAbierto(false);
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="Cerrar menú"
       />
 
       {/* Drawer moderno */}
@@ -684,6 +690,12 @@ function SeleccioneParqueadero() {
                       p.estadoId === 4 ? "card-libre" : "card-ocupado"
                     }`}
                     onClick={() => handleCardClick(p)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ")
+                        handleCardClick(p);
+                    }}
+                    role="button"
+                    tabIndex={0}
                     style={{
                       cursor: "pointer",
                       transition: "all 0.3s ease",

@@ -238,6 +238,12 @@ function Auditorias() {
       <div
         className={`aud-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setMenuOpen(false);
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="Cerrar menú"
       />
       <aside className={`aud-drawer ${menuOpen ? "open" : ""}`}>
         <div className="aud-drawer-header">
@@ -487,7 +493,11 @@ function Auditorias() {
                       <tr
                         key={a.idAuditoria || idx}
                         onClick={() => mostrarDetalle(a)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") mostrarDetalle(a);
+                        }}
                         className="aud-table-row"
+                        tabIndex={0}
                       >
                         <td>{formatearFecha(a.fechaHoraAuditoria)}</td>
                         <td>{a.username || "N/A"}</td>
@@ -522,6 +532,11 @@ function Auditorias() {
                     key={a.idAuditoria || idx}
                     className="aud-card"
                     onClick={() => mostrarDetalle(a)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") mostrarDetalle(a);
+                    }}
+                    role="button"
+                    tabIndex={0}
                   >
                     <div className="aud-card-top">
                       <div
@@ -660,8 +675,18 @@ function Auditorias() {
         <div
           className="aud-modal-overlay"
           onClick={() => setDetalleAuditoria(null)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setDetalleAuditoria(null);
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar"
         >
-          <div className="aud-modal" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="aud-modal"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             <div className="aud-modal-header">
               <i
                 className="bi bi-info-circle"

@@ -4,7 +4,10 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "../Styles/estiloVisitas.css";
 import Swal from "sweetalert2";
-import { validarNombreCompleto, validarDocumento } from "../utils/validaciones.js";
+import {
+  validarNombreCompleto,
+  validarDocumento,
+} from "../utils/validaciones.js";
 import {
   validarNombreCompleto,
   validarDocumento,
@@ -807,6 +810,12 @@ function Visitas() {
       <div
         className={`vis-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setMenuOpen(false);
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="Cerrar menú"
       />
       <aside className={`vis-drawer ${menuOpen ? "open" : ""}`}>
         <div className="vis-drawer-header">
@@ -1425,8 +1434,23 @@ function Visitas() {
             setVisitaEditando(null);
             resetForm();
           }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              setModalCrear(false);
+              setModalEditar(false);
+              setVisitaEditando(null);
+              resetForm();
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar"
         >
-          <div className="vis-modal" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="vis-modal"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             <div className="vis-modal-header">
               <div className="vis-modal-header-left">
                 <i
@@ -1789,8 +1813,18 @@ function Visitas() {
         <div
           className="vis-modal-overlay"
           onClick={() => setModalDetalle(null)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setModalDetalle(null);
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar"
         >
-          <div className="vis-modal" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="vis-modal"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             <div className="vis-modal-header">
               <div className="vis-modal-header-left">
                 <i
