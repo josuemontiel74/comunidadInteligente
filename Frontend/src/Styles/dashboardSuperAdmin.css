@@ -859,3 +859,8 @@ body {
   animation: sa-fadeOut 0.38s ease forwards;
   pointer-events: none;
 }
+
+/* ── DRAWER MODO OSCURO ── */
+[data-modo="oscuro"] .sa-drawer {
+  background: linear-gradient(180deg, #0f4724, #0f7234, #188a42) !important;
+}

@@ -1625,3 +1625,8 @@ select.ac-form-control {
   background: #0f172a !important;
   color: #334155 !important;
 }
+
+/* ── DRAWER MODO OSCURO ── */
+[data-modo="oscuro"] .ac-drawer {
+  background: linear-gradient(180deg, #a13900, #ac5700, #b06200) !important;
+}

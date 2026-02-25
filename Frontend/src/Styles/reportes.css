@@ -1,6 +1,6 @@
 /* ============================================================================
    REPORTES - COMUNIDAD INTELIGENTE
-   Tema: Oscuro  Acento Púrpura
+   Tema: Oscuro  Acento Pï¿½rpura
    ============================================================================ */
 
 /* ===================== VARIABLES ===================== */
@@ -489,7 +489,7 @@
 .rpt-estado-fill { height: 100%; border-radius: 4px; }
 .rpt-estado-count { font-weight: 700; font-size: 14px; color: var(--rpt-text); min-width: 30px; text-align: right; }
 
-/* ===================== DÍA PICO ===================== */
+/* ===================== Dï¿½A PICO ===================== */
 .rpt-dia-pico {
   display: flex;
   align-items: center;
@@ -506,7 +506,7 @@
 .rpt-dia-pico .pico-date { font-size: 16px; font-weight: 700; color: #fef3c7; }
 .rpt-dia-pico .pico-count { font-size: 14px; font-weight: 700; color: #fbbf24; }
 
-/* ===================== POBLACIÓN ===================== */
+/* ===================== POBLACIï¿½N ===================== */
 .rpt-pop-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
 .rpt-pop-card {
   padding: 20px;
@@ -587,4 +587,9 @@
 }
 @media (max-width: 400px) {
   .rpt-mini-cards { grid-template-columns: 1fr; }
+}
+
+/* â”€â”€ DRAWER MODO OSCURO â”€â”€ */
+[data-modo="oscuro"] .rpt-drawer {
+  background: linear-gradient(180deg, #12072d 0%, #0a001a 100%) !important;
 }

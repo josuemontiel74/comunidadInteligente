@@ -1177,7 +1177,7 @@ function Visitas() {
                                 {v.matricula}
                               </span>
                             ) : (
-                              <span className="text-muted">Sin vehículo</span>
+                              <span className="vis-sin-vehiculo">Sin vehículo</span>
                             )}
                           </td>
                           <td>

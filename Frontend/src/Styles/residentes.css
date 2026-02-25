@@ -1310,3 +1310,8 @@
 [data-modo="oscuro"] .res-detail-value {
   color: #e2e8f0 !important;
 }
+
+/* ── DRAWER MODO OSCURO ── */
+[data-modo="oscuro"] .res-drawer {
+  background: linear-gradient(180deg, #09685f, #0e8174, #209486) !important;
+}

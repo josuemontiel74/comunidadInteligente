@@ -1739,3 +1739,8 @@ select.gu-form-control {
   color: #a78bfa !important;
   border-top-color: #3b2f6e !important;
 }
+
+/* ── DRAWER MODO OSCURO ── */
+[data-modo="oscuro"] .gu-drawer {
+  background: linear-gradient(180deg, #340e62, #4a136c, #561671) !important;
+}

@@ -1159,3 +1159,16 @@
   color: #fca5a5 !important;
   border-color: #991b1b !important;
 }
+
+/* Texto dinámico "Sin vehículo" */
+.vis-sin-vehiculo {
+  color: #6c757d;
+}
+[data-modo="oscuro"] .vis-sin-vehiculo {
+  color: #9ca3af !important;
+}
+
+/* ── DRAWER MODO OSCURO ── */
+[data-modo="oscuro"] .vis-drawer {
+  background: linear-gradient(180deg, #0f5a2b, #0f7234, #188a42) !important;
+}

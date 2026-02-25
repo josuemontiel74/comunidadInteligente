@@ -747,3 +747,8 @@ body {
   animation: adm-fadeOut 0.38s ease forwards;
   pointer-events: none;
 }
+
+/* ── DRAWER MODO OSCURO ── */
+[data-modo="oscuro"] .adm-drawer {
+  background: linear-gradient(180deg, #662d0a, #985304, #ac6f08) !important;
+}

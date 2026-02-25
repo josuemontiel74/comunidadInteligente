@@ -443,7 +443,7 @@
 .le-card-btn.ver { background: rgba(239,68,68,0.15); color: #f87171; }
 .le-card-btn.ver:hover { background: rgba(239,68,68,0.25); }
 
-/* ====== PAGINACI�N ====== */
+/* ====== PAGINACI�N ====== */
 .le-pagination-wrapper {
   display: flex;
   align-items: center;
@@ -594,4 +594,9 @@
 @media (max-width: 800px) {
   .le-table-container { display: none; }
   .le-cards-container { display: block; }
+}
+
+/* ── DRAWER MODO OSCURO ── */
+[data-modo="oscuro"] .le-drawer {
+  background: linear-gradient(180deg, #290000, #591414, #821414) !important;
 }
