@@ -67,7 +67,7 @@ export const UpdateEstado = async (req, res) => {
         idEstado: dataEstado.idEstado,
         nombreEstado: dataEstado.nombreEstado,
       },
-      { where: { idEstado: IDestado } }
+      { where: { idEstado: IDestado } },
     );
 
     const estadoActualizado = await estadosModel.findOne({

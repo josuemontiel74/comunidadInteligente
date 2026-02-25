@@ -60,7 +60,7 @@ class ReservarAreas extends Model {
         modelName: "ReservarAreas",
         tableName: "reservasAreas",
         timestamps: false,
-      }
+      },
     );
     return ReservarAreas;
   }

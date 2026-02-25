@@ -145,7 +145,7 @@ function validarFormularioGU(fd) {
 }
 
 const traducirMensajeBackend = (errData) => {
-  if (errData == null) return "Datos invalidos o incompletos.";
+  if (errData === null || errData === undefined) return "Datos invalidos o incompletos.";
   if (typeof errData === "string") return traducirString(errData);
   if (Array.isArray(errData))
     return errData.map(traducirMensajeBackend).join(" ");

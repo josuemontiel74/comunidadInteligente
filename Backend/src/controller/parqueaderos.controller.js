@@ -6,7 +6,7 @@ import VisitaModel from "../models/visitas.model.js";
 import { ESTADO_PARQUEADERO, ESTADO_VISITA } from "../utils/constantes.js";
 
 // Estados hacia los que un parqueadero OCUPADO puede ser liberado
-const ESTADOS_LIBERAR = [4, 18];
+const ESTADOS_LIBERAR = new Set([4, 18]);
 
 const MSG_NO_OCUPADO_MANUAL =
   "No se puede cambiar un parqueadero a 'Ocupado' manualmente. " +
@@ -203,7 +203,7 @@ export const actualizarParqueadero = async (req, res) => {
       // Si estaba ocupado y se quiere liberar, verificar que no haya visita activa
       if (
         Number(parqueadero.estadoId) === ESTADO_PARQUEADERO.OCUPADO &&
-        ESTADOS_LIBERAR.includes(Number(estadoId))
+        ESTADOS_LIBERAR.has(Number(estadoId))
       ) {
         const visitaActiva =
           await buscarVisitaActivaEnParqueadero(codigoParqueadero);
@@ -312,7 +312,7 @@ export const cambiarEstadoParqueadero = async (req, res) => {
     // Si estaba ocupado y se quiere liberar, verificar que no haya visita activa
     if (
       Number(parqueadero.estadoId) === ESTADO_PARQUEADERO.OCUPADO &&
-      ESTADOS_LIBERAR.includes(Number(estadoId))
+      ESTADOS_LIBERAR.has(Number(estadoId))
     ) {
       const visitaActiva =
         await buscarVisitaActivaEnParqueadero(codigoParqueadero);

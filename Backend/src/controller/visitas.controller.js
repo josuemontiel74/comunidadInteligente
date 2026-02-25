@@ -18,7 +18,7 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 // ── Regex de placa colombiana ─────────────────────────────────────────────────
-const PLACA_REGEX = /^[A-Z]{3}[0-9]{2,3}[A-Z]?$/;
+const PLACA_REGEX = /^[A-Z]{3}\d{2,3}[A-Z]?$/;
 
 // ── Helpers privados ──────────────────────────────────────────────────────────
 

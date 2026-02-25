@@ -61,7 +61,7 @@ function Login() {
       localStorage.setItem("user", JSON.stringify(data.usuario));
       localStorage.setItem("rol", data.usuario.rolesId);
 
-      if (data.usuario.estadoId != 2) {
+      if (data.usuario.estadoId !== 2) {
         setFeedback("ok");
         setTimeout(() => {
           // replace:true elimina /login del historial — el usuario
