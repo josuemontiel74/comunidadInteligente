@@ -1289,17 +1289,17 @@ function Residentes() {
                       <span
                         className={`res-card-condition ${r.tieneNinos === 1 ? "active" : "inactive"}`}
                       >
-                        Niños
+                        😊 Niños
                       </span>
                       <span
                         className={`res-card-condition ${r.tieneAdultoMayor === 1 ? "active" : "inactive"}`}
                       >
-                        Adulto Mayor
+                        🧓 Adulto Mayor
                       </span>
                       <span
                         className={`res-card-condition ${r.tieneDiscapacidad === 1 ? "active" : "inactive"}`}
                       >
-                        Discapacidad
+                        ♿ Discapacidad
                       </span>
                     </div>
                     <div className="res-card-actions">
@@ -1572,7 +1572,7 @@ function Residentes() {
                         }))
                       }
                     />
-                    <label htmlFor="tieneNinos">Niños</label>
+                    <label htmlFor="tieneNinos">😊 Niños</label>
                   </div>
                   <div className="res-form-check">
                     <input
@@ -1586,7 +1586,7 @@ function Residentes() {
                         }))
                       }
                     />
-                    <label htmlFor="tieneAdultoMayor">Adulto Mayor</label>
+                    <label htmlFor="tieneAdultoMayor">🧓 Adulto Mayor</label>
                   </div>
                   <div className="res-form-check">
                     <input
@@ -1600,7 +1600,7 @@ function Residentes() {
                         }))
                       }
                     />
-                    <label htmlFor="tieneDiscapacidad">Discapacidad</label>
+                    <label htmlFor="tieneDiscapacidad">♿ Discapacidad</label>
                   </div>
                 </div>
               </div>
@@ -1813,7 +1813,7 @@ function Residentes() {
                                       className="res-apto-tag"
                                       title="Tiene niños"
                                     >
-                                      <i className="bi bi-emoji-smile"></i>
+                                      😊
                                     </span>
                                   )}
                                   {Number(oc.tieneAdultoMayor) === 1 && (
@@ -1821,7 +1821,7 @@ function Residentes() {
                                       className="res-apto-tag"
                                       title="Adulto mayor"
                                     >
-                                      <i className="bi bi-person-cane"></i>
+                                      🧓
                                     </span>
                                   )}
                                   {Number(oc.tieneDiscapacidad) === 1 && (
@@ -1829,7 +1829,7 @@ function Residentes() {
                                       className="res-apto-tag"
                                       title="Discapacidad"
                                     >
-                                      <i className="bi bi-universal-access"></i>
+                                      ♿
                                     </span>
                                   )}
                                 </div>
@@ -1984,7 +1984,7 @@ function Residentes() {
                 </div>
                 <div className="res-detail-row">
                   <span className="res-detail-label">
-                    <i className="bi bi-emoji-smile"></i> Niños
+                    😊 Niños
                   </span>
                   <span className="res-detail-value">
                     {residenteSeleccionado.tieneNinos === 1 ? "Sí" : "No"}
@@ -1992,7 +1992,7 @@ function Residentes() {
                 </div>
                 <div className="res-detail-row">
                   <span className="res-detail-label">
-                    <i className="bi bi-heart-pulse"></i> Adulto Mayor
+                    🧓 Adulto Mayor
                   </span>
                   <span className="res-detail-value">
                     {residenteSeleccionado.tieneAdultoMayor === 1 ? "Sí" : "No"}
@@ -2000,7 +2000,7 @@ function Residentes() {
                 </div>
                 <div className="res-detail-row">
                   <span className="res-detail-label">
-                    <i className="bi bi-person-wheelchair"></i> Discapacidad
+                    ♿ Discapacidad
                   </span>
                   <span className="res-detail-value">
                     {residenteSeleccionado.tieneDiscapacidad === 1
