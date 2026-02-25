@@ -4,7 +4,6 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "../Styles/estiloVisitas.css";
 import Swal from "sweetalert2";
-import { validarNombreCompleto } from "../utils/validaciones.js";
 import {
   validarNombreCompleto,
   validarDocumento,

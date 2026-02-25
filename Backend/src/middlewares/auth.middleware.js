@@ -52,5 +52,3 @@ export const validarRol = (...rolesPermitidos) => {
     next();
   };
 };
-
-

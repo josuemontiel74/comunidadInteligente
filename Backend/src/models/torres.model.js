@@ -21,7 +21,7 @@ class Torre extends Model {
         modelName: "torres",
         tableName: "torres",
         timestamps: false,
-      }
+      },
     );
     return Torre;
   }

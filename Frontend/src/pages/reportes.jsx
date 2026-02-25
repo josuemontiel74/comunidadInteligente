@@ -1987,7 +1987,9 @@ function Reportes() {
                                     ? "Nunca inició sesión"
                                     : `${diasNum} días`;
                                 const color =
-                                  diasNum === null || diasNum === undefined || diasNum > 30
+                                  diasNum === null ||
+                                  diasNum === undefined ||
+                                  diasNum > 30
                                     ? "#ef4444"
                                     : diasNum > 7
                                       ? "#f97316"
