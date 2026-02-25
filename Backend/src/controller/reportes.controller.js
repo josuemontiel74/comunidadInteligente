@@ -670,7 +670,7 @@ export const obtenerReportePoblacionEspecial = async (req, res) => {
 };
 
 // ============================================================================
-// REPORTE DE USUARIOS (actividad, inactividad, operaciones frecuentes)
+// REPORTE DE USUARIOS (actividad, inactividad, módulos más usados)
 // ============================================================================
 export const obtenerReporteUsuarios = async (req, res) => {
   try {
@@ -683,34 +683,36 @@ export const obtenerReporteUsuarios = async (req, res) => {
       });
     }
 
-    // Usuarios más activos en el período (por acciones en auditorías)
+    // Usuarios más activos en el período con su rol y estado real
+    // estadoId = 1 → Activo | estadoId = 2 → Inactivo
     const [masActivos] = await sequelize.query(
       `
       SELECT
         u.username,
         r.nombreRol,
-        u.estadoId,
+        e.nombreEstado,
         u.ultimaActividad,
-        COUNT(a.idAuditoria) as totalAcciones,
-        MAX(a.fechaHoraAuditoria) as ultimaAccion
+        COUNT(a.idAuditoria) as totalRegistros,
+        MAX(a.fechaHoraAuditoria) as ultimoRegistro
       FROM usuarios u
       LEFT JOIN auditorias a ON u.username = a.username
         AND DATE(a.fechaHoraAuditoria) >= ? AND DATE(a.fechaHoraAuditoria) <= ?
       LEFT JOIN roles r ON u.rolesId = r.idRol
-      GROUP BY u.username, r.nombreRol, u.estadoId, u.ultimaActividad
-      ORDER BY totalAcciones DESC
+      LEFT JOIN estados e ON u.estadoId = e.IdEstado
+      GROUP BY u.username, r.nombreRol, e.nombreEstado, u.ultimaActividad
+      ORDER BY totalRegistros DESC
       LIMIT 10
       `,
       { replacements: [fechaInicio, fechaFin] },
     );
 
-    // Usuarios más inactivos (mayor tiempo sin actividad)
+    // Usuarios con mayor tiempo sin ingresar al sistema
     const [masInactivos] = await sequelize.query(
       `
       SELECT
         u.username,
         r.nombreRol,
-        u.estadoId,
+        e.nombreEstado,
         u.ultimaActividad,
         CASE
           WHEN u.ultimaActividad IS NULL THEN 9999
@@ -718,18 +720,19 @@ export const obtenerReporteUsuarios = async (req, res) => {
         END as diasSinActividad
       FROM usuarios u
       LEFT JOIN roles r ON u.rolesId = r.idRol
+      LEFT JOIN estados e ON u.estadoId = e.IdEstado
       ORDER BY diasSinActividad DESC
       LIMIT 10
       `,
     );
 
-    // Operaciones más frecuentes en el período
-    const [operacionesFrecuentes] = await sequelize.query(
+    // Módulos más utilizados en el período (agrupado por tabla → nombre amigable)
+    const [modulosMasUsados] = await sequelize.query(
       `
-      SELECT operacionRealizada, tablaAfectada, COUNT(*) as cantidad
+      SELECT tablaAfectada, COUNT(*) as cantidad
       FROM auditorias
       WHERE DATE(fechaHoraAuditoria) >= ? AND DATE(fechaHoraAuditoria) <= ?
-      GROUP BY operacionRealizada, tablaAfectada
+      GROUP BY tablaAfectada
       ORDER BY cantidad DESC
       LIMIT 8
       `,
@@ -741,7 +744,7 @@ export const obtenerReporteUsuarios = async (req, res) => {
       `
       SELECT
         DATE(fechaHoraAuditoria) as fecha,
-        COUNT(*) as acciones,
+        COUNT(*) as registros,
         COUNT(DISTINCT username) as usuariosActivos
       FROM auditorias
       WHERE DATE(fechaHoraAuditoria) >= ? AND DATE(fechaHoraAuditoria) <= ?
@@ -751,27 +754,42 @@ export const obtenerReporteUsuarios = async (req, res) => {
       { replacements: [fechaInicio, fechaFin] },
     );
 
-    // Acciones del día de hoy
+    // Usuarios que ingresaron hoy al sistema
     const [hoy] = await sequelize.query(
       `
-      SELECT COUNT(*) as total, COUNT(DISTINCT username) as usuarios
+      SELECT COUNT(*) as registros, COUNT(DISTINCT username) as usuarios
       FROM auditorias
       WHERE DATE(fechaHoraAuditoria) = CURDATE()
       `,
     );
 
-    // Total acciones en el período
+    // Total registros en el período
     const [totalPeriodo] = await sequelize.query(
       `SELECT COUNT(*) as total FROM auditorias WHERE DATE(fechaHoraAuditoria) >= ? AND DATE(fechaHoraAuditoria) <= ?`,
       { replacements: [fechaInicio, fechaFin] },
     );
+
+    // Mapa de nombres amigables para los módulos
+    const nombreModulo = {
+      visitas: "Visitas",
+      recepcionpaquetes: "Paquetería",
+      reservasareas: "Reservas Áreas",
+      parqueaderos: "Parqueaderos",
+      usuarios: "Gestión Usuarios",
+      apartamentos: "Apartamentos",
+      ocupante: "Residentes",
+      areacomun: "Áreas Comunes",
+      vehiculo: "Vehículos",
+      personas: "Personas",
+      torres: "Torres",
+    };
 
     res.json({
       success: true,
       data: {
         masActivos: masActivos.map((u) => ({
           ...u,
-          totalAcciones: parseInt(u.totalAcciones) || 0,
+          totalRegistros: parseInt(u.totalRegistros) || 0,
         })),
         masInactivos: masInactivos.map((u) => ({
           ...u,
@@ -780,18 +798,19 @@ export const obtenerReporteUsuarios = async (req, res) => {
               ? null
               : parseInt(u.diasSinActividad),
         })),
-        operacionesFrecuentes: operacionesFrecuentes.map((o) => ({
-          ...o,
-          cantidad: parseInt(o.cantidad) || 0,
+        modulosMasUsados: modulosMasUsados.map((m) => ({
+          tabla: m.tablaAfectada,
+          nombre: nombreModulo[(m.tablaAfectada || "").toLowerCase()] || m.tablaAfectada,
+          cantidad: parseInt(m.cantidad) || 0,
         })),
         actividadDiaria: actividadDiaria.map((d) => ({
           ...d,
-          acciones: parseInt(d.acciones) || 0,
+          registros: parseInt(d.registros) || 0,
           usuariosActivos: parseInt(d.usuariosActivos) || 0,
         })),
-        accionesHoy: parseInt(hoy[0]?.total) || 0,
+        registrosHoy: parseInt(hoy[0]?.registros) || 0,
         usuariosActivosHoy: parseInt(hoy[0]?.usuarios) || 0,
-        totalAccionesPeriodo: parseInt(totalPeriodo[0]?.total) || 0,
+        totalRegistrosPeriodo: parseInt(totalPeriodo[0]?.total) || 0,
       },
     });
   } catch (error) {
