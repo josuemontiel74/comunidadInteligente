@@ -113,14 +113,15 @@ function Login() {
       {/* Tarjeta centrada */}
       <div className="lgn-card">
         {/* Logo circular */}
-        <div
+        <button
+          type="button"
           className="lgn-logo-wrap"
           onClick={() => navigate("/")}
-          style={{ cursor: "pointer" }}
           title="Ir a la página principal"
+          style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
         >
           <img src={logo} alt="Logo Azahar" className="lgn-logo" />
-        </div>
+        </button>
 
         <h1 className="lgn-title">
           Bienvenido al

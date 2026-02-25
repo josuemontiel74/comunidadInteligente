@@ -346,6 +346,10 @@ function Dashboard() {
       <div
         className={`vi-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
+        onKeyDown={(e) => { if (e.key === "Escape") setMenuOpen(false); }}
+        role="button"
+        tabIndex={0}
+        aria-label="Cerrar menú"
       />
       <aside className={`vi-drawer ${menuOpen ? "open" : ""}`}>
         <div className="vi-drawer-header">

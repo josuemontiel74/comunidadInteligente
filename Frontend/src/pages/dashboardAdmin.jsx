@@ -487,6 +487,10 @@ function Dashboard() {
       <div
         className={`adm-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
+        onKeyDown={(e) => { if (e.key === "Escape") setMenuOpen(false); }}
+        role="button"
+        tabIndex={0}
+        aria-label="Cerrar menú"
       />
       <aside className={`adm-drawer ${menuOpen ? "open" : ""}`}>
         <div className="adm-drawer-header">

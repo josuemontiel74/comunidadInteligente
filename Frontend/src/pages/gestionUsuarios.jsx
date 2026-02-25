@@ -1096,6 +1096,10 @@ function GestionUsuarios() {
       <div
         className={`gu-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
+        onKeyDown={(e) => { if (e.key === "Escape") setMenuOpen(false); }}
+        role="button"
+        tabIndex={0}
+        aria-label="Cerrar menú"
       />
 
       {/* DRAWER */}
@@ -1765,8 +1769,16 @@ function GestionUsuarios() {
         <div
           className="gu-modal-overlay"
           onClick={() => setShowModalRegistrar(false)}
+          onKeyDown={(e) => { if (e.key === "Escape") setShowModalRegistrar(false); }}
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar"
         >
-          <div className="gu-modal" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="gu-modal"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             <div className="gu-modal-header">
               <h5>
                 <i className="bi bi-person-plus me-2"></i>Registrar Usuario
@@ -1782,9 +1794,11 @@ function GestionUsuarios() {
               <form onSubmit={handleRegistrar}>
                 {/* Seccion de foto opcional */}
                 <div className="gu-form-photo-section">
-                  <div
+                  <button
+                    type="button"
                     className="gu-form-photo-wrap"
                     onClick={triggerModalPhotoInput}
+                    aria-label="Seleccionar foto de perfil"
                   >
                     {formPhotoPreview ? (
                       <img
@@ -1800,7 +1814,7 @@ function GestionUsuarios() {
                     <div className="gu-form-photo-hover">
                       <i className="bi bi-pencil-fill"></i>
                     </div>
-                  </div>
+                  </button>
                   <div className="gu-form-photo-actions">
                     <button
                       type="button"
@@ -2013,8 +2027,21 @@ function GestionUsuarios() {
             setShowModalEditar(false);
             resetForm();
           }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              setShowModalEditar(false);
+              resetForm();
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar"
         >
-          <div className="gu-modal" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="gu-modal"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             <div className="gu-modal-header">
               <h5>
                 <i className="bi bi-pencil-square me-2"></i>Editar Usuario
@@ -2033,9 +2060,11 @@ function GestionUsuarios() {
               <form onSubmit={handleEditar}>
                 {/* Seccion de foto opcional */}
                 <div className="gu-form-photo-section">
-                  <div
+                  <button
+                    type="button"
                     className="gu-form-photo-wrap"
                     onClick={triggerModalPhotoInput}
+                    aria-label="Seleccionar foto de perfil"
                   >
                     {formPhotoPreview ? (
                       <img
@@ -2051,7 +2080,7 @@ function GestionUsuarios() {
                     <div className="gu-form-photo-hover">
                       <i className="bi bi-pencil-fill"></i>
                     </div>
-                  </div>
+                  </button>
                   <div className="gu-form-photo-actions">
                     <button
                       type="button"
