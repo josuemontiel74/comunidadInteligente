@@ -213,17 +213,17 @@ function Reportes() {
   useEffect(() => {
     if (!rptParqueaderos || !parkingChartRef.current) return;
     if (parkingInstance.current) parkingInstance.current.destroy();
-    const resumen = rptParqueaderos.resumenActual || [];
-    const ocupados = resumen.reduce((s, r) => s + toInt(r.ocupados), 0);
-    const disponibles = resumen.reduce((s, r) => s + toInt(r.disponibles), 0);
+    const periodo = rptParqueaderos.resumenPeriodo || {};
+    const carros = toInt(periodo.carros);
+    const motos = toInt(periodo.motos);
     parkingInstance.current = new Chart(parkingChartRef.current, {
       type: "doughnut",
       data: {
-        labels: ["Ocupados", "Disponibles"],
+        labels: ["Carros", "Motos"],
         datasets: [
           {
-            data: [ocupados, disponibles],
-            backgroundColor: ["#ef4444", "#22c55e"],
+            data: [carros, motos],
+            backgroundColor: ["#3b82f6", "#f97316"],
             borderWidth: 2,
             borderColor: "#fff",
           },
@@ -237,6 +237,16 @@ function Reportes() {
           legend: {
             position: "bottom",
             labels: { padding: 16, usePointStyle: true },
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const total = carros + motos;
+                const val = ctx.parsed;
+                const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+                return ` ${ctx.label}: ${val} (${pct}%)`;
+              },
+            },
           },
         },
       },
@@ -438,36 +448,28 @@ function Reportes() {
 
     // ====== PARQUEADEROS ======
     sectionTitle("REPORTE DE PARQUEADEROS", "#7c3aed");
-    const resumen = rptParqueaderos?.resumenActual || [];
-    let totalParq = 0,
-      totalOcup = 0,
-      totalDisp = 0;
-    let carrosOcup = 0,
-      carrosTotal = 0,
-      motosOcup = 0,
-      motosTotal = 0;
-    resumen.forEach((r) => {
+    const capPdf = rptParqueaderos?.capacidad || [];
+    let cuposCarrosPdf = 0, cuposMotosPdf = 0;
+    capPdf.forEach((r) => {
       const nom = (r.nombreVehiculo || "").toLowerCase();
-      const t = toInt(r.totalParqueaderos),
-        o = toInt(r.ocupados),
-        d = toInt(r.disponibles);
-      totalParq += t;
-      totalOcup += o;
-      totalDisp += d;
-      if (nom === "carro") {
-        carrosOcup = o;
-        carrosTotal = t;
-      }
-      if (nom === "moto") {
-        motosOcup = o;
-        motosTotal = t;
-      }
+      if (nom === "carro") cuposCarrosPdf = toInt(r.totalCupos);
+      if (nom === "moto") cuposMotosPdf = toInt(r.totalCupos);
     });
-    stat("Total Parqueaderos", totalParq);
-    stat("Ocupados", `${totalOcup} (${calcPct(totalOcup, totalParq)}%)`);
-    stat("Disponibles", `${totalDisp} (${calcPct(totalDisp, totalParq)}%)`);
-    progressBar("Carros", carrosOcup, carrosTotal, "#3b82f6");
-    progressBar("Motos", motosOcup, motosTotal, "#f97316");
+    const totalCuposPdf = cuposCarrosPdf + cuposMotosPdf;
+    const periPdf = rptParqueaderos?.resumenPeriodo || {};
+    const totalVehPdf = toInt(periPdf.totalVehiculos);
+    const carrosPdf = toInt(periPdf.carros);
+    const motosPdf = toInt(periPdf.motos);
+    const dPico = rptParqueaderos?.diaPico || null;
+    stat("Capacidad total (cupos)", totalCuposPdf);
+    stat("Cupos para carros", cuposCarrosPdf);
+    stat("Cupos para motos", cuposMotosPdf);
+    stat("Vehículos ingresados en el período", totalVehPdf);
+    stat("Carros", `${carrosPdf} (${calcPct(carrosPdf, totalVehPdf)}%)`);
+    stat("Motos", `${motosPdf} (${calcPct(motosPdf, totalVehPdf)}%)`);
+    if (dPico) stat("Día pico", `${dPico.fecha} (${toInt(dPico.totalVehiculos)} vehículos)`);
+    progressBar("Carros (del total)", carrosPdf, totalVehPdf, "#3b82f6");
+    progressBar("Motos (del total)", motosPdf, totalVehPdf, "#f97316");
     divider();
 
     // ====== VISITAS ======
@@ -706,32 +708,22 @@ function Reportes() {
   // ============================================================================
   // RENDER - DATOS EXTRAÍDOS
   // ============================================================================
-  const resumenP = rptParqueaderos?.resumenActual || [];
-  const totalParqueaderos = resumenP.reduce(
-    (s, r) => s + toInt(r.totalParqueaderos),
-    0,
-  );
-  const totalOcupados = resumenP.reduce((s, r) => s + toInt(r.ocupados), 0);
-  const totalDisponibles = resumenP.reduce(
-    (s, r) => s + toInt(r.disponibles),
-    0,
-  );
+  const capacidadP = rptParqueaderos?.capacidad || [];
+  const resumenPeriodo = rptParqueaderos?.resumenPeriodo || {};
+  const diaPico = rptParqueaderos?.diaPico || null;
 
-  let carrosOcupados = 0,
-    carrosTotal = 0,
-    motosOcupadas = 0,
-    motosTotal = 0;
-  resumenP.forEach((r) => {
+  let totalCuposCarros = 0,
+    totalCuposMotos = 0;
+  capacidadP.forEach((r) => {
     const nom = (r.nombreVehiculo || "").toLowerCase();
-    if (nom === "carro") {
-      carrosOcupados = toInt(r.ocupados);
-      carrosTotal = toInt(r.totalParqueaderos);
-    }
-    if (nom === "moto") {
-      motosOcupadas = toInt(r.ocupados);
-      motosTotal = toInt(r.totalParqueaderos);
-    }
+    if (nom === "carro") totalCuposCarros = toInt(r.totalCupos);
+    if (nom === "moto") totalCuposMotos = toInt(r.totalCupos);
   });
+  const totalCupos = totalCuposCarros + totalCuposMotos;
+
+  const vehiculosEnPeriodo = toInt(resumenPeriodo.totalVehiculos);
+  const carrosEnPeriodo = toInt(resumenPeriodo.carros);
+  const motosEnPeriodo = toInt(resumenPeriodo.motos);
 
   const totalVisitas = toInt(rptVisitas?.totalVisitas);
   const diaConMasVisitas = rptVisitas?.diaConMasVisitas;
@@ -1012,52 +1004,66 @@ function Reportes() {
                     <div className="col-md-5">
                       <StatRow
                         icon="p-square"
-                        label="Total Parqueaderos"
-                        value={totalParqueaderos}
+                        label="Capacidad Total (Cupos)"
+                        value={totalCupos}
                         color="#2563eb"
                       />
                       <StatRow
-                        icon="lock-fill"
-                        label="Ocupados"
-                        value={`${totalOcupados} (${calcPct(totalOcupados, totalParqueaderos)}%)`}
-                        color="#ef4444"
+                        icon="car-front-fill"
+                        label="Cupos para Carros"
+                        value={totalCuposCarros}
+                        color="#3b82f6"
                       />
                       <StatRow
-                        icon="unlock-fill"
-                        label="Disponibles"
-                        value={`${totalDisponibles} (${calcPct(totalDisponibles, totalParqueaderos)}%)`}
-                        color="#22c55e"
+                        icon="bicycle"
+                        label="Cupos para Motos"
+                        value={totalCuposMotos}
+                        color="#f97316"
                       />
                       <hr />
                       <p
                         className="fw-semibold text-muted mb-2"
                         style={{ fontSize: 13 }}
                       >
-                        Por tipo de vehículo:
+                        Vehículos ingresados en el período:
                       </p>
+                      <StatRow
+                        icon="truck-front-fill"
+                        label="Total Vehículos"
+                        value={vehiculosEnPeriodo}
+                        color="#7c3aed"
+                      />
                       <StatRow
                         icon="car-front-fill"
                         label="Carros"
-                        value={`${carrosOcupados} / ${carrosTotal}`}
+                        value={`${carrosEnPeriodo} (${calcPct(carrosEnPeriodo, vehiculosEnPeriodo)}%)`}
                         color="#3b82f6"
                       />
                       <StatRow
-                        icon="fa-motorcycle"
+                        icon="bicycle"
                         label="Motos"
-                        value={`${motosOcupadas} / ${motosTotal}`}
+                        value={`${motosEnPeriodo} (${calcPct(motosEnPeriodo, vehiculosEnPeriodo)}%)`}
                         color="#f97316"
                       />
+                      {diaPico && (
+                        <StatRow
+                          icon="calendar-check-fill"
+                          label="Día Pico"
+                          value={`${diaPico.fecha} (${toInt(diaPico.totalVehiculos)} vehículos)`}
+                          color="#22c55e"
+                        />
+                      )}
                       <div className="mt-3">
                         <ProgressBar
-                          label="Carros Ocupados"
-                          value={carrosOcupados}
-                          total={carrosTotal}
+                          label="Carros (del total ingresado)"
+                          value={carrosEnPeriodo}
+                          total={vehiculosEnPeriodo}
                           color="#3b82f6"
                         />
                         <ProgressBar
-                          label="Motos Ocupadas"
-                          value={motosOcupadas}
-                          total={motosTotal}
+                          label="Motos (del total ingresado)"
+                          value={motosEnPeriodo}
+                          total={vehiculosEnPeriodo}
                           color="#f97316"
                         />
                       </div>
@@ -1761,18 +1767,21 @@ function Reportes() {
                             </thead>
                             <tbody>
                               {rptUsuarios.masActivos.map((u, i) => {
-                                const esActivo = (u.nombreEstado || "").toLowerCase() === "activo";
-                                const estadoColor = esActivo ? "#22c55e" : "#f97316";
+                                const esActivo =
+                                  (u.nombreEstado || "").toLowerCase() ===
+                                  "activo";
+                                const estadoColor = esActivo
+                                  ? "#22c55e"
+                                  : "#f97316";
                                 const estadoLabel = u.nombreEstado || "—";
                                 const ultimoRegistroStr = u.ultimoRegistro
-                                  ? new Date(u.ultimoRegistro).toLocaleDateString(
-                                      "es-CO",
-                                      {
-                                        day: "2-digit",
-                                        month: "short",
-                                        year: "2-digit",
-                                      },
-                                    )
+                                  ? new Date(
+                                      u.ultimoRegistro,
+                                    ).toLocaleDateString("es-CO", {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "2-digit",
+                                    })
                                   : "Sin registros";
                                 return (
                                   <tr key={i}>
@@ -1810,7 +1819,9 @@ function Reportes() {
                                         {u.totalRegistros}
                                       </span>
                                     </td>
-                                    <td style={{ fontSize: 12, color: "#64748b" }}>
+                                    <td
+                                      style={{ fontSize: 12, color: "#64748b" }}
+                                    >
                                       {ultimoRegistroStr}
                                     </td>
                                     <td>
@@ -1882,8 +1893,12 @@ function Reportes() {
                                       year: "2-digit",
                                     })
                                   : "—";
-                                const esActivo = (u.nombreEstado || "").toLowerCase() === "activo";
-                                const estadoColor = esActivo ? "#22c55e" : "#f97316";
+                                const esActivo =
+                                  (u.nombreEstado || "").toLowerCase() ===
+                                  "activo";
+                                const estadoColor = esActivo
+                                  ? "#22c55e"
+                                  : "#f97316";
                                 const estadoLabel = u.nombreEstado || "—";
                                 return (
                                   <tr key={i}>
@@ -1942,23 +1957,49 @@ function Reportes() {
                           <i className="bi bi-grid-3x3-gap-fill"></i>
                         </div>
                         <h4>Módulos Más Utilizados</h4>
-                        <span className="ms-auto" style={{ fontSize: 12, color: "#64748b" }}>
+                        <span
+                          className="ms-auto"
+                          style={{ fontSize: 12, color: "#64748b" }}
+                        >
                           Ranking por uso en el período
                         </span>
                       </div>
                       <div className="rpt-card-body">
-                        <p style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>
-                          Indica qué partes del sistema se usaron más: más actividad = más registros, modificaciones o consultas en ese módulo.
+                        <p
+                          style={{
+                            fontSize: 12,
+                            color: "#64748b",
+                            marginBottom: 12,
+                          }}
+                        >
+                          Indica qué partes del sistema se usaron más: más
+                          actividad = más registros, modificaciones o consultas
+                          en ese módulo.
                         </p>
                         {(() => {
                           const mods = rptUsuarios.modulosMasUsados;
-                          const maxMod = Math.max(...mods.map((m) => m.cantidad));
-                          const colores = ["#0369a1","#7c3aed","#16a34a","#ca8a04","#dc2626","#0891b2","#9333ea","#059669"];
+                          const maxMod = Math.max(
+                            ...mods.map((m) => m.cantidad),
+                          );
+                          const colores = [
+                            "#0369a1",
+                            "#7c3aed",
+                            "#16a34a",
+                            "#ca8a04",
+                            "#dc2626",
+                            "#0891b2",
+                            "#9333ea",
+                            "#059669",
+                          ];
                           return mods.map((mod, i) => (
                             <div key={i} className="rpt-hbar-row">
                               <span
                                 className="rpt-hbar-label"
-                                style={{ minWidth: 130, fontSize: 13, fontWeight: 600 }}
+                                style={{
+                                  minWidth: 130,
+                                  fontSize: 13,
+                                  fontWeight: 600,
+                                }}
                               >
                                 {mod.nombre || mod.tabla || "—"}
                               </span>

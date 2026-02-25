@@ -14,21 +14,53 @@ export const obtenerReporteParqueaderos = async (req, res) => {
       });
     }
 
-    // Total de parqueaderos por tipo de vehículo
-    const [porTipo] = await sequelize.query(`
+    // Capacidad total de parqueaderos por tipo de vehículo (dato estático)
+    const [capacidad] = await sequelize.query(`
       SELECT 
         tv.nombreVehiculo,
-        COUNT(p.codigoParqueadero) as totalParqueaderos,
-        SUM(CASE WHEN p.estadoId = 3 THEN 1 ELSE 0 END) as ocupados,
-        SUM(CASE WHEN p.estadoId = 4 THEN 1 ELSE 0 END) as disponibles
+        COUNT(p.codigoParqueadero) as totalCupos
       FROM parqueaderos p
       INNER JOIN tiposVehiculo tv ON p.tipoVehiculoId = tv.idTipoVehiculo
       GROUP BY tv.nombreVehiculo, tv.idTipoVehiculo
       ORDER BY tv.idTipoVehiculo
     `);
 
-    // Ocupación diaria en el período
-    const [ocupacionDiaria] = await sequelize.query(
+    // Resumen de vehículos que ingresaron en el período (datos históricos)
+    const [resumenPeriodoRaw] = await sequelize.query(
+      `
+      SELECT 
+        COUNT(DISTINCT v.vehiculoMatricula) as totalVehiculos,
+        SUM(CASE WHEN ve.tipoVehiculoId = 1 THEN 1 ELSE 0 END) as carros,
+        SUM(CASE WHEN ve.tipoVehiculoId = 2 THEN 1 ELSE 0 END) as motos
+      FROM visitas v
+      INNER JOIN vehiculo ve ON v.vehiculoMatricula = ve.matricula
+      WHERE DATE(v.fechaHoraIngreso) >= ? AND DATE(v.fechaHoraIngreso) <= ?
+        AND v.vehiculoMatricula IS NOT NULL
+    `,
+      { replacements: [fechaInicio, fechaFin] },
+    );
+
+    // Día pico: fecha con más vehículos ingresados en el período
+    const [diaPicoRaw] = await sequelize.query(
+      `
+      SELECT 
+        DATE(v.fechaHoraIngreso) as fecha,
+        COUNT(DISTINCT v.vehiculoMatricula) as totalVehiculos,
+        SUM(CASE WHEN ve.tipoVehiculoId = 1 THEN 1 ELSE 0 END) as carros,
+        SUM(CASE WHEN ve.tipoVehiculoId = 2 THEN 1 ELSE 0 END) as motos
+      FROM visitas v
+      INNER JOIN vehiculo ve ON v.vehiculoMatricula = ve.matricula
+      WHERE DATE(v.fechaHoraIngreso) >= ? AND DATE(v.fechaHoraIngreso) <= ?
+        AND v.vehiculoMatricula IS NOT NULL
+      GROUP BY DATE(v.fechaHoraIngreso)
+      ORDER BY totalVehiculos DESC
+      LIMIT 1
+    `,
+      { replacements: [fechaInicio, fechaFin] },
+    );
+
+    // Uso diario en el período (para gráfica de línea/barra)
+    const [usoDiario] = await sequelize.query(
       `
       SELECT 
         DATE(v.fechaHoraIngreso) as fecha,
@@ -40,7 +72,7 @@ export const obtenerReporteParqueaderos = async (req, res) => {
       WHERE DATE(v.fechaHoraIngreso) >= ? AND DATE(v.fechaHoraIngreso) <= ?
         AND v.vehiculoMatricula IS NOT NULL
       GROUP BY DATE(v.fechaHoraIngreso)
-      ORDER BY fecha DESC
+      ORDER BY fecha ASC
     `,
       { replacements: [fechaInicio, fechaFin] },
     );
@@ -65,8 +97,10 @@ export const obtenerReporteParqueaderos = async (req, res) => {
     res.json({
       success: true,
       data: {
-        resumenActual: porTipo,
-        ocupacionDiaria: ocupacionDiaria,
+        capacidad: capacidad,
+        resumenPeriodo: resumenPeriodoRaw[0] || { totalVehiculos: 0, carros: 0, motos: 0 },
+        diaPico: diaPicoRaw[0] || null,
+        usoDiario: usoDiario,
         picoOcupacion: picoOcupacion,
       },
     });
@@ -800,7 +834,9 @@ export const obtenerReporteUsuarios = async (req, res) => {
         })),
         modulosMasUsados: modulosMasUsados.map((m) => ({
           tabla: m.tablaAfectada,
-          nombre: nombreModulo[(m.tablaAfectada || "").toLowerCase()] || m.tablaAfectada,
+          nombre:
+            nombreModulo[(m.tablaAfectada || "").toLowerCase()] ||
+            m.tablaAfectada,
           cantidad: parseInt(m.cantidad) || 0,
         })),
         actividadDiaria: actividadDiaria.map((d) => ({
