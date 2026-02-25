@@ -43,13 +43,11 @@ function Dashboard() {
 
   // Modo oscuro – reactive para re-renderizar gráficas
   const [oscuro, setOscuro] = useState(
-    () => document.documentElement.getAttribute("data-modo") === "oscuro",
+    () => document.documentElement.dataset.modo === "oscuro",
   );
   useEffect(() => {
     const obs = new MutationObserver(() =>
-      setOscuro(
-        document.documentElement.getAttribute("data-modo") === "oscuro",
-      ),
+      setOscuro(document.documentElement.dataset.modo === "oscuro"),
     );
     obs.observe(document.documentElement, {
       attributes: true,

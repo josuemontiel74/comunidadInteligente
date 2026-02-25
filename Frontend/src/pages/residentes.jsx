@@ -143,6 +143,83 @@ const getUserProfilePhoto = () => {
   }
 };
 
+function normalizarOcupante(o) {
+  return {
+    idOcupante: o.idOcupante,
+    tipoDocumento: mapTipoDocumento(o.tipoDocumentoId),
+    tipoDocumentoId: o.tipoDocumentoId,
+    numeroDocumento: o.numeroDocumento,
+    tipoOcupacion:
+      o.tipoOcupacion?.charAt(0).toUpperCase() + o.tipoOcupacion?.slice(1),
+    primerNombre: o.primerNombre,
+    segundoNombre: o.segundoNombre || "",
+    primerApellido: o.primerApellido,
+    segundoApellido: o.segundoApellido || "",
+    fechaInicio: o.fechaInicio ? o.fechaInicio.split("T")[0] : "",
+    fechaFin: o.fechaFin ? o.fechaFin.split("T")[0] : "",
+    correo: o.correoElectronico || "",
+    telefono: o.telefono || "",
+    personasACargo: o.personasACargo || 0,
+    tieneNinos: o.tieneNinos || 0,
+    tieneAdultoMayor: o.tieneAdultoMayor || 0,
+    tieneDiscapacidad: o.tieneDiscapacidad || 0,
+    torre: mapTorre(o.torresId),
+    torresId: Number(o.torresId),
+    apartamentosId: Number(o.apartamentosId),
+    numeroApartamento: o.numeroApartamento || o.apartamentosId,
+    estado: ["activo", "activa"].includes(o.nombreEstado?.toLowerCase())
+      ? "Activo"
+      : "Finalizado",
+    estadoId: o.estadoId,
+    nombreEstado: o.nombreEstado,
+    nombreCompleto: [o.primerNombre, o.segundoNombre, o.primerApellido, o.segundoApellido]
+      .filter(Boolean)
+      .join(" "),
+  };
+}
+
+function validarDatosResidente(fd, editIndex) {
+  if (!fd.primerNombre.trim())
+    return { titulo: "Campo obligatorio", msg: "El primer nombre es requerido para registrar al residente." };
+  if (/[0-9]/.test(fd.primerNombre))
+    return { titulo: "Nombre inválido", msg: "El primer nombre no puede contener números." };
+  if (/^(.)\1+$/.test(fd.primerNombre.trim()))
+    return { titulo: "Nombre inválido", msg: `"${fd.primerNombre.trim()}" no es un nombre válido. No puede estar formado por el mismo carácter repetido.` };
+  if (!fd.primerApellido.trim())
+    return { titulo: "Campo obligatorio", msg: "El primer apellido es requerido para registrar al residente." };
+  if (/[0-9]/.test(fd.primerApellido))
+    return { titulo: "Apellido inválido", msg: "El primer apellido no puede contener números." };
+  if (/^(.)\1+$/.test(fd.primerApellido.trim()))
+    return { titulo: "Apellido inválido", msg: `"${fd.primerApellido.trim()}" no es un apellido válido. No puede estar formado por el mismo carácter repetido.` };
+  if (!fd.apto)
+    return { titulo: "Campo obligatorio", msg: "Debe seleccionar un apartamento para continuar." };
+  if (!fd.fechaInicio)
+    return { titulo: "Campo obligatorio", msg: "La fecha de inicio es obligatoria." };
+  if (fd.telefono && !/^[0-9]{7,15}$/.test(fd.telefono))
+    return { titulo: "Teléfono inválido", msg: "El teléfono debe contener solo dígitos y tener entre 7 y 15 cifras." };
+  if (fd.telefono && /^(\d)\1+$/.test(fd.telefono))
+    return { titulo: "Teléfono inválido", msg: `El teléfono "${fd.telefono}" no es válido porque todos sus dígitos son iguales. Ingrese un número real.` };
+  if (editIndex === null && !fd.numeroDocumento.trim())
+    return { titulo: "Campo obligatorio", msg: "El número de documento es obligatorio para crear un nuevo residente." };
+  if (fd.numeroDocumento.trim()) {
+    const doc = fd.numeroDocumento.trim();
+    if (!/^[a-zA-Z0-9\-]+$/.test(doc))
+      return { titulo: "Documento inválido", msg: "El número de documento solo puede contener letras, números o guiones. No se permiten caracteres especiales." };
+    if (!/[0-9]/.test(doc))
+      return { titulo: "Documento inválido", msg: "El número de documento no puede estar compuesto únicamente por letras. Debe incluir al menos un dígito." };
+    const letras = (doc.match(/[a-zA-Z]/g) || []).length;
+    const digitos = (doc.match(/[0-9]/g) || []).length;
+    const tiposMixtos = ["CE", "PP", "PEP", "PPT"];
+    if (tiposMixtos.includes(fd.tipoDocumento) && letras > digitos)
+      return { titulo: "Documento inválido", msg: `El ${fd.tipoDocumento} tiene más letras (${letras}) que dígitos (${digitos}). Los documentos deben ser principalmente numéricos.` };
+    if (fd.tipoDocumento === "CC" && !/^\d+$/.test(doc))
+      return { titulo: "Documento inválido", msg: "La Cédula de Ciudadanía (CC) debe contener solo dígitos, sin letras ni guiones." };
+    if (fd.tipoDocumento === "CC" && (doc.length < 5 || doc.length > 10))
+      return { titulo: "Documento inválido", msg: "La CC debe tener entre 5 y 10 dígitos." };
+  }
+  return null;
+}
+
 /* =========================================================
    COMPONENTE PRINCIPAL
    ========================================================= */
@@ -260,43 +337,7 @@ function Residentes() {
 
       const data = await res.json();
       const ocupantes = data.body || data;
-      const formateados = ocupantes.map((o) => ({
-        idOcupante: o.idOcupante,
-        tipoDocumento: mapTipoDocumento(o.tipoDocumentoId),
-        tipoDocumentoId: o.tipoDocumentoId,
-        numeroDocumento: o.numeroDocumento,
-        tipoOcupacion:
-          o.tipoOcupacion?.charAt(0).toUpperCase() + o.tipoOcupacion?.slice(1),
-        primerNombre: o.primerNombre,
-        segundoNombre: o.segundoNombre || "",
-        primerApellido: o.primerApellido,
-        segundoApellido: o.segundoApellido || "",
-        fechaInicio: o.fechaInicio ? o.fechaInicio.split("T")[0] : "",
-        fechaFin: o.fechaFin ? o.fechaFin.split("T")[0] : "",
-        correo: o.correoElectronico || "",
-        telefono: o.telefono || "",
-        personasACargo: o.personasACargo || 0,
-        tieneNinos: o.tieneNinos || 0,
-        tieneAdultoMayor: o.tieneAdultoMayor || 0,
-        tieneDiscapacidad: o.tieneDiscapacidad || 0,
-        torre: mapTorre(o.torresId),
-        torresId: Number(o.torresId),
-        apartamentosId: Number(o.apartamentosId),
-        numeroApartamento: o.numeroApartamento || o.apartamentosId,
-        estado: ["activo", "activa"].includes(o.nombreEstado?.toLowerCase())
-          ? "Activo"
-          : "Finalizado",
-        estadoId: o.estadoId,
-        nombreEstado: o.nombreEstado,
-        nombreCompleto: [
-          o.primerNombre,
-          o.segundoNombre,
-          o.primerApellido,
-          o.segundoApellido,
-        ]
-          .filter(Boolean)
-          .join(" "),
-      }));
+      const formateados = ocupantes.map(normalizarOcupante);
       setResidentes(formateados);
     } catch {
       Swal.fire({
@@ -472,150 +513,35 @@ function Residentes() {
     setModalAbierto(true);
   };
 
+  const verificarDuplicadoResidente = async (fd) => {
+    if (editIndex !== null || !fd.numeroDocumento.trim()) return false;
+    const doc = fd.numeroDocumento.trim().toLowerCase();
+    const existente = residentes.find((r) => r.numeroDocumento?.toLowerCase() === doc);
+    if (!existente) return false;
+    if (existente.estado === "Activo") {
+      const result = await Swal.fire({
+        icon: "info",
+        iconColor: "#0d9488",
+        title: "Residente ya existe",
+        html: `<b>${existente.nombreCompleto}</b> ya se encuentra <b>activo/a</b> en Torre ${existente.torre} - Apto ${existente.apartamentosId}.<br/><br/>¿Desea editar su información en lugar de crear un nuevo registro?`,
+        showCancelButton: true,
+        confirmButtonText: "Sí, editar",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#0d9488",
+      });
+      if (result.isConfirmed) { cerrarModal(); abrirModalEditar(existente); }
+      return true;
+    }
+    return false; // finalizado → se puede re-registrar
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // ── Validaciones de nombres ──────────────────────────────────────────
-    if (!formData.primerNombre.trim())
-      return Swal.fire(
-        "Campo obligatorio",
-        "El primer nombre es requerido para registrar al residente.",
-        "error",
-      );
-    if (/[0-9]/.test(formData.primerNombre))
-      return Swal.fire(
-        "Nombre inválido",
-        "El primer nombre no puede contener números.",
-        "error",
-      );
-    if (/^(.)\1+$/.test(formData.primerNombre.trim()))
-      return Swal.fire(
-        "Nombre inválido",
-        `"${formData.primerNombre.trim()}" no es un nombre válido. No puede estar formado por el mismo carácter repetido.`,
-        "error",
-      );
-    if (!formData.primerApellido.trim())
-      return Swal.fire(
-        "Campo obligatorio",
-        "El primer apellido es requerido para registrar al residente.",
-        "error",
-      );
-    if (/[0-9]/.test(formData.primerApellido))
-      return Swal.fire(
-        "Apellido inválido",
-        "El primer apellido no puede contener números.",
-        "error",
-      );
-    if (/^(.)\1+$/.test(formData.primerApellido.trim()))
-      return Swal.fire(
-        "Apellido inválido",
-        `"${formData.primerApellido.trim()}" no es un apellido válido. No puede estar formado por el mismo carácter repetido.`,
-        "error",
-      );
+    const errValidacion = validarDatosResidente(formData, editIndex);
+    if (errValidacion) return Swal.fire(errValidacion.titulo, errValidacion.msg, "error");
 
-    // ── Apartamento y fecha ──────────────────────────────────────────────
-    if (!formData.apto)
-      return Swal.fire(
-        "Campo obligatorio",
-        "Debe seleccionar un apartamento para continuar.",
-        "error",
-      );
-    if (!formData.fechaInicio)
-      return Swal.fire(
-        "Campo obligatorio",
-        "La fecha de inicio es obligatoria.",
-        "error",
-      );
-
-    // ── Teléfono ─────────────────────────────────────────────────────────
-    if (formData.telefono && !/^[0-9]{7,15}$/.test(formData.telefono))
-      return Swal.fire(
-        "Teléfono inválido",
-        "El teléfono debe contener solo dígitos y tener entre 7 y 15 cifras.",
-        "error",
-      );
-    if (formData.telefono && /^(\d)\1+$/.test(formData.telefono))
-      return Swal.fire(
-        "Teléfono inválido",
-        `El teléfono "${formData.telefono}" no es válido porque todos sus dígitos son iguales. Ingrese un número real.`,
-        "error",
-      );
-
-    // ── Documento ────────────────────────────────────────────────────────
-    if (editIndex === null && !formData.numeroDocumento.trim())
-      return Swal.fire(
-        "Campo obligatorio",
-        "El número de documento es obligatorio para crear un nuevo residente.",
-        "error",
-      );
-    if (formData.numeroDocumento.trim()) {
-      const doc = formData.numeroDocumento.trim();
-      if (!/^[a-zA-Z0-9\-]+$/.test(doc))
-        return Swal.fire(
-          "Documento inválido",
-          "El número de documento solo puede contener letras, números o guiones. No se permiten caracteres especiales.",
-          "error",
-        );
-      if (!/[0-9]/.test(doc))
-        return Swal.fire(
-          "Documento inválido",
-          "El número de documento no puede estar compuesto únicamente por letras. Debe incluir al menos un dígito.",
-          "error",
-        );
-      // Ratio letras/dígitos para documentos mixtos
-      const letras = (doc.match(/[a-zA-Z]/g) || []).length;
-      const digitos = (doc.match(/[0-9]/g) || []).length;
-      const tiposMixtos = ["CE", "PP", "PEP", "PPT"];
-      if (tiposMixtos.includes(formData.tipoDocumento) && letras > digitos)
-        return Swal.fire(
-          "Documento inválido",
-          `El ${formData.tipoDocumento} tiene más letras (${letras}) que dígitos (${digitos}). Los documentos deben ser principalmente numéricos.`,
-          "error",
-        );
-      if (formData.tipoDocumento === "CC" && !/^\d+$/.test(doc))
-        return Swal.fire(
-          "Documento inválido",
-          "La Cédula de Ciudadanía (CC) debe contener solo dígitos, sin letras ni guiones.",
-          "error",
-        );
-      if (
-        formData.tipoDocumento === "CC" &&
-        (doc.length < 5 || doc.length > 10)
-      )
-        return Swal.fire(
-          "Documento inválido",
-          "La CC debe tener entre 5 y 10 dígitos.",
-          "error",
-        );
-    }
-
-    // Validar duplicidad de documento al crear
-    if (editIndex === null && formData.numeroDocumento.trim()) {
-      const doc = formData.numeroDocumento.trim().toLowerCase();
-      const existente = residentes.find(
-        (r) => r.numeroDocumento?.toLowerCase() === doc,
-      );
-      if (existente) {
-        if (existente.estado === "Activo") {
-          const result = await Swal.fire({
-            icon: "info",
-            iconColor: "#0d9488",
-            title: "Residente ya existe",
-            html: `<b>${existente.nombreCompleto}</b> ya se encuentra <b>activo/a</b> en Torre ${existente.torre} - Apto ${existente.apartamentosId}.<br/><br/>¿Desea editar su información en lugar de crear un nuevo registro?`,
-            showCancelButton: true,
-            confirmButtonText: "Sí, editar",
-            cancelButtonText: "Cancelar",
-            confirmButtonColor: "#0d9488",
-          });
-          if (result.isConfirmed) {
-            cerrarModal();
-            abrirModalEditar(existente);
-          }
-          return;
-        }
-        // Si está finalizado, permitir continuar (se puede re-registrar)
-      }
-    }
+    if (await verificarDuplicadoResidente(formData)) return;
 
     const token = obtenerToken();
     try {
@@ -669,19 +595,11 @@ function Residentes() {
         }
         if (!res.ok) {
           const ct = res.headers.get("content-type") || "";
-          const errData = ct.includes("json")
-            ? await res.json()
-            : await res.text();
+          const errData = ct.includes("json") ? await res.json() : await res.text();
           Swal.fire("Error", traducirMensajeBackend(errData), "warning");
           return;
         }
-        Swal.fire({
-          icon: "success",
-          title: "Actualizado correctamente",
-          timer: 2500,
-          showConfirmButton: false,
-          iconColor: "#0d9488",
-        });
+        Swal.fire({ icon: "success", title: "Actualizado correctamente", timer: 2500, showConfirmButton: false, iconColor: "#0d9488" });
       } else {
         const res = await crearOcupante(ocupanteData, token);
         if (res?.status === 401) {
@@ -692,20 +610,9 @@ function Residentes() {
           return;
         }
         const ct = res.headers.get("content-type") || "";
-        const dataCreate = ct.includes("json")
-          ? await res.json()
-          : await res.text();
-        if (!res.ok) {
-          Swal.fire("Error", traducirMensajeBackend(dataCreate), "warning");
-          return;
-        }
-        Swal.fire({
-          icon: "success",
-          title: "Registrado correctamente",
-          timer: 2500,
-          showConfirmButton: false,
-          iconColor: "#0d9488",
-        });
+        const dataCreate = ct.includes("json") ? await res.json() : await res.text();
+        if (!res.ok) { Swal.fire("Error", traducirMensajeBackend(dataCreate), "warning"); return; }
+        Swal.fire({ icon: "success", title: "Registrado correctamente", timer: 2500, showConfirmButton: false, iconColor: "#0d9488" });
       }
       await cargarResidentes();
       cerrarModal();

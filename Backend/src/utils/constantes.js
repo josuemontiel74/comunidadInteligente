@@ -25,6 +25,7 @@ export const ESTADO_OCUPANTE = {
 // ── Estados de paquete ────────────────────────────────────────────────────────
 export const ESTADO_PAQUETE = {
   RECIBIDO: 14,
+  ENTREGADO: 15,
 };
 
 // ── Estados de reserva de área común ──────────────────────────────────────────

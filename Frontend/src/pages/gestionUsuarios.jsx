@@ -54,59 +54,79 @@ const campoAmigable = (field) => {
   return map[field] || field;
 };
 
+function traducirString(s) {
+  if (/required|is required|cannot be null|no puede estar vacio|cannot be empty/i.test(s))
+    return "Falta informacion obligatoria en el formulario.";
+  if (/max.*length|no puede.*mayor|exceeds the maximum|too long|longitud maxima/i.test(s))
+    return "Algun campo supera la longitud permitida.";
+  if (/min.*length|must be at least|falta.*caracter|too short|longitud minima/i.test(s))
+    return "Algun campo no cumple la longitud minima requerida.";
+  if (/invalid|not valid|no valido|formato/i.test(s)) return "Formato de campo invalido.";
+  if (/unique|exists|ya existe/i.test(s)) return "Ya existe un registro con esos datos.";
+  return s;
+}
+
+function traducirObjeto(obj) {
+  if (obj.message && typeof obj.message === "string")
+    return traducirMensajeBackend(obj.message);
+  if (obj.errors && Array.isArray(obj.errors)) {
+    return obj.errors
+      .map((it) => {
+        const f = it.field || it.param;
+        if (f) {
+          const msg = it.message || it.msg || it.error || JSON.stringify(it);
+          return campoAmigable(f) + ": " + traducirMensajeBackend(msg);
+        }
+        return traducirMensajeBackend(it.message || it);
+      })
+      .join(" ");
+  }
+  const partes = [];
+  for (const k in obj) {
+    if (!Object.prototype.hasOwnProperty.call(obj, k)) continue;
+    partes.push(campoAmigable(k) + ": " + traducirMensajeBackend(obj[k]));
+  }
+  return partes.length ? partes.join(" ") : JSON.stringify(obj);
+}
+
+function validarFormularioGU(fd) {
+  if (!fd.tipoDocumentoId)
+    return { titulo: "Error", msg: "Seleccione un tipo de documento." };
+  if (!fd.numeroDocumento?.trim())
+    return { titulo: "Error", msg: "Ingrese el número de documento." };
+  if (!fd.rolesId)
+    return { titulo: "Error", msg: "Seleccione un rol." };
+  const errPN = validarNombre(fd.primerNombre);
+  if (errPN) return { titulo: "Nombre inválido", msg: `Primer Nombre: ${errPN}` };
+  const errPA = validarNombre(fd.primerApellido);
+  if (errPA) return { titulo: "Apellido inválido", msg: `Primer Apellido: ${errPA}` };
+  if (fd.segundoNombre) {
+    const errSN = validarNombre(fd.segundoNombre);
+    if (errSN) return { titulo: "Nombre inválido", msg: `Segundo Nombre: ${errSN}` };
+  }
+  if (fd.segundoApellido) {
+    const errSA = validarNombre(fd.segundoApellido);
+    if (errSA) return { titulo: "Apellido inválido", msg: `Segundo Apellido: ${errSA}` };
+  }
+  const tipoDocNombreGU = TIPO_DOC_MAP[parseInt(fd.tipoDocumentoId)] || "";
+  const errDocGU = validarDocumento(fd.numeroDocumento, fd.tipoDocumentoId, tipoDocNombreGU);
+  if (errDocGU) return { titulo: "Documento inválido", msg: errDocGU };
+  if (fd.telefono) {
+    const errTelGU = validarTelefono(fd.telefono);
+    if (errTelGU) return { titulo: "Teléfono inválido", msg: errTelGU };
+  }
+  if (fd.correoElectronico) {
+    const errEmailGU = validarEmail(fd.correoElectronico);
+    if (errEmailGU) return { titulo: "Correo inválido", msg: errEmailGU };
+  }
+  return null;
+}
+
 const traducirMensajeBackend = (errData) => {
   if (errData == null) return "Datos invalidos o incompletos.";
-  if (typeof errData === "string") {
-    const s = errData;
-    if (
-      /required|is required|cannot be null|no puede estar vacio|cannot be empty/i.test(
-        s,
-      )
-    )
-      return "Falta informacion obligatoria en el formulario.";
-    if (
-      /max.*length|no puede.*mayor|exceeds the maximum|too long|longitud maxima/i.test(
-        s,
-      )
-    )
-      return "Algun campo supera la longitud permitida.";
-    if (
-      /min.*length|must be at least|falta.*caracter|too short|longitud minima/i.test(
-        s,
-      )
-    )
-      return "Algun campo no cumple la longitud minima requerida.";
-    if (/invalid|not valid|no valido|formato/i.test(s))
-      return "Formato de campo invalido.";
-    if (/unique|exists|ya existe/i.test(s))
-      return "Ya existe un registro con esos datos.";
-    return s;
-  }
-  if (Array.isArray(errData))
-    return errData.map((e) => traducirMensajeBackend(e)).join(" ");
-  if (typeof errData === "object") {
-    if (errData.message && typeof errData.message === "string")
-      return traducirMensajeBackend(errData.message);
-    if (errData.errors && Array.isArray(errData.errors)) {
-      return errData.errors
-        .map((it) => {
-          if (it.field || it.param) {
-            const f = it.field || it.param;
-            const msg = it.message || it.msg || it.error || JSON.stringify(it);
-            return campoAmigable(f) + ": " + traducirMensajeBackend(msg);
-          }
-          return traducirMensajeBackend(it.message || it);
-        })
-        .join(" ");
-    }
-    const partes = [];
-    for (const k in errData) {
-      if (!Object.prototype.hasOwnProperty.call(errData, k)) continue;
-      partes.push(campoAmigable(k) + ": " + traducirMensajeBackend(errData[k]));
-    }
-    if (partes.length) return partes.join(" ");
-    return JSON.stringify(errData);
-  }
+  if (typeof errData === "string") return traducirString(errData);
+  if (Array.isArray(errData)) return errData.map(traducirMensajeBackend).join(" ");
+  if (typeof errData === "object") return traducirObjeto(errData);
   return "Hay un problema con los datos ingresados. Revise el formulario e intente nuevamente.";
 };
 
@@ -516,129 +536,86 @@ function GestionUsuarios() {
   };
 
   /* Registrar */
+  const manejarDocDuplicadoFE = async (existente, token) => {
+    if (existente.estadoId === 1) {
+      Swal.fire({
+        icon: "info",
+        title: "Usuario ya existe",
+        html: `<b>${existente.primerNombre} ${existente.primerApellido}</b> ya se encuentra <b>activo</b> con ese número de documento.<br/><br/>Si necesita modificar su información, puede editarlo desde la tabla.`,
+        confirmButtonText: "Entendido",
+      });
+      return true;
+    }
+    const result = await Swal.fire({
+      icon: "info",
+      title: "Usuario inactivo encontrado",
+      html: `<b>${existente.primerNombre} ${existente.primerApellido}</b> ya existe con ese documento pero se encuentra <b>inactivo</b>.<br/><br/>¿Desea reactivarlo en lugar de crear un nuevo usuario?`,
+      showCancelButton: true,
+      confirmButtonText: "Sí, reactivar",
+      cancelButtonText: "Cancelar",
+      reverseButtons: true,
+    });
+    if (result.isConfirmed) {
+      const resAct = await activarUsuarioService(existente.username, token);
+      if (resAct.ok) {
+        Swal.fire({ icon: "success", title: "Usuario reactivado", timer: 3000, showConfirmButton: false });
+        await cargarUsuarios();
+        setShowModalRegistrar(false);
+        resetForm();
+      } else {
+        Swal.fire("Error", "No se pudo reactivar el usuario.", "error");
+      }
+    }
+    return true;
+  };
+
+  const manejar409GU = async (dataRes, token) => {
+    const verif = dataRes?.verficacions || dataRes?.verficaciones || dataRes?.verificaciones || null;
+    const backendMsg = dataRes?.message || dataRes?.mensaje || "";
+    if (verif && verif.numeroDocumento) {
+      const result = await Swal.fire({
+        title: "Usuario existente",
+        html: (backendMsg || "Ya existe un usuario con ese documento.") + "<br/><br/>Desea reactivar este usuario?",
+        icon: "info",
+        showCancelButton: true,
+        confirmButtonText: "Si, reactivar",
+        cancelButtonText: "No, cancelar",
+        reverseButtons: true,
+      });
+      if (result.isConfirmed) {
+        const payload = { numeroDocumento: verif.numeroDocumento, volverActivar: 1 };
+        const resAct = await fetch("http://localhost:3001/api/usuario", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify(payload),
+        });
+        if (resAct.ok) {
+          Swal.fire({ icon: "success", title: "Usuario reactivado", timer: 3000, showConfirmButton: false });
+          await cargarUsuarios();
+          setShowModalRegistrar(false);
+          resetForm();
+          return;
+        }
+      }
+    }
+    setShowModalRegistrar(false);
+    resetForm();
+  };
+
   const handleRegistrar = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
     if (!token) return navigate("/");
-    if (!formData.tipoDocumentoId) {
-      Swal.fire("Error", "Seleccione un tipo de documento.", "error");
-      return;
-    }
-    if (!formData.numeroDocumento?.trim()) {
-      Swal.fire("Error", "Ingrese el número de documento.", "error");
-      return;
-    }
-    if (!formData.rolesId) {
-      Swal.fire("Error", "Seleccione un rol.", "error");
-      return;
-    }
-    // Validar primer nombre y primer apellido: solo letras
-    const errPN = validarNombre(formData.primerNombre);
-    if (errPN) {
-      Swal.fire("Nombre inválido", `Primer Nombre: ${errPN}`, "error");
-      return;
-    }
-    const errPA = validarNombre(formData.primerApellido);
-    if (errPA) {
-      Swal.fire("Apellido inválido", `Primer Apellido: ${errPA}`, "error");
-      return;
-    }
-    // Segundo nombre y apellido (opcionales, pero si se ingresan deben ser válidos)
-    if (formData.segundoNombre) {
-      const errSN = validarNombre(formData.segundoNombre);
-      if (errSN) {
-        Swal.fire("Nombre inválido", `Segundo Nombre: ${errSN}`, "error");
-        return;
-      }
-    }
-    if (formData.segundoApellido) {
-      const errSA = validarNombre(formData.segundoApellido);
-      if (errSA) {
-        Swal.fire("Apellido inválido", `Segundo Apellido: ${errSA}`, "error");
-        return;
-      }
-    }
-    // Validar documento según tipo
-    const tipoDocNombreGU =
-      TIPO_DOC_MAP[parseInt(formData.tipoDocumentoId)] || "";
-    const errDocGU = validarDocumento(
-      formData.numeroDocumento,
-      formData.tipoDocumentoId,
-      tipoDocNombreGU,
-    );
-    if (errDocGU) {
-      Swal.fire("Documento inválido", errDocGU, "error");
-      return;
-    }
-    // Validar teléfono (si se proporcionó)
-    if (formData.telefono) {
-      const errTelGU = validarTelefono(formData.telefono);
-      if (errTelGU) {
-        Swal.fire("Teléfono inválido", errTelGU, "error");
-        return;
-      }
-    }
-    // Validar correo (si se proporcionó)
-    if (formData.correoElectronico) {
-      const errEmailGU = validarEmail(formData.correoElectronico);
-      if (errEmailGU) {
-        Swal.fire("Correo inválido", errEmailGU, "error");
-        return;
-      }
-    }
+
+    const errForm = validarFormularioGU(formData);
+    if (errForm) { Swal.fire(errForm.titulo, errForm.msg, "error"); return; }
+
     setSubmitting(true);
     try {
-      // Pre-verificar duplicidad de documento en frontend
       const doc = formData.numeroDocumento?.trim().toLowerCase();
       if (doc) {
-        const existente = usuarios.find(
-          (u) => u.numeroDocumento?.toLowerCase() === doc,
-        );
-        if (existente) {
-          if (existente.estadoId === 1) {
-            // Usuario activo: no permitir crear otro
-            setSubmitting(false);
-            Swal.fire({
-              icon: "info",
-              title: "Usuario ya existe",
-              html: `<b>${existente.primerNombre} ${existente.primerApellido}</b> ya se encuentra <b>activo</b> con ese número de documento.<br/><br/>Si necesita modificar su información, puede editarlo desde la tabla.`,
-              confirmButtonText: "Entendido",
-            });
-            return;
-          } else {
-            // Usuario inactivo: ofrecer reactivar
-            const result = await Swal.fire({
-              icon: "info",
-              title: "Usuario inactivo encontrado",
-              html: `<b>${existente.primerNombre} ${existente.primerApellido}</b> ya existe con ese documento pero se encuentra <b>inactivo</b>.<br/><br/>¿Desea reactivarlo en lugar de crear un nuevo usuario?`,
-              showCancelButton: true,
-              confirmButtonText: "Sí, reactivar",
-              cancelButtonText: "Cancelar",
-              reverseButtons: true,
-            });
-            if (result.isConfirmed) {
-              const resAct = await activarUsuarioService(
-                existente.username,
-                token,
-              );
-              if (resAct.ok) {
-                Swal.fire({
-                  icon: "success",
-                  title: "Usuario reactivado",
-                  timer: 3000,
-                  showConfirmButton: false,
-                });
-                await cargarUsuarios();
-                setShowModalRegistrar(false);
-                resetForm();
-              } else {
-                Swal.fire("Error", "No se pudo reactivar el usuario.", "error");
-              }
-            }
-            setSubmitting(false);
-            return;
-          }
-        }
+        const existente = usuarios.find((u) => u.numeroDocumento?.toLowerCase() === doc);
+        if (existente && await manejarDocDuplicadoFE(existente, token)) return;
       }
       const datos = {
         password: formData.password,
@@ -655,107 +632,35 @@ function GestionUsuarios() {
       };
       const res = await registrarUsuario(datos, token);
       const contentType = res.headers.get("content-type");
-      const dataRes =
-        contentType && contentType.includes("application/json")
-          ? await res.json()
-          : await res.text();
+      const dataRes = contentType && contentType.includes("application/json")
+        ? await res.json()
+        : await res.text();
       if (!res.ok) {
         if (res.status === 400) {
-          Swal.fire({
-            icon: "warning",
-            title: "Error de validacion",
-            text: traducirMensajeBackend(dataRes),
-          });
+          Swal.fire({ icon: "warning", title: "Error de validacion", text: traducirMensajeBackend(dataRes) });
           return;
         }
-        if (res.status === 409) {
-          const verif =
-            dataRes?.verficacions ||
-            dataRes?.verficaciones ||
-            dataRes?.verificaciones ||
-            null;
-          const backendMsg = dataRes?.message || dataRes?.mensaje || "";
-          if (verif && verif.numeroDocumento) {
-            const result = await Swal.fire({
-              title: "Usuario existente",
-              html:
-                (backendMsg || "Ya existe un usuario con ese documento.") +
-                "<br/><br/>Desea reactivar este usuario?",
-              icon: "info",
-              showCancelButton: true,
-              confirmButtonText: "Si, reactivar",
-              cancelButtonText: "No, cancelar",
-              reverseButtons: true,
-            });
-            if (result.isConfirmed) {
-              const payload = {
-                numeroDocumento: verif.numeroDocumento,
-                volverActivar: 1,
-              };
-              const resAct = await fetch("http://localhost:3001/api/usuario", {
-                method: "PATCH",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: "Bearer " + token,
-                },
-                body: JSON.stringify(payload),
-              });
-              if (resAct.ok) {
-                Swal.fire({
-                  icon: "success",
-                  title: "Usuario reactivado",
-                  timer: 3000,
-                  showConfirmButton: false,
-                });
-                await cargarUsuarios();
-                setShowModalRegistrar(false);
-                resetForm();
-                return;
-              }
-            }
-            setShowModalRegistrar(false);
-            resetForm();
-            return;
-          }
-        }
+        if (res.status === 409) { await manejar409GU(dataRes, token); return; }
         if (res.status >= 500) {
-          Swal.fire({
-            icon: "error",
-            title: "Error de servidor",
-            text: "Error en el servidor. Comuniquese con el area de sistemas.",
-          });
+          Swal.fire({ icon: "error", title: "Error de servidor", text: "Error en el servidor. Comuniquese con el area de sistemas." });
           return;
         }
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "No se pudo crear el usuario.",
-        });
+        Swal.fire({ icon: "error", title: "Error", text: "No se pudo crear el usuario." });
         return;
       }
       /* Guardar foto si se seleccionó una */
       if (formPhoto) {
-        const photoKey =
-          formData.numeroDocumento || dataRes.usuario?.username || "";
+        const photoKey = formData.numeroDocumento || dataRes.usuario?.username || "";
         const usernameCreado = dataRes.usuario?.username || "";
-        if (photoKey) {
-          savePhoto(photoKey, formPhoto);
-          setUserPhotos(getPhotos());
-        }
+        if (photoKey) { savePhoto(photoKey, formPhoto); setUserPhotos(getPhotos()); }
         if (usernameCreado && token) {
-          try {
-            await actualizarFotoPerfil(usernameCreado, formPhoto, token);
-          } catch (err) {
-            // No se pudo sincronizar foto
-          }
+          try { await actualizarFotoPerfil(usernameCreado, formPhoto, token); } catch (_) { /* foto no sincronizada */ }
         }
       }
       Swal.fire({
         icon: "success",
         title: "Registrado correctamente",
-        text:
-          "Username asignado: " +
-          (dataRes.usuario?.username || dataRes.idUsuario || ""),
+        text: "Username asignado: " + (dataRes.usuario?.username || dataRes.idUsuario || ""),
         timer: 3500,
         showConfirmButton: false,
       });
@@ -763,11 +668,7 @@ function GestionUsuarios() {
       await cargarUsuarios();
       setShowModalRegistrar(false);
     } catch (err) {
-      Swal.fire({
-        icon: "error",
-        title: "Lo siento",
-        text: "Error de conexion. Comuniquese con el area de sistemas.",
-      });
+      Swal.fire({ icon: "error", title: "Lo siento", text: "Error de conexion. Comuniquese con el area de sistemas." });
     } finally {
       setSubmitting(false);
     }

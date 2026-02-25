@@ -11,6 +11,14 @@
 -- ============================================================
 
 -- ============================================================
+-- CONSTANTES DE SESIÓN
+-- ============================================================
+SET @TIPO_PROPIETARIO   = 'propietario';
+SET @TIPO_ARRENDATARIO  = 'arrendatario';
+-- Estados finalizados: Inactivo(2), Retirado(3), Suspendido(4), Finalizado(9)
+SET @ESTADOS_EXCLUIDOS  = '2,3,4,9';
+
+-- ============================================================
 -- 1. DIAGNÓSTICO: Ver duplicados actuales
 -- ============================================================
 
@@ -21,7 +29,7 @@ SELECT
   COUNT(*) AS total_activos,
   GROUP_CONCAT(idOcupante ORDER BY idOcupante DESC) AS ids_ocupantes
 FROM ocupante
-WHERE tipoOcupacion = 'propietario'
+WHERE tipoOcupacion = @TIPO_PROPIETARIO
   AND estadoId NOT IN (2, 3, 4, 9)
 GROUP BY apartamentosId, tipoOcupacion
 HAVING COUNT(*) > 1;
@@ -33,7 +41,7 @@ SELECT
   COUNT(*) AS total_activos,
   GROUP_CONCAT(idOcupante ORDER BY idOcupante DESC) AS ids_ocupantes
 FROM ocupante
-WHERE tipoOcupacion = 'arrendatario'
+WHERE tipoOcupacion = @TIPO_ARRENDATARIO
   AND estadoId NOT IN (2, 3, 4, 9)
 GROUP BY apartamentosId, tipoOcupacion
 HAVING COUNT(*) > 1;
@@ -47,13 +55,13 @@ UPDATE ocupante
 SET
   estadoId   = 9,
   fechaFin   = CURDATE()
-WHERE tipoOcupacion = 'propietario'
+WHERE tipoOcupacion = @TIPO_PROPIETARIO
   AND estadoId NOT IN (2, 3, 4, 9)
   AND idOcupante NOT IN (
     SELECT maxId FROM (
       SELECT MAX(idOcupante) AS maxId
       FROM ocupante
-      WHERE tipoOcupacion = 'propietario'
+      WHERE tipoOcupacion = @TIPO_PROPIETARIO
         AND estadoId NOT IN (2, 3, 4, 9)
       GROUP BY apartamentosId
     ) AS t
@@ -68,13 +76,13 @@ UPDATE ocupante
 SET
   estadoId   = 9,
   fechaFin   = CURDATE()
-WHERE tipoOcupacion = 'arrendatario'
+WHERE tipoOcupacion = @TIPO_ARRENDATARIO
   AND estadoId NOT IN (2, 3, 4, 9)
   AND idOcupante NOT IN (
     SELECT maxId FROM (
       SELECT MAX(idOcupante) AS maxId
       FROM ocupante
-      WHERE tipoOcupacion = 'arrendatario'
+      WHERE tipoOcupacion = @TIPO_ARRENDATARIO
         AND estadoId NOT IN (2, 3, 4, 9)
       GROUP BY apartamentosId
     ) AS t
@@ -91,7 +99,8 @@ SELECT
   tipoOcupacion,
   COUNT(*) AS total_activos
 FROM ocupante
-WHERE tipoOcupacion IN ('propietario', 'arrendatario')
+WHERE tipoOcupacion IN (@TIPO_PROPIETARIO, @TIPO_ARRENDATARIO)
   AND estadoId NOT IN (2, 3, 4, 9)
 GROUP BY apartamentosId, tipoOcupacion
 HAVING COUNT(*) > 1;
+

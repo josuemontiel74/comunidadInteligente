@@ -159,55 +159,70 @@ export default function CalendarioReservas() {
     return mesesArr;
   };
 
+  const buildHtmlReservasDia = (reservasDia) => {
+    if (!reservasDia || reservasDia.length === 0) {
+      return `<p><strong>¡Excelente!</strong> No hay reservas para este día. Todos los espacios están disponibles.</p>`;
+    }
+    let html = `<h5 style="color:#dc3545">Horarios Ocupados</h5>`;
+    reservasDia.forEach((r) => {
+      const area = obtenerNombreArea(r.areaComunId);
+      const solicit = extraerSolicitante(r);
+      html += `<div style="margin-bottom:8px;padding:8px;border-left:4px solid ${obtenerColorArea(r.areaComunId)}">`;
+      html += `<div><strong>${area}</strong></div>`;
+      html += `<div>${formatearHora(r.horaInicio)} → ${formatearHora(r.horaFin)}</div>`;
+      html += `<div style="font-size:12px;color:#666">Solicitante: ${solicit.nombre || "N/A"} · Documento: ${solicit.documento || "N/A"}</div>`;
+      html += `</div>`;
+    });
+    return html;
+  };
+
+  const buildHtmlEspacios = (espacios, esHoy) => {
+    if (!espacios || espacios.length === 0) return "";
+    let html = `<hr/><h5 style="color:#198754">Espacios disponibles</h5>`;
+    if (esHoy) {
+      html += `<div class="alert alert-warning">Las reservas para hoy ya no están disponibles. Por favor realiza la reserva para <strong>mañana</strong> o una fecha posterior.</div>`;
+    }
+    espacios.forEach((e, i) => {
+      const color = obtenerColorPorDuracion(e.duracion);
+      html += `<div style="margin-bottom:8px;padding:8px;border-left:4px solid ${color}">`;
+      html += `<div><strong>${e.nombreArea}</strong></div>`;
+      html += `<div>${formatearHora(e.horaInicio)} → ${formatearHora(e.horaFin)}</div>`;
+      html += `<div style="font-size:12px;color:${color}">Disponible por ${e.duracion} hora${e.duracion > 1 ? "s" : ""}</div>`;
+      if (!esHoy) {
+        html += `<div style="margin-top:6px"><button id="reservar-${i}" class="btn btn-sm btn-primary">Reservar</button></div>`;
+      }
+      html += `</div>`;
+    });
+    return html;
+  };
+
+  const attachListenersReservar = (espacios, fecha) => {
+    const fechaStr = fecha.toISOString().split("T")[0];
+    espacios.forEach((e, i) => {
+      const btn = document.getElementById(`reservar-${i}`);
+      if (!btn) return;
+      btn.addEventListener("click", () => {
+        navigate("/AreasComunes", {
+          state: {
+            abrirModal: true,
+            prefill: { areaComunId: e.areaId, fechaReserva: fechaStr, horaInicio: e.horaInicio, horaFin: e.horaFin },
+          },
+        });
+        Swal.close();
+      });
+    });
+  };
+
   const mostrarDetallesDia = (fecha) => {
     const reservasDia = obtenerReservasPorDia(fecha);
     const espacios = calcularEspaciosDisponibles(fecha);
     const diaTexto = `${diasSemana[fecha.getDay()]} ${fecha.getDate()} de ${nombresMeses[fecha.getMonth()]}`;
-
-    let html = `<div style="text-align:left">`;
-
-    const hoy = new Date();
-    const fechaHoyStr = hoy.toISOString().split("T")[0];
-    const fechaStr = fecha.toISOString().split("T")[0];
-    const esHoy = fechaStr === fechaHoyStr;
-
-    if (!reservasDia || reservasDia.length === 0) {
-      html += `<p><strong>¡Excelente!</strong> No hay reservas para este día. Todos los espacios están disponibles.</p>`;
-    } else {
-      html += `<h5 style="color:#dc3545">Horarios Ocupados</h5>`;
-      reservasDia.forEach((r) => {
-        const area = obtenerNombreArea(r.areaComunId);
-        html += `<div style="margin-bottom:8px;padding:8px;border-left:4px solid ${obtenerColorArea(r.areaComunId)}">`;
-        html += `<div><strong>${area}</strong></div>`;
-        html += `<div>${formatearHora(r.horaInicio)} → ${formatearHora(r.horaFin)}</div>`;
-        const solicit = extraerSolicitante(r);
-        html += `<div style="font-size:12px;color:#666">Solicitante: ${solicit.nombre || "N/A"} · Documento: ${solicit.documento || "N/A"}</div>`;
-        html += `</div>`;
-      });
-    }
-
-    // Mostrar espacios solo si hay disponibilidad
-    if (espacios && espacios.length > 0) {
-      html += `<hr/><h5 style="color:#198754">Espacios disponibles</h5>`;
-
-      if (esHoy) {
-        html += `<div class="alert alert-warning">Las reservas para hoy ya no están disponibles. Por favor realiza la reserva para <strong>mañana</strong> o una fecha posterior.</div>`;
-      }
-
-      espacios.forEach((e, i) => {
-        const color = obtenerColorPorDuracion(e.duracion);
-        html += `<div style="margin-bottom:8px;padding:8px;border-left:4px solid ${color}">`;
-        html += `<div><strong>${e.nombreArea}</strong></div>`;
-        html += `<div>${formatearHora(e.horaInicio)} → ${formatearHora(e.horaFin)}</div>`;
-        html += `<div style="font-size:12px;color:${color}">Disponible por ${e.duracion} hora${e.duracion > 1 ? "s" : ""}</div>`;
-        if (!esHoy) {
-          html += `<div style="margin-top:6px"><button id="reservar-${i}" class="btn btn-sm btn-primary">Reservar</button></div>`;
-        }
-        html += `</div>`;
-      });
-    }
-
-    html += `</div>`;
+    const esHoy = fecha.toISOString().split("T")[0] === new Date().toISOString().split("T")[0];
+    const html =
+      `<div style="text-align:left">` +
+      buildHtmlReservasDia(reservasDia) +
+      buildHtmlEspacios(espacios, esHoy) +
+      `</div>`;
 
     Swal.fire({
       title: `Detalles del ${diaTexto}`,
@@ -216,28 +231,8 @@ export default function CalendarioReservas() {
       showCloseButton: true,
       confirmButtonText: "Cerrar",
       didOpen: () => {
-        // Añadir listeners a los botones Reservar creados dinámicamente (solo si no es hoy)
         if (!esHoy && espacios && espacios.length > 0) {
-          espacios.forEach((e, i) => {
-            const btn = document.getElementById(`reservar-${i}`);
-            if (btn) {
-              btn.addEventListener("click", () => {
-                const fechaStr = fecha.toISOString().split("T")[0];
-                navigate("/AreasComunes", {
-                  state: {
-                    abrirModal: true,
-                    prefill: {
-                      areaComunId: e.areaId || e.areaId,
-                      fechaReserva: fechaStr,
-                      horaInicio: e.horaInicio,
-                      horaFin: e.horaFin,
-                    },
-                  },
-                });
-                Swal.close();
-              });
-            }
-          });
+          attachListenersReservar(espacios, fecha);
         }
       },
     });
@@ -250,71 +245,42 @@ export default function CalendarioReservas() {
     return reservas.filter((r) => r.fechaReserva === fechaStr);
   };
 
+  const calcularEspaciosDeArea = (areaId, reservasArea, horaInicio, horaFin) => {
+    if (reservasArea.length === 0) {
+      return [{ areaId, nombreArea: obtenerNombreArea(areaId), horaInicio: `${horaInicio}:00`, horaFin: `${horaFin}:00`, duracion: horaFin - horaInicio }];
+    }
+    const result = [];
+    let horaActual = horaInicio;
+    reservasArea.forEach((reserva) => {
+      const [h] = reserva.horaInicio.split(":").map(Number);
+      if (horaActual < h) {
+        result.push({ areaId, nombreArea: obtenerNombreArea(areaId), horaInicio: `${horaActual}:00`, horaFin: `${h}:00`, duracion: h - horaActual });
+      }
+      const [hFin] = reserva.horaFin.split(":").map(Number);
+      horaActual = Math.ceil(hFin);
+    });
+    if (horaActual < horaFin) {
+      result.push({ areaId, nombreArea: obtenerNombreArea(areaId), horaInicio: `${horaActual}:00`, horaFin: `${horaFin}:00`, duracion: horaFin - horaActual });
+    }
+    return result;
+  };
+
   const calcularEspaciosDisponibles = (fecha) => {
     const reservasDia = obtenerReservasPorDia(fecha);
     const horaInicio = 8;
     const horaFin = 20;
-
-    const areasPorId = {
-      1: [],
-      2: [],
-      3: [],
-    };
-
+    const areasPorId = { 1: [], 2: [], 3: [] };
     reservasDia.forEach((reserva) => {
       if (areasPorId[reserva.areaComunId]) {
         areasPorId[reserva.areaComunId].push(reserva);
       }
     });
-
-    const espaciosDisponibles = [];
-
-    [1, 2, 3].forEach((areaId) => {
-      const reservasArea = areasPorId[areaId].sort((a, b) => {
-        return a.horaInicio.localeCompare(b.horaInicio);
-      });
-
-      if (reservasArea.length === 0) {
-        espaciosDisponibles.push({
-          areaId,
-          nombreArea: obtenerNombreArea(areaId),
-          horaInicio: `${horaInicio}:00`,
-          horaFin: `${horaFin}:00`,
-          duracion: horaFin - horaInicio,
-        });
-      } else {
-        let horaActual = horaInicio;
-
-        reservasArea.forEach((reserva) => {
-          const [h] = reserva.horaInicio.split(":").map(Number);
-
-          if (horaActual < h) {
-            espaciosDisponibles.push({
-              areaId,
-              nombreArea: obtenerNombreArea(areaId),
-              horaInicio: `${horaActual}:00`,
-              horaFin: `${h}:00`,
-              duracion: h - horaActual,
-            });
-          }
-
-          const [hFin] = reserva.horaFin.split(":").map(Number);
-          horaActual = Math.ceil(hFin);
-        });
-
-        if (horaActual < horaFin) {
-          espaciosDisponibles.push({
-            areaId,
-            nombreArea: obtenerNombreArea(areaId),
-            horaInicio: `${horaActual}:00`,
-            horaFin: `${horaFin}:00`,
-            duracion: horaFin - horaActual,
-          });
-        }
-      }
+    return [1, 2, 3].flatMap((areaId) => {
+      const reservasArea = areasPorId[areaId].sort((a, b) =>
+        a.horaInicio.localeCompare(b.horaInicio),
+      );
+      return calcularEspaciosDeArea(areaId, reservasArea, horaInicio, horaFin);
     });
-
-    return espaciosDisponibles;
   };
 
   const obtenerColorPorDuracion = (duracion) => {
@@ -618,32 +584,23 @@ export default function CalendarioReservas() {
                               textAlign: "center",
                               cursor: "pointer",
                             };
-
+                        const handleCellClick = () => {
+                          if (reservado) {
+                            Swal.fire("Fecha reservada", `La fecha ${cell.iso} ya está reservada.`, "info");
+                            return;
+                          }
+                          if (esPasado) {
+                            Swal.fire("Fecha pasada", "No es posible reservar fechas pasadas.", "warning");
+                            return;
+                          }
+                          mostrarDetallesDia(new Date(cell.iso));
+                        };
                         return (
                           <div
                             key={cell.iso}
                             style={estilo}
                             title={cell.iso}
-                            onClick={() => {
-                              if (reservado) {
-                                Swal.fire(
-                                  "Fecha reservada",
-                                  `La fecha ${cell.iso} ya está reservada.`,
-                                  "info",
-                                );
-                                return;
-                              }
-                              if (esPasado) {
-                                Swal.fire(
-                                  "Fecha pasada",
-                                  "No es posible reservar fechas pasadas.",
-                                  "warning",
-                                );
-                                return;
-                              }
-                              // Usar la función existente para mostrar modal o flujo
-                              mostrarDetallesDia(new Date(cell.iso));
-                            }}
+                            onClick={handleCellClick}
                           >
                             {cell.day}
                           </div>

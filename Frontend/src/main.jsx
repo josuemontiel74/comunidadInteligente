@@ -10,7 +10,7 @@ import App from "./App.jsx";
 // Así todos los módulos tienen el tema correcto desde el instante 0,
 // sin parpadeo ("flash of white"), aunque el usuario no pase por un dashboard.
 if (localStorage.getItem("ci_modo_oscuro") === "1") {
-  document.documentElement.setAttribute("data-modo", "oscuro");
+  document.documentElement.dataset.modo = "oscuro";
 }
 // ─────────────────────────────────────────────────────────────────────────────
 

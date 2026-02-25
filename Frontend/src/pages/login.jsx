@@ -21,10 +21,10 @@ function Login() {
   React.useEffect(() => {
     const html = document.documentElement;
     if (oscuro) {
-      html.setAttribute("data-modo", "oscuro");
+      html.dataset.modo = "oscuro";
       localStorage.setItem(DARK_KEY, "1");
     } else {
-      html.removeAttribute("data-modo");
+      delete html.dataset.modo;
       localStorage.removeItem(DARK_KEY);
     }
   }, [oscuro]);

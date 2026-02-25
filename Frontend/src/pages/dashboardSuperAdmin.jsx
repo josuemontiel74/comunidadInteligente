@@ -53,13 +53,11 @@ function Dashboard() {
 
   // Modo oscuro – reactive para re-renderizar gráficas
   const [oscuro, setOscuro] = useState(
-    () => document.documentElement.getAttribute("data-modo") === "oscuro",
+    () => document.documentElement.dataset.modo === "oscuro",
   );
   useEffect(() => {
     const obs = new MutationObserver(() =>
-      setOscuro(
-        document.documentElement.getAttribute("data-modo") === "oscuro",
-      ),
+      setOscuro(document.documentElement.dataset.modo === "oscuro"),
     );
     obs.observe(document.documentElement, {
       attributes: true,
@@ -123,29 +121,26 @@ function Dashboard() {
         localStorage.removeItem("user");
         navigator("/");
       }
-    } else {
-      fetch("http://localhost:3001/api/usuario", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      })
-        .then((res) => {
-          if (!res.ok) throw new Error("No autorizado");
-          return res.json();
-        })
-        .then((data) => {
-          setUsuario(data.usuario);
-          localStorage.setItem("user", JSON.stringify(data.usuario));
-          setLoading(false);
-        })
-        .catch(() => {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          navigator("/");
-        });
+      return;
     }
+
+    (async () => {
+      try {
+        const res = await fetch("http://localhost:3001/api/usuario", {
+          method: "GET",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error("No autorizado");
+        const data = await res.json();
+        setUsuario(data.usuario);
+        localStorage.setItem("user", JSON.stringify(data.usuario));
+        setLoading(false);
+      } catch {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigator("/");
+      }
+    })();
   }, [navigator]);
 
   // Cargar foto de perfil
