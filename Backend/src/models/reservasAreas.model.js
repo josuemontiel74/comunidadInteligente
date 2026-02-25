@@ -50,10 +50,6 @@ class ReservarAreas extends Model {
           type: DataTypes.TINYINT(1),
           allowNull: false,
         },
-        estadoId: {
-          type: DataTypes.INTEGER,
-          allowNull: false,
-        },
         documentoSolicitante: {
           type: DataTypes.STRING(20),
           allowNull: false,

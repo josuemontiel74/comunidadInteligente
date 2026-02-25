@@ -65,7 +65,7 @@ export const actualizarVisitante = async (req, res) => {
   } catch (error) {
     res
       .status(500)
-      .json({ error: "Error al actualizar visitante", error: error.message });
+      .json({ message: "Error al actualizar visitante", error: error.message });
   }
 };
 

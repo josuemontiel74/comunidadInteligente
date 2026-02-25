@@ -94,11 +94,7 @@ export const EliminarEstado = async (req, res) => {
       where: { idEstado: IdEstado },
     });
 
-    const eliminarEstado = await estadosModel.findOne({
-      where: { idEstado: IdEstado },
-    });
-
-    if (eliminarEstado === 0) {
+    if (eliminar === 0) {
       return res.status(404).json({
         message: "No se encontró el estado con ese ID",
         status: 404,

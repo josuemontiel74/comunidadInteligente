@@ -62,7 +62,6 @@ export const crearUsuario = async (req, res) => {
       message: "Usuario y Persona creados",
       usuario: {
         username: createUser.username,
-        username: createUser.username,
       },
       persona: {
         numeroDocumento: nuevaPersona.numeroDocumento,
