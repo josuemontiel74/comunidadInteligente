@@ -7,7 +7,8 @@
  * Ejemplo de .env:
  *   VITE_API_URL=https://mi-api.ejemplo.com
  */
-export const API_ORIGIN =
-  (import.meta.env.VITE_API_URL ?? "http://localhost:3001").replace(/\/$/, "");
+export const API_ORIGIN = (
+  import.meta.env.VITE_API_URL ?? "http://localhost:3001"
+).replace(/\/$/, "");
 
 export const API_BASE = `${API_ORIGIN}/api`;

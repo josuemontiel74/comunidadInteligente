@@ -812,10 +812,7 @@ function GestionUsuarios() {
     if (!token) return navigate("/");
     const targetUsername =
       formData.username?.trim() || formData.originalUsername;
-    if (
-      !formData.primerNombre ||
-      !formData.primerApellido
-    ) {
+    if (!formData.primerNombre || !formData.primerApellido) {
       Swal.fire(
         "Error",
         "Los campos 'Primer Nombre' y 'Primer Apellido' son obligatorios y no pueden contener espacios, tildes ni caracteres especiales.",

@@ -13,4 +13,4 @@ export const handleSubmit = async (username, password) => {
   } catch (err) {
     throw err;
   }
-}
+};
