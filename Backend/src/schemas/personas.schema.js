@@ -6,21 +6,41 @@ export const createPersonaSchema = Joi.object({
     .required()
     .pattern(/^[a-zA-Z0-9]+$/),
   tipoDocumentoId: Joi.number().integer().required(),
-  primerNombre: Joi.string().max(20).pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/).required(),
-  segundoNombre: Joi.string().max(45).pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
-  primerApellido: Joi.string().max(30).pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/).required(),
-  segundoApellido: Joi.string().max(30).pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
+  primerNombre: Joi.string()
+    .max(20)
+    .pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/)
+    .required(),
+  segundoNombre: Joi.string()
+    .max(45)
+    .pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
+  primerApellido: Joi.string()
+    .max(30)
+    .pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/)
+    .required(),
+  segundoApellido: Joi.string()
+    .max(30)
+    .pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
   correoElectronico: Joi.string().email().required(),
-  telefono: Joi.string().pattern(/^3\d{9}$/).required(),
+  telefono: Joi.string()
+    .pattern(/^3\d{9}$/)
+    .required(),
 });
 
 export const updatePersonaSchema = Joi.object({
   numeroDocumento: Joi.string().max(20),
   tipoDocumentoId: Joi.number().integer(),
-  primerNombre: Joi.string().max(20).pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
-  segundoNombre: Joi.string().max(45).pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
-  primerApellido: Joi.string().max(30).pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
-  segundoApellido: Joi.string().max(30).pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
+  primerNombre: Joi.string()
+    .max(20)
+    .pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
+  segundoNombre: Joi.string()
+    .max(45)
+    .pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
+  primerApellido: Joi.string()
+    .max(30)
+    .pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
+  segundoApellido: Joi.string()
+    .max(30)
+    .pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
   correoElectronico: Joi.string().email(),
   telefono: Joi.string().pattern(/^3\d{9}$/),
 }).min(1);
@@ -32,4 +52,3 @@ export const getPersonaByIdSchema = Joi.object({
 export const deletePersonaSchema = Joi.object({
   numeroDocumento: Joi.string().max(20).required(),
 });
-

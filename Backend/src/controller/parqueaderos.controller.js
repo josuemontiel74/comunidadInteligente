@@ -3,6 +3,7 @@ import TipoVehiculoModel from "../models/tiposVehiculo.model.js";
 import EstadoModel from "../models/estados.model.js";
 import VehiculoModel from "../models/vehiculo.model.js";
 import VisitaModel from "../models/visitas.model.js";
+import { ESTADO_PARQUEADERO, ESTADO_VISITA } from "../utils/constantes.js";
 
 export const createParqueadero = async (req, res) => {
   try {
@@ -165,7 +166,7 @@ export const actualizarParqueadero = async (req, res) => {
       }
 
       // Bloquear asignación manual a "Ocupado"
-      if (Number(estadoId) === 3) {
+      if (Number(estadoId) === ESTADO_PARQUEADERO.OCUPADO) {
         return res.status(400).json({
           message:
             "No se puede cambiar un parqueadero a 'Ocupado' manualmente. Los parqueaderos se ocupan automáticamente al registrar una visita con vehículo.",
@@ -176,7 +177,7 @@ export const actualizarParqueadero = async (req, res) => {
       // Validar: si el parqueadero está ocupado (3) y se quiere cambiar a disponible (4) o no disponible (18),
       // verificar que no tenga una visita activa
       if (
-        Number(parqueadero.estadoId) === 3 &&
+        Number(parqueadero.estadoId) === ESTADO_PARQUEADERO.OCUPADO &&
         [4, 18].includes(Number(estadoId))
       ) {
         const vehiculoEnParqueadero = await VehiculoModel.findOne({
@@ -187,7 +188,7 @@ export const actualizarParqueadero = async (req, res) => {
           const visitaActiva = await VisitaModel.findOne({
             where: {
               vehiculoMatricula: vehiculoEnParqueadero.matricula,
-              estadoId: 8, // Visita en curso
+              estadoId: ESTADO_VISITA.ACTIVA, // Visita en curso
             },
           });
 
@@ -290,7 +291,7 @@ export const cambiarEstadoParqueadero = async (req, res) => {
 
     // Validar: no se puede poner un parqueadero en "Ocupado" manualmente,
     // solo se ocupa automáticamente al crear una visita con vehículo
-    if (Number(estadoId) === 3) {
+    if (Number(estadoId) === ESTADO_PARQUEADERO.OCUPADO) {
       return res.status(400).json({
         message:
           "No se puede cambiar un parqueadero a 'Ocupado' manualmente. Los parqueaderos se ocupan automáticamente al registrar una visita con vehículo.",
@@ -301,7 +302,7 @@ export const cambiarEstadoParqueadero = async (req, res) => {
     // Validar: si el parqueadero está ocupado (3) y se quiere cambiar a disponible (4) o no disponible (18),
     // verificar que no tenga una visita activa
     if (
-      Number(parqueadero.estadoId) === 3 &&
+      Number(parqueadero.estadoId) === ESTADO_PARQUEADERO.OCUPADO &&
       [4, 18].includes(Number(estadoId))
     ) {
       const vehiculoEnParqueadero = await VehiculoModel.findOne({
@@ -312,7 +313,7 @@ export const cambiarEstadoParqueadero = async (req, res) => {
         const visitaActiva = await VisitaModel.findOne({
           where: {
             vehiculoMatricula: vehiculoEnParqueadero.matricula,
-            estadoId: 8, // Visita en curso
+            estadoId: ESTADO_VISITA.ACTIVA, // Visita en curso
           },
         });
 

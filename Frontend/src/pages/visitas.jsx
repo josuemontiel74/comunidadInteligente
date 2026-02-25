@@ -6,6 +6,10 @@ import "../Styles/estiloVisitas.css";
 import Swal from "sweetalert2";
 import { validarNombreCompleto, validarDocumento } from "../utils/validaciones.js";
 import {
+  validarNombreCompleto,
+  validarDocumento,
+} from "../utils/validaciones.js";
+import {
   obtenerVisitasJoin,
   crearVisita,
   actualizarVisita,
@@ -439,7 +443,9 @@ function Visitas() {
             .map((v) => v.numeroApartamento)
             .filter(Boolean),
         ),
-      ].sort()
+      ].sort((a, b) =>
+        String(a).localeCompare(String(b), "es", { numeric: true }),
+      )
     : [];
 
   // ── Paginación ──

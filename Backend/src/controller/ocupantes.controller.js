@@ -5,6 +5,12 @@ import Persona from "../models/personas.model.js";
 import { sequelize } from "../config/connect.db.js";
 import { registrarAuditoria } from "../services/auditorias.service.js";
 import { registrarFallo } from "../services/logger.service.js";
+import {
+  validarCamposNombre,
+  validarTelefono,
+  validarNumeroDocumento,
+} from "../utils/validaciones.js";
+import { ESTADO_OCUPANTE } from "../utils/constantes.js";
 
 // ── Validación de nombres ─────────────────────────────────────────────────────────────────
 const NOMBRE_REGEX = /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s\-']+$/;
@@ -133,7 +139,7 @@ export const crearOcupante = async (req, res) => {
         where: {
           apartamentosId: dataOcupante.apartamentosId,
           tipoOcupacion: dataOcupante.tipoOcupacion,
-          estadoId: { [Op.notIn]: [2, 3, 4] }, // excluir inactivos/finalizados
+          estadoId: { [Op.notIn]: ESTADO_OCUPANTE.INACTIVOS }, // excluir inactivos/finalizados
         },
         transaction: t,
       });
@@ -177,7 +183,7 @@ export const crearOcupante = async (req, res) => {
         tieneNinos: dataOcupante.tieneNinos,
         tieneAdultoMayor: dataOcupante.tieneAdultoMayor,
         tieneDiscapacidad: dataOcupante.tieneDiscapacidad,
-        estadoId: 5,
+        estadoId: ESTADO_OCUPANTE.ACTIVO,
       },
       { transaction: t },
     );

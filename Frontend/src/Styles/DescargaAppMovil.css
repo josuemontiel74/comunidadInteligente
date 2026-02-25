@@ -219,7 +219,7 @@
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #9ca3af;
+  color: #6b7280;
   cursor: pointer;
   justify-content: center;
 }
@@ -254,7 +254,7 @@
 
 [data-modo="oscuro"] .dap-close {
   background: #2d3348;
-  color: #9ca3af;
+  color: #6b7280;
 }
 [data-modo="oscuro"] .dap-close:hover {
   background: #374060;
@@ -271,11 +271,11 @@
 }
 
 [data-modo="oscuro"] .dap-sub {
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 [data-modo="oscuro"] .dap-features li {
-  color: #d1d5db;
+  color: #6b7280;
 }
 
 [data-modo="oscuro"] .dap-features li i {

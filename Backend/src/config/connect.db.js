@@ -20,13 +20,11 @@ const sequelize = new Sequelize(
 // inicializa los modelos aquí
 const models = initModels(sequelize);
 
-async function testConnection() {
-  try {
-    await sequelize.authenticate();
-  } catch (error) {}
+try {
+  await sequelize.authenticate();
+} catch {
+  // Error de conexión silenciado — el servidor puede arrancar sin BD y reintentar
 }
-
-testConnection();
 
 // exporta ambos: sequelize y models
 export { sequelize, models };

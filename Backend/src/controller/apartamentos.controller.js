@@ -5,9 +5,9 @@ import estadosModel from "../models/estados.model.js";
 // ── Valida que el número de apartamento siga la convención de la torre ──────
 // Torre A(1) → 101-199, Torre B(2) → 201-299, ... Torre J(10) → 1001-1099
 const validarNumeroApartamentoPorTorre = (torresId, numeroApartamento) => {
-  const torre = parseInt(torresId);
-  const num = parseInt(numeroApartamento);
-  if (isNaN(torre) || isNaN(num)) return null;
+  const torre = Number.parseInt(torresId, 10);
+  const num = Number.parseInt(numeroApartamento, 10);
+  if (Number.isNaN(torre) || Number.isNaN(num)) return null;
   const prefijo = torre * 100;
   if (num <= prefijo || num >= prefijo + 100) {
     const letra = String.fromCharCode(64 + torre);
@@ -24,10 +24,12 @@ export const crearApartamento = async (req, res) => {
     // Validar numeración por torre
     const errorApto = validarNumeroApartamentoPorTorre(
       dataApartamento.torresId,
-      dataApartamento.numeroApartamento
+      dataApartamento.numeroApartamento,
     );
     if (errorApto) {
-      return res.status(400).json({ ok: false, status: 400, message: errorApto });
+      return res
+        .status(400)
+        .json({ ok: false, status: 400, message: errorApto });
     }
 
     const createApartamento = await apartamentosModel.create({
@@ -66,7 +68,7 @@ export const mostrarApartamento = async (req, res) => {
       body: mostrarApartamento,
     });
   } catch (error) {
-    return res.status(500).json({ 
+    return res.status(500).json({
       message: "Algo salió mal en la peticion :(",
       status: 500,
       error: error.message,
@@ -113,7 +115,7 @@ export const actualizarApartamento = async (req, res) => {
         torresId: dataApartamento.torresId,
         estadoId: dataApartamento.estadoId,
       },
-      { where: { idApartamento: idApartamento } }
+      { where: { idApartamento: idApartamento } },
     );
     const apartamentoActualizado = await apartamentosModel.findOne({
       where: { idApartamento: idApartamento },

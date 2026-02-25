@@ -28,7 +28,7 @@ export const obtenerLogErrores = async (req, res) => {
     const registros = await logErrores.findAll({
       where,
       order: [["fechaHora", "DESC"]],
-      limit: parseInt(limite),
+      limit: Number.parseInt(limite, 10),
     });
 
     return res.status(200).json({
@@ -46,7 +46,7 @@ export const obtenerLogErrores = async (req, res) => {
 
 export const obtenerResumenLogErrores = async (req, res) => {
   try {
-    const { sequelize } = (await import("../config/connect.db.js"));
+    const { sequelize } = await import("../config/connect.db.js");
 
     const [resumen] = await sequelize.query(`
       SELECT 
@@ -85,7 +85,7 @@ export const limpiarLogErrores = async (req, res) => {
   try {
     const { diasAntiguedad = 30 } = req.body;
     const limite = new Date();
-    limite.setDate(limite.getDate() - parseInt(diasAntiguedad));
+    limite.setDate(limite.getDate() - Number.parseInt(diasAntiguedad, 10));
 
     const eliminados = await logErrores.destroy({
       where: { fechaHora: { [Op.lt]: limite } },

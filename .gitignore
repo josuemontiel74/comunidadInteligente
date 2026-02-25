@@ -13,6 +13,13 @@ dist/
 build/
 .dart_tool/
 
+# Backups de base de datos (contienen datos sensibles — no versionar)
+Backend/backups/
+*.sql.bak
+
+# Archivos de backup locales
+*.bak
+
 # Logs
 *.log
 npm-debug.log*

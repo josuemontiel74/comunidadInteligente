@@ -2,7 +2,8 @@ const BASE = "http://localhost:3001/api";
 
 export async function obtenerLogErrores(token, filtros = {}) {
   const params = new URLSearchParams();
-  if (filtros.nivel && filtros.nivel !== "todos") params.append("nivel", filtros.nivel);
+  if (filtros.nivel && filtros.nivel !== "todos")
+    params.append("nivel", filtros.nivel);
   if (filtros.desde) params.append("desde", filtros.desde);
   if (filtros.hasta) params.append("hasta", filtros.hasta);
   if (filtros.modulo) params.append("modulo", filtros.modulo);

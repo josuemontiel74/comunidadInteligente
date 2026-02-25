@@ -98,7 +98,11 @@ export const obtenerReporteParqueaderos = async (req, res) => {
       success: true,
       data: {
         capacidad: capacidad,
-        resumenPeriodo: resumenPeriodoRaw[0] || { totalVehiculos: 0, carros: 0, motos: 0 },
+        resumenPeriodo: resumenPeriodoRaw[0] || {
+          totalVehiculos: 0,
+          carros: 0,
+          motos: 0,
+        },
         diaPico: diaPicoRaw[0] || null,
         usoDiario: usoDiario,
         picoOcupacion: picoOcupacion,
@@ -463,27 +467,27 @@ export const obtenerReporteOcupacion = async (req, res) => {
       success: true,
       data: {
         // Resumen principal para las tarjetas
-        totalApartamentos: parseInt(resumenGeneral[0]?.totalApartamentos) || 0,
+        totalApartamentos: Number.parseInt(resumenGeneral[0]?.totalApartamentos, 10) || 0,
         apartamentosOcupados:
-          parseInt(resumenGeneral[0]?.apartamentosOcupados) || 0,
+          Number.parseInt(resumenGeneral[0]?.apartamentosOcupados, 10) || 0,
         apartamentosVacios:
-          parseInt(resumenGeneral[0]?.apartamentosVacios) || 0,
-        totalResidentes: parseInt(resumenGeneral[0]?.totalResidentes) || 0,
+          Number.parseInt(resumenGeneral[0]?.apartamentosVacios, 10) || 0,
+        totalResidentes: Number.parseInt(resumenGeneral[0]?.totalResidentes, 10) || 0,
         porcentajeOcupacion:
-          parseFloat(resumenGeneral[0]?.porcentajeOcupacion) || 0,
+          Number.parseFloat(resumenGeneral[0]?.porcentajeOcupacion) || 0,
         // Detalle por torre
         detallePorTorre: torresMasHabitadas.map((t) => ({
           ...t,
-          totalApartamentos: parseInt(t.totalApartamentos) || 0,
-          apartamentosOcupados: parseInt(t.apartamentosOcupados) || 0,
-          totalOcupantes: parseInt(t.totalOcupantes) || 0,
-          totalPersonas: parseInt(t.totalPersonas) || 0,
-          promedioPersonasPorApto: parseFloat(t.promedioPersonasPorApto) || 0,
+          totalApartamentos: Number.parseInt(t.totalApartamentos, 10) || 0,
+          apartamentosOcupados: Number.parseInt(t.apartamentosOcupados, 10) || 0,
+          totalOcupantes: Number.parseInt(t.totalOcupantes, 10) || 0,
+          totalPersonas: Number.parseInt(t.totalPersonas, 10) || 0,
+          promedioPersonasPorApto: Number.parseFloat(t.promedioPersonasPorApto) || 0,
         })),
         apartamentosMasHabitados: apartamentosMasHabitados.map((a) => ({
           ...a,
-          totalOcupantes: parseInt(a.totalOcupantes) || 0,
-          totalPersonas: parseInt(a.totalPersonas) || 0,
+          totalOcupantes: Number.parseInt(a.totalOcupantes, 10) || 0,
+          totalPersonas: Number.parseInt(a.totalPersonas, 10) || 0,
         })),
       },
     });
@@ -546,14 +550,14 @@ export const obtenerReporteNinos = async (req, res) => {
     res.json({
       success: true,
       data: {
-        totalNinos: parseInt(resumenNinos[0]?.totalOcupantesConNinos) || 0,
+        totalNinos: Number.parseInt(resumenNinos[0]?.totalOcupantesConNinos, 10) || 0,
         totalApartamentosConNinos:
-          parseInt(resumenNinos[0]?.totalApartamentosConNinos) || 0,
+          Number.parseInt(resumenNinos[0]?.totalApartamentosConNinos, 10) || 0,
         resumenPorTorre: torresConNinos.map((t) => ({
           ...t,
-          totalApartamentos: parseInt(t.totalApartamentos) || 0,
-          apartamentosConNinos: parseInt(t.apartamentosConNinos) || 0,
-          porcentajeConNinos: parseFloat(t.porcentajeConNinos) || 0,
+          totalApartamentos: Number.parseInt(t.totalApartamentos, 10) || 0,
+          apartamentosConNinos: Number.parseInt(t.apartamentosConNinos, 10) || 0,
+          porcentajeConNinos: Number.parseFloat(t.porcentajeConNinos) || 0,
         })),
         detalleApartamentos: detalleApartamentos,
       },
@@ -664,32 +668,32 @@ export const obtenerReportePoblacionEspecial = async (req, res) => {
       success: true,
       data: {
         totalAdultosMayores:
-          parseInt(resumenTotal[0]?.totalAdultosMayores) || 0,
-        totalDiscapacidad: parseInt(resumenTotal[0]?.totalDiscapacidad) || 0,
+          Number.parseInt(resumenTotal[0]?.totalAdultosMayores, 10) || 0,
+        totalDiscapacidad: Number.parseInt(resumenTotal[0]?.totalDiscapacidad, 10) || 0,
         adultosMayores: torresConAdultosMayores.map((t) => ({
           ...t,
-          totalApartamentos: parseInt(t.totalApartamentos) || 0,
+          totalApartamentos: Number.parseInt(t.totalApartamentos, 10) || 0,
           apartamentosConAdultosMayores:
-            parseInt(t.apartamentosConAdultosMayores) || 0,
+            Number.parseInt(t.apartamentosConAdultosMayores, 10) || 0,
           porcentajeConAdultosMayores:
-            parseFloat(t.porcentajeConAdultosMayores) || 0,
+            Number.parseFloat(t.porcentajeConAdultosMayores) || 0,
         })),
         discapacidad: torresConDiscapacidad.map((t) => ({
           ...t,
-          totalApartamentos: parseInt(t.totalApartamentos) || 0,
+          totalApartamentos: Number.parseInt(t.totalApartamentos, 10) || 0,
           apartamentosConDiscapacidad:
-            parseInt(t.apartamentosConDiscapacidad) || 0,
+            Number.parseInt(t.apartamentosConDiscapacidad, 10) || 0,
           porcentajeConDiscapacidad:
-            parseFloat(t.porcentajeConDiscapacidad) || 0,
+            Number.parseFloat(t.porcentajeConDiscapacidad) || 0,
         })),
         resumenCombinado: resumenCombinado.map((t) => ({
           ...t,
-          totalApartamentos: parseInt(t.totalApartamentos) || 0,
-          conAdultosMayores: parseInt(t.conAdultosMayores) || 0,
-          conDiscapacidad: parseInt(t.conDiscapacidad) || 0,
-          conPoblacionEspecial: parseInt(t.conPoblacionEspecial) || 0,
+          totalApartamentos: Number.parseInt(t.totalApartamentos, 10) || 0,
+          conAdultosMayores: Number.parseInt(t.conAdultosMayores, 10) || 0,
+          conDiscapacidad: Number.parseInt(t.conDiscapacidad, 10) || 0,
+          conPoblacionEspecial: Number.parseInt(t.conPoblacionEspecial, 10) || 0,
           porcentajePoblacionEspecial:
-            parseFloat(t.porcentajePoblacionEspecial) || 0,
+            Number.parseFloat(t.porcentajePoblacionEspecial) || 0,
         })),
         detalleApartamentos: detalleApartamentos,
       },
@@ -823,30 +827,30 @@ export const obtenerReporteUsuarios = async (req, res) => {
       data: {
         masActivos: masActivos.map((u) => ({
           ...u,
-          totalRegistros: parseInt(u.totalRegistros) || 0,
+          totalRegistros: Number.parseInt(u.totalRegistros, 10) || 0,
         })),
         masInactivos: masInactivos.map((u) => ({
           ...u,
           diasSinActividad:
-            parseInt(u.diasSinActividad) === 9999
+            Number.parseInt(u.diasSinActividad, 10) === 9999
               ? null
-              : parseInt(u.diasSinActividad),
+              : Number.parseInt(u.diasSinActividad, 10),
         })),
         modulosMasUsados: modulosMasUsados.map((m) => ({
           tabla: m.tablaAfectada,
           nombre:
             nombreModulo[(m.tablaAfectada || "").toLowerCase()] ||
             m.tablaAfectada,
-          cantidad: parseInt(m.cantidad) || 0,
+          cantidad: Number.parseInt(m.cantidad, 10) || 0,
         })),
         actividadDiaria: actividadDiaria.map((d) => ({
           ...d,
-          registros: parseInt(d.registros) || 0,
-          usuariosActivos: parseInt(d.usuariosActivos) || 0,
+          registros: Number.parseInt(d.registros, 10) || 0,
+          usuariosActivos: Number.parseInt(d.usuariosActivos, 10) || 0,
         })),
-        registrosHoy: parseInt(hoy[0]?.registros) || 0,
-        usuariosActivosHoy: parseInt(hoy[0]?.usuarios) || 0,
-        totalRegistrosPeriodo: parseInt(totalPeriodo[0]?.total) || 0,
+        registrosHoy: Number.parseInt(hoy[0]?.registros, 10) || 0,
+        usuariosActivosHoy: Number.parseInt(hoy[0]?.usuarios, 10) || 0,
+        totalRegistrosPeriodo: Number.parseInt(totalPeriodo[0]?.total, 10) || 0,
       },
     });
   } catch (error) {
