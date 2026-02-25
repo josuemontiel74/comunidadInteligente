@@ -9,7 +9,7 @@ document.getElementById('closeMenu').addEventListener('click', () => {
 
 
 const ctx = document.getElementById('parqueoChart').getContext('2d');
-new Chart(ctx, {
+const parqueoChartInstance = new Chart(ctx, {
   type: 'doughnut',
   data: {
     labels: ['Ocupados', 'Libres'],

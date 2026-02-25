@@ -57,9 +57,9 @@ export const getEstadisticasParqueaderos = async (req, res) => {
         ocupadosVisitantes: parqueaderosVisitantes,
         disponibles: parqueaderosDisponibles,
         porcentajes: {
-          residentes: parseFloat(porcentajeResidentes),
-          visitantes: parseFloat(porcentajeVisitantes),
-          disponibles: parseFloat(porcentajeDisponibles),
+          residentes: Number.parseFloat(porcentajeResidentes),
+          visitantes: Number.parseFloat(porcentajeVisitantes),
+          disponibles: Number.parseFloat(porcentajeDisponibles),
         },
       },
     });
@@ -169,7 +169,7 @@ export const getReservasHoy = async (req, res) => {
         totalReservas: reservasHoy,
         reservasPorArea: reservasPorArea.map((r) => ({
           areaComunId: r.areaComunId,
-          cantidad: parseInt(r.dataValues.cantidad),
+          cantidad: Number.parseInt(r.dataValues.cantidad, 10),
         })),
       },
     });

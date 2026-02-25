@@ -95,9 +95,9 @@ export const validarTelefono = (telefono) => {
 export const validarNumeroDocumento = (tipoDocumentoId, numeroDocumento) => {
   if (!numeroDocumento || !numeroDocumento.toString().trim()) return null;
   const doc = numeroDocumento.toString().trim();
-  const tipo = parseInt(tipoDocumentoId) || 1;
+  const tipo = Number.parseInt(tipoDocumentoId, 10) || 1;
 
-  if (!/^[a-zA-Z0-9\-]+$/.test(doc))
+  if (!/^[a-zA-Z0-9-]+$/.test(doc))
     return "El número de documento solo puede contener letras, números o guiones. No se permiten espacios ni caracteres como @, #, %, etc.";
 
   const digitos = contarDigitos(doc);

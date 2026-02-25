@@ -323,7 +323,7 @@ export const paqueteDelDia = async (req, res) => {
 
 export const informePaqueteria = async (req, res) => {
   try {
-    const reportPor = parseInt(req.params.por, 10);
+    const reportPor = Number.parseInt(req.params.por, 10);
     const rango = req.body.rango || req.body;
     let { fechaInicio, fechaFin } = rango;
 
@@ -335,7 +335,7 @@ export const informePaqueteria = async (req, res) => {
     const dateInicio = new Date(fechaInicio);
     const dateFin = new Date(fechaFin);
 
-    if (isNaN(dateInicio.getTime()) || isNaN(dateFin.getTime())) {
+    if (Number.isNaN(dateInicio.getTime()) || Number.isNaN(dateFin.getTime())) {
       return res.status(400).json({ msg: "Formato de fecha inválido." });
     }
 
@@ -365,7 +365,9 @@ export const informePaqueteria = async (req, res) => {
             [fn("YEAR", col("fechaRecepcion")), "anio"],
             [fn("COUNT", col("idPaquete")), "recibidos"],
             [
-              literal(`SUM(CASE WHEN estadoId = ${ESTADO_PAQUETE.RECIBIDO} THEN 1 ELSE 0 END)`),
+              literal(
+                `SUM(CASE WHEN estadoId = ${ESTADO_PAQUETE.RECIBIDO} THEN 1 ELSE 0 END)`,
+              ),
               "pendientes",
             ],
             [
@@ -386,7 +388,9 @@ export const informePaqueteria = async (req, res) => {
             [fn("MONTH", col("fechaRecepcion")), "mes"],
             [fn("COUNT", col("idPaquete")), "recibidos"],
             [
-              literal(`SUM(CASE WHEN estadoId = ${ESTADO_PAQUETE.RECIBIDO} THEN 1 ELSE 0 END)`),
+              literal(
+                `SUM(CASE WHEN estadoId = ${ESTADO_PAQUETE.RECIBIDO} THEN 1 ELSE 0 END)`,
+              ),
               "pendientes",
             ],
             [
@@ -417,7 +421,9 @@ export const informePaqueteria = async (req, res) => {
             ],
             [fn("COUNT", col("idPaquete")), "recibidos"],
             [
-              literal(`SUM(CASE WHEN estadoId = ${ESTADO_PAQUETE.RECIBIDO} THEN 1 ELSE 0 END)`),
+              literal(
+                `SUM(CASE WHEN estadoId = ${ESTADO_PAQUETE.RECIBIDO} THEN 1 ELSE 0 END)`,
+              ),
               "pendientes",
             ],
             [

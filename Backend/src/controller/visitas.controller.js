@@ -8,7 +8,11 @@ import timezone from "dayjs/plugin/timezone.js";
 import tiposVehiculoModel from "../models/tiposVehiculo.model.js";
 import { sequelize } from "../config/connect.db.js";
 import { registrarAuditoria } from "../services/auditorias.service.js";
-import { ESTADO_PARQUEADERO, ESTADO_VISITA, TIMEZONE_COLOMBIA } from "../utils/constantes.js";
+import {
+  ESTADO_PARQUEADERO,
+  ESTADO_VISITA,
+  TIMEZONE_COLOMBIA,
+} from "../utils/constantes.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -402,7 +406,7 @@ export const actualizarVisita = async (req, res) => {
           const vehiculoAnterior = await Vehiculo.findByPk(
             visita.vehiculoMatricula,
           );
-          if (vehiculoAnterior && vehiculoAnterior.codigoParqueadero) {
+          if (vehiculoAnterior?.codigoParqueadero) {
             await Parqueadero.update(
               { estadoId: ESTADO_PARQUEADERO.DISPONIBLE },
               {
@@ -437,7 +441,10 @@ export const actualizarVisita = async (req, res) => {
           vehiculoActual &&
           vehiculoActual.codigoParqueadero === codigoParqueadero;
 
-        if (!esElMismoParqueadero && parqueadero.estadoId !== ESTADO_PARQUEADERO.DISPONIBLE) {
+        if (
+          !esElMismoParqueadero &&
+          parqueadero.estadoId !== ESTADO_PARQUEADERO.DISPONIBLE
+        ) {
           return res
             .status(400)
             .json({ error: "El parqueadero no está disponible" });
@@ -451,7 +458,7 @@ export const actualizarVisita = async (req, res) => {
           const vehiculoAnterior = await Vehiculo.findByPk(
             visita.vehiculoMatricula,
           );
-          if (vehiculoAnterior && vehiculoAnterior.codigoParqueadero) {
+          if (vehiculoAnterior?.codigoParqueadero) {
             await Parqueadero.update(
               { estadoId: ESTADO_PARQUEADERO.DISPONIBLE },
               {
@@ -558,7 +565,7 @@ export const finalizarVisita = async (req, res) => {
     // Liberar parqueadero si el vehículo lo tiene asignado
     if (visita.vehiculoMatricula) {
       const vehiculo = await Vehiculo.findByPk(visita.vehiculoMatricula);
-      if (vehiculo && vehiculo.codigoParqueadero) {
+      if (vehiculo?.codigoParqueadero) {
         await Parqueadero.update(
           { estadoId: ESTADO_PARQUEADERO.DISPONIBLE }, // Disponible
           { where: { codigoParqueadero: vehiculo.codigoParqueadero } },
@@ -614,7 +621,7 @@ export const visitasDelDia = async (req, res) => {
 };
 function corregirFecha(fecha) {
   const d = new Date(fecha);
-  if (isNaN(d.getTime())) return null;
+  if (Number.isNaN(d.getTime())) return null;
 
   // Normaliza a formato YYYY-MM-DD
   return d.toISOString().slice(0, 10);
@@ -623,7 +630,7 @@ function corregirFecha(fecha) {
 export const informeVisintante = async (req, res) => {
   try {
     const { por } = req.params;
-    const tipoFiltro = parseInt(por);
+    const tipoFiltro = Number.parseInt(por, 10);
 
     let { fechaInicio, fechaFin } = req.body.rango || req.body;
 

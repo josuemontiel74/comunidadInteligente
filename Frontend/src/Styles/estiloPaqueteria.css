@@ -366,7 +366,7 @@
 }
 .paq-empty-icon {
   font-size: 80px;
-  color: #d1d5db;
+  color: #6b7280;
   margin-bottom: 16px;
 }
 .paq-btn-retry {
@@ -595,7 +595,7 @@
 }
 .paq-card-info-label {
   font-size: 11px;
-  color: #9ca3af;
+  color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -661,7 +661,7 @@
   box-sizing: border-box;
 }
 .paq-pagination-info {
-  color: #9ca3af;
+  color: #6b7280;
   font-size: 13px;
   font-weight: 500;
 }
@@ -754,7 +754,7 @@
   background: none;
   border: none;
   font-size: 22px;
-  color: #9ca3af;
+  color: #6b7280;
   cursor: pointer;
   width: 36px;
   height: 36px;
@@ -880,7 +880,7 @@
 }
 .paq-detalle-label {
   font-size: 12px;
-  color: #9ca3af;
+  color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }

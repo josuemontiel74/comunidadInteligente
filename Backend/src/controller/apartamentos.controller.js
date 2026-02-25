@@ -5,9 +5,9 @@ import estadosModel from "../models/estados.model.js";
 // ── Valida que el número de apartamento siga la convención de la torre ──────
 // Torre A(1) → 101-199, Torre B(2) → 201-299, ... Torre J(10) → 1001-1099
 const validarNumeroApartamentoPorTorre = (torresId, numeroApartamento) => {
-  const torre = parseInt(torresId);
-  const num = parseInt(numeroApartamento);
-  if (isNaN(torre) || isNaN(num)) return null;
+  const torre = Number.parseInt(torresId, 10);
+  const num = Number.parseInt(numeroApartamento, 10);
+  if (Number.isNaN(torre) || Number.isNaN(num)) return null;
   const prefijo = torre * 100;
   if (num <= prefijo || num >= prefijo + 100) {
     const letra = String.fromCharCode(64 + torre);

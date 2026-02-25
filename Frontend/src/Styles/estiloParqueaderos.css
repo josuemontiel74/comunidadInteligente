@@ -271,7 +271,7 @@
 .parq-filter-label {
   font-size: 12px;
   font-weight: 700;
-  color: #9ca3af;
+  color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
@@ -321,7 +321,7 @@
 /* Info de resultados */
 .parq-results-info {
   font-size: 13px;
-  color: #9ca3af;
+  color: #6b7280;
   font-weight: 500;
 }
 
@@ -342,12 +342,12 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #9ca3af;
+  color: #6b7280;
 }
 .parq-empty-icon {
   font-size: 64px;
   margin-bottom: 12px;
-  color: #d1d5db;
+  color: #6b7280;
 }
 
 .parq-error-container {
@@ -597,7 +597,7 @@
 
 .parq-stat-label {
   font-size: 12px;
-  color: #9ca3af;
+  color: #6b7280;
   text-transform: uppercase;
   font-weight: 700;
   letter-spacing: 0.5px;
@@ -652,7 +652,7 @@
 }
 
 .parq-page-dots {
-  color: #9ca3af;
+  color: #6b7280;
   font-size: 14px;
   padding: 0 4px;
   user-select: none;

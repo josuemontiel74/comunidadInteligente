@@ -442,7 +442,9 @@ function Visitas() {
             .map((v) => v.numeroApartamento)
             .filter(Boolean),
         ),
-      ].sort((a, b) => String(a).localeCompare(String(b), "es", { numeric: true }))
+      ].sort((a, b) =>
+        String(a).localeCompare(String(b), "es", { numeric: true }),
+      )
     : [];
 
   // ── Paginación ──

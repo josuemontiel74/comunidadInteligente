@@ -17,7 +17,8 @@ import { ESTADO_RESERVA } from "../utils/constantes.js";
 /** Extrae la parte de fecha (YYYY-MM-DD) desde distintos formatos */
 const resolverFechaReservaStr = (fechaReserva) => {
   if (typeof fechaReserva === "string") return fechaReserva.split("T")[0];
-  if (fechaReserva instanceof Date) return fechaReserva.toISOString().split("T")[0];
+  if (fechaReserva instanceof Date)
+    return fechaReserva.toISOString().split("T")[0];
   return dayjs(fechaReserva).format("YYYY-MM-DD");
 };
 
@@ -29,19 +30,27 @@ const calcularNuevoEstado = (reserva, fechaHoy, horaActual) => {
   const hoyDayjs = dayjs(fechaHoy, "YYYY-MM-DD");
 
   if (fechaReservaDayjs.isBefore(hoyDayjs, "day")) {
-    return estadoId !== ESTADO_RESERVA.FINALIZADA ? ESTADO_RESERVA.FINALIZADA : null;
+    return estadoId !== ESTADO_RESERVA.FINALIZADA
+      ? ESTADO_RESERVA.FINALIZADA
+      : null;
   }
 
   if (!fechaReservaDayjs.isSame(hoyDayjs, "day")) return null;
 
   if (horaFin && horaActual > horaFin) {
-    return estadoId !== ESTADO_RESERVA.FINALIZADA ? ESTADO_RESERVA.FINALIZADA : null;
+    return estadoId !== ESTADO_RESERVA.FINALIZADA
+      ? ESTADO_RESERVA.FINALIZADA
+      : null;
   }
 
-  const enCurso = horaInicio && horaActual >= horaInicio &&
+  const enCurso =
+    horaInicio &&
+    horaActual >= horaInicio &&
     (!horaFin || horaActual <= horaFin);
   if (enCurso) {
-    return estadoId !== ESTADO_RESERVA.EN_CURSO ? ESTADO_RESERVA.EN_CURSO : null;
+    return estadoId !== ESTADO_RESERVA.EN_CURSO
+      ? ESTADO_RESERVA.EN_CURSO
+      : null;
   }
 
   return null;
@@ -419,7 +428,7 @@ export const actualizarReserva = async (req, res) => {
     const fechaReserva = data.fechaReserva
       ? dayjs(data.fechaReserva).startOf("day")
       : null;
-    if (fechaReserva && fechaReserva.isBefore(dayjs().startOf("day"))) {
+    if (fechaReserva?.isBefore(dayjs().startOf("day"))) {
       return res.status(400).json({
         ok: false,
         message: "No se puede actualizar una reserva al pasado",
@@ -556,7 +565,7 @@ export const eliminarReservaArea = async (req, res) => {
 // ============================================================
 export const reportes = async (req, res) => {
   try {
-    const reportPor = parseInt(req.params.por);
+    const reportPor = Number.parseInt(req.params.por, 10);
     const rango = req.body.rango || req.body;
     let { fechaInicio, fechaFin } = rango;
 

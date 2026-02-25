@@ -296,7 +296,7 @@
 }
 .aud-empty-icon {
   font-size: 80px;
-  color: #d1d5db;
+  color: #6b7280;
   margin-bottom: 16px;
 }
 .aud-btn-retry {
@@ -423,7 +423,7 @@
 }
 .aud-card-fecha {
   font-size: 12px;
-  color: #9ca3af;
+  color: #6b7280;
 }
 .aud-card-divider {
   margin: 12px 0;
@@ -437,7 +437,7 @@
 .aud-card-label {
   display: block;
   font-size: 12px;
-  color: #9ca3af;
+  color: #6b7280;
 }
 .aud-card-value {
   display: block;
@@ -459,7 +459,7 @@
   box-sizing: border-box;
 }
 .aud-pagination-info {
-  color: #9ca3af;
+  color: #6b7280;
   font-size: 13px;
   font-weight: 500;
 }
