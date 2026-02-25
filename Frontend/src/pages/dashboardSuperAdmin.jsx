@@ -507,6 +507,12 @@ function Dashboard() {
             color: "#4f46e5",
             to: "/Auditorias",
           },
+          {
+            icon: "bi-bug-fill",
+            title: "Log de Errores",
+            color: "#b91c1c",
+            to: "/LogErrores",
+          },
         ]
       : []),
   ];
@@ -625,6 +631,15 @@ function Dashboard() {
                 >
                   <i className="bi bi-journal-text"></i>
                   <span>Auditorías</span>
+                  <i className="bi bi-chevron-right sa-menu-arrow"></i>
+                </Link>
+                <Link
+                  className="sa-menu-item"
+                  to="/LogErrores"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-bug"></i>
+                  <span>Log de Errores</span>
                   <i className="bi bi-chevron-right sa-menu-arrow"></i>
                 </Link>
                 <Link

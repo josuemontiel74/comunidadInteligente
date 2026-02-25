@@ -26,13 +26,16 @@ import Vehiculo from "../routers/vehiculo.router.js";
 import dashboardRoutes from "../routers/dashboard.router.js";
 import reportesRoutes from "../routers/reportes.router.js";
 import auditoriasRoutes from "../routers/auditorias.router.js";
+import logErroresRoutes from "../routers/logErrores.router.js";
 
 const app = express();
 
 // ── Seguridad: cabeceras HTTP seguras ──────────────────────────────────────
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-}));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }),
+);
 
 app.use(limiterGeneral);
 app.use(morgan("dev"));
@@ -72,6 +75,7 @@ app.use("/api/", Vehiculo);
 app.use("/api/", dashboardRoutes);
 app.use("/api/reportes", reportesRoutes);
 app.use("/api/", auditoriasRoutes);
+app.use("/api/", logErroresRoutes);
 
 app.use((req, res, next) => {
   res.status(404).json({

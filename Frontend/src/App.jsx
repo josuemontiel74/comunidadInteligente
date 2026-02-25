@@ -17,6 +17,7 @@ import Admin from "./pages/dashboardAdmin.jsx";
 import ProtectedRoute from "./pages/ProtectedRoute.jsx";
 import Reportes from "./pages/reportes.jsx";
 import Auditorias from "./pages/auditorias.jsx";
+import LogErrores from "./pages/logErrores.jsx";
 import ErrorPage from "./pages/ErrorPage.jsx";
 
 const TITULOS = {
@@ -35,6 +36,7 @@ const TITULOS = {
   "/VisitasAdmin": "Visitas (Admin) · Azahar",
   "/Reportes": "Reportes · Azahar",
   "/Auditorias": "Auditorías · Azahar",
+  "/LogErrores": "Log de Errores · Azahar",
   "/Registro": "Registro · Azahar",
   "/error/401": "Acceso Denegado · Azahar",
   "/error/500": "Error del Servidor · Azahar",
@@ -75,6 +77,7 @@ export default function App() {
           <Route path="/Admin" element={<Admin />} />
           <Route path="/Reportes" element={<Reportes />} />
           <Route path="/Auditorias" element={<Auditorias />} />
+          <Route path="/LogErrores" element={<LogErrores />} />
         </Route>
 
         {/* Cualquier ruta no definida → 404 */}

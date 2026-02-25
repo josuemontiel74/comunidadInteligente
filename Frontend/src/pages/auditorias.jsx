@@ -271,6 +271,15 @@ function Auditorias() {
               <span>Auditorías</span>
               <i className="bi bi-chevron-right aud-menu-arrow"></i>
             </Link>
+            <Link
+              className="aud-menu-item"
+              to="/LogErrores"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-bug"></i>
+              <span>Log de Errores</span>
+              <i className="bi bi-chevron-right aud-menu-arrow"></i>
+            </Link>
           </div>
 
           <div className="aud-menu-section">
