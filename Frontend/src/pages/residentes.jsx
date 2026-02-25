@@ -321,7 +321,8 @@ function Residentes() {
           ids.add(o.apartamentosId);
           unicos.push({
             idApartamento: o.apartamentosId,
-            numeroApartamento: o.numeroApartamento || o.apartamentosId?.toString(),
+            numeroApartamento:
+              o.numeroApartamento || o.apartamentosId?.toString(),
             torresId: o.torresId,
           });
         }
@@ -480,13 +481,32 @@ function Residentes() {
     if (formData.numeroDocumento.trim()) {
       const doc = formData.numeroDocumento.trim();
       if (!/^[a-zA-Z0-9\-]+$/.test(doc))
-        return Swal.fire("Error", "El número de documento solo puede contener letras, números o guiones.", "error");
+        return Swal.fire(
+          "Error",
+          "El número de documento solo puede contener letras, números o guiones.",
+          "error",
+        );
       if (!/[0-9]/.test(doc))
-        return Swal.fire("Error", "El número de documento no puede estar compuesto únicamente de letras.", "error");
+        return Swal.fire(
+          "Error",
+          "El número de documento no puede estar compuesto únicamente de letras.",
+          "error",
+        );
       if (formData.tipoDocumento === "CC" && !/^\d+$/.test(doc))
-        return Swal.fire("Error", "La Cédula de Ciudadanía (CC) debe contener solo dígitos.", "error");
-      if (formData.tipoDocumento === "CC" && (doc.length < 5 || doc.length > 10))
-        return Swal.fire("Error", "La CC debe tener entre 5 y 10 dígitos.", "error");
+        return Swal.fire(
+          "Error",
+          "La Cédula de Ciudadanía (CC) debe contener solo dígitos.",
+          "error",
+        );
+      if (
+        formData.tipoDocumento === "CC" &&
+        (doc.length < 5 || doc.length > 10)
+      )
+        return Swal.fire(
+          "Error",
+          "La CC debe tener entre 5 y 10 dígitos.",
+          "error",
+        );
     }
 
     // Validar duplicidad de documento al crear
@@ -982,7 +1002,10 @@ function Residentes() {
             </div>
             <button
               className="res-btn-torres"
-              onClick={() => { setTorreSeleccionada(null); setModalTorres(true); }}
+              onClick={() => {
+                setTorreSeleccionada(null);
+                setModalTorres(true);
+              }}
               title="Ver mapa de torres y apartamentos"
             >
               <i className="bi bi-buildings"></i> Visualizar Torres
@@ -1520,9 +1543,12 @@ function Residentes() {
 
       {/* ===== MODAL TORRES ===== */}
       {modalTorres && (
-        <div className="res-modal-overlay" onClick={() => setModalTorres(false)}>
+        <div
+          className="res-modal-overlay res-torres-overlay"
+          onClick={() => setModalTorres(false)}
+        >
           <div
-            className="res-modal-box res-torres-modal"
+            className="res-modal res-torres-modal"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="res-modal-header">
@@ -1534,16 +1560,20 @@ function Residentes() {
                   >
                     <i className="bi bi-arrow-left"></i> Volver
                   </button>
-                  <h2 className="res-modal-title">
+                  <h3>
                     <i className="bi bi-building"></i> Torre{" "}
-                    {["A","B","C","D","E","F","G","H","I","J"][torreSeleccionada - 1]}
+                    {
+                      ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"][
+                        torreSeleccionada - 1
+                      ]
+                    }
                     {" — Apartamentos"}
-                  </h2>
+                  </h3>
                 </>
               ) : (
-                <h2 className="res-modal-title">
+                <h3>
                   <i className="bi bi-buildings"></i> Mapa de Torres
-                </h2>
+                </h3>
               )}
               <button
                 className="res-modal-close"
@@ -1558,7 +1588,18 @@ function Residentes() {
                 /* ---- Vista: selección de torre ---- */
                 <div className="res-torres-grid">
                   {Array.from({ length: 10 }, (_, i) => i + 1).map((tid) => {
-                    const letra = ["A","B","C","D","E","F","G","H","I","J"][tid - 1];
+                    const letra = [
+                      "A",
+                      "B",
+                      "C",
+                      "D",
+                      "E",
+                      "F",
+                      "G",
+                      "H",
+                      "I",
+                      "J",
+                    ][tid - 1];
                     const resEnTorre = residentes.filter(
                       (r) => r.torresId === tid && r.estado === "Activo",
                     );
@@ -1574,12 +1615,12 @@ function Residentes() {
                       >
                         <div className="res-torre-letter">{letra}</div>
                         <p className="res-torre-info">
-                          <i className="bi bi-door-open"></i>{" "}
-                          {aptosEnTorre} apto{aptosEnTorre !== 1 ? "s" : ""}
+                          <i className="bi bi-door-open"></i> {aptosEnTorre}{" "}
+                          apto{aptosEnTorre !== 1 ? "s" : ""}
                         </p>
                         <p className="res-torre-info">
-                          <i className="bi bi-people"></i>{" "}
-                          {resEnTorre.length} residente
+                          <i className="bi bi-people"></i> {resEnTorre.length}{" "}
+                          residente
                           {resEnTorre.length !== 1 ? "s" : ""}
                         </p>
                       </div>
@@ -1589,9 +1630,18 @@ function Residentes() {
               ) : (
                 /* ---- Vista: apartamentos de la torre ---- */
                 (() => {
-                  const letra = ["A","B","C","D","E","F","G","H","I","J"][
-                    torreSeleccionada - 1
-                  ];
+                  const letra = [
+                    "A",
+                    "B",
+                    "C",
+                    "D",
+                    "E",
+                    "F",
+                    "G",
+                    "H",
+                    "I",
+                    "J",
+                  ][torreSeleccionada - 1];
                   const resEnTorre = residentes.filter(
                     (r) => r.torresId === torreSeleccionada,
                   );
@@ -1618,10 +1668,13 @@ function Residentes() {
                   return (
                     <div className="res-aptos-grid">
                       {aptosList.map((ap) => (
-                        <div key={ap.numeroApartamento} className="res-apto-card">
+                        <div
+                          key={ap.numeroApartamento}
+                          className="res-apto-card"
+                        >
                           <div className="res-apto-numero">
-                            <i className="bi bi-door-closed"></i>{" "}
-                            Apto {ap.numeroApartamento}
+                            <i className="bi bi-door-closed"></i> Apto{" "}
+                            {ap.numeroApartamento}
                           </div>
                           {ap.ocupantes.map((oc) => (
                             <div
@@ -1647,7 +1700,10 @@ function Residentes() {
                               </span>
                               <div className="res-apto-tags">
                                 {Number(oc.tieneNinos) === 1 && (
-                                  <span className="res-apto-tag" title="Tiene niños">
+                                  <span
+                                    className="res-apto-tag"
+                                    title="Tiene niños"
+                                  >
                                     <i className="bi bi-emoji-smile"></i>
                                   </span>
                                 )}
@@ -1759,7 +1815,8 @@ function Residentes() {
                   </span>
                   <span className="res-detail-value">
                     Torre {residenteSeleccionado.torre} - Apto{" "}
-                    {residenteSeleccionado.numeroApartamento || residenteSeleccionado.apartamentosId}
+                    {residenteSeleccionado.numeroApartamento ||
+                      residenteSeleccionado.apartamentosId}
                   </span>
                 </div>
                 <div className="res-detail-row">

@@ -893,6 +893,42 @@
 .vis-modal-footer {
   padding: 12px 24px 20px;
 }
+/* Footer con múltiples botones (detalles visita) */
+.vis-modal-footer-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Botón imprimir recibo — variantes ingreso/salida */
+.vis-btn-imprimir {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.12s;
+}
+.vis-btn-imprimir:hover {
+  filter: brightness(0.88);
+  transform: translateY(-1px);
+}
+.vis-btn-ingreso {
+  background: #d4f1e4;
+  color: #155724;
+  border: 1.5px solid #27ae60;
+}
+.vis-btn-salida {
+  background: #fde8e8;
+  color: #7f1d1d;
+  border: 1.5px solid #e74c3c;
+}
 .vis-btn-submit {
   width: 100%;
   padding: 12px;

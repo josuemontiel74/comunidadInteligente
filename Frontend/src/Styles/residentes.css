@@ -925,7 +925,9 @@
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
   box-shadow: 0 2px 8px rgba(13, 148, 136, 0.35);
   white-space: nowrap;
 }
@@ -933,7 +935,19 @@
   transform: translateY(-2px);
   box-shadow: 0 4px 14px rgba(13, 148, 136, 0.5);
 }
-.res-btn-torres i { font-size: 1rem; }
+.res-btn-torres i {
+  font-size: 1rem;
+}
+
+/* ===================================================
+   MODAL TORRES — overlay dedicado con blur fuerte
+   =================================================== */
+.res-torres-overlay {
+  background: rgba(0, 0, 0, 0.75) !important;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 1200 !important;
+}
 
 /* ===================================================
    MODAL TORRES — caja más ancha
@@ -960,8 +974,11 @@
   padding: 20px 12px 16px;
   text-align: center;
   cursor: pointer;
-  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  transition:
+    border-color 0.2s,
+    transform 0.2s,
+    box-shadow 0.2s;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 .res-torre-card:hover {
   border-color: #0d9488;
@@ -986,7 +1003,10 @@
   justify-content: center;
   gap: 4px;
 }
-.res-torre-info i { font-size: 0.8rem; color: #0d9488; }
+.res-torre-info i {
+  font-size: 0.8rem;
+  color: #0d9488;
+}
 
 /* ===================================================
    GRID DE APARTAMENTOS (dentro de torre)
@@ -1003,10 +1023,12 @@
   border: 1.5px solid var(--res-border, #e2e8f0);
   border-radius: 12px;
   padding: 14px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
   transition: box-shadow 0.2s;
 }
-.res-apto-card:hover { box-shadow: 0 4px 14px rgba(13,148,136,0.18); }
+.res-apto-card:hover {
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.18);
+}
 
 .res-apto-numero {
   font-size: 1rem;
@@ -1027,10 +1049,16 @@
   padding: 8px 0;
   border-bottom: 1px dashed var(--res-border, #e2e8f0);
 }
-.res-apto-ocupante:last-child { border-bottom: none; }
+.res-apto-ocupante:last-child {
+  border-bottom: none;
+}
 
-.res-apto-activo { opacity: 1; }
-.res-apto-finalizado { opacity: 0.55; }
+.res-apto-activo {
+  opacity: 1;
+}
+.res-apto-finalizado {
+  opacity: 0.55;
+}
 
 .res-apto-nombre {
   font-size: 0.85rem;
@@ -1070,9 +1098,14 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
-.res-torres-back:hover { background: #0d9488; color: #fff; }
+.res-torres-back:hover {
+  background: #0d9488;
+  color: #fff;
+}
 
 .res-torres-empty {
   text-align: center;
@@ -1089,16 +1122,36 @@
   background: #1e293b;
   border-color: #334155;
 }
-[data-modo="oscuro"] .res-torre-info { color: #94a3b8; }
-[data-modo="oscuro"] .res-apto-nombre { color: #e2e8f0; }
-[data-modo="oscuro"] .res-apto-ocupante { border-bottom-color: #334155; }
-[data-modo="oscuro"] .res-apto-numero { border-bottom-color: #334155; }
-[data-modo="oscuro"] .res-apto-tag { background: #0f4c45; }
-[data-modo="oscuro"] .res-torres-back { border-color: #0d9488; color: #34d399; }
-[data-modo="oscuro"] .res-torres-back:hover { background: #0d9488; color: #fff; }
+[data-modo="oscuro"] .res-torre-info {
+  color: #94a3b8;
+}
+[data-modo="oscuro"] .res-apto-nombre {
+  color: #e2e8f0;
+}
+[data-modo="oscuro"] .res-apto-ocupante {
+  border-bottom-color: #334155;
+}
+[data-modo="oscuro"] .res-apto-numero {
+  border-bottom-color: #334155;
+}
+[data-modo="oscuro"] .res-apto-tag {
+  background: #0f4c45;
+}
+[data-modo="oscuro"] .res-torres-back {
+  border-color: #0d9488;
+  color: #34d399;
+}
+[data-modo="oscuro"] .res-torres-back:hover {
+  background: #0d9488;
+  color: #fff;
+}
 
 /* Responsive torres */
 @media (max-width: 600px) {
-  .res-torres-grid { grid-template-columns: repeat(2, 1fr); }
-  .res-aptos-grid  { grid-template-columns: 1fr; }
+  .res-torres-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .res-aptos-grid {
+    grid-template-columns: 1fr;
+  }
 }
