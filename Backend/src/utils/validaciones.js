@@ -93,7 +93,7 @@ export const validarTelefono = (telefono) => {
  * @returns {string | null} Mensaje de error o null si es válido
  */
 export const validarNumeroDocumento = (tipoDocumentoId, numeroDocumento) => {
-  if (!numeroDocumento || !numeroDocumento.toString().trim()) return null;
+  if (!numeroDocumento?.toString().trim()) return null;
   const doc = numeroDocumento.toString().trim();
   const tipo = Number.parseInt(tipoDocumentoId, 10) || 1;
 

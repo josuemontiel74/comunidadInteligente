@@ -10,7 +10,7 @@ const validarNumeroApartamentoPorTorre = (torresId, numeroApartamento) => {
   if (Number.isNaN(torre) || Number.isNaN(num)) return null;
   const prefijo = torre * 100;
   if (num <= prefijo || num >= prefijo + 100) {
-    const letra = String.fromCharCode(64 + torre);
+    const letra = String.fromCodePoint(64 + torre);
     return `Para la Torre ${letra} los apartamentos deben numerarse entre ${prefijo + 1} y ${prefijo + 99} (ej: ${prefijo + 1})`;
   }
   return null;

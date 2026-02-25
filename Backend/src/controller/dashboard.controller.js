@@ -193,9 +193,6 @@ export const getResumenDashboard = async (req, res) => {
     const finDelDia = new Date();
     finDelDia.setHours(23, 59, 59, 999);
 
-    // Estadísticas de parqueaderos
-    const totalParqueaderos = await Parqueadero.count();
-
     // Contar parqueaderos ocupados por tipo de vehículo
     // estadoId: 3 = Ocupado, 4 = Disponible
     // tipoVehiculoId: 1 = Carro, 2 = Moto

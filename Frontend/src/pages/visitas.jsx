@@ -6,10 +6,6 @@ import "../Styles/estiloVisitas.css";
 import Swal from "sweetalert2";
 import { validarNombreCompleto } from "../utils/validaciones.js";
 import {
-  validarNombreCompleto,
-  validarDocumento,
-} from "../utils/validaciones.js";
-import {
   obtenerVisitasJoin,
   crearVisita,
   actualizarVisita,

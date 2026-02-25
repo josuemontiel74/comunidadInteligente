@@ -15,14 +15,13 @@ export const actualizarActividad = (req, res, next) => {
   try {
     const authHeader =
       req.header("Authorization") || req.header("authorization");
-    const token =
-      authHeader && authHeader.startsWith("Bearer ")
-        ? authHeader.slice(7)
-        : authHeader;
+    const token = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice(7)
+      : authHeader;
 
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      if (decoded && decoded.username) {
+      if (decoded?.username) {
         // Fire-and-forget: actualiza sin esperar ni bloquear
         User.update(
           { ultimaActividad: new Date() },

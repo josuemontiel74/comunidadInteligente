@@ -4,7 +4,6 @@ import solicitantesModel from "../models/solicitante.model.js";
 import dayjs from "dayjs";
 import Apartamento from "../models/apartamentos.model.js";
 import Estado from "../models/estados.model.js";
-import { sequelize } from "../config/connect.db.js";
 import { Op, fn, col, literal, where } from "sequelize";
 import Tipodocumentos from "../models/tipoDocumento.model.js";
 import Torre from "../models/torres.model.js";
@@ -30,17 +29,17 @@ const calcularNuevoEstado = (reserva, fechaHoy, horaActual) => {
   const hoyDayjs = dayjs(fechaHoy, "YYYY-MM-DD");
 
   if (fechaReservaDayjs.isBefore(hoyDayjs, "day")) {
-    return estadoId !== ESTADO_RESERVA.FINALIZADA
-      ? ESTADO_RESERVA.FINALIZADA
-      : null;
+    return estadoId === ESTADO_RESERVA.FINALIZADA
+      ? null
+      : ESTADO_RESERVA.FINALIZADA;
   }
 
   if (!fechaReservaDayjs.isSame(hoyDayjs, "day")) return null;
 
   if (horaFin && horaActual > horaFin) {
-    return estadoId !== ESTADO_RESERVA.FINALIZADA
-      ? ESTADO_RESERVA.FINALIZADA
-      : null;
+    return estadoId === ESTADO_RESERVA.FINALIZADA
+      ? null
+      : ESTADO_RESERVA.FINALIZADA;
   }
 
   const enCurso =
@@ -48,9 +47,9 @@ const calcularNuevoEstado = (reserva, fechaHoy, horaActual) => {
     horaActual >= horaInicio &&
     (!horaFin || horaActual <= horaFin);
   if (enCurso) {
-    return estadoId !== ESTADO_RESERVA.EN_CURSO
-      ? ESTADO_RESERVA.EN_CURSO
-      : null;
+    return estadoId === ESTADO_RESERVA.EN_CURSO
+      ? null
+      : ESTADO_RESERVA.EN_CURSO;
   }
 
   return null;
@@ -666,6 +665,7 @@ export const calendariosReservas = async (req, res) => {
 
     return res.status(200).json({ ok: true, caledarioreservas });
   } catch (error) {
+    console.error(error);
     return res
       .status(500)
       .json({ ok: false, message: "Error interno del servidor" });

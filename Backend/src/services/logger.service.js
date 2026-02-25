@@ -34,6 +34,7 @@ export async function registrarFallo(
       replacements: values,
     });
   } catch (dbError) {
+    console.error(dbError);
     // fallo critico al registrar en logErrores
   }
 }

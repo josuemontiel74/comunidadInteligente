@@ -20,7 +20,7 @@ import "../Styles/reportes.css";
 // HELPERS
 // ============================================================================
 const toInt = (v) => {
-  if (v == null) return 0;
+  if (v === null || v === undefined) return 0;
   const n = parseInt(v, 10);
   return isNaN(n) ? 0 : n;
 };
@@ -706,7 +706,7 @@ function Reportes() {
         subTitle("Usuarios con más días sin actividad:");
         inactivosPdf.slice(0, 5).forEach((u) => {
           const dias =
-            u.diasSinActividad == null
+            u.diasSinActividad === null || u.diasSinActividad === undefined
               ? "nunca usó el sistema"
               : `${u.diasSinActividad} días`;
           stat(`${u.username}  (${u.nombreRol || "N/A"})`, dias);
@@ -1983,11 +1983,13 @@ function Reportes() {
                               {rptUsuarios.masInactivos.map((u, i) => {
                                 const diasNum = u.diasSinActividad;
                                 const diasLabel =
-                                  diasNum == null
+                                  diasNum === null || diasNum === undefined
                                     ? "Nunca inició sesión"
                                     : `${diasNum} días`;
                                 const color =
-                                  diasNum == null || diasNum > 30
+                                  diasNum === null ||
+                                  diasNum === undefined ||
+                                  diasNum > 30
                                     ? "#ef4444"
                                     : diasNum > 7
                                       ? "#f97316"

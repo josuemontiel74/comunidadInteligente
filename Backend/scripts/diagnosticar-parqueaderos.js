@@ -121,7 +121,9 @@ const diagnosticarParqueaderos = async () => {
     console.log("\n⚠️  Verificación de inconsistencias:");
 
     const sumaTotal = totalOcupados + disponibles;
-    if (sumaTotal !== totalParqueaderos) {
+    if (sumaTotal === totalParqueaderos) {
+      console.log(`   ✓ OK: Los números coinciden correctamente`);
+    } else {
       console.log(
         `   ❌ ERROR: La suma no coincide (${sumaTotal} vs ${totalParqueaderos})`
       );
@@ -148,8 +150,6 @@ const diagnosticarParqueaderos = async () => {
           );
         });
       }
-    } else {
-      console.log(`   ✓ OK: Los números coinciden correctamente`);
     }
 
     // 8. Verificar si hay parqueaderos ocupados que exceden el total

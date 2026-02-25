@@ -62,7 +62,6 @@ export const crearUsuario = async (req, res) => {
       message: "Usuario y Persona creados",
       usuario: {
         username: createUser.username,
-        username: createUser.username,
       },
       persona: {
         numeroDocumento: nuevaPersona.numeroDocumento,
@@ -204,7 +203,7 @@ export const actualizarUsuario = async (req, res) => {
     if (
       usuario.rolesId === 1 &&
       requester.rolesId !== 1 &&
-      typeof dataUser.estadoId !== "undefined"
+      dataUser.estadoId !== undefined
     ) {
       return res.status(403).json({
         ok: false,
@@ -215,7 +214,7 @@ export const actualizarUsuario = async (req, res) => {
 
     if (
       requester.username === username &&
-      typeof dataUser.estadoId !== "undefined" &&
+      dataUser.estadoId !== undefined &&
       dataUser.estadoId !== usuario.estadoId
     ) {
       return res.status(403).json({

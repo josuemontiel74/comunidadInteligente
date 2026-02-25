@@ -1,5 +1,4 @@
 import { Model, DataTypes } from "sequelize";
-import apartamentos from "./apartamentos.model.js";
 
 class Torre extends Model {
   static initModel(sequelize) {
@@ -22,7 +21,7 @@ class Torre extends Model {
         modelName: "torres",
         tableName: "torres",
         timestamps: false,
-      }
+      },
     );
     return Torre;
   }
