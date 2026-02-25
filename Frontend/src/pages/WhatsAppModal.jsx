@@ -27,7 +27,9 @@ export default function WhatsAppModal() {
         <div
           className="wa-overlay"
           onClick={() => setOpen(false)}
-          onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setOpen(false);
+          }}
           role="dialog"
           aria-modal="true"
           tabIndex={-1}

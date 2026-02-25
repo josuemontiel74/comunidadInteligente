@@ -238,7 +238,9 @@ function Auditorias() {
       <div
         className={`aud-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
-        onKeyDown={(e) => { if (e.key === "Escape") setMenuOpen(false); }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setMenuOpen(false);
+        }}
         role="button"
         tabIndex={0}
         aria-label="Cerrar menú"
@@ -491,7 +493,9 @@ function Auditorias() {
                       <tr
                         key={a.idAuditoria || idx}
                         onClick={() => mostrarDetalle(a)}
-                        onKeyDown={(e) => { if (e.key === "Enter") mostrarDetalle(a); }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") mostrarDetalle(a);
+                        }}
                         className="aud-table-row"
                         tabIndex={0}
                       >
@@ -528,7 +532,9 @@ function Auditorias() {
                     key={a.idAuditoria || idx}
                     className="aud-card"
                     onClick={() => mostrarDetalle(a)}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") mostrarDetalle(a); }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") mostrarDetalle(a);
+                    }}
                     role="button"
                     tabIndex={0}
                   >
@@ -669,7 +675,9 @@ function Auditorias() {
         <div
           className="aud-modal-overlay"
           onClick={() => setDetalleAuditoria(null)}
-          onKeyDown={(e) => { if (e.key === "Escape") setDetalleAuditoria(null); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setDetalleAuditoria(null);
+          }}
           role="button"
           tabIndex={0}
           aria-label="Cerrar"

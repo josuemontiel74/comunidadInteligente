@@ -63,7 +63,9 @@ export default function DescargaAppMovil({ btnClass = "" }) {
         <div
           className="dap-overlay"
           onClick={(e) => e.target === e.currentTarget && cerrar()}
-          onKeyDown={(e) => { if (e.key === "Escape") cerrar(); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") cerrar();
+          }}
           role="button"
           tabIndex={0}
           aria-label="Cerrar"

@@ -582,7 +582,9 @@ function Paqueteria() {
       <div
         className={`paq-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
-        onKeyDown={(e) => { if (e.key === "Escape") setMenuOpen(false); }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setMenuOpen(false);
+        }}
         role="button"
         tabIndex={0}
         aria-label="Cerrar menú"
@@ -1161,7 +1163,9 @@ function Paqueteria() {
         <div
           className="paq-modal-overlay"
           onClick={() => setModalCrear(false)}
-          onKeyDown={(e) => { if (e.key === "Escape") setModalCrear(false); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setModalCrear(false);
+          }}
           role="button"
           tabIndex={0}
           aria-label="Cerrar"
@@ -1540,7 +1544,9 @@ function Paqueteria() {
         <div
           className="paq-modal-overlay"
           onClick={() => setModalDetalle(null)}
-          onKeyDown={(e) => { if (e.key === "Escape") setModalDetalle(null); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setModalDetalle(null);
+          }}
           role="button"
           tabIndex={0}
           aria-label="Cerrar"

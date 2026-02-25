@@ -981,7 +981,9 @@ function AreasComunes() {
       <div
         className={`ac-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
-        onKeyDown={(e) => { if (e.key === "Escape") setMenuOpen(false); }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setMenuOpen(false);
+        }}
         role="button"
         tabIndex={0}
         aria-label="Cerrar menú"
@@ -1426,7 +1428,9 @@ function AreasComunes() {
         <div
           className="ac-modal-overlay"
           onClick={cerrarModal}
-          onKeyDown={(e) => { if (e.key === "Escape") cerrarModal(); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") cerrarModal();
+          }}
           role="button"
           tabIndex={0}
           aria-label="Cerrar"
@@ -1715,7 +1719,9 @@ function AreasComunes() {
         <div
           className="ac-modal-overlay"
           onClick={() => setShowModalDetalles(false)}
-          onKeyDown={(e) => { if (e.key === "Escape") setShowModalDetalles(false); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setShowModalDetalles(false);
+          }}
           role="button"
           tabIndex={0}
           aria-label="Cerrar"
@@ -1838,7 +1844,9 @@ function AreasComunes() {
         <div
           className="ac-modal-overlay"
           onClick={() => setShowCalendario(false)}
-          onKeyDown={(e) => { if (e.key === "Escape") setShowCalendario(false); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setShowCalendario(false);
+          }}
           role="button"
           tabIndex={0}
           aria-label="Cerrar"
@@ -1908,7 +1916,10 @@ function AreasComunes() {
                       key={cell.day}
                       className={cls}
                       onClick={() => !past && setSelectedDay(cell.day)}
-                      onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && !past) setSelectedDay(cell.day); }}
+                      onKeyDown={(e) => {
+                        if ((e.key === "Enter" || e.key === " ") && !past)
+                          setSelectedDay(cell.day);
+                      }}
                       role="button"
                       tabIndex={past ? -1 : 0}
                     >
@@ -1970,7 +1981,9 @@ function AreasComunes() {
         <div
           className="ac-modal-overlay"
           onClick={() => setShowModalAreas(false)}
-          onKeyDown={(e) => { if (e.key === "Escape") setShowModalAreas(false); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setShowModalAreas(false);
+          }}
           role="button"
           tabIndex={0}
           aria-label="Cerrar"

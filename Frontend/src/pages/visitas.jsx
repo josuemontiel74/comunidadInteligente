@@ -4,7 +4,6 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "../Styles/estiloVisitas.css";
 import Swal from "sweetalert2";
-import { validarNombreCompleto, validarDocumento } from "../utils/validaciones.js";
 import {
   validarNombreCompleto,
   validarDocumento,
@@ -807,7 +806,9 @@ function Visitas() {
       <div
         className={`vis-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
-        onKeyDown={(e) => { if (e.key === "Escape") setMenuOpen(false); }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setMenuOpen(false);
+        }}
         role="button"
         tabIndex={0}
         aria-label="Cerrar menú"
@@ -1808,7 +1809,9 @@ function Visitas() {
         <div
           className="vis-modal-overlay"
           onClick={() => setModalDetalle(null)}
-          onKeyDown={(e) => { if (e.key === "Escape") setModalDetalle(null); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setModalDetalle(null);
+          }}
           role="button"
           tabIndex={0}
           aria-label="Cerrar"

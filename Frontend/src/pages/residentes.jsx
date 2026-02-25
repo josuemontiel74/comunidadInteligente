@@ -853,7 +853,9 @@ function Residentes() {
       <div
         className={`res-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
-        onKeyDown={(e) => { if (e.key === "Escape") setMenuOpen(false); }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setMenuOpen(false);
+        }}
         role="button"
         tabIndex={0}
         aria-label="Cerrar menú"
@@ -1359,7 +1361,9 @@ function Residentes() {
         <div
           className="res-modal-overlay"
           onClick={cerrarModal}
-          onKeyDown={(e) => { if (e.key === "Escape") cerrarModal(); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") cerrarModal();
+          }}
           role="button"
           tabIndex={0}
           aria-label="Cerrar"
@@ -1656,7 +1660,9 @@ function Residentes() {
         <div
           className="res-modal-overlay res-torres-overlay"
           onClick={() => setModalTorres(false)}
-          onKeyDown={(e) => { if (e.key === "Escape") setModalTorres(false); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setModalTorres(false);
+          }}
           role="button"
           tabIndex={0}
           aria-label="Cerrar"
@@ -1735,7 +1741,10 @@ function Residentes() {
                         key={tid}
                         className="res-torre-card"
                         onClick={() => setTorreSeleccionada(tid)}
-                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setTorreSeleccionada(tid); }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ")
+                            setTorreSeleccionada(tid);
+                        }}
                         role="button"
                         tabIndex={0}
                         title={`Ver apartamentos Torre ${letra}`}
@@ -1890,7 +1899,9 @@ function Residentes() {
         <div
           className="res-modal-overlay"
           onClick={() => setShowModalDetalles(false)}
-          onKeyDown={(e) => { if (e.key === "Escape") setShowModalDetalles(false); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setShowModalDetalles(false);
+          }}
           role="button"
           tabIndex={0}
           aria-label="Cerrar"

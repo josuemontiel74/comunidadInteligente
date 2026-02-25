@@ -1096,7 +1096,9 @@ function GestionUsuarios() {
       <div
         className={`gu-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
-        onKeyDown={(e) => { if (e.key === "Escape") setMenuOpen(false); }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setMenuOpen(false);
+        }}
         role="button"
         tabIndex={0}
         aria-label="Cerrar menú"
@@ -1769,7 +1771,9 @@ function GestionUsuarios() {
         <div
           className="gu-modal-overlay"
           onClick={() => setShowModalRegistrar(false)}
-          onKeyDown={(e) => { if (e.key === "Escape") setShowModalRegistrar(false); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setShowModalRegistrar(false);
+          }}
           role="button"
           tabIndex={0}
           aria-label="Cerrar"

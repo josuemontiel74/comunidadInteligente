@@ -347,7 +347,9 @@ function Parqueaderos() {
       <div
         className={`parq-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
-        onKeyDown={(e) => { if (e.key === "Escape") setMenuOpen(false); }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setMenuOpen(false);
+        }}
         role="button"
         tabIndex={0}
         aria-label="Cerrar menú"
@@ -798,7 +800,11 @@ function Parqueaderos() {
                         }
                       }}
                       onKeyDown={(e) => {
-                        if ((e.key === "Enter" || e.key === " ") && disponible && modoSeleccion) {
+                        if (
+                          (e.key === "Enter" || e.key === " ") &&
+                          disponible &&
+                          modoSeleccion
+                        ) {
                           seleccionarParqueadero(p.codigoParqueadero);
                         }
                       }}

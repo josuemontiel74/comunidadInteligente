@@ -286,7 +286,9 @@ function LogErrores() {
       <div
         className={`le-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
-        onKeyDown={(e) => { if (e.key === "Escape") setMenuOpen(false); }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setMenuOpen(false);
+        }}
         role="button"
         tabIndex={0}
         aria-label="Cerrar menú"
@@ -785,7 +787,9 @@ function LogErrores() {
         <div
           className="le-modal-overlay"
           onClick={() => setDetalleRegistro(null)}
-          onKeyDown={(e) => { if (e.key === "Escape") setDetalleRegistro(null); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setDetalleRegistro(null);
+          }}
           role="button"
           tabIndex={0}
           aria-label="Cerrar"

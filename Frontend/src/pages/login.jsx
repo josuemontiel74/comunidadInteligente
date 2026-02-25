@@ -118,7 +118,12 @@ function Login() {
           className="lgn-logo-wrap"
           onClick={() => navigate("/")}
           title="Ir a la página principal"
-          style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
+          style={{
+            background: "none",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+          }}
         >
           <img src={logo} alt="Logo Azahar" className="lgn-logo" />
         </button>
