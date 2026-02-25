@@ -4,9 +4,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "../Styles/estiloVisitas.css";
 import Swal from "sweetalert2";
-import {
-  validarNombreCompleto,
-} from "../utils/validaciones.js";
+import { validarNombreCompleto } from "../utils/validaciones.js";
 import {
   validarNombreCompleto,
   validarDocumento,
@@ -18,9 +16,7 @@ import {
   finalizarVisita,
 } from "../services/visitas.services.jsx";
 import { logoutUsuario } from "../services/gestionUsuarios.jsx";
-import {
-  obtenerParqueaderos,
-} from "../services/parqueadero.services.jsx";
+import { obtenerParqueaderos } from "../services/parqueadero.services.jsx";
 
 function Visitas() {
   const navigate = useNavigate();

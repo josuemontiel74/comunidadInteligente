@@ -140,7 +140,8 @@ function Dashboard() {
         setVisitasHoy(datos.visitas?.hoy ?? 0);
         setVisitasActivas(datos.visitas?.activas ?? 0);
       }
-    } catch { /* error de red ignorado, el dashboard muestra 0s */
+    } catch {
+      /* error de red ignorado, el dashboard muestra 0s */
     } finally {
       setDataLoading(false);
     }

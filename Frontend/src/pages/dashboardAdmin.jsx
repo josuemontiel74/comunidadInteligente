@@ -156,7 +156,8 @@ function Dashboard() {
         setReservasHoy(datos.reservas?.hoy ?? 0);
         setResidentesActivos(datos.residentes?.activos ?? 0);
       }
-    } catch { /* error de red ignorado, el dashboard muestra 0s */
+    } catch {
+      /* error de red ignorado, el dashboard muestra 0s */
     } finally {
       setDataLoading(false);
     }

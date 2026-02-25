@@ -315,7 +315,8 @@ function GestionUsuarios() {
         localStorage.setItem(PHOTO_STORAGE_KEY, JSON.stringify(photosLocales));
         setUserPhotos({ ...photosLocales });
       }
-    } catch { /* fallo al sincronizar fotos de perfil */
+    } catch {
+      /* fallo al sincronizar fotos de perfil */
     } finally {
       setLoading(false);
     }
@@ -993,7 +994,8 @@ function GestionUsuarios() {
         const p = await obtenerPersonaPorDocumento(user.numeroDocumento, token);
         detalle = { ...detalle, ...p };
       }
-    } catch { /* persona sin ficha: se muestra con datos base */
+    } catch {
+      /* persona sin ficha: se muestra con datos base */
     }
     setDetalleUsuario(detalle);
     setShowModalDetalle(true);
