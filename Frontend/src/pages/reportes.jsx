@@ -12,6 +12,7 @@ import {
   obtenerReporteOcupacion,
   obtenerReporteNinos,
   obtenerReportePoblacionEspecial,
+  obtenerReporteUsuarios,
 } from "../services/reportes.services.jsx";
 import "../Styles/reportes.css";
 
@@ -108,12 +109,15 @@ function Reportes() {
   const [rptOcupacion, setRptOcupacion] = useState(null);
   const [rptNinos, setRptNinos] = useState(null);
   const [rptPoblacion, setRptPoblacion] = useState(null);
+  const [rptUsuarios, setRptUsuarios] = useState(null);
 
   // --- Refs Charts ---
   const parkingChartRef = useRef(null);
   const parkingInstance = useRef(null);
   const visitasChartRef = useRef(null);
   const visitasInstance = useRef(null);
+  const actividadChartRef = useRef(null);
+  const actividadInstance = useRef(null);
 
   // ============================================================================
   // AUTH CHECK
@@ -170,7 +174,7 @@ function Reportes() {
     if (!t) return;
     setDataLoading(true);
     try {
-      const [parq, vis, paq, res, ocup, ninos, pobl] = await Promise.all([
+      const promesas = [
         obtenerReporteParqueaderos(t, fechaInicio, fechaFin),
         obtenerReporteVisitas(t, fechaInicio, fechaFin),
         obtenerReportePaquetes(t, fechaInicio, fechaFin),
@@ -178,7 +182,12 @@ function Reportes() {
         obtenerReporteOcupacion(t),
         obtenerReporteNinos(t),
         obtenerReportePoblacionEspecial(t),
-      ]);
+        showUserManagement
+          ? obtenerReporteUsuarios(t, fechaInicio, fechaFin)
+          : Promise.resolve(null),
+      ];
+      const [parq, vis, paq, res, ocup, ninos, pobl, usrs] =
+        await Promise.all(promesas);
       setRptParqueaderos(parq);
       setRptVisitas(vis);
       setRptPaquetes(paq);
@@ -186,11 +195,12 @@ function Reportes() {
       setRptOcupacion(ocup);
       setRptNinos(ninos);
       setRptPoblacion(pobl);
+      setRptUsuarios(usrs);
     } catch (err) {
       // Error cargando reportes
     }
     setDataLoading(false);
-  }, [fechaInicio, fechaFin]);
+  }, [fechaInicio, fechaFin, showUserManagement]);
 
   useEffect(() => {
     if (!loading) cargarReportes();
@@ -203,17 +213,17 @@ function Reportes() {
   useEffect(() => {
     if (!rptParqueaderos || !parkingChartRef.current) return;
     if (parkingInstance.current) parkingInstance.current.destroy();
-    const resumen = rptParqueaderos.resumenActual || [];
-    const ocupados = resumen.reduce((s, r) => s + toInt(r.ocupados), 0);
-    const disponibles = resumen.reduce((s, r) => s + toInt(r.disponibles), 0);
+    const periodo = rptParqueaderos.resumenPeriodo || {};
+    const carros = toInt(periodo.carros);
+    const motos = toInt(periodo.motos);
     parkingInstance.current = new Chart(parkingChartRef.current, {
       type: "doughnut",
       data: {
-        labels: ["Ocupados", "Disponibles"],
+        labels: ["Carros", "Motos"],
         datasets: [
           {
-            data: [ocupados, disponibles],
-            backgroundColor: ["#ef4444", "#22c55e"],
+            data: [carros, motos],
+            backgroundColor: ["#3b82f6", "#f97316"],
             borderWidth: 2,
             borderColor: "#fff",
           },
@@ -227,6 +237,16 @@ function Reportes() {
           legend: {
             position: "bottom",
             labels: { padding: 16, usePointStyle: true },
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const total = carros + motos;
+                const val = ctx.parsed;
+                const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+                return ` ${ctx.label}: ${val} (${pct}%)`;
+              },
+            },
           },
         },
       },
@@ -276,6 +296,63 @@ function Reportes() {
     };
   }, [rptVisitas]);
 
+  // Gráfica actividad diaria usuarios
+  useEffect(() => {
+    if (!rptUsuarios || !actividadChartRef.current) return;
+    if (actividadInstance.current) actividadInstance.current.destroy();
+    const dias = rptUsuarios.actividadDiaria || [];
+    if (dias.length === 0) return;
+    const labels = dias.map((d) => {
+      const f = new Date(d.fecha);
+      return f.toLocaleDateString("es-CO", { day: "2-digit", month: "short" });
+    });
+    actividadInstance.current = new Chart(actividadChartRef.current, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Registros en el sistema",
+            data: dias.map((d) => d.registros),
+            borderColor: "#0ea5e9",
+            backgroundColor: "rgba(14,165,233,0.1)",
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointBackgroundColor: "#0ea5e9",
+          },
+          {
+            label: "Usuarios activos",
+            data: dias.map((d) => d.usuariosActivos),
+            borderColor: "#8b5cf6",
+            backgroundColor: "rgba(139,92,246,0.08)",
+            fill: false,
+            tension: 0.4,
+            pointRadius: 4,
+            pointBackgroundColor: "#8b5cf6",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: "top",
+            labels: { usePointStyle: true, padding: 16 },
+          },
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { maxRotation: 45 } },
+          y: { beginAtZero: true, grid: { color: "#f1f5f9" } },
+        },
+      },
+    });
+    return () => {
+      if (actividadInstance.current) actividadInstance.current.destroy();
+    };
+  }, [rptUsuarios]);
+
   // ============================================================================
   // CERRAR SESIÓN
   // ============================================================================
@@ -295,121 +372,178 @@ function Reportes() {
     const pdf = new jsPDF("p", "mm", "a4");
     const pw = pdf.internal.pageSize.getWidth();
     const ph = pdf.internal.pageSize.getHeight();
-    const m = 15;
+    const m = 14;
+    const colLabel = m + 4;
+    const colValue = pw - m - 4;
+    const barX = colLabel;
+    const barW = pw - m * 2 - 8;
     let y = m;
 
+    // —— helpers ——
     const checkPage = (h) => {
-      if (y + h > ph - m) {
+      if (y + h > ph - m - 8) {
         pdf.addPage();
+        // barra lateral izquierda sutil en cada página
+        pdf.setFillColor(124, 58, 237);
+        pdf.rect(0, 0, 3, ph, "F");
         y = m;
       }
     };
 
-    const sectionTitle = (text, color) => {
+    // Banner de sección con color de fondo
+    const sectionTitle = (text, hexColor) => {
       checkPage(14);
-      pdf.setFontSize(14);
-      pdf.setTextColor(...hexToRgb(color));
-      pdf.text(text, m, y);
-      y += 8;
+      const rgb = hexToRgb(hexColor);
+      pdf.setFillColor(...rgb);
+      pdf.rect(m, y - 1, pw - m * 2, 10, "F");
+      // sombra sutil
+      pdf.setFillColor(rgb[0] * 0.7, rgb[1] * 0.7, rgb[2] * 0.7);
+      pdf.rect(m, y + 9, pw - m * 2, 0.5, "F");
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(11);
+      pdf.setFont(undefined, "bold");
+      pdf.text(text, colLabel + 2, y + 6.5);
+      pdf.setFont(undefined, "normal");
       pdf.setTextColor(30, 30, 30);
+      y += 14;
     };
 
+    // Cabecera de sub-sección (texto destacado sin fondo)
+    const subTitle = (text) => {
+      checkPage(10);
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, "bold");
+      pdf.setTextColor(80, 40, 160);
+      pdf.text(text, colLabel, y);
+      pdf.setFont(undefined, "normal");
+      pdf.setTextColor(30, 30, 30);
+      y += 7;
+    };
+
+    // Fila stat: etiqueta gris a la izquierda, valor negrita a la derecha
     const stat = (label, value) => {
       checkPage(7);
-      pdf.setFontSize(10);
+      const valStr = String(value);
+      pdf.setFontSize(9.5);
       pdf.setFont(undefined, "normal");
-      pdf.text(`${label}:`, m + 5, y);
+      pdf.setTextColor(100, 100, 120);
+      pdf.text(`${label}:`, colLabel + 2, y);
       pdf.setFont(undefined, "bold");
-      const labelW = pdf.getTextWidth(`${label}: `);
-      pdf.text(String(value), m + 5 + labelW + 2, y);
+      pdf.setTextColor(30, 30, 30);
+      // Truncar si es muy largo
+      const maxW = pw - colLabel - 2 - 30;
+      const splitVal = pdf.splitTextToSize(valStr, maxW);
+      pdf.text(splitVal[0], colValue, y, { align: "right" });
       pdf.setFont(undefined, "normal");
-      y += 6;
+      pdf.setTextColor(30, 30, 30);
+      y += 6.5;
     };
 
+    // Barra de progreso con % en texto
     const progressBar = (label, val, total, fillColor) => {
-      checkPage(14);
+      checkPage(16);
       const pct = total > 0 ? val / total : 0;
+      const pctText = `${(pct * 100).toFixed(1)}%`;
       pdf.setFontSize(9);
-      pdf.text(
-        `${label}: ${val}/${total} (${(pct * 100).toFixed(1)}%)`,
-        m + 5,
-        y,
-      );
+      pdf.setFont(undefined, "normal");
+      pdf.setTextColor(80, 80, 100);
+      pdf.text(label, colLabel + 2, y);
+      pdf.setFont(undefined, "bold");
+      pdf.setTextColor(50, 50, 50);
+      pdf.text(`${val} / ${total}`, colValue, y, { align: "right" });
+      pdf.setFont(undefined, "normal");
       y += 5;
-      pdf.setFillColor(230, 230, 230);
-      pdf.rect(m + 5, y, 120, 4, "F");
-      pdf.setFillColor(...hexToRgb(fillColor));
-      if (pct > 0) pdf.rect(m + 5, y, 120 * pct, 4, "F");
-      y += 8;
+      // track
+      pdf.setFillColor(220, 220, 230);
+      pdf.roundedRect(barX + 2, y, barW - 4, 5, 2, 2, "F");
+      // fill
+      const rgb = hexToRgb(fillColor);
+      pdf.setFillColor(...rgb);
+      if (pct > 0)
+        pdf.roundedRect(barX + 2, y, Math.max(4, (barW - 4) * pct), 5, 2, 2, "F");
+      // pct label inside bar
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(255, 255, 255);
+      if (pct > 0.12)
+        pdf.text(pctText, barX + 2 + ((barW - 4) * pct) / 2, y + 3.5, { align: "center" });
+      pdf.setTextColor(30, 30, 30);
+      y += 9;
     };
 
+    // Separador fino
     const divider = () => {
-      checkPage(6);
-      pdf.setDrawColor(200, 200, 200);
+      checkPage(8);
+      pdf.setDrawColor(200, 195, 220);
+      pdf.setLineWidth(0.3);
       pdf.line(m, y, pw - m, y);
-      y += 6;
+      y += 7;
     };
 
-    // ====== HEADER ======
+    // ====== PORTADA / HEADER ======
+    // Fondo degradado simulado con rectángulos
     pdf.setFillColor(124, 58, 237);
-    pdf.rect(0, 0, pw, 38, "F");
+    pdf.rect(0, 0, pw, 44, "F");
+    pdf.setFillColor(109, 40, 217);
+    pdf.rect(0, 22, pw, 22, "F");
+    // Franja decorativa inferior
+    pdf.setFillColor(168, 85, 247);
+    pdf.rect(0, 42, pw, 2, "F");
+    // Barra lateral
+    pdf.setFillColor(124, 58, 237);
+    pdf.rect(0, 0, 3, ph, "F");
+
     pdf.setTextColor(255, 255, 255);
-    pdf.setFontSize(20);
-    pdf.text("Reporte General - Comunidad Inteligente", pw / 2, 16, {
-      align: "center",
-    });
-    pdf.setFontSize(11);
-    pdf.text(`Período: ${fechaInicio}  a  ${fechaFin}`, pw / 2, 25, {
-      align: "center",
-    });
-    pdf.setFontSize(9);
-    pdf.text(`Generado: ${new Date().toLocaleString("es-CO")}`, pw / 2, 33, {
-      align: "center",
-    });
+    pdf.setFontSize(18);
+    pdf.setFont(undefined, "bold");
+    pdf.text("Comunidad Inteligente", pw / 2, 13, { align: "center" });
+    pdf.setFontSize(12);
+    pdf.setFont(undefined, "normal");
+    pdf.text("Reporte General de Actividad", pw / 2, 21, { align: "center" });
+    pdf.setFontSize(10);
+    pdf.text(`Período: ${fechaInicio}  →  ${fechaFin}`, pw / 2, 30, { align: "center" });
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(220, 210, 255);
+    pdf.text(`Generado el ${new Date().toLocaleString("es-CO")}`, pw / 2, 38, { align: "center" });
+
     pdf.setTextColor(30, 30, 30);
-    y = 48;
+    pdf.setFont(undefined, "normal");
+    y = 52;
 
     // ====== PARQUEADEROS ======
-    sectionTitle("REPORTE DE PARQUEADEROS", "#7c3aed");
-    const resumen = rptParqueaderos?.resumenActual || [];
-    let totalParq = 0,
-      totalOcup = 0,
-      totalDisp = 0;
-    let carrosOcup = 0,
-      carrosTotal = 0,
-      motosOcup = 0,
-      motosTotal = 0;
-    resumen.forEach((r) => {
+    sectionTitle("PARQUEADEROS", "#2563eb");
+
+    const capPdf = rptParqueaderos?.capacidad || [];
+    let cuposCarrosPdf = 0, cuposMotosPdf = 0;
+    capPdf.forEach((r) => {
       const nom = (r.nombreVehiculo || "").toLowerCase();
-      const t = toInt(r.totalParqueaderos),
-        o = toInt(r.ocupados),
-        d = toInt(r.disponibles);
-      totalParq += t;
-      totalOcup += o;
-      totalDisp += d;
-      if (nom === "carro") {
-        carrosOcup = o;
-        carrosTotal = t;
-      }
-      if (nom === "moto") {
-        motosOcup = o;
-        motosTotal = t;
-      }
+      if (nom === "carro") cuposCarrosPdf = toInt(r.totalCupos);
+      if (nom === "moto") cuposMotosPdf = toInt(r.totalCupos);
     });
-    stat("Total Parqueaderos", totalParq);
-    stat("Ocupados", `${totalOcup} (${calcPct(totalOcup, totalParq)}%)`);
-    stat("Disponibles", `${totalDisp} (${calcPct(totalDisp, totalParq)}%)`);
-    progressBar("Carros", carrosOcup, carrosTotal, "#3b82f6");
-    progressBar("Motos", motosOcup, motosTotal, "#f97316");
+    const totalCuposPdf = cuposCarrosPdf + cuposMotosPdf;
+    const periPdf = rptParqueaderos?.resumenPeriodo || {};
+    const totalVehPdf = toInt(periPdf.totalVehiculos);
+    const carrosPdf = toInt(periPdf.carros);
+    const motosPdf = toInt(periPdf.motos);
+    const dPico = rptParqueaderos?.diaPico || null;
+
+    stat("Capacidad total (cupos)", totalCuposPdf);
+    stat("Cupos para carros", cuposCarrosPdf);
+    stat("Cupos para motos", cuposMotosPdf);
+    stat("Vehículos ingresados en el período", totalVehPdf);
+    stat("Carros ingresados", `${carrosPdf}  (${calcPct(carrosPdf, totalVehPdf)}%)`);
+    stat("Motos ingresadas", `${motosPdf}  (${calcPct(motosPdf, totalVehPdf)}%)`);
+    if (dPico) stat("Día pico", `${dPico.fecha}  (${toInt(dPico.totalVehiculos)} vehículos)`);
+    progressBar("Carros vs total", carrosPdf, totalVehPdf, "#3b82f6");
+    progressBar("Motos vs total", motosPdf, totalVehPdf, "#f97316");
     divider();
 
     // ====== VISITAS ======
-    sectionTitle("REPORTE DE VISITAS", "#22c55e");
-    stat("Total Visitas", toInt(rptVisitas?.totalVisitas));
+    sectionTitle("VISITAS", "#16a34a");
+    stat("Total de visitas", toInt(rptVisitas?.totalVisitas));
     if (rptVisitas?.diaConMasVisitas) {
       stat(
         "Día con más visitas",
-        `${rptVisitas.diaConMasVisitas.fecha} (${toInt(rptVisitas.diaConMasVisitas.cantidad)} visitas)`,
+        `${rptVisitas.diaConMasVisitas.fecha}  (${toInt(rptVisitas.diaConMasVisitas.cantidad)} visitas)`,
       );
     }
     const porVeh = rptVisitas?.porVehiculo || [];
@@ -417,33 +551,30 @@ function Reportes() {
     divider();
 
     // ====== PAQUETES ======
-    sectionTitle("REPORTE DE PAQUETES", "#a855f7");
+    sectionTitle("PAQUETERÍA", "#9333ea");
     const totalPaq = toInt(rptPaquetes?.totalPaquetes);
     const entregados = toInt(rptPaquetes?.entregados);
     const pendientes = toInt(rptPaquetes?.pendientes);
-    stat("Total Paquetes", totalPaq);
-    progressBar("Entregados", entregados, totalPaq, "#22c55e");
-    progressBar("Pendientes", pendientes, totalPaq, "#f97316");
+    stat("Total paquetes recibidos", totalPaq);
+    stat("Entregados", `${entregados}  (${calcPct(entregados, totalPaq)}%)`);
+    stat("Pendientes", `${pendientes}  (${calcPct(pendientes, totalPaq)}%)`);
+    progressBar("Paquetes entregados", entregados, totalPaq, "#22c55e");
+    progressBar("Paquetes pendientes", pendientes, totalPaq, "#f97316");
     divider();
 
     // ====== RESERVAS ======
-    sectionTitle("REPORTE DE RESERVAS", "#7c3aed");
-    stat("Total Reservas", toInt(rptReservas?.totalReservas));
-    stat("Promedio Asistentes", rptReservas?.promedioAsistentes || 0);
+    sectionTitle("RESERVAS DE ÁREAS COMUNES", "#7c3aed");
+    stat("Total reservas", toInt(rptReservas?.totalReservas));
+    stat("Promedio de asistentes", rptReservas?.promedioAsistentes || 0);
     if (rptReservas?.diaConMasReservas) {
       stat(
-        "Día pico",
-        `${rptReservas.diaConMasReservas.fecha} (${toInt(rptReservas.diaConMasReservas.cantidad)} reservas)`,
+        "Día con más reservas",
+        `${rptReservas.diaConMasReservas.fecha}  (${toInt(rptReservas.diaConMasReservas.cantidad)} reservas)`,
       );
     }
     const porArea = rptReservas?.porArea || [];
     if (porArea.length > 0) {
-      checkPage(10);
-      pdf.setFontSize(10);
-      pdf.setFont(undefined, "bold");
-      pdf.text("Ranking de áreas:", m + 5, y);
-      pdf.setFont(undefined, "normal");
-      y += 6;
+      subTitle("Ranking de áreas:");
       porArea.slice(0, 5).forEach((a) => {
         progressBar(
           a.nombreArea || "N/A",
@@ -456,68 +587,129 @@ function Reportes() {
     divider();
 
     // ====== RESIDENTES HEADER ======
-    checkPage(16);
-    pdf.setFillColor(245, 243, 255);
-    pdf.rect(m, y - 4, pw - m * 2, 12, "F");
-    pdf.setFontSize(16);
-    pdf.setTextColor(109, 40, 217);
-    pdf.text("REPORTES DE RESIDENTES", m + 5, y + 4);
+    checkPage(18);
+    pdf.setFillColor(237, 233, 254);
+    pdf.rect(m, y - 3, pw - m * 2, 13, "F");
+    pdf.setFillColor(124, 58, 237);
+    pdf.rect(m, y + 10, pw - m * 2, 1, "F");
+    pdf.setFontSize(13);
+    pdf.setFont(undefined, "bold");
+    pdf.setTextColor(80, 20, 200);
+    pdf.text("REPORTES DE RESIDENTES", colLabel + 2, y + 7);
+    pdf.setFont(undefined, "normal");
     pdf.setTextColor(30, 30, 30);
-    y += 16;
+    y += 17;
 
     // ====== OCUPACIÓN POR TORRES ======
     sectionTitle("Ocupación por Torres", "#7c3aed");
-    const oc = rptOcupacion || {};
-    stat("Total Apartamentos", toInt(oc.totalApartamentos));
-    stat("Ocupados", toInt(oc.apartamentosOcupados));
-    stat("Vacíos", toInt(oc.apartamentosVacios));
-    stat("Total Residentes", toInt(oc.totalResidentes));
-    stat("% Ocupación", `${oc.porcentajeOcupacion || 0}%`);
-    const torres = oc.detallePorTorre || [];
+    const ocPdf = rptOcupacion || {};
+    stat("Total apartamentos", toInt(ocPdf.totalApartamentos));
+    stat("Apartamentos ocupados", toInt(ocPdf.apartamentosOcupados));
+    stat("Apartamentos vacíos", toInt(ocPdf.apartamentosVacios));
+    stat("Total residentes", toInt(ocPdf.totalResidentes));
+    stat("Porcentaje de ocupación", `${ocPdf.porcentajeOcupacion || 0}%`);
+    progressBar(
+      "Ocupación general",
+      toInt(ocPdf.apartamentosOcupados),
+      toInt(ocPdf.totalApartamentos),
+      "#7c3aed",
+    );
+    const torres = ocPdf.detallePorTorre || [];
     if (torres.length > 0) {
-      checkPage(10);
-      pdf.setFontSize(10);
-      pdf.setFont(undefined, "bold");
-      pdf.text("Resumen por Torre:", m + 5, y);
-      pdf.setFont(undefined, "normal");
-      y += 6;
+      subTitle("Detalle por torre:");
       torres.forEach((t) => {
         stat(
-          `${t.nombreTorre} — Aptos: ${toInt(t.totalApartamentos)}, Ocupados: ${toInt(t.apartamentosOcupados)}, Personas: ${toInt(t.totalPersonas)}`,
-          "",
+          `Torre ${t.nombreTorre}`,
+          `${toInt(t.apartamentosOcupados)}/${toInt(t.totalApartamentos)} aptos · ${toInt(t.totalPersonas)} personas`,
         );
       });
     }
     divider();
 
     // ====== NIÑOS ======
-    sectionTitle("Niños en la Comunidad", "#ec4899");
+    sectionTitle("Niños en la Comunidad", "#db2777");
     const ni = rptNinos || {};
-    stat("Total Niños", toInt(ni.totalNinos));
-    stat("Aptos con Niños", toInt(ni.totalApartamentosConNinos));
-    stat("Apartamentos con Niños", toInt(ni.totalApartamentosConNinos));
+    stat("Total niños registrados", toInt(ni.totalNinos));
+    stat("Apartamentos con niños", toInt(ni.totalApartamentosConNinos));
     divider();
 
     // ====== POBLACIÓN ESPECIAL ======
-    sectionTitle("Población Especial", "#6366f1");
+    sectionTitle("Población Especial", "#4f46e5");
     const pe = rptPoblacion || {};
-    stat("Adultos Mayores (60+)", toInt(pe.totalAdultosMayores));
-    stat("Personas con Discapacidad", toInt(pe.totalDiscapacidad));
-    stat(
-      "Total Población Especial",
-      toInt(pe.totalAdultosMayores) + toInt(pe.totalDiscapacidad),
-    );
+    const totalEspecial = toInt(pe.totalAdultosMayores) + toInt(pe.totalDiscapacidad);
+    stat("Adultos mayores (60+)", toInt(pe.totalAdultosMayores));
+    stat("Personas con discapacidad", toInt(pe.totalDiscapacidad));
+    stat("Total población especial", totalEspecial);
 
-    // ====== PÁGINA NUMBERS ======
+    // ====== USUARIOS (solo superadmin) ======
+    if (showUserManagement && rptUsuarios) {
+      divider();
+      checkPage(18);
+      pdf.setFillColor(224, 242, 254);
+      pdf.rect(m, y - 3, pw - m * 2, 13, "F");
+      pdf.setFillColor(3, 105, 161);
+      pdf.rect(m, y + 10, pw - m * 2, 1, "F");
+      pdf.setFontSize(13);
+      pdf.setFont(undefined, "bold");
+      pdf.setTextColor(3, 80, 130);
+      pdf.text("REPORTE DE USUARIOS DEL SISTEMA", colLabel + 2, y + 7);
+      pdf.setFont(undefined, "normal");
+      pdf.setTextColor(30, 30, 30);
+      y += 17;
+
+      sectionTitle("Actividad del Sistema", "#0369a1");
+      stat("Registros hoy", rptUsuarios.registrosHoy || 0);
+      stat("Usuarios activos hoy", rptUsuarios.usuariosActivosHoy || 0);
+      stat("Total registros en el período", rptUsuarios.totalRegistrosPeriodo || 0);
+
+      const activosPdf = rptUsuarios.masActivos || [];
+      if (activosPdf.length > 0) {
+        subTitle("Top usuarios más activos:");
+        activosPdf.slice(0, 5).forEach((u) => {
+          stat(
+            `${u.username}  (${u.nombreRol || "N/A"})`,
+            `${u.totalRegistros} registros`,
+          );
+        });
+      }
+
+      const inactivosPdf = rptUsuarios.masInactivos || [];
+      if (inactivosPdf.length > 0) {
+        checkPage(10);
+        subTitle("Usuarios con más días sin actividad:");
+        inactivosPdf.slice(0, 5).forEach((u) => {
+          const dias =
+            u.diasSinActividad == null ? "nunca usó el sistema" : `${u.diasSinActividad} días`;
+          stat(`${u.username}  (${u.nombreRol || "N/A"})`, dias);
+        });
+      }
+
+      const mods = rptUsuarios.modulosMasUsados || [];
+      if (mods.length > 0) {
+        checkPage(10);
+        subTitle("Módulos más utilizados:");
+        const maxMod = Math.max(...mods.map((m) => m.cantidad), 1);
+        mods.slice(0, 6).forEach((mod) => {
+          progressBar(mod.nombre || mod.tabla || "—", mod.cantidad, maxMod, "#0369a1");
+        });
+      }
+    }
+
+    // ====== NUMERACIÓN DE PÁGINAS ======
     const totalPages = pdf.getNumberOfPages();
     for (let p = 1; p <= totalPages; p++) {
       pdf.setPage(p);
+      // barra lateral en cada página
+      pdf.setFillColor(124, 58, 237);
+      pdf.rect(0, 0, 3, ph, "F");
+      // footer
+      pdf.setFillColor(245, 242, 255);
+      pdf.rect(0, ph - 10, pw, 10, "F");
       pdf.setFontSize(8);
-      pdf.setTextColor(150, 150, 150);
-      pdf.text(`Página ${p} de ${totalPages}`, pw / 2, ph - 6, {
+      pdf.setTextColor(120, 90, 180);
+      pdf.text(`Comunidad Inteligente  ·  Página ${p} de ${totalPages}`, pw / 2, ph - 3.5, {
         align: "center",
       });
-      pdf.text("Comunidad Inteligente", pw - m, ph - 6, { align: "right" });
     }
 
     pdf.save(`Reporte_Comunidad_${new Date().toISOString().split("T")[0]}.pdf`);
@@ -585,32 +777,22 @@ function Reportes() {
   // ============================================================================
   // RENDER - DATOS EXTRAÍDOS
   // ============================================================================
-  const resumenP = rptParqueaderos?.resumenActual || [];
-  const totalParqueaderos = resumenP.reduce(
-    (s, r) => s + toInt(r.totalParqueaderos),
-    0,
-  );
-  const totalOcupados = resumenP.reduce((s, r) => s + toInt(r.ocupados), 0);
-  const totalDisponibles = resumenP.reduce(
-    (s, r) => s + toInt(r.disponibles),
-    0,
-  );
+  const capacidadP = rptParqueaderos?.capacidad || [];
+  const resumenPeriodo = rptParqueaderos?.resumenPeriodo || {};
+  const diaPico = rptParqueaderos?.diaPico || null;
 
-  let carrosOcupados = 0,
-    carrosTotal = 0,
-    motosOcupadas = 0,
-    motosTotal = 0;
-  resumenP.forEach((r) => {
+  let totalCuposCarros = 0,
+    totalCuposMotos = 0;
+  capacidadP.forEach((r) => {
     const nom = (r.nombreVehiculo || "").toLowerCase();
-    if (nom === "carro") {
-      carrosOcupados = toInt(r.ocupados);
-      carrosTotal = toInt(r.totalParqueaderos);
-    }
-    if (nom === "moto") {
-      motosOcupadas = toInt(r.ocupados);
-      motosTotal = toInt(r.totalParqueaderos);
-    }
+    if (nom === "carro") totalCuposCarros = toInt(r.totalCupos);
+    if (nom === "moto") totalCuposMotos = toInt(r.totalCupos);
   });
+  const totalCupos = totalCuposCarros + totalCuposMotos;
+
+  const vehiculosEnPeriodo = toInt(resumenPeriodo.totalVehiculos);
+  const carrosEnPeriodo = toInt(resumenPeriodo.carros);
+  const motosEnPeriodo = toInt(resumenPeriodo.motos);
 
   const totalVisitas = toInt(rptVisitas?.totalVisitas);
   const diaConMasVisitas = rptVisitas?.diaConMasVisitas;
@@ -891,52 +1073,66 @@ function Reportes() {
                     <div className="col-md-5">
                       <StatRow
                         icon="p-square"
-                        label="Total Parqueaderos"
-                        value={totalParqueaderos}
+                        label="Capacidad Total (Cupos)"
+                        value={totalCupos}
                         color="#2563eb"
                       />
                       <StatRow
-                        icon="lock-fill"
-                        label="Ocupados"
-                        value={`${totalOcupados} (${calcPct(totalOcupados, totalParqueaderos)}%)`}
-                        color="#ef4444"
+                        icon="car-front-fill"
+                        label="Cupos para Carros"
+                        value={totalCuposCarros}
+                        color="#3b82f6"
                       />
                       <StatRow
-                        icon="unlock-fill"
-                        label="Disponibles"
-                        value={`${totalDisponibles} (${calcPct(totalDisponibles, totalParqueaderos)}%)`}
-                        color="#22c55e"
+                        icon="bicycle"
+                        label="Cupos para Motos"
+                        value={totalCuposMotos}
+                        color="#f97316"
                       />
                       <hr />
                       <p
                         className="fw-semibold text-muted mb-2"
                         style={{ fontSize: 13 }}
                       >
-                        Por tipo de vehículo:
+                        Vehículos ingresados en el período:
                       </p>
+                      <StatRow
+                        icon="truck-front-fill"
+                        label="Total Vehículos"
+                        value={vehiculosEnPeriodo}
+                        color="#7c3aed"
+                      />
                       <StatRow
                         icon="car-front-fill"
                         label="Carros"
-                        value={`${carrosOcupados} / ${carrosTotal}`}
+                        value={`${carrosEnPeriodo} (${calcPct(carrosEnPeriodo, vehiculosEnPeriodo)}%)`}
                         color="#3b82f6"
                       />
                       <StatRow
-                        icon="fa-motorcycle"
+                        icon="bicycle"
                         label="Motos"
-                        value={`${motosOcupadas} / ${motosTotal}`}
+                        value={`${motosEnPeriodo} (${calcPct(motosEnPeriodo, vehiculosEnPeriodo)}%)`}
                         color="#f97316"
                       />
+                      {diaPico && (
+                        <StatRow
+                          icon="calendar-check-fill"
+                          label="Día Pico"
+                          value={`${diaPico.fecha} (${toInt(diaPico.totalVehiculos)} vehículos)`}
+                          color="#22c55e"
+                        />
+                      )}
                       <div className="mt-3">
                         <ProgressBar
-                          label="Carros Ocupados"
-                          value={carrosOcupados}
-                          total={carrosTotal}
+                          label="Carros (del total ingresado)"
+                          value={carrosEnPeriodo}
+                          total={vehiculosEnPeriodo}
                           color="#3b82f6"
                         />
                         <ProgressBar
-                          label="Motos Ocupadas"
-                          value={motosOcupadas}
-                          total={motosTotal}
+                          label="Motos (del total ingresado)"
+                          value={motosEnPeriodo}
+                          total={vehiculosEnPeriodo}
                           color="#f97316"
                         />
                       </div>
@@ -1494,6 +1690,416 @@ function Reportes() {
                   )}
                 </div>
               </div>
+
+              {/* ==================== USUARIOS (solo superadmin) ==================== */}
+              {showUserManagement && rptUsuarios && (
+                <>
+                  <div
+                    className="rpt-section-divider"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
+                      borderColor: "#7dd3fc",
+                      color: "#0369a1",
+                    }}
+                  >
+                    <i className="bi bi-people-fill section-icon"></i>
+                    <h3>Reporte de Usuarios</h3>
+                  </div>
+
+                  {/* Mini-cards de hoy */}
+                  <div className="rpt-card">
+                    <div className="rpt-card-header">
+                      <div
+                        className="header-icon"
+                        style={{ background: "#e0f2fe", color: "#0369a1" }}
+                      >
+                        <i className="bi bi-activity"></i>
+                      </div>
+                      <h4>Actividad del Sistema</h4>
+                    </div>
+                    <div className="rpt-card-body">
+                      <div className="rpt-mini-cards">
+                        <div
+                          className="rpt-mini-card"
+                          style={{
+                            background: "#f0f9ff",
+                            borderColor: "#7dd3fc",
+                          }}
+                        >
+                          <div
+                            className="mini-icon"
+                            style={{ color: "#0369a1" }}
+                          >
+                            <i className="bi bi-lightning-charge-fill"></i>
+                          </div>
+                          <div
+                            className="mini-value"
+                            style={{ color: "#0369a1" }}
+                          >
+                            {rptUsuarios.accionesHoy || 0}
+                          </div>
+                          <div className="mini-label">Acciones Hoy</div>
+                        </div>
+                        <div
+                          className="rpt-mini-card"
+                          style={{
+                            background: "#f5f3ff",
+                            borderColor: "#c4b5fd",
+                          }}
+                        >
+                          <div
+                            className="mini-icon"
+                            style={{ color: "#7c3aed" }}
+                          >
+                            <i className="bi bi-person-check-fill"></i>
+                          </div>
+                          <div
+                            className="mini-value"
+                            style={{ color: "#7c3aed" }}
+                          >
+                            {rptUsuarios.usuariosActivosHoy || 0}
+                          </div>
+                          <div className="mini-label">Usuarios Activos Hoy</div>
+                        </div>
+                        <div
+                          className="rpt-mini-card"
+                          style={{
+                            background: "#f0fdf4",
+                            borderColor: "#86efac",
+                          }}
+                        >
+                          <div
+                            className="mini-icon"
+                            style={{ color: "#16a34a" }}
+                          >
+                            <i className="bi bi-journal-check"></i>
+                          </div>
+                          <div
+                            className="mini-value"
+                            style={{ color: "#16a34a" }}
+                          >
+                            {rptUsuarios.totalAccionesPeriodo || 0}
+                          </div>
+                          <div className="mini-label">
+                            Total Acciones Período
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Gráfica actividad diaria */}
+                      {(rptUsuarios.actividadDiaria || []).length > 0 && (
+                        <div
+                          className="rpt-chart-container mt-3"
+                          style={{ height: 260 }}
+                        >
+                          <canvas ref={actividadChartRef}></canvas>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Top usuarios más activos */}
+                  <div className="rpt-card">
+                    <div className="rpt-card-header">
+                      <div
+                        className="header-icon"
+                        style={{ background: "#fef9c3", color: "#ca8a04" }}
+                      >
+                        <i className="bi bi-trophy-fill"></i>
+                      </div>
+                      <h4>Usuarios Más Activos</h4>
+                      <span
+                        className="ms-auto rpt-badge"
+                        style={{
+                          background: "#0369a1",
+                          fontSize: 12,
+                          padding: "4px 12px",
+                        }}
+                      >
+                        Período seleccionado
+                      </span>
+                    </div>
+                    <div className="rpt-card-body">
+                      {(rptUsuarios.masActivos || []).length > 0 ? (
+                        <div className="rpt-table-wrapper">
+                          <table className="rpt-table">
+                            <thead>
+                              <tr>
+                                <th>#</th>
+                                <th>Usuario</th>
+                                <th>Rol</th>
+                                <th>Registros</th>
+                                <th>Último registro</th>
+                                <th>Estado</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rptUsuarios.masActivos.map((u, i) => {
+                                const esActivo =
+                                  (u.nombreEstado || "").toLowerCase() ===
+                                  "activo";
+                                const estadoColor = esActivo
+                                  ? "#22c55e"
+                                  : "#f97316";
+                                const estadoLabel = u.nombreEstado || "—";
+                                const ultimoRegistroStr = u.ultimoRegistro
+                                  ? new Date(
+                                      u.ultimoRegistro,
+                                    ).toLocaleDateString("es-CO", {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "2-digit",
+                                    })
+                                  : "Sin registros";
+                                return (
+                                  <tr key={i}>
+                                    <td>
+                                      <span
+                                        className="rpt-badge"
+                                        style={{
+                                          background:
+                                            i === 0
+                                              ? "#ca8a04"
+                                              : i === 1
+                                                ? "#94a3b8"
+                                                : i === 2
+                                                  ? "#b45309"
+                                                  : "#e2e8f0",
+                                          color: i < 3 ? "#fff" : "#475569",
+                                        }}
+                                      >
+                                        {i + 1}
+                                      </span>
+                                    </td>
+                                    <td className="fw-semibold">
+                                      <i
+                                        className="bi bi-person-circle me-1"
+                                        style={{ color: "#0369a1" }}
+                                      ></i>
+                                      {u.username}
+                                    </td>
+                                    <td>{u.nombreRol || "—"}</td>
+                                    <td>
+                                      <span
+                                        className="rpt-badge"
+                                        style={{ background: "#0369a1" }}
+                                      >
+                                        {u.totalRegistros}
+                                      </span>
+                                    </td>
+                                    <td
+                                      style={{ fontSize: 12, color: "#64748b" }}
+                                    >
+                                      {ultimoRegistroStr}
+                                    </td>
+                                    <td>
+                                      <span
+                                        className="rpt-badge"
+                                        style={{ background: estadoColor }}
+                                      >
+                                        {estadoLabel}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="rpt-empty">
+                          <i className="bi bi-people"></i>
+                          <p>Sin actividad registrada en este período</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Usuarios más inactivos */}
+                  <div className="rpt-card">
+                    <div className="rpt-card-header">
+                      <div
+                        className="header-icon"
+                        style={{ background: "#fff7ed", color: "#ea580c" }}
+                      >
+                        <i className="bi bi-moon-stars-fill"></i>
+                      </div>
+                      <h4>Usuarios con Mayor Inactividad</h4>
+                    </div>
+                    <div className="rpt-card-body">
+                      {(rptUsuarios.masInactivos || []).length > 0 ? (
+                        <div className="rpt-table-wrapper">
+                          <table className="rpt-table">
+                            <thead>
+                              <tr>
+                                <th>Usuario</th>
+                                <th>Rol</th>
+                                <th>Última actividad</th>
+                                <th>Días inactivo</th>
+                                <th>Estado</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rptUsuarios.masInactivos.map((u, i) => {
+                                const diasNum = u.diasSinActividad;
+                                const diasLabel =
+                                  diasNum == null
+                                    ? "Nunca inició sesión"
+                                    : `${diasNum} días`;
+                                const color =
+                                  diasNum == null || diasNum > 30
+                                    ? "#ef4444"
+                                    : diasNum > 7
+                                      ? "#f97316"
+                                      : "#22c55e";
+                                const ultimaAct = u.ultimaActividad
+                                  ? new Date(
+                                      u.ultimaActividad,
+                                    ).toLocaleDateString("es-CO", {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "2-digit",
+                                    })
+                                  : "—";
+                                const esActivo =
+                                  (u.nombreEstado || "").toLowerCase() ===
+                                  "activo";
+                                const estadoColor = esActivo
+                                  ? "#22c55e"
+                                  : "#f97316";
+                                const estadoLabel = u.nombreEstado || "—";
+                                return (
+                                  <tr key={i}>
+                                    <td className="fw-semibold">
+                                      <i
+                                        className="bi bi-person-circle me-1"
+                                        style={{ color: "#ea580c" }}
+                                      ></i>
+                                      {u.username}
+                                    </td>
+                                    <td>{u.nombreRol || "—"}</td>
+                                    <td
+                                      style={{ fontSize: 12, color: "#64748b" }}
+                                    >
+                                      {ultimaAct}
+                                    </td>
+                                    <td>
+                                      <span
+                                        className="rpt-badge"
+                                        style={{ background: color }}
+                                      >
+                                        {diasLabel}
+                                      </span>
+                                    </td>
+                                    <td>
+                                      <span
+                                        className="rpt-badge"
+                                        style={{ background: estadoColor }}
+                                      >
+                                        {estadoLabel}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="rpt-empty">
+                          <i className="bi bi-moon-stars"></i>
+                          <p>Sin datos de inactividad</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Módulos más utilizados */}
+                  {(rptUsuarios.modulosMasUsados || []).length > 0 && (
+                    <div className="rpt-card">
+                      <div className="rpt-card-header">
+                        <div
+                          className="header-icon"
+                          style={{ background: "#f0fdf4", color: "#16a34a" }}
+                        >
+                          <i className="bi bi-grid-3x3-gap-fill"></i>
+                        </div>
+                        <h4>Módulos Más Utilizados</h4>
+                        <span
+                          className="ms-auto"
+                          style={{ fontSize: 12, color: "#64748b" }}
+                        >
+                          Ranking por uso en el período
+                        </span>
+                      </div>
+                      <div className="rpt-card-body">
+                        <p
+                          style={{
+                            fontSize: 12,
+                            color: "#64748b",
+                            marginBottom: 12,
+                          }}
+                        >
+                          Indica qué partes del sistema se usaron más: más
+                          actividad = más registros, modificaciones o consultas
+                          en ese módulo.
+                        </p>
+                        {(() => {
+                          const mods = rptUsuarios.modulosMasUsados;
+                          const maxMod = Math.max(
+                            ...mods.map((m) => m.cantidad),
+                          );
+                          const colores = [
+                            "#0369a1",
+                            "#7c3aed",
+                            "#16a34a",
+                            "#ca8a04",
+                            "#dc2626",
+                            "#0891b2",
+                            "#9333ea",
+                            "#059669",
+                          ];
+                          return mods.map((mod, i) => (
+                            <div key={i} className="rpt-hbar-row">
+                              <span
+                                className="rpt-hbar-label"
+                                style={{
+                                  minWidth: 130,
+                                  fontSize: 13,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {mod.nombre || mod.tabla || "—"}
+                              </span>
+                              <div className="rpt-hbar-track">
+                                <div
+                                  className="rpt-hbar-fill"
+                                  style={{
+                                    width: `${maxMod > 0 ? (mod.cantidad / maxMod) * 100 : 0}%`,
+                                    background: colores[i % colores.length],
+                                  }}
+                                >
+                                  {mod.cantidad / maxMod > 0.25 && (
+                                    <span className="rpt-hbar-text">
+                                      {mod.cantidad} registros
+                                    </span>
+                                  )}
+                                </div>
+                                {mod.cantidad / maxMod <= 0.25 && (
+                                  <span className="rpt-hbar-text-dark">
+                                    {mod.cantidad} registros
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </>
           )}
         </div>

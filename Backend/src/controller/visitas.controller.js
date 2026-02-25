@@ -80,11 +80,32 @@ export const crearVisita = async (req, res) => {
       });
     }
 
+    // Verificar si ya hay una visita activa para este documento
+    const visitaActiva = await Visita.findOne({
+      where: { numeroDocumento, estadoId: 8 },
+    });
+    if (visitaActiva) {
+      return res.status(409).json({
+        error: `Ya hay una persona con el número de documento ${numeroDocumento} en visita. Todavía no ha salido.`,
+        codigo: "VISITA_DUPLICADA",
+      });
+    }
+
     let vehiculoMatricula = null;
     let parqueadero = null;
 
     // Procesar vehículo solo si se envía matrícula
     if (matricula && matricula.trim() !== "") {
+      // Validar formato matrícula colombiana: ABC123 (carro) | ABC12D o ABC12 (moto)
+      const placaLimpia = matricula.trim().toUpperCase();
+      const placaRegex = /^[A-Z]{3}[0-9]{2,3}[A-Z]?$/;
+      if (!placaRegex.test(placaLimpia)) {
+        return res.status(400).json({
+          error:
+            "La matrícula no tiene un formato válido. Use el formato colombiano: ABC123 (carro) o ABC12D / ABC12 (moto). Sin caracteres especiales ni secuencias inválidas.",
+        });
+      }
+
       if (
         !tipoVehiculoId ||
         !codigoParqueadero ||

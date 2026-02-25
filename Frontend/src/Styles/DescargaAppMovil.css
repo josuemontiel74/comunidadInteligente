@@ -244,3 +244,47 @@
     padding: 12px;
   }
 }
+
+/* ── Modo oscuro ───────────────────────────────────────────────── */
+[data-modo="oscuro"] .dap-modal {
+  background: #1e2330;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+  color: #e5e7eb;
+}
+
+[data-modo="oscuro"] .dap-close {
+  background: #2d3348;
+  color: #9ca3af;
+}
+[data-modo="oscuro"] .dap-close:hover {
+  background: #374060;
+  color: #e5e7eb;
+}
+
+[data-modo="oscuro"] .dap-icon-anim {
+  background: linear-gradient(135deg, #14532d 0%, #166534 100%);
+  color: #4ade80;
+}
+
+[data-modo="oscuro"] .dap-title {
+  color: #f3f4f6;
+}
+
+[data-modo="oscuro"] .dap-sub {
+  color: #9ca3af;
+}
+
+[data-modo="oscuro"] .dap-features li {
+  color: #d1d5db;
+}
+
+[data-modo="oscuro"] .dap-features li i {
+  color: #4ade80;
+}
+
+[data-modo="oscuro"] .dap-no-mostrar {
+  color: #6b7280;
+}
+[data-modo="oscuro"] .dap-no-mostrar input {
+  accent-color: #4ade80;
+}

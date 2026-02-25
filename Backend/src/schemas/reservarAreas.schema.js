@@ -19,8 +19,10 @@ export const crearReservarAreasSchema = Joi.object({
     .max(20)
     .pattern(/^[a-zA-Z0-9]+$/)
     .required(),
-  nombreSolicitante: Joi.string().max(100).optional(),
-  telefonoSolicitante: Joi.string().max(20).optional(),
+  nombreSolicitante: Joi.string().max(100).optional()
+    .pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
+  telefonoSolicitante: Joi.string().max(20).optional()
+    .pattern(/^3\d{9}$/),
   correoSolicitante: Joi.string().email().max(100).optional(),
   tipoDocumentoId: Joi.number().integer().optional(),
 });
@@ -44,8 +46,10 @@ export const actualizarReservarAreasSchema = Joi.object({
     .max(20)
     .pattern(/^[a-zA-Z0-9]+$/)
     .optional(),
-  nombreSolicitante: Joi.string().max(100).optional(),
-  telefonoSolicitante: Joi.string().max(20).optional(),
+  nombreSolicitante: Joi.string().max(100).optional()
+    .pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/),
+  telefonoSolicitante: Joi.string().max(20).optional()
+    .pattern(/^3\d{9}$/),
   correoSolicitante: Joi.string().email().max(100).optional(),
   tipoDocumentoId: Joi.number().integer().optional(),
 });

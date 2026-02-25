@@ -93,3 +93,16 @@ export async function obtenerReportePoblacionEspecial(token) {
     return null;
   }
 }
+
+export async function obtenerReporteUsuarios(token, fechaInicio, fechaFin) {
+  try {
+    const res = await fetch(
+      `${API_URL}/api/reportes/usuarios?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`,
+      { headers: authHeaders(token) },
+    );
+    const data = await res.json();
+    return data.success ? data.data : null;
+  } catch (e) {
+    return null;
+  }
+}

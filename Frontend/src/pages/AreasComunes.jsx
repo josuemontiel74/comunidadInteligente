@@ -3,6 +3,12 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import "../Styles/estiloAreasComunes.css";
 import logo from "../../img/logo.png";
 import {
+  validarNombreCompleto,
+  validarTelefono,
+  validarEmail,
+  validarDocumento,
+} from "../utils/validaciones.js";
+import {
   obtenerReservasAreas,
   obtenerApartamentos,
   obtenerAreas,
@@ -418,6 +424,36 @@ function AreasComunes() {
         "La hora de inicio debe ser menor que la hora de fin",
         "error",
       );
+      return;
+    }
+
+    // Validaciones de datos del solicitante
+    const tipoDocObj = tiposDocumento.find(
+      (t) => String(t.tipoDocumentoId) === String(reserva.tipoDocumentoId),
+    );
+    const tipoDocNombre = tipoDocObj ? tipoDocObj.nombre : "";
+    const errDoc = validarDocumento(
+      reserva.documentoSolicitante,
+      reserva.tipoDocumentoId,
+      tipoDocNombre,
+    );
+    if (errDoc) {
+      Swal.fire("Documento inválido", errDoc, "error");
+      return;
+    }
+    const errNomAC = validarNombreCompleto(reserva.nombreSolicitante);
+    if (errNomAC) {
+      Swal.fire("Nombre inválido", errNomAC, "error");
+      return;
+    }
+    const errTelAC = validarTelefono(reserva.telefonoSolicitante);
+    if (errTelAC) {
+      Swal.fire("Teléfono inválido", errTelAC, "error");
+      return;
+    }
+    const errEmailAC = validarEmail(reserva.correoSolicitante);
+    if (errEmailAC) {
+      Swal.fire("Correo inválido", errEmailAC, "error");
       return;
     }
 
@@ -857,7 +893,7 @@ function AreasComunes() {
 </style></head>
 <body>
   <div class="ticket-center">
-    <div class="ticket-title">AZAHARR</div>
+    <div class="ticket-title">AZAHAR</div>
     <div class="ticket-subtitle">Conjunto Residencial</div>
     <div class="ticket-subtitle">NIT: 900.XXX.XXX-X</div>
   </div>
@@ -1051,6 +1087,15 @@ function AreasComunes() {
                 >
                   <i className="bi bi-shield-check" />
                   <span>Auditorías</span>
+                  <i className="bi bi-chevron-right ac-menu-arrow" />
+                </Link>
+                <Link
+                  className="ac-menu-item"
+                  to="/LogErrores"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-bug" />
+                  <span>Log de Errores</span>
                   <i className="bi bi-chevron-right ac-menu-arrow" />
                 </Link>
               </>

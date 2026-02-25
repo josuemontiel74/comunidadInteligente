@@ -952,3 +952,70 @@
     display: block !important;
   }
 }
+
+/* =====================================================
+   DARK MODE — Modales Paquetería
+   Activado con [data-modo="oscuro"] en <html>
+   ===================================================== */
+
+[data-modo="oscuro"] .paq-modal {
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
+}
+[data-modo="oscuro"] .paq-modal-header h5 {
+  color: #e2e8f0 !important;
+}
+[data-modo="oscuro"] .paq-modal-close {
+  color: #64748b !important;
+}
+[data-modo="oscuro"] .paq-modal-close:hover {
+  background: #334155 !important;
+  color: #e2e8f0 !important;
+}
+[data-modo="oscuro"] .paq-modal-body {
+  background: #1e293b !important;
+}
+[data-modo="oscuro"] .paq-modal-footer {
+  background: #1e293b !important;
+}
+
+/* Campos del formulario */
+[data-modo="oscuro"] .paq-form-label {
+  color: #94a3b8 !important;
+}
+[data-modo="oscuro"] .paq-form-control {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+[data-modo="oscuro"] .paq-form-control:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Modal detalles */
+[data-modo="oscuro"] .paq-detalle-row {
+  border-bottom-color: #334155 !important;
+}
+[data-modo="oscuro"] .paq-detalle-icon {
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: #60a5fa !important;
+}
+[data-modo="oscuro"] .paq-detalle-label {
+  color: #64748b !important;
+}
+[data-modo="oscuro"] .paq-detalle-value {
+  color: #e2e8f0 !important;
+}
+[data-modo="oscuro"] .paq-btn-cerrar {
+  color: #60a5fa !important;
+}
+[data-modo="oscuro"] .paq-btn-cerrar:hover {
+  background: rgba(59, 130, 246, 0.12) !important;
+}
+
+/* ── DRAWER MODO OSCURO ── */
+[data-modo="oscuro"] .paq-drawer {
+  background: linear-gradient(180deg, #152d7a, #1a45a5, #295bac) !important;
+}

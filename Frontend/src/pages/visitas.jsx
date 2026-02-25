@@ -4,6 +4,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "../Styles/estiloVisitas.css";
 import Swal from "sweetalert2";
+import { validarNombreCompleto, validarDocumento } from "../utils/validaciones.js";
 import {
   obtenerVisitasJoin,
   crearVisita,
@@ -204,6 +205,90 @@ function Visitas() {
     }, 30000);
     return () => clearInterval(interval);
   }, [cargarVisitas]);
+
+  // ── Imprimir recibo de visita ──
+  const imprimirReciboVisita = (v, tipo) => {
+    if (!v) return;
+    const ahora = new Date();
+    const fechaImpresion = `${ahora.getDate().toString().padStart(2, "0")}/${(ahora.getMonth() + 1).toString().padStart(2, "0")}/${ahora.getFullYear()} ${ahora.getHours().toString().padStart(2, "0")}:${ahora.getMinutes().toString().padStart(2, "0")}`;
+    const esIngreso = tipo === "INGRESO";
+    const fechaEvento = esIngreso
+      ? v.fechaHoraIngreso
+        ? new Date(v.fechaHoraIngreso).toLocaleString("es-CO")
+        : "-"
+      : v.fechaHoraSalida
+        ? new Date(v.fechaHoraSalida).toLocaleString("es-CO")
+        : "-";
+    const id = v.idVisita || v.id || "---";
+    const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Comprobante Visita #${id}</title>
+<style>
+  @page { margin: 0; size: 80mm auto; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Courier New', monospace; width: 80mm; padding: 4mm; background: #fff; color: #000; font-size: 12px; line-height: 1.5; }
+  .c { text-align: center; }
+  .titulo { font-size: 17px; font-weight: bold; margin: 4px 0 2px; }
+  .sub { font-size: 10px; color: #555; margin-bottom: 4px; }
+  hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+  .sec { font-size: 11px; font-weight: bold; text-transform: uppercase; background: #f0f0f0; padding: 2px 4px; margin: 4px 0; }
+  .row { display: flex; justify-content: space-between; padding: 1px 0; font-size: 11px; }
+  .row .l { font-weight: bold; flex-shrink: 0; }
+  .row .v { text-align: right; word-break: break-word; max-width: 58%; }
+  .tipo-badge { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; margin: 6px 0; background: ${esIngreso ? "#d4f1e4" : "#fde8e8"}; color: ${esIngreso ? "#155724" : "#7f1d1d"}; border: 1.5px solid ${esIngreso ? "#27ae60" : "#e74c3c"}; }
+  .aviso { font-size: 10.5px; font-weight: bold; text-align: center; border: 1.5px solid #000; padding: 5px 4px; margin: 8px 0 4px; border-radius: 4px; line-height: 1.4; }
+  .pie { text-align: center; font-size: 9px; color: #777; margin-top: 8px; padding-top: 4px; }
+  .barcode { text-align: center; font-size: 22px; letter-spacing: 3px; font-family: 'Libre Barcode 39', cursive, monospace; margin: 6px 0; }
+  @media print { body { width: 80mm; } }
+</style></head>
+<body>
+  <div class="c">
+    <div class="titulo">AZAHAR</div>
+    <div class="sub">Conjunto Residencial</div>
+    <div class="sub">NIT: 900.XXX.XXX-X</div>
+    <br/>
+    <div class="tipo-badge">${esIngreso ? "&#x2714; INGRESO" : "&#x2190; SALIDA"}</div>
+    <div style="font-size:11px;font-weight:bold;">COMPROBANTE DE VISITA</div>
+    <div style="font-size:18px;font-weight:bold;letter-spacing:2px;">#${String(id).padStart(5, "0")}</div>
+  </div>
+  <hr/>
+  <div class="sec">Visitante</div>
+  <div class="row"><span class="l">Nombre:</span><span class="v">${v.nombreVisitante || "-"}</span></div>
+  <div class="row"><span class="l">Documento:</span><span class="v">${v.numeroDocumento || "-"}</span></div>
+  <hr/>
+  <div class="sec">Destino</div>
+  <div class="row"><span class="l">Apto:</span><span class="v">${v.numeroApartamento || "-"} &mdash; ${v.nombreTorre || ""}</span></div>
+  <hr/>
+  <div class="sec">${esIngreso ? "Hora de Ingreso" : "Hora de Salida"}</div>
+  <div class="row"><span class="l">${esIngreso ? "Ingreso:" : "Salida:"}</span><span class="v">${fechaEvento}</span></div>
+  ${!esIngreso && v.fechaHoraIngreso ? `<div class="row"><span class="l">Ingreso:</span><span class="v">${new Date(v.fechaHoraIngreso).toLocaleString("es-CO")}</span></div>` : ""}
+  ${v.matricula ? `<hr/><div class="sec">Veh&iacute;culo</div><div class="row"><span class="l">Tipo:</span><span class="v">${v.nombreVehiculo || "Veh&iacute;culo"}</span></div><div class="row"><span class="l">Matr&iacute;cula:</span><span class="v">${v.matricula}</span></div>${v.codigoParqueadero ? `<div class="row"><span class="l">Parqueadero:</span><span class="v">${v.codigoParqueadero}</span></div>` : ""}` : ""}
+  <hr/>
+  <div class="aviso">
+    &#9888; ESTE COMPROBANTE NO DEBE SER DESECHADO<br/>
+    Consérvelo hasta retirarse del conjunto.<br/>
+    Puede ser requerido por seguridad.
+  </div>
+  <div class="barcode">*${String(id).padStart(6, "0")}*</div>
+  <hr/>
+  <div class="pie">
+    Impreso: ${fechaImpresion}<br/>
+    Vigilancia &mdash; Conjunto Residencial AZAHAR<br/>
+    Documento v&aacute;lido solo para la fecha indicada.
+  </div>
+</body></html>`;
+    const ventana = window.open("", "_blank", "width=320,height=650");
+    if (!ventana) {
+      Swal.fire(
+        "Bloqueado",
+        "El navegador bloqueó la ventana emergente. Permite las ventanas emergentes e intenta de nuevo.",
+        "warning",
+      );
+      return;
+    }
+    ventana.document.write(html);
+    ventana.document.close();
+    ventana.onload = () => setTimeout(() => ventana.print(), 300);
+  };
 
   // ── Restaurar estado del formulario desde parqueaderos ──
   useEffect(() => {
@@ -468,12 +553,10 @@ function Visitas() {
       );
       return;
     }
-    if (!formData.nombreVisitante || formData.nombreVisitante.length < 10) {
-      Swal.fire(
-        "Error",
-        "El nombre debe tener al menos 10 caracteres",
-        "error",
-      );
+    // Validar nombre del visitante: solo letras, sin números ni caracteres aleatorios
+    const errNomVis = validarNombreCompleto(formData.nombreVisitante);
+    if (errNomVis) {
+      Swal.fire("Nombre inválido", errNomVis, "error");
       return;
     }
     if (!formData.tipoDocumentoId) {
@@ -492,6 +575,16 @@ function Visitas() {
     if (formData.vieneEnVehiculo === "SI") {
       if (!formData.matricula) {
         Swal.fire("Error", "Ingresa la matrícula del vehículo", "error");
+        return;
+      }
+      const placaLimpia = formData.matricula.trim().toUpperCase();
+      const placaRegex = /^[A-Z]{3}[0-9]{2,3}[A-Z]?$/;
+      if (!placaRegex.test(placaLimpia)) {
+        Swal.fire(
+          "Matrícula inválida",
+          "La matrícula debe seguir el formato colombiano: ABC123 (carro) o ABC12D / ABC12 (moto). Sin caracteres especiales.",
+          "error",
+        );
         return;
       }
       if (!formData.tipoVehiculoId) {
@@ -543,11 +636,23 @@ function Visitas() {
           : await res.text();
 
       if (!res.ok) {
-        Swal.fire(
-          "Error",
-          data.error || "No se pudo guardar la visita",
-          "error",
-        );
+        if (data?.codigo === "VISITA_DUPLICADA") {
+          Swal.fire({
+            icon: "warning",
+            title: "Lo siento",
+            text:
+              data.error ||
+              "Ya hay una persona con este número de documento en visita. Todavía no ha salido.",
+            confirmButtonText: "Entendido",
+            confirmButtonColor: "#4CAF50",
+          });
+        } else {
+          Swal.fire(
+            "Error",
+            data.error || "No se pudo guardar la visita",
+            "error",
+          );
+        }
         return;
       }
 
@@ -790,16 +895,38 @@ function Visitas() {
                 </Link>
               </>
             )}
-            {rolesId === 1 && (
+            {(rolesId === 1 || rolesId === 2) && (
               <Link
                 className="vis-menu-item"
-                to="/GestionUsuario"
+                to="/Reportes"
                 onClick={() => setMenuOpen(false)}
               >
-                <i className="bi bi-person-gear"></i>
-                <span>Gestión Usuarios</span>
+                <i className="bi bi-graph-up-arrow"></i>
+                <span>Reportes</span>
                 <i className="bi bi-chevron-right vis-menu-arrow"></i>
               </Link>
+            )}
+            {rolesId === 1 && (
+              <>
+                <Link
+                  className="vis-menu-item"
+                  to="/GestionUsuario"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-person-gear"></i>
+                  <span>Gestión Usuarios</span>
+                  <i className="bi bi-chevron-right vis-menu-arrow"></i>
+                </Link>
+                <Link
+                  className="vis-menu-item"
+                  to="/LogErrores"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-bug"></i>
+                  <span>Log de Errores</span>
+                  <i className="bi bi-chevron-right vis-menu-arrow"></i>
+                </Link>
+              </>
             )}
           </div>
         </div>
@@ -1042,24 +1169,16 @@ function Visitas() {
                             {v.matricula ? (
                               <span>
                                 {v.nombreVehiculo === "Moto" ? (
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="1em"
-                                    height="1em"
-                                    fill="currentColor"
-                                    viewBox="0 0 24 24"
-                                    className="text-warning me-1"
-                                    style={{ verticalAlign: "-0.125em" }}
-                                  >
-                                    <path d="M4 18a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0-2a1 1 0 1 0 0-2 1 1 0 0 0 0 2m16 2a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0-2a1 1 0 1 0 0-2 1 1 0 0 0 0 2M15.4 5H11v2h3.6l1.4 1.4-3.4 3.6H8.6L5.4 9H2v2h2.6l3.4 3.4V17a3 3 0 0 0 6 0v-2.6L17.4 11h2l-4-6zM13 17a2 2 0 0 1-4 0v-1.6l1.6-1.4H13v3z" />
-                                  </svg>
+                                  <i className="bi bi-scooter text-success me-1"></i>
                                 ) : (
-                                  <i className="bi bi-car-front text-primary me-1"></i>
+                                  <i className="bi bi-car-front text-success me-1"></i>
                                 )}
                                 {v.matricula}
                               </span>
                             ) : (
-                              <span className="text-muted">Sin vehículo</span>
+                              <span className="vis-sin-vehiculo">
+                                Sin vehículo
+                              </span>
                             )}
                           </td>
                           <td>
@@ -1159,8 +1278,14 @@ function Visitas() {
                         </div>
                         {v.matricula && (
                           <div className="vis-card-info-row">
-                            <div className="vis-card-info-icon gray">
-                              <i className="bi bi-car-front"></i>
+                            <div className="vis-card-info-icon green">
+                              <i
+                                className={
+                                  v.nombreVehiculo === "Moto"
+                                    ? "bi bi-scooter"
+                                    : "bi bi-car-front"
+                                }
+                              ></i>
                             </div>
                             <div>
                               <div className="vis-card-info-label">
@@ -1806,7 +1931,15 @@ function Visitas() {
                 )}
             </div>
 
-            <div className="vis-modal-footer" style={{ textAlign: "center" }}>
+            <div className="vis-modal-footer vis-modal-footer-acciones">
+              {modalDetalle.matricula && (
+                <button
+                  className="vis-btn-imprimir vis-btn-ingreso"
+                  onClick={() => imprimirReciboVisita(modalDetalle, "INGRESO")}
+                >
+                  <i className="bi bi-printer"></i> Imprimir Recibo
+                </button>
+              )}
               <button
                 className="vis-btn-cerrar"
                 onClick={() => setModalDetalle(null)}

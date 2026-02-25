@@ -8,6 +8,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import Swal from "sweetalert2";
 import {
   obtenerResidentes,
+  obtenerTodosApartamentos,
   crearOcupante,
   actualizarOcupante,
   finalizarOcupante,
@@ -173,6 +174,9 @@ function Residentes() {
   const [paginaActual, setPaginaActual] = useState(1);
   const elementosPorPagina = 10;
 
+  const [modalTorres, setModalTorres] = useState(false);
+  const [torreSeleccionada, setTorreSeleccionada] = useState(null);
+
   const [formData, setFormData] = useState({
     tipoDocumento: "CC",
     numeroDocumento: "",
@@ -276,9 +280,12 @@ function Residentes() {
         tieneAdultoMayor: o.tieneAdultoMayor || 0,
         tieneDiscapacidad: o.tieneDiscapacidad || 0,
         torre: mapTorre(o.torresId),
-        torresId: o.torresId,
-        apartamentosId: o.apartamentosId,
-        estado: o.nombreEstado === "activa" ? "Activo" : "Finalizado",
+        torresId: Number(o.torresId),
+        apartamentosId: Number(o.apartamentosId),
+        numeroApartamento: o.numeroApartamento || o.apartamentosId,
+        estado: ["activo", "activa"].includes(o.nombreEstado?.toLowerCase())
+          ? "Activo"
+          : "Finalizado",
         estadoId: o.estadoId,
         nombreEstado: o.nombreEstado,
         nombreCompleto: [
@@ -306,24 +313,18 @@ function Residentes() {
   const cargarApartamentos = async () => {
     try {
       const token = obtenerToken();
-      const res = await obtenerResidentes(token);
+      const res = await obtenerTodosApartamentos(token);
       if (!res.ok) throw new Error();
       const data = await res.json();
-      const ocupantes = data.body || data;
-      const unicos = [];
-      const ids = new Set();
-      ocupantes.forEach((o) => {
-        if (!ids.has(o.apartamentosId)) {
-          ids.add(o.apartamentosId);
-          unicos.push({
-            idApartamento: o.apartamentosId,
-            numeroApartamento: o.apartamentosId?.toString(),
-            torresId: o.torresId,
-          });
-        }
-      });
-      unicos.sort((a, b) => a.idApartamento - b.idApartamento);
-      setApartamentos(unicos);
+      const lista = data.body || data;
+      const aptos = lista
+        .map((a) => ({
+          idApartamento: Number(a.IdApartamento ?? a.idApartamento),
+          numeroApartamento: a.numeroApartamento,
+          torresId: Number(a.torresId),
+        }))
+        .sort((a, b) => a.idApartamento - b.idApartamento);
+      setApartamentos(aptos);
     } catch {
       setApartamentos([]);
     }
@@ -332,8 +333,26 @@ function Residentes() {
   const generarAptos = (torreId) => {
     const id = Number(torreId);
     if (!id || !apartamentos.length) return [];
-    return apartamentos
-      .filter((a) => a.torresId === id)
+    const aptosEnTorre = apartamentos.filter((a) => a.torresId === id);
+    // Al editar se muestran todos (el propio apto debe aparecer)
+    if (editIndex !== null) {
+      return aptosEnTorre.map((a) => ({
+        id: a.idApartamento,
+        numero: a.numeroApartamento,
+      }));
+    }
+    // Al crear: solo apartamentos libres para el tipo de ocupación elegido
+    const tipo = (formData.tipoOcupacion || "").toLowerCase();
+    return aptosEnTorre
+      .filter(
+        (a) =>
+          !residentes.some(
+            (r) =>
+              r.apartamentosId === a.idApartamento &&
+              r.tipoOcupacion?.toLowerCase() === tipo &&
+              r.estado === "Activo",
+          ),
+      )
       .map((a) => ({ id: a.idApartamento, numero: a.numeroApartamento }));
   };
 
@@ -455,22 +474,120 @@ function Residentes() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // ── Validaciones de nombres ──────────────────────────────────────────
     if (!formData.primerNombre.trim())
-      return Swal.fire("Error", "Ingrese el primer nombre", "error");
-    if (!formData.primerApellido.trim())
-      return Swal.fire("Error", "Ingrese el primer apellido", "error");
-    if (!formData.apto)
-      return Swal.fire("Error", "Seleccione un apartamento", "error");
-    if (!formData.fechaInicio)
-      return Swal.fire("Error", "La fecha de inicio es obligatoria", "error");
-    if (editIndex === null && !formData.numeroDocumento.trim())
-      return Swal.fire("Error", "Ingrese el número de documento", "error");
-    if (formData.telefono && !/^[0-9]{7,15}$/.test(formData.telefono))
       return Swal.fire(
-        "Error",
-        "El teléfono debe contener solo números (entre 7 y 15 dígitos)",
+        "Campo obligatorio",
+        "El primer nombre es requerido para registrar al residente.",
         "error",
       );
+    if (/[0-9]/.test(formData.primerNombre))
+      return Swal.fire(
+        "Nombre inválido",
+        "El primer nombre no puede contener números.",
+        "error",
+      );
+    if (/^(.)\1+$/.test(formData.primerNombre.trim()))
+      return Swal.fire(
+        "Nombre inválido",
+        `"${formData.primerNombre.trim()}" no es un nombre válido. No puede estar formado por el mismo carácter repetido.`,
+        "error",
+      );
+    if (!formData.primerApellido.trim())
+      return Swal.fire(
+        "Campo obligatorio",
+        "El primer apellido es requerido para registrar al residente.",
+        "error",
+      );
+    if (/[0-9]/.test(formData.primerApellido))
+      return Swal.fire(
+        "Apellido inválido",
+        "El primer apellido no puede contener números.",
+        "error",
+      );
+    if (/^(.)\1+$/.test(formData.primerApellido.trim()))
+      return Swal.fire(
+        "Apellido inválido",
+        `"${formData.primerApellido.trim()}" no es un apellido válido. No puede estar formado por el mismo carácter repetido.`,
+        "error",
+      );
+
+    // ── Apartamento y fecha ──────────────────────────────────────────────
+    if (!formData.apto)
+      return Swal.fire(
+        "Campo obligatorio",
+        "Debe seleccionar un apartamento para continuar.",
+        "error",
+      );
+    if (!formData.fechaInicio)
+      return Swal.fire(
+        "Campo obligatorio",
+        "La fecha de inicio es obligatoria.",
+        "error",
+      );
+
+    // ── Teléfono ─────────────────────────────────────────────────────────
+    if (formData.telefono && !/^[0-9]{7,15}$/.test(formData.telefono))
+      return Swal.fire(
+        "Teléfono inválido",
+        "El teléfono debe contener solo dígitos y tener entre 7 y 15 cifras.",
+        "error",
+      );
+    if (formData.telefono && /^(\d)\1+$/.test(formData.telefono))
+      return Swal.fire(
+        "Teléfono inválido",
+        `El teléfono "${formData.telefono}" no es válido porque todos sus dígitos son iguales. Ingrese un número real.`,
+        "error",
+      );
+
+    // ── Documento ────────────────────────────────────────────────────────
+    if (editIndex === null && !formData.numeroDocumento.trim())
+      return Swal.fire(
+        "Campo obligatorio",
+        "El número de documento es obligatorio para crear un nuevo residente.",
+        "error",
+      );
+    if (formData.numeroDocumento.trim()) {
+      const doc = formData.numeroDocumento.trim();
+      if (!/^[a-zA-Z0-9\-]+$/.test(doc))
+        return Swal.fire(
+          "Documento inválido",
+          "El número de documento solo puede contener letras, números o guiones. No se permiten caracteres especiales.",
+          "error",
+        );
+      if (!/[0-9]/.test(doc))
+        return Swal.fire(
+          "Documento inválido",
+          "El número de documento no puede estar compuesto únicamente por letras. Debe incluir al menos un dígito.",
+          "error",
+        );
+      // Ratio letras/dígitos para documentos mixtos
+      const letras = (doc.match(/[a-zA-Z]/g) || []).length;
+      const digitos = (doc.match(/[0-9]/g) || []).length;
+      const tiposMixtos = ["CE", "PP", "PEP", "PPT"];
+      if (tiposMixtos.includes(formData.tipoDocumento) && letras > digitos)
+        return Swal.fire(
+          "Documento inválido",
+          `El ${formData.tipoDocumento} tiene más letras (${letras}) que dígitos (${digitos}). Los documentos deben ser principalmente numéricos.`,
+          "error",
+        );
+      if (formData.tipoDocumento === "CC" && !/^\d+$/.test(doc))
+        return Swal.fire(
+          "Documento inválido",
+          "La Cédula de Ciudadanía (CC) debe contener solo dígitos, sin letras ni guiones.",
+          "error",
+        );
+      if (
+        formData.tipoDocumento === "CC" &&
+        (doc.length < 5 || doc.length > 10)
+      )
+        return Swal.fire(
+          "Documento inválido",
+          "La CC debe tener entre 5 y 10 dígitos.",
+          "error",
+        );
+    }
 
     // Validar duplicidad de documento al crear
     if (editIndex === null && formData.numeroDocumento.trim()) {
@@ -855,6 +972,15 @@ function Residentes() {
                   <span>Auditorías</span>
                   <i className="bi bi-chevron-right res-menu-arrow"></i>
                 </Link>
+                <Link
+                  className="res-menu-item"
+                  to="/LogErrores"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-bug"></i>
+                  <span>Log de Errores</span>
+                  <i className="bi bi-chevron-right res-menu-arrow"></i>
+                </Link>
               </>
             )}
           </div>
@@ -963,6 +1089,16 @@ function Residentes() {
                 <i className="bi bi-grid-3x3-gap-fill"></i>
               </button>
             </div>
+            <button
+              className="res-btn-torres"
+              onClick={() => {
+                setTorreSeleccionada(null);
+                setModalTorres(true);
+              }}
+              title="Ver mapa de torres y apartamentos"
+            >
+              <i className="bi bi-buildings"></i> Visualizar Torres
+            </button>
           </div>
 
           {/* TOOLBAR */}
@@ -1059,7 +1195,7 @@ function Residentes() {
                           {r.numeroDocumento}
                         </td>
                         <td>
-                          {r.torre}-{r.apartamentosId}
+                          {r.torre}-{r.numeroApartamento || r.apartamentosId}
                         </td>
                         <td>
                           <span
@@ -1138,7 +1274,7 @@ function Residentes() {
                       <div className="res-card-row">
                         <span className="label">Torre - Apto</span>
                         <span className="value">
-                          {r.torre} - {r.apartamentosId}
+                          {r.torre} - {r.numeroApartamento || r.apartamentosId}
                         </span>
                       </div>
                       <div className="res-card-row">
@@ -1162,17 +1298,17 @@ function Residentes() {
                       <span
                         className={`res-card-condition ${r.tieneNinos === 1 ? "active" : "inactive"}`}
                       >
-                        Niños
+                        <i className="bi bi-emoji-smile"></i> Niños
                       </span>
                       <span
                         className={`res-card-condition ${r.tieneAdultoMayor === 1 ? "active" : "inactive"}`}
                       >
-                        Adulto Mayor
+                        <i className="bi bi-person-cane"></i> Adulto Mayor
                       </span>
                       <span
                         className={`res-card-condition ${r.tieneDiscapacidad === 1 ? "active" : "inactive"}`}
                       >
-                        Discapacidad
+                        <i className="bi bi-wheelchair"></i> Discapacidad
                       </span>
                     </div>
                     <div className="res-card-actions">
@@ -1445,7 +1581,9 @@ function Residentes() {
                         }))
                       }
                     />
-                    <label htmlFor="tieneNinos">Niños</label>
+                    <label htmlFor="tieneNinos">
+                      <i className="bi bi-emoji-smile"></i> Niños
+                    </label>
                   </div>
                   <div className="res-form-check">
                     <input
@@ -1459,7 +1597,9 @@ function Residentes() {
                         }))
                       }
                     />
-                    <label htmlFor="tieneAdultoMayor">Adulto Mayor</label>
+                    <label htmlFor="tieneAdultoMayor">
+                      <i className="bi bi-person-cane"></i> Adulto Mayor
+                    </label>
                   </div>
                   <div className="res-form-check">
                     <input
@@ -1473,7 +1613,9 @@ function Residentes() {
                         }))
                       }
                     />
-                    <label htmlFor="tieneDiscapacidad">Discapacidad</label>
+                    <label htmlFor="tieneDiscapacidad">
+                      <i className="bi bi-wheelchair"></i> Discapacidad
+                    </label>
                   </div>
                 </div>
               </div>
@@ -1490,6 +1632,232 @@ function Residentes() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===== MODAL TORRES ===== */}
+      {modalTorres && (
+        <div
+          className="res-modal-overlay res-torres-overlay"
+          onClick={() => setModalTorres(false)}
+        >
+          <div
+            className="res-modal res-torres-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="res-modal-header">
+              {torreSeleccionada !== null ? (
+                <>
+                  <button
+                    className="res-torres-back"
+                    onClick={() => setTorreSeleccionada(null)}
+                  >
+                    <i className="bi bi-arrow-left"></i> Volver
+                  </button>
+                  <h3>
+                    <i className="bi bi-building"></i> Torre{" "}
+                    {
+                      ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"][
+                        torreSeleccionada - 1
+                      ]
+                    }
+                    {" — Apartamentos"}
+                  </h3>
+                </>
+              ) : (
+                <h3>
+                  <i className="bi bi-buildings"></i> Mapa de Torres
+                </h3>
+              )}
+              <button
+                className="res-modal-close"
+                onClick={() => setModalTorres(false)}
+              >
+                <i className="bi bi-x-lg"></i>
+              </button>
+            </div>
+
+            <div className="res-modal-body">
+              {torreSeleccionada === null ? (
+                /* ---- Vista: selección de torre ---- */
+                <div className="res-torres-grid">
+                  {Array.from({ length: 10 }, (_, i) => i + 1).map((tid) => {
+                    const letra = [
+                      "A",
+                      "B",
+                      "C",
+                      "D",
+                      "E",
+                      "F",
+                      "G",
+                      "H",
+                      "I",
+                      "J",
+                    ][tid - 1];
+                    const resEnTorre = residentes.filter(
+                      (r) => r.torresId === tid && r.estado === "Activo",
+                    );
+                    const totalAptos = apartamentos.filter(
+                      (a) => a.torresId === tid,
+                    ).length;
+                    const aptosLibres = apartamentos.filter(
+                      (a) =>
+                        a.torresId === tid &&
+                        !residentes.some(
+                          (r) =>
+                            r.apartamentosId === a.idApartamento &&
+                            r.estado === "Activo",
+                        ),
+                    ).length;
+                    return (
+                      <div
+                        key={tid}
+                        className="res-torre-card"
+                        onClick={() => setTorreSeleccionada(tid)}
+                        title={`Ver apartamentos Torre ${letra}`}
+                      >
+                        <div className="res-torre-letter">{letra}</div>
+                        <p className="res-torre-info">
+                          <i className="bi bi-door-open"></i> {totalAptos} apto
+                          {totalAptos !== 1 ? "s" : ""}
+                        </p>
+                        <p className="res-torre-info">
+                          <i className="bi bi-people"></i> {resEnTorre.length}{" "}
+                          residente
+                          {resEnTorre.length !== 1 ? "s" : ""}
+                        </p>
+                        {aptosLibres > 0 && (
+                          <p className="res-torre-libre-count">
+                            <i className="bi bi-check-circle"></i> {aptosLibres}{" "}
+                            libre{aptosLibres !== 1 ? "s" : ""}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* ---- Vista: apartamentos de la torre ---- */
+                (() => {
+                  const letra = [
+                    "A",
+                    "B",
+                    "C",
+                    "D",
+                    "E",
+                    "F",
+                    "G",
+                    "H",
+                    "I",
+                    "J",
+                  ][torreSeleccionada - 1];
+                  // Usar todos los apartamentos registrados en la torre
+                  const aptosEnTorre = apartamentos.filter(
+                    (a) => a.torresId === torreSeleccionada,
+                  );
+                  const aptosList = aptosEnTorre
+                    .map((a) => {
+                      const ocupantes = residentes.filter(
+                        (r) => r.apartamentosId === a.idApartamento,
+                      );
+                      const activos = ocupantes.filter(
+                        (r) => r.estado === "Activo",
+                      );
+                      return {
+                        idApartamento: a.idApartamento,
+                        numeroApartamento: a.numeroApartamento,
+                        ocupantes,
+                        activos,
+                        libre: activos.length === 0,
+                      };
+                    })
+                    .sort((a, b) => a.numeroApartamento - b.numeroApartamento);
+                  if (aptosList.length === 0)
+                    return (
+                      <p className="res-torres-empty">
+                        No hay apartamentos registrados en Torre {letra}.
+                      </p>
+                    );
+                  return (
+                    <div className="res-aptos-grid">
+                      {aptosList.map((ap) => (
+                        <div
+                          key={ap.idApartamento}
+                          className={`res-apto-card${ap.libre ? " res-apto-card-libre" : ""}`}
+                        >
+                          <div className="res-apto-numero">
+                            <i
+                              className={`bi ${ap.libre ? "bi-door-open" : "bi-door-closed"}`}
+                            ></i>{" "}
+                            Apto {ap.numeroApartamento}
+                            {ap.libre && (
+                              <span className="res-apto-libre ms-2">LIBRE</span>
+                            )}
+                          </div>
+                          {ap.libre ? (
+                            <p className="res-apto-libre-text">
+                              Apartamento disponible
+                            </p>
+                          ) : (
+                            ap.ocupantes.map((oc) => (
+                              <div
+                                key={oc.idOcupante}
+                                className={`res-apto-ocupante ${
+                                  oc.estado === "Activo"
+                                    ? "res-apto-activo"
+                                    : "res-apto-finalizado"
+                                }`}
+                              >
+                                <span className="res-apto-nombre">
+                                  {oc.nombreCompleto}
+                                </span>
+                                <span
+                                  className={`res-badge ${
+                                    oc.tipoOcupacion?.toLowerCase() ===
+                                    "propietario"
+                                      ? "res-badge-propietario"
+                                      : "res-badge-arrendatario"
+                                  }`}
+                                >
+                                  {oc.tipoOcupacion}
+                                </span>
+                                <div className="res-apto-tags">
+                                  {Number(oc.tieneNinos) === 1 && (
+                                    <span
+                                      className="res-apto-tag"
+                                      title="Tiene niños"
+                                    >
+                                      <i className="bi bi-emoji-smile"></i>
+                                    </span>
+                                  )}
+                                  {Number(oc.tieneAdultoMayor) === 1 && (
+                                    <span
+                                      className="res-apto-tag"
+                                      title="Adulto mayor"
+                                    >
+                                      <i className="bi bi-person-cane"></i>
+                                    </span>
+                                  )}
+                                  {Number(oc.tieneDiscapacidad) === 1 && (
+                                    <span
+                                      className="res-apto-tag"
+                                      title="Discapacidad"
+                                    >
+                                      <i className="bi bi-wheelchair"></i>
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -1572,7 +1940,8 @@ function Residentes() {
                   </span>
                   <span className="res-detail-value">
                     Torre {residenteSeleccionado.torre} - Apto{" "}
-                    {residenteSeleccionado.apartamentosId}
+                    {residenteSeleccionado.numeroApartamento ||
+                      residenteSeleccionado.apartamentosId}
                   </span>
                 </div>
                 <div className="res-detail-row">
@@ -1638,7 +2007,7 @@ function Residentes() {
                 </div>
                 <div className="res-detail-row">
                   <span className="res-detail-label">
-                    <i className="bi bi-heart-pulse"></i> Adulto Mayor
+                    <i className="bi bi-person-cane"></i> Adulto Mayor
                   </span>
                   <span className="res-detail-value">
                     {residenteSeleccionado.tieneAdultoMayor === 1 ? "Sí" : "No"}
@@ -1646,7 +2015,7 @@ function Residentes() {
                 </div>
                 <div className="res-detail-row">
                   <span className="res-detail-label">
-                    <i className="bi bi-person-wheelchair"></i> Discapacidad
+                    <i className="bi bi-wheelchair"></i> Discapacidad
                   </span>
                   <span className="res-detail-value">
                     {residenteSeleccionado.tieneDiscapacidad === 1

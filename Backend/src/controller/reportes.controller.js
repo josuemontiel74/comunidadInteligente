@@ -14,21 +14,53 @@ export const obtenerReporteParqueaderos = async (req, res) => {
       });
     }
 
-    // Total de parqueaderos por tipo de vehículo
-    const [porTipo] = await sequelize.query(`
+    // Capacidad total de parqueaderos por tipo de vehículo (dato estático)
+    const [capacidad] = await sequelize.query(`
       SELECT 
         tv.nombreVehiculo,
-        COUNT(p.codigoParqueadero) as totalParqueaderos,
-        SUM(CASE WHEN p.estadoId = 3 THEN 1 ELSE 0 END) as ocupados,
-        SUM(CASE WHEN p.estadoId = 4 THEN 1 ELSE 0 END) as disponibles
+        COUNT(p.codigoParqueadero) as totalCupos
       FROM parqueaderos p
       INNER JOIN tiposVehiculo tv ON p.tipoVehiculoId = tv.idTipoVehiculo
       GROUP BY tv.nombreVehiculo, tv.idTipoVehiculo
       ORDER BY tv.idTipoVehiculo
     `);
 
-    // Ocupación diaria en el período
-    const [ocupacionDiaria] = await sequelize.query(
+    // Resumen de vehículos que ingresaron en el período (datos históricos)
+    const [resumenPeriodoRaw] = await sequelize.query(
+      `
+      SELECT 
+        COUNT(DISTINCT v.vehiculoMatricula) as totalVehiculos,
+        SUM(CASE WHEN ve.tipoVehiculoId = 1 THEN 1 ELSE 0 END) as carros,
+        SUM(CASE WHEN ve.tipoVehiculoId = 2 THEN 1 ELSE 0 END) as motos
+      FROM visitas v
+      INNER JOIN vehiculo ve ON v.vehiculoMatricula = ve.matricula
+      WHERE DATE(v.fechaHoraIngreso) >= ? AND DATE(v.fechaHoraIngreso) <= ?
+        AND v.vehiculoMatricula IS NOT NULL
+    `,
+      { replacements: [fechaInicio, fechaFin] },
+    );
+
+    // Día pico: fecha con más vehículos ingresados en el período
+    const [diaPicoRaw] = await sequelize.query(
+      `
+      SELECT 
+        DATE(v.fechaHoraIngreso) as fecha,
+        COUNT(DISTINCT v.vehiculoMatricula) as totalVehiculos,
+        SUM(CASE WHEN ve.tipoVehiculoId = 1 THEN 1 ELSE 0 END) as carros,
+        SUM(CASE WHEN ve.tipoVehiculoId = 2 THEN 1 ELSE 0 END) as motos
+      FROM visitas v
+      INNER JOIN vehiculo ve ON v.vehiculoMatricula = ve.matricula
+      WHERE DATE(v.fechaHoraIngreso) >= ? AND DATE(v.fechaHoraIngreso) <= ?
+        AND v.vehiculoMatricula IS NOT NULL
+      GROUP BY DATE(v.fechaHoraIngreso)
+      ORDER BY totalVehiculos DESC
+      LIMIT 1
+    `,
+      { replacements: [fechaInicio, fechaFin] },
+    );
+
+    // Uso diario en el período (para gráfica de línea/barra)
+    const [usoDiario] = await sequelize.query(
       `
       SELECT 
         DATE(v.fechaHoraIngreso) as fecha,
@@ -40,7 +72,7 @@ export const obtenerReporteParqueaderos = async (req, res) => {
       WHERE DATE(v.fechaHoraIngreso) >= ? AND DATE(v.fechaHoraIngreso) <= ?
         AND v.vehiculoMatricula IS NOT NULL
       GROUP BY DATE(v.fechaHoraIngreso)
-      ORDER BY fecha DESC
+      ORDER BY fecha ASC
     `,
       { replacements: [fechaInicio, fechaFin] },
     );
@@ -65,8 +97,10 @@ export const obtenerReporteParqueaderos = async (req, res) => {
     res.json({
       success: true,
       data: {
-        resumenActual: porTipo,
-        ocupacionDiaria: ocupacionDiaria,
+        capacidad: capacidad,
+        resumenPeriodo: resumenPeriodoRaw[0] || { totalVehiculos: 0, carros: 0, motos: 0 },
+        diaPico: diaPicoRaw[0] || null,
+        usoDiario: usoDiario,
         picoOcupacion: picoOcupacion,
       },
     });
@@ -664,6 +698,161 @@ export const obtenerReportePoblacionEspecial = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error al generar reporte de población especial",
+      error: error.message,
+    });
+  }
+};
+
+// ============================================================================
+// REPORTE DE USUARIOS (actividad, inactividad, módulos más usados)
+// ============================================================================
+export const obtenerReporteUsuarios = async (req, res) => {
+  try {
+    const { fechaInicio, fechaFin } = req.query;
+
+    if (!fechaInicio || !fechaFin) {
+      return res.status(400).json({
+        success: false,
+        message: "Se requieren fechaInicio y fechaFin",
+      });
+    }
+
+    // Usuarios más activos en el período con su rol y estado real
+    // estadoId = 1 → Activo | estadoId = 2 → Inactivo
+    const [masActivos] = await sequelize.query(
+      `
+      SELECT
+        u.username,
+        r.nombreRol,
+        e.nombreEstado,
+        u.ultimaActividad,
+        COUNT(a.idAuditoria) as totalRegistros,
+        MAX(a.fechaHoraAuditoria) as ultimoRegistro
+      FROM usuarios u
+      LEFT JOIN auditorias a ON u.username = a.username
+        AND DATE(a.fechaHoraAuditoria) >= ? AND DATE(a.fechaHoraAuditoria) <= ?
+      LEFT JOIN roles r ON u.rolesId = r.idRol
+      LEFT JOIN estados e ON u.estadoId = e.IdEstado
+      GROUP BY u.username, r.nombreRol, e.nombreEstado, u.ultimaActividad
+      ORDER BY totalRegistros DESC
+      LIMIT 10
+      `,
+      { replacements: [fechaInicio, fechaFin] },
+    );
+
+    // Usuarios con mayor tiempo sin ingresar al sistema
+    const [masInactivos] = await sequelize.query(
+      `
+      SELECT
+        u.username,
+        r.nombreRol,
+        e.nombreEstado,
+        u.ultimaActividad,
+        CASE
+          WHEN u.ultimaActividad IS NULL THEN 9999
+          ELSE DATEDIFF(NOW(), u.ultimaActividad)
+        END as diasSinActividad
+      FROM usuarios u
+      LEFT JOIN roles r ON u.rolesId = r.idRol
+      LEFT JOIN estados e ON u.estadoId = e.IdEstado
+      ORDER BY diasSinActividad DESC
+      LIMIT 10
+      `,
+    );
+
+    // Módulos más utilizados en el período (agrupado por tabla → nombre amigable)
+    const [modulosMasUsados] = await sequelize.query(
+      `
+      SELECT tablaAfectada, COUNT(*) as cantidad
+      FROM auditorias
+      WHERE DATE(fechaHoraAuditoria) >= ? AND DATE(fechaHoraAuditoria) <= ?
+      GROUP BY tablaAfectada
+      ORDER BY cantidad DESC
+      LIMIT 8
+      `,
+      { replacements: [fechaInicio, fechaFin] },
+    );
+
+    // Actividad diaria en el período (para gráfica)
+    const [actividadDiaria] = await sequelize.query(
+      `
+      SELECT
+        DATE(fechaHoraAuditoria) as fecha,
+        COUNT(*) as registros,
+        COUNT(DISTINCT username) as usuariosActivos
+      FROM auditorias
+      WHERE DATE(fechaHoraAuditoria) >= ? AND DATE(fechaHoraAuditoria) <= ?
+      GROUP BY DATE(fechaHoraAuditoria)
+      ORDER BY fecha ASC
+      `,
+      { replacements: [fechaInicio, fechaFin] },
+    );
+
+    // Usuarios que ingresaron hoy al sistema
+    const [hoy] = await sequelize.query(
+      `
+      SELECT COUNT(*) as registros, COUNT(DISTINCT username) as usuarios
+      FROM auditorias
+      WHERE DATE(fechaHoraAuditoria) = CURDATE()
+      `,
+    );
+
+    // Total registros en el período
+    const [totalPeriodo] = await sequelize.query(
+      `SELECT COUNT(*) as total FROM auditorias WHERE DATE(fechaHoraAuditoria) >= ? AND DATE(fechaHoraAuditoria) <= ?`,
+      { replacements: [fechaInicio, fechaFin] },
+    );
+
+    // Mapa de nombres amigables para los módulos
+    const nombreModulo = {
+      visitas: "Visitas",
+      recepcionpaquetes: "Paquetería",
+      reservasareas: "Reservas Áreas",
+      parqueaderos: "Parqueaderos",
+      usuarios: "Gestión Usuarios",
+      apartamentos: "Apartamentos",
+      ocupante: "Residentes",
+      areacomun: "Áreas Comunes",
+      vehiculo: "Vehículos",
+      personas: "Personas",
+      torres: "Torres",
+    };
+
+    res.json({
+      success: true,
+      data: {
+        masActivos: masActivos.map((u) => ({
+          ...u,
+          totalRegistros: parseInt(u.totalRegistros) || 0,
+        })),
+        masInactivos: masInactivos.map((u) => ({
+          ...u,
+          diasSinActividad:
+            parseInt(u.diasSinActividad) === 9999
+              ? null
+              : parseInt(u.diasSinActividad),
+        })),
+        modulosMasUsados: modulosMasUsados.map((m) => ({
+          tabla: m.tablaAfectada,
+          nombre:
+            nombreModulo[(m.tablaAfectada || "").toLowerCase()] ||
+            m.tablaAfectada,
+          cantidad: parseInt(m.cantidad) || 0,
+        })),
+        actividadDiaria: actividadDiaria.map((d) => ({
+          ...d,
+          registros: parseInt(d.registros) || 0,
+          usuariosActivos: parseInt(d.usuariosActivos) || 0,
+        })),
+        registrosHoy: parseInt(hoy[0]?.registros) || 0,
+        usuariosActivosHoy: parseInt(hoy[0]?.usuarios) || 0,
+        totalRegistrosPeriodo: parseInt(totalPeriodo[0]?.total) || 0,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error al generar reporte de usuarios",
       error: error.message,
     });
   }

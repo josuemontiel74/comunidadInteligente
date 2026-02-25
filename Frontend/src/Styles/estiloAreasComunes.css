@@ -1525,3 +1525,108 @@ select.ac-form-control {
     justify-content: center;
   }
 }
+
+/* =====================================================
+   DARK MODE — Modales Áreas Comunes
+   Activado con [data-modo="oscuro"] en <html>
+   ===================================================== */
+
+[data-modo="oscuro"] .ac-modal {
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
+}
+[data-modo="oscuro"] .ac-modal-body {
+  background: #1e293b !important;
+}
+[data-modo="oscuro"] .ac-modal-close {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+[data-modo="oscuro"] .ac-modal-close:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Secciones del formulario */
+[data-modo="oscuro"] .ac-form-section {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+[data-modo="oscuro"] .ac-form-section-title {
+  color: #fb923c !important;
+  border-bottom-color: #431407 !important;
+}
+[data-modo="oscuro"] .ac-form-label {
+  color: #94a3b8 !important;
+}
+[data-modo="oscuro"] .ac-form-control {
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+[data-modo="oscuro"] .ac-form-control:focus {
+  border-color: #f57c00 !important;
+  box-shadow: 0 0 0 3px rgba(245, 124, 0, 0.2) !important;
+}
+[data-modo="oscuro"] select.ac-form-control {
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+}
+
+/* Modal detalles */
+[data-modo="oscuro"] .ac-detalle-row {
+  border-bottom-color: #334155 !important;
+}
+[data-modo="oscuro"] .ac-detalle-label {
+  color: #cbd5e1 !important;
+}
+[data-modo="oscuro"] .ac-detalle-value {
+  color: #94a3b8 !important;
+}
+[data-modo="oscuro"] .ac-detalle-section {
+  color: #fb923c !important;
+  border-top-color: #431407 !important;
+}
+
+/* Modal calendario */
+[data-modo="oscuro"] .ac-calendar-nav-btn {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #fb923c !important;
+}
+[data-modo="oscuro"] .ac-calendar-nav-btn:hover:not(:disabled) {
+  background: #2d1a08 !important;
+  border-color: #f57c00 !important;
+}
+[data-modo="oscuro"] .ac-calendar-month {
+  color: #fb923c !important;
+}
+[data-modo="oscuro"] .ac-calendar-weekday {
+  color: #f97316 !important;
+}
+[data-modo="oscuro"] .ac-calendar-day {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+[data-modo="oscuro"] .ac-calendar-day:hover:not(.empty):not(.past) {
+  background: #2d1a08 !important;
+  border-color: #f57c00 !important;
+}
+[data-modo="oscuro"] .ac-calendar-day.today {
+  background: #2d1a08 !important;
+}
+[data-modo="oscuro"] .ac-calendar-day.selected {
+  background: #f57c00 !important;
+  border-color: #f57c00 !important;
+  color: #fff !important;
+}
+[data-modo="oscuro"] .ac-calendar-day.past {
+  background: #0f172a !important;
+  color: #334155 !important;
+}
+
+/* ── DRAWER MODO OSCURO ── */
+[data-modo="oscuro"] .ac-drawer {
+  background: linear-gradient(180deg, #a13900, #ac5700, #b06200) !important;
+}

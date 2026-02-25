@@ -752,3 +752,8 @@
     min-width: 100%;
   }
 }
+
+/* ── DRAWER MODO OSCURO ── */
+[data-modo="oscuro"] .parq-drawer {
+  background: linear-gradient(180deg, #6b1313, #9a1b1b, #a73030) !important;
+}

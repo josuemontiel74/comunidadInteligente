@@ -22,6 +22,12 @@ import {
   logoutUsuario,
   actualizarFotoPerfil,
 } from "../services/gestionUsuarios.jsx";
+import {
+  validarNombre,
+  validarTelefono,
+  validarEmail,
+  validarDocumento,
+} from "../utils/validaciones.js";
 
 const ROLES_MAP = {
   1: "Super Administrador",
@@ -104,10 +110,9 @@ const traducirMensajeBackend = (errData) => {
   return "Hay un problema con los datos ingresados. Revise el formulario e intente nuevamente.";
 };
 
-const containsInvalidChars = (value) => {
-  if (value == null || value === "") return false;
-  return !/^[A-Za-z0-9]+$/.test(value);
-};
+// containsInvalidChars reemplazado — la validación real usa validarNombre()
+// Se conserva por si algún otro código lo referencia.
+const containsInvalidChars = (_value) => false;
 
 const obtenerIniciales = (user) => {
   if (user.primerNombre && user.primerApellido)
@@ -527,31 +532,58 @@ function GestionUsuarios() {
       Swal.fire("Error", "Seleccione un rol.", "error");
       return;
     }
-    if (
-      !formData.primerNombre ||
-      containsInvalidChars(formData.primerNombre) ||
-      !formData.primerApellido ||
-      containsInvalidChars(formData.primerApellido)
-    ) {
-      Swal.fire(
-        "Error",
-        "Los campos 'Primer Nombre' y 'Primer Apellido' son obligatorios y no pueden contener espacios, tildes ni caracteres especiales.",
-        "error",
-      );
+    // Validar primer nombre y primer apellido: solo letras
+    const errPN = validarNombre(formData.primerNombre);
+    if (errPN) {
+      Swal.fire("Nombre inválido", `Primer Nombre: ${errPN}`, "error");
       return;
     }
-    if (
-      (formData.segundoNombre &&
-        containsInvalidChars(formData.segundoNombre)) ||
-      (formData.segundoApellido &&
-        containsInvalidChars(formData.segundoApellido))
-    ) {
-      Swal.fire(
-        "Error",
-        "No se permiten espacios, tildes ni caracteres especiales en los nombres o apellidos.",
-        "error",
-      );
+    const errPA = validarNombre(formData.primerApellido);
+    if (errPA) {
+      Swal.fire("Apellido inválido", `Primer Apellido: ${errPA}`, "error");
       return;
+    }
+    // Segundo nombre y apellido (opcionales, pero si se ingresan deben ser válidos)
+    if (formData.segundoNombre) {
+      const errSN = validarNombre(formData.segundoNombre);
+      if (errSN) {
+        Swal.fire("Nombre inválido", `Segundo Nombre: ${errSN}`, "error");
+        return;
+      }
+    }
+    if (formData.segundoApellido) {
+      const errSA = validarNombre(formData.segundoApellido);
+      if (errSA) {
+        Swal.fire("Apellido inválido", `Segundo Apellido: ${errSA}`, "error");
+        return;
+      }
+    }
+    // Validar documento según tipo
+    const tipoDocNombreGU = TIPO_DOC_MAP[parseInt(formData.tipoDocumentoId)] || "";
+    const errDocGU = validarDocumento(
+      formData.numeroDocumento,
+      formData.tipoDocumentoId,
+      tipoDocNombreGU,
+    );
+    if (errDocGU) {
+      Swal.fire("Documento inválido", errDocGU, "error");
+      return;
+    }
+    // Validar teléfono (si se proporcionó)
+    if (formData.telefono) {
+      const errTelGU = validarTelefono(formData.telefono);
+      if (errTelGU) {
+        Swal.fire("Teléfono inválido", errTelGU, "error");
+        return;
+      }
+    }
+    // Validar correo (si se proporcionó)
+    if (formData.correoElectronico) {
+      const errEmailGU = validarEmail(formData.correoElectronico);
+      if (errEmailGU) {
+        Swal.fire("Correo inválido", errEmailGU, "error");
+        return;
+      }
     }
     setSubmitting(true);
     try {
@@ -1180,6 +1212,15 @@ function GestionUsuarios() {
             >
               <i className="bi bi-bar-chart-line"></i>
               <span>Reportes</span>
+              <i className="bi bi-chevron-right gu-menu-arrow"></i>
+            </Link>
+            <Link
+              className="gu-menu-item"
+              to="/LogErrores"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-bug"></i>
+              <span>Log de Errores</span>
               <i className="bi bi-chevron-right gu-menu-arrow"></i>
             </Link>
           </div>

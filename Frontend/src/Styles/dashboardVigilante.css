@@ -689,3 +689,8 @@ body {
   animation: vi-fadeOut 0.38s ease forwards;
   pointer-events: none;
 }
+
+/* ── DRAWER MODO OSCURO ── */
+[data-modo="oscuro"] .vi-drawer {
+  background: linear-gradient(180deg, #152961, #1a45a5, #295bac) !important;
+}

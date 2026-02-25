@@ -1035,3 +1035,176 @@
   color: white !important;
   box-shadow: 0 2px 8px rgba(13, 148, 136, 0.4) !important;
 }
+
+/* ============================================================
+   PANTALLAS DE CARGA — Modo Oscuro
+   Cubre todos los módulos que tienen su propia loading-screen
+   ============================================================ */
+
+[data-modo="oscuro"] .vis-loading-screen,
+[data-modo="oscuro"] .paq-loading-screen,
+[data-modo="oscuro"] .parq-loading-screen,
+[data-modo="oscuro"] .gu-loading-screen,
+[data-modo="oscuro"] .ac-loading-screen,
+[data-modo="oscuro"] .aud-loading-screen,
+[data-modo="oscuro"] .le-loading-screen {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+}
+
+/* Texto del spinner */
+[data-modo="oscuro"] .vis-loading-screen p,
+[data-modo="oscuro"] .paq-loading-screen p,
+[data-modo="oscuro"] .parq-loading-screen p,
+[data-modo="oscuro"] .gu-loading-screen p,
+[data-modo="oscuro"] .ac-loading-screen p,
+[data-modo="oscuro"] .aud-loading-screen p,
+[data-modo="oscuro"] .le-loading-screen p {
+  color: #94a3b8 !important;
+}
+
+/* Spinner de Bootstrap (border-color) */
+[data-modo="oscuro"] .vis-loading-screen .spinner-border,
+[data-modo="oscuro"] .paq-loading-screen .spinner-border,
+[data-modo="oscuro"] .parq-loading-screen .spinner-border,
+[data-modo="oscuro"] .gu-loading-screen .spinner-border,
+[data-modo="oscuro"] .ac-loading-screen .spinner-border,
+[data-modo="oscuro"] .aud-loading-screen .spinner-border,
+[data-modo="oscuro"] .le-loading-screen .spinner-border {
+  border-color: #334155 !important;
+  border-top-color: #7c3aed !important;
+}
+
+/* res-loading (inline dentro del layout) */
+[data-modo="oscuro"] .res-loading {
+  color: #94a3b8 !important;
+}
+[data-modo="oscuro"] .res-loading .spinner-border {
+  border-color: #334155 !important;
+  border-top-color: #14b8a6 !important;
+}
+
+/* ============================================================
+   SWEETALERT2 — Modo Oscuro
+   Se aplica a todas las alertas cuando [data-modo="oscuro"]
+   está en el <html>
+   ============================================================ */
+
+/* Popup principal */
+[data-modo="oscuro"] .swal2-popup {
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+  border: 1px solid #334155 !important;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Título */
+[data-modo="oscuro"] .swal2-title {
+  color: #f1f5f9 !important;
+}
+
+/* Contenido / HTML */
+[data-modo="oscuro"] .swal2-html-container,
+[data-modo="oscuro"] .swal2-content {
+  color: #cbd5e1 !important;
+}
+
+/* Inputs dentro de SweetAlert */
+[data-modo="oscuro"] .swal2-input,
+[data-modo="oscuro"] .swal2-textarea,
+[data-modo="oscuro"] .swal2-select,
+[data-modo="oscuro"] .swal2-file {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+[data-modo="oscuro"] .swal2-input:focus,
+[data-modo="oscuro"] .swal2-textarea:focus {
+  border-color: #7c3aed !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2) !important;
+}
+
+/* Botón confirmar — mantiene su color pero con sombra dark */
+[data-modo="oscuro"] .swal2-confirm {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Botón cancelar */
+[data-modo="oscuro"] .swal2-cancel {
+  background: #334155 !important;
+  color: #e2e8f0 !important;
+}
+[data-modo="oscuro"] .swal2-cancel:hover {
+  background: #475569 !important;
+}
+
+/* Botón deny */
+[data-modo="oscuro"] .swal2-deny {
+  background: #450a0a !important;
+  color: #fca5a5 !important;
+}
+
+/* ── Iconos SVG de SweetAlert2 ── */
+
+/* Icono WARNING (triángulo naranja) */
+[data-modo="oscuro"] .swal2-icon.swal2-warning {
+  border-color: #d97706 !important;
+  color: #fbbf24 !important;
+}
+
+/* Icono ERROR (X roja) */
+[data-modo="oscuro"] .swal2-icon.swal2-error {
+  border-color: #b91c1c !important;
+}
+[data-modo="oscuro"] .swal2-icon.swal2-error .swal2-x-mark-line-left,
+[data-modo="oscuro"] .swal2-icon.swal2-error .swal2-x-mark-line-right {
+  background-color: #f87171 !important;
+}
+
+/* Icono SUCCESS (check verde) */
+[data-modo="oscuro"] .swal2-icon.swal2-success {
+  border-color: #065f46 !important;
+}
+[data-modo="oscuro"] .swal2-icon.swal2-success .swal2-success-ring {
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+[data-modo="oscuro"] .swal2-icon.swal2-success [class^="swal2-success-line"] {
+  background-color: #34d399 !important;
+}
+
+/* Icono QUESTION (interrogación azul) */
+[data-modo="oscuro"] .swal2-icon.swal2-question {
+  border-color: #1e40af !important;
+  color: #60a5fa !important;
+}
+
+/* Icono INFO (i azul) */
+[data-modo="oscuro"] .swal2-icon.swal2-info {
+  border-color: #0f3460 !important;
+  color: #38bdf8 !important;
+}
+
+/* Fondo overlay de SweetAlert */
+[data-modo="oscuro"] .swal2-container.swal2-backdrop-show,
+[data-modo="oscuro"] .swal2-backdrop {
+  background: rgba(0, 0, 0, 0.75) !important;
+}
+
+/* Pie del popup (footer) */
+[data-modo="oscuro"] .swal2-footer {
+  border-top-color: #334155 !important;
+  color: #94a3b8 !important;
+}
+
+/* Timer progress bar */
+[data-modo="oscuro"] .swal2-timer-progress-bar {
+  background: rgba(124, 58, 237, 0.5) !important;
+}
+
+/* Close button (X) */
+[data-modo="oscuro"] .swal2-close {
+  color: #94a3b8 !important;
+}
+[data-modo="oscuro"] .swal2-close:hover {
+  color: #e2e8f0 !important;
+}

@@ -2,6 +2,7 @@ import { Router } from "express";
 import * as userController from "../controller/user.controller.js";
 import { validarJWT, validarRol } from "../middlewares/auth.middleware.js";
 import validate from "../middlewares/user.middleware.js";
+import { limiterLogin } from "../middlewares/rateLimiters.js";
 import * as userSchema from "../schemas/user.schema.js";
 const router = Router();
 
@@ -35,6 +36,7 @@ router.get(
 );
 router.post(
   "/login",
+  limiterLogin,
   validate(userSchema.loginSchema),
   userController.loginUsuario,
 );

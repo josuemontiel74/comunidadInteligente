@@ -893,6 +893,44 @@
 .vis-modal-footer {
   padding: 12px 24px 20px;
 }
+/* Footer con múltiples botones (detalles visita) */
+.vis-modal-footer-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Botón imprimir recibo — variantes ingreso/salida */
+.vis-btn-imprimir {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    filter 0.15s,
+    transform 0.12s;
+}
+.vis-btn-imprimir:hover {
+  filter: brightness(0.88);
+  transform: translateY(-1px);
+}
+.vis-btn-ingreso {
+  background: #d4f1e4;
+  color: #155724;
+  border: 1.5px solid #27ae60;
+}
+.vis-btn-salida {
+  background: #fde8e8;
+  color: #7f1d1d;
+  border: 1.5px solid #e74c3c;
+}
 .vis-btn-submit {
   width: 100%;
   padding: 12px;
@@ -1025,4 +1063,112 @@
   .vis-table-container {
     display: block !important;
   }
+}
+
+/* =====================================================
+   DARK MODE — Modales Visitas
+   Activado con [data-modo="oscuro"] en <html>
+   ===================================================== */
+
+[data-modo="oscuro"] .vis-modal {
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
+}
+[data-modo="oscuro"] .vis-modal-header h5 {
+  color: #e2e8f0 !important;
+}
+[data-modo="oscuro"] .vis-modal-close {
+  color: #64748b !important;
+}
+[data-modo="oscuro"] .vis-modal-close:hover {
+  background: #334155 !important;
+  color: #e2e8f0 !important;
+}
+[data-modo="oscuro"] .vis-modal-body {
+  background: #1e293b !important;
+}
+
+/* Campos del formulario */
+[data-modo="oscuro"] .vis-form-label {
+  color: #94a3b8 !important;
+}
+[data-modo="oscuro"] .vis-form-control {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+[data-modo="oscuro"] .vis-form-control:focus {
+  border-color: #4caf50 !important;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2) !important;
+}
+
+/* Sección vehículo */
+[data-modo="oscuro"] .vis-vehicle-section {
+  background: #0f2d14 !important;
+  border-color: #166534 !important;
+}
+[data-modo="oscuro"] .vis-vehicle-title {
+  color: #4ade80 !important;
+}
+[data-modo="oscuro"] .vis-parking-selected {
+  background: #0f2d14 !important;
+  border-color: #166534 !important;
+}
+[data-modo="oscuro"] .vis-parking-code {
+  color: #4ade80 !important;
+}
+[data-modo="oscuro"] .vis-parking-change {
+  border-color: #4caf50 !important;
+  color: #4ade80 !important;
+}
+[data-modo="oscuro"] .vis-parking-change:hover {
+  background: #4caf50 !important;
+  color: #fff !important;
+}
+
+/* Modal detalles */
+[data-modo="oscuro"] .vis-detalle-row {
+  border-bottom-color: #334155 !important;
+}
+[data-modo="oscuro"] .vis-detalle-icon {
+  background: rgba(76, 175, 80, 0.15) !important;
+  color: #4ade80 !important;
+}
+[data-modo="oscuro"] .vis-detalle-label {
+  color: #64748b !important;
+}
+[data-modo="oscuro"] .vis-detalle-value {
+  color: #e2e8f0 !important;
+}
+[data-modo="oscuro"] .vis-btn-cerrar {
+  color: #4ade80 !important;
+}
+[data-modo="oscuro"] .vis-btn-cerrar:hover {
+  background: rgba(76, 175, 80, 0.12) !important;
+}
+
+/* Botones ingreso/salida (recibo) */
+[data-modo="oscuro"] .vis-btn-ingreso {
+  background: #0f2d14 !important;
+  color: #4ade80 !important;
+  border-color: #166534 !important;
+}
+[data-modo="oscuro"] .vis-btn-salida {
+  background: #450a0a !important;
+  color: #fca5a5 !important;
+  border-color: #991b1b !important;
+}
+
+/* Texto dinámico "Sin vehículo" */
+.vis-sin-vehiculo {
+  color: #6c757d;
+}
+[data-modo="oscuro"] .vis-sin-vehiculo {
+  color: #9ca3af !important;
+}
+
+/* ── DRAWER MODO OSCURO ── */
+[data-modo="oscuro"] .vis-drawer {
+  background: linear-gradient(180deg, #0f5a2b, #0f7234, #188a42) !important;
 }
