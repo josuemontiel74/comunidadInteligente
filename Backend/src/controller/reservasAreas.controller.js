@@ -665,6 +665,7 @@ export const calendariosReservas = async (req, res) => {
 
     return res.status(200).json({ ok: true, caledarioreservas });
   } catch (error) {
+    console.error(error);
     return res
       .status(500)
       .json({ ok: false, message: "Error interno del servidor" });

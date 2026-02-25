@@ -94,7 +94,7 @@ export const EliminarEstado = async (req, res) => {
       where: { idEstado: IdEstado },
     });
 
-    if (eliminar === 0) {
+    if (!eliminar) {
       return res.status(404).json({
         message: "No se encontró el estado con ese ID",
         status: 404,

@@ -59,6 +59,7 @@ export const obtenerRegistrosAuditoria = async (req, res) => {
       data: resultados,
     });
   } catch (error) {
+    console.error(error);
     return res.status(500).json({
       success: false,
       message:

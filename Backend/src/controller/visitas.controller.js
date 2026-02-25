@@ -81,14 +81,8 @@ async function procesarVehiculoNuevo(
     });
   }
 
-  let vehiculo = await Vehiculo.findByPk(matricula);
-  if (!vehiculo) {
-    vehiculo = await Vehiculo.create({
-      matricula,
-      tipoVehiculoId,
-      codigoParqueadero,
-    });
-  } else {
+  const vehiculo = await Vehiculo.findByPk(matricula);
+  if (vehiculo) {
     if (
       vehiculo.codigoParqueadero &&
       vehiculo.codigoParqueadero !== codigoParqueadero
@@ -99,6 +93,12 @@ async function procesarVehiculoNuevo(
       );
     }
     await vehiculo.update({ tipoVehiculoId, codigoParqueadero });
+  } else {
+    await Vehiculo.create({
+      matricula,
+      tipoVehiculoId,
+      codigoParqueadero,
+    });
   }
   return { vehiculoMatricula: matricula, parqueadero };
 }
@@ -171,14 +171,8 @@ async function procesarActualizacionVehiculo(
   }
 
   // Crear o actualizar el vehículo
-  let vehiculo = await Vehiculo.findByPk(matricula);
-  if (!vehiculo) {
-    vehiculo = await Vehiculo.create({
-      matricula,
-      tipoVehiculoId,
-      codigoParqueadero,
-    });
-  } else {
+  const vehiculo = await Vehiculo.findByPk(matricula);
+  if (vehiculo) {
     if (
       vehiculo.codigoParqueadero &&
       vehiculo.codigoParqueadero !== codigoParqueadero
@@ -189,6 +183,12 @@ async function procesarActualizacionVehiculo(
       );
     }
     await vehiculo.update({ tipoVehiculoId, codigoParqueadero });
+  } else {
+    await Vehiculo.create({
+      matricula,
+      tipoVehiculoId,
+      codigoParqueadero,
+    });
   }
 
   if (!esElMismoParqueadero) {
@@ -237,13 +237,13 @@ export const crearVisita = async (req, res) => {
     }
 
     // Crear o actualizar visitante
-    let visitante = await Visitante.findByPk(numeroDocumento);
+    const visitante = await Visitante.findByPk(numeroDocumento);
     const camposVisitante = buildVisitanteData(
       nombreVisitante,
       tipoDocumentoId,
     );
     if (!visitante) {
-      visitante = await Visitante.create({
+      await Visitante.create({
         numeroDocumento,
         ...camposVisitante,
       });
@@ -342,6 +342,7 @@ ORDER BY vi.fechaHoraIngreso DESC;
 
     res.json(results);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Error al listar visitas" });
   }
 };
@@ -467,9 +468,9 @@ export const actualizarVisita = async (req, res) => {
       tipoDocumentoId,
     );
     if (numeroDocumento && numeroDocumento !== visita.numeroDocumento) {
-      let visitante = await Visitante.findByPk(numeroDocumento);
+      const visitante = await Visitante.findByPk(numeroDocumento);
       if (!visitante) {
-        visitante = await Visitante.create({
+        await Visitante.create({
           numeroDocumento,
           ...camposVisitante,
         });
@@ -588,6 +589,7 @@ export const visitasDelDia = async (req, res) => {
       visitasDia,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Error al obtener visitas del día" });
   }
 };
@@ -671,6 +673,7 @@ export const informeVisintante = async (req, res) => {
     }
     return res.json(informevisitante);
   } catch (error) {
+    console.error(error);
     return res.status(500).json({ ok: false, msg: "Error interno" });
   }
 };

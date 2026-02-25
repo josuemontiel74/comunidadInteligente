@@ -25,6 +25,7 @@ export async function registrarAuditoria(
   try {
     await sequelize.query(sql, { replacements: values });
   } catch (error) {
+    console.error(error);
     // La falla en la auditoría NO debe impedir la operación principal
   }
 }

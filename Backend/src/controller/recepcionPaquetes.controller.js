@@ -335,6 +335,7 @@ export const paqueteDelDia = async (req, res) => {
       paqueteDia,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Error al obtener visitas del día" });
   }
 };
