@@ -8,6 +8,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import Swal from "sweetalert2";
 import {
   obtenerResidentes,
+  obtenerTodosApartamentos,
   crearOcupante,
   actualizarOcupante,
   finalizarOcupante,
@@ -310,25 +311,18 @@ function Residentes() {
   const cargarApartamentos = async () => {
     try {
       const token = obtenerToken();
-      const res = await obtenerResidentes(token);
+      const res = await obtenerTodosApartamentos(token);
       if (!res.ok) throw new Error();
       const data = await res.json();
-      const ocupantes = data.body || data;
-      const unicos = [];
-      const ids = new Set();
-      ocupantes.forEach((o) => {
-        if (!ids.has(o.apartamentosId)) {
-          ids.add(o.apartamentosId);
-          unicos.push({
-            idApartamento: o.apartamentosId,
-            numeroApartamento:
-              o.numeroApartamento || o.apartamentosId?.toString(),
-            torresId: o.torresId,
-          });
-        }
-      });
-      unicos.sort((a, b) => a.idApartamento - b.idApartamento);
-      setApartamentos(unicos);
+      const lista = data.body || data;
+      const aptos = lista
+        .map((a) => ({
+          idApartamento: a.idApartamento,
+          numeroApartamento: a.numeroApartamento,
+          torresId: a.torresId,
+        }))
+        .sort((a, b) => a.idApartamento - b.idApartamento);
+      setApartamentos(aptos);
     } catch {
       setApartamentos([]);
     }
@@ -337,8 +331,26 @@ function Residentes() {
   const generarAptos = (torreId) => {
     const id = Number(torreId);
     if (!id || !apartamentos.length) return [];
-    return apartamentos
-      .filter((a) => a.torresId === id)
+    const aptosEnTorre = apartamentos.filter((a) => a.torresId === id);
+    // Al editar se muestran todos (el propio apto debe aparecer)
+    if (editIndex !== null) {
+      return aptosEnTorre.map((a) => ({
+        id: a.idApartamento,
+        numero: a.numeroApartamento,
+      }));
+    }
+    // Al crear: solo apartamentos libres para el tipo de ocupación elegido
+    const tipo = (formData.tipoOcupacion || "").toLowerCase();
+    return aptosEnTorre
+      .filter(
+        (a) =>
+          !residentes.some(
+            (r) =>
+              r.apartamentosId === a.idApartamento &&
+              r.tipoOcupacion?.toLowerCase() === tipo &&
+              r.estado === "Activo",
+          ),
+      )
       .map((a) => ({ id: a.idApartamento, numero: a.numeroApartamento }));
   };
 
@@ -460,42 +472,108 @@ function Residentes() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // ── Validaciones de nombres ──────────────────────────────────────────
     if (!formData.primerNombre.trim())
-      return Swal.fire("Error", "Ingrese el primer nombre", "error");
-    if (!formData.primerApellido.trim())
-      return Swal.fire("Error", "Ingrese el primer apellido", "error");
-    if (!formData.apto)
-      return Swal.fire("Error", "Seleccione un apartamento", "error");
-    if (!formData.fechaInicio)
-      return Swal.fire("Error", "La fecha de inicio es obligatoria", "error");
-    if (editIndex === null && !formData.numeroDocumento.trim())
-      return Swal.fire("Error", "Ingrese el número de documento", "error");
-    if (formData.telefono && !/^[0-9]{7,15}$/.test(formData.telefono))
       return Swal.fire(
-        "Error",
-        "El teléfono debe contener solo números (entre 7 y 15 dígitos)",
+        "Campo obligatorio",
+        "El primer nombre es requerido para registrar al residente.",
+        "error",
+      );
+    if (/[0-9]/.test(formData.primerNombre))
+      return Swal.fire(
+        "Nombre inválido",
+        "El primer nombre no puede contener números.",
+        "error",
+      );
+    if (/^(.)\1+$/.test(formData.primerNombre.trim()))
+      return Swal.fire(
+        "Nombre inválido",
+        `"${formData.primerNombre.trim()}" no es un nombre válido. No puede estar formado por el mismo carácter repetido.`,
+        "error",
+      );
+    if (!formData.primerApellido.trim())
+      return Swal.fire(
+        "Campo obligatorio",
+        "El primer apellido es requerido para registrar al residente.",
+        "error",
+      );
+    if (/[0-9]/.test(formData.primerApellido))
+      return Swal.fire(
+        "Apellido inválido",
+        "El primer apellido no puede contener números.",
+        "error",
+      );
+    if (/^(.)\1+$/.test(formData.primerApellido.trim()))
+      return Swal.fire(
+        "Apellido inválido",
+        `"${formData.primerApellido.trim()}" no es un apellido válido. No puede estar formado por el mismo carácter repetido.`,
         "error",
       );
 
-    // Validar número de documento por tipo
+    // ── Apartamento y fecha ──────────────────────────────────────────────
+    if (!formData.apto)
+      return Swal.fire(
+        "Campo obligatorio",
+        "Debe seleccionar un apartamento para continuar.",
+        "error",
+      );
+    if (!formData.fechaInicio)
+      return Swal.fire(
+        "Campo obligatorio",
+        "La fecha de inicio es obligatoria.",
+        "error",
+      );
+
+    // ── Teléfono ─────────────────────────────────────────────────────────
+    if (formData.telefono && !/^[0-9]{7,15}$/.test(formData.telefono))
+      return Swal.fire(
+        "Teléfono inválido",
+        "El teléfono debe contener solo dígitos y tener entre 7 y 15 cifras.",
+        "error",
+      );
+    if (formData.telefono && /^(\d)\1+$/.test(formData.telefono))
+      return Swal.fire(
+        "Teléfono inválido",
+        `El teléfono "${formData.telefono}" no es válido porque todos sus dígitos son iguales. Ingrese un número real.`,
+        "error",
+      );
+
+    // ── Documento ────────────────────────────────────────────────────────
+    if (editIndex === null && !formData.numeroDocumento.trim())
+      return Swal.fire(
+        "Campo obligatorio",
+        "El número de documento es obligatorio para crear un nuevo residente.",
+        "error",
+      );
     if (formData.numeroDocumento.trim()) {
       const doc = formData.numeroDocumento.trim();
       if (!/^[a-zA-Z0-9\-]+$/.test(doc))
         return Swal.fire(
-          "Error",
-          "El número de documento solo puede contener letras, números o guiones.",
+          "Documento inválido",
+          "El número de documento solo puede contener letras, números o guiones. No se permiten caracteres especiales.",
           "error",
         );
       if (!/[0-9]/.test(doc))
         return Swal.fire(
-          "Error",
-          "El número de documento no puede estar compuesto únicamente de letras.",
+          "Documento inválido",
+          "El número de documento no puede estar compuesto únicamente por letras. Debe incluir al menos un dígito.",
+          "error",
+        );
+      // Ratio letras/dígitos para documentos mixtos
+      const letras = (doc.match(/[a-zA-Z]/g) || []).length;
+      const digitos = (doc.match(/[0-9]/g) || []).length;
+      const tiposMixtos = ["CE", "PP", "PEP", "PPT"];
+      if (tiposMixtos.includes(formData.tipoDocumento) && letras > digitos)
+        return Swal.fire(
+          "Documento inválido",
+          `El ${formData.tipoDocumento} tiene más letras (${letras}) que dígitos (${digitos}). Los documentos deben ser principalmente numéricos.`,
           "error",
         );
       if (formData.tipoDocumento === "CC" && !/^\d+$/.test(doc))
         return Swal.fire(
-          "Error",
-          "La Cédula de Ciudadanía (CC) debe contener solo dígitos.",
+          "Documento inválido",
+          "La Cédula de Ciudadanía (CC) debe contener solo dígitos, sin letras ni guiones.",
           "error",
         );
       if (
@@ -503,7 +581,7 @@ function Residentes() {
         (doc.length < 5 || doc.length > 10)
       )
         return Swal.fire(
-          "Error",
+          "Documento inválido",
           "La CC debe tener entre 5 y 10 dígitos.",
           "error",
         );
@@ -1603,9 +1681,18 @@ function Residentes() {
                     const resEnTorre = residentes.filter(
                       (r) => r.torresId === tid && r.estado === "Activo",
                     );
-                    const aptosEnTorre = [
-                      ...new Set(resEnTorre.map((r) => r.apartamentosId)),
-                    ].length;
+                    const totalAptos = apartamentos.filter(
+                      (a) => a.torresId === tid,
+                    ).length;
+                    const aptosLibres = apartamentos.filter(
+                      (a) =>
+                        a.torresId === tid &&
+                        !residentes.some(
+                          (r) =>
+                            r.apartamentosId === a.idApartamento &&
+                            r.estado === "Activo",
+                        ),
+                    ).length;
                     return (
                       <div
                         key={tid}
@@ -1615,14 +1702,20 @@ function Residentes() {
                       >
                         <div className="res-torre-letter">{letra}</div>
                         <p className="res-torre-info">
-                          <i className="bi bi-door-open"></i> {aptosEnTorre}{" "}
-                          apto{aptosEnTorre !== 1 ? "s" : ""}
+                          <i className="bi bi-door-open"></i> {totalAptos} apto
+                          {totalAptos !== 1 ? "s" : ""}
                         </p>
                         <p className="res-torre-info">
                           <i className="bi bi-people"></i> {resEnTorre.length}{" "}
                           residente
                           {resEnTorre.length !== 1 ? "s" : ""}
                         </p>
+                        {aptosLibres > 0 && (
+                          <p className="res-torre-libre-count">
+                            <i className="bi bi-check-circle"></i> {aptosLibres}{" "}
+                            libre{aptosLibres !== 1 ? "s" : ""}
+                          </p>
+                        )}
                       </div>
                     );
                   })}
@@ -1642,90 +1735,105 @@ function Residentes() {
                     "I",
                     "J",
                   ][torreSeleccionada - 1];
-                  const resEnTorre = residentes.filter(
-                    (r) => r.torresId === torreSeleccionada,
+                  // Usar todos los apartamentos registrados en la torre
+                  const aptosEnTorre = apartamentos.filter(
+                    (a) => a.torresId === torreSeleccionada,
                   );
-                  const aptosMap = {};
-                  resEnTorre.forEach((r) => {
-                    const key = r.apartamentosId;
-                    if (!aptosMap[key])
-                      aptosMap[key] = {
-                        numeroApartamento:
-                          r.numeroApartamento || r.apartamentosId,
-                        ocupantes: [],
+                  const aptosList = aptosEnTorre
+                    .map((a) => {
+                      const ocupantes = residentes.filter(
+                        (r) => r.apartamentosId === a.idApartamento,
+                      );
+                      const activos = ocupantes.filter(
+                        (r) => r.estado === "Activo",
+                      );
+                      return {
+                        idApartamento: a.idApartamento,
+                        numeroApartamento: a.numeroApartamento,
+                        ocupantes,
+                        activos,
+                        libre: activos.length === 0,
                       };
-                    aptosMap[key].ocupantes.push(r);
-                  });
-                  const aptosList = Object.values(aptosMap).sort(
-                    (a, b) => a.numeroApartamento - b.numeroApartamento,
-                  );
+                    })
+                    .sort((a, b) => a.numeroApartamento - b.numeroApartamento);
                   if (aptosList.length === 0)
                     return (
                       <p className="res-torres-empty">
-                        No hay residentes registrados en Torre {letra}.
+                        No hay apartamentos registrados en Torre {letra}.
                       </p>
                     );
                   return (
                     <div className="res-aptos-grid">
                       {aptosList.map((ap) => (
                         <div
-                          key={ap.numeroApartamento}
-                          className="res-apto-card"
+                          key={ap.idApartamento}
+                          className={`res-apto-card${ap.libre ? " res-apto-card-libre" : ""}`}
                         >
                           <div className="res-apto-numero">
-                            <i className="bi bi-door-closed"></i> Apto{" "}
-                            {ap.numeroApartamento}
+                            <i
+                              className={`bi ${ap.libre ? "bi-door-open" : "bi-door-closed"}`}
+                            ></i>{" "}
+                            Apto {ap.numeroApartamento}
+                            {ap.libre && (
+                              <span className="res-apto-libre ms-2">LIBRE</span>
+                            )}
                           </div>
-                          {ap.ocupantes.map((oc) => (
-                            <div
-                              key={oc.idOcupante}
-                              className={`res-apto-ocupante ${
-                                oc.estado === "Activo"
-                                  ? "res-apto-activo"
-                                  : "res-apto-finalizado"
-                              }`}
-                            >
-                              <span className="res-apto-nombre">
-                                {oc.nombreCompleto}
-                              </span>
-                              <span
-                                className={`res-badge ${
-                                  oc.tipoOcupacion?.toLowerCase() ===
-                                  "propietario"
-                                    ? "res-badge-propietario"
-                                    : "res-badge-arrendatario"
+                          {ap.libre ? (
+                            <p className="res-apto-libre-text">
+                              Apartamento disponible
+                            </p>
+                          ) : (
+                            ap.ocupantes.map((oc) => (
+                              <div
+                                key={oc.idOcupante}
+                                className={`res-apto-ocupante ${
+                                  oc.estado === "Activo"
+                                    ? "res-apto-activo"
+                                    : "res-apto-finalizado"
                                 }`}
                               >
-                                {oc.tipoOcupacion}
-                              </span>
-                              <div className="res-apto-tags">
-                                {Number(oc.tieneNinos) === 1 && (
-                                  <span
-                                    className="res-apto-tag"
-                                    title="Tiene niños"
-                                  >
-                                    <i className="bi bi-emoji-smile"></i>
-                                  </span>
-                                )}
-                                {Number(oc.tieneAdultoMayor) === 1 && (
-                                  <span
-                                    className="res-apto-tag"
-                                    title="Adulto mayor"
-                                  >
-                                    <i className="bi bi-person-cane"></i>
-                                  </span>
-                                )}
-                                {Number(oc.tieneDiscapacidad) === 1 && (
-                                  <span
-                                    className="res-apto-tag"
-                                    title="Discapacidad"
-                                  >
-                                    <i className="bi bi-universal-access"></i>
-                                  </span>
-                                )}
+                                <span className="res-apto-nombre">
+                                  {oc.nombreCompleto}
+                                </span>
+                                <span
+                                  className={`res-badge ${
+                                    oc.tipoOcupacion?.toLowerCase() ===
+                                    "propietario"
+                                      ? "res-badge-propietario"
+                                      : "res-badge-arrendatario"
+                                  }`}
+                                >
+                                  {oc.tipoOcupacion}
+                                </span>
+                                <div className="res-apto-tags">
+                                  {Number(oc.tieneNinos) === 1 && (
+                                    <span
+                                      className="res-apto-tag"
+                                      title="Tiene niños"
+                                    >
+                                      <i className="bi bi-emoji-smile"></i>
+                                    </span>
+                                  )}
+                                  {Number(oc.tieneAdultoMayor) === 1 && (
+                                    <span
+                                      className="res-apto-tag"
+                                      title="Adulto mayor"
+                                    >
+                                      <i className="bi bi-person-cane"></i>
+                                    </span>
+                                  )}
+                                  {Number(oc.tieneDiscapacidad) === 1 && (
+                                    <span
+                                      className="res-apto-tag"
+                                      title="Discapacidad"
+                                    >
+                                      <i className="bi bi-universal-access"></i>
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))
+                          )}
                         </div>
                       ))}
                     </div>

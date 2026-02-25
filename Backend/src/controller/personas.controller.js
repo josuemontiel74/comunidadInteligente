@@ -1,16 +1,33 @@
 import personasModel from "../models/personas.model.js";
 import User from "../models/user.model.js";
 
-// ── Validación de nombres: solo letras, espacios, guiones y apóstrofes ──────
+// ── Validación de nombres: solo letras, espacios, guiones y apóstrofes ─────────
 const NOMBRE_REGEX = /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s\-']+$/;
 const validarCamposNombre = (campos) => {
   for (const [campo, valor] of Object.entries(campos)) {
     if (valor !== undefined && valor !== null && valor !== "") {
-      if (!NOMBRE_REGEX.test(String(valor).trim())) {
-        return `El campo "${campo}" no puede contener números ni caracteres especiales`;
-      }
+      const v = String(valor).trim();
+      if (!NOMBRE_REGEX.test(v))
+        return `El campo "${campo}" no puede contener números ni caracteres especiales. Solo se permiten letras, espacios, guiones y apóstrofes.`;
+      // Detectar patrón sin sentido: todos los caracteres iguales (ej: "XXXXX")
+      if (/^(.)\1+$/.test(v))
+        return `El campo "${campo}" no puede estar formado por el mismo carácter repetido (ej: "XXXXX" o "aaaa"). Ingrese un nombre real.`;
+      // Detectar 4 o más letras consecutivas iguales
+      if (/(.)\1{3,}/.test(v))
+        return `El campo "${campo}" contiene demasiadas letras consecutivas iguales. Ingrese un nombre válido.`;
     }
   }
+  return null;
+};
+
+// ── Validación de teléfono ───────────────────────────────────────────────────────
+const validarTelefono = (telefono) => {
+  if (!telefono) return null;
+  const tel = telefono.toString().trim();
+  if (!/^\d{7,15}$/.test(tel))
+    return "El teléfono debe contener solo dígitos, entre 7 y 15 caracteres.";
+  if (/^(\d)\1+$/.test(tel))
+    return `El número de teléfono "${tel}" no es válido porque todos sus dígitos son iguales. Ingrese un número real.`;
   return null;
 };
 
@@ -23,31 +40,49 @@ const validarNumeroDocumento = (tipoDocumentoId, numeroDocumento) => {
 
   // Solo alfanumérico con posibles guiones, sin espacios ni símbolos especiales
   if (!/^[a-zA-Z0-9\-]+$/.test(doc)) {
-    return "El número de documento solo puede contener letras, números o guiones";
+    return "El número de documento solo puede contener letras, números o guiones. No se permiten espacios ni caracteres como @, #, %, etc.";
   }
 
   const digitos = contarDigitos(doc);
+  const letras = (doc.match(/[a-zA-Z]/g) || []).length;
+
+  // Para documentos que admiten letras: letras no pueden superar a los dígitos
+  if (
+    (tipo === 2 || tipo === 3 || tipo === 4 || tipo === 5) &&
+    letras > digitos
+  ) {
+    const nombreTipo = { 2: "CE", 3: "Pasaporte", 4: "PEP", 5: "PPT" }[tipo];
+    return `El ${nombreTipo} tiene más letras (${letras}) que dígitos (${digitos}). Los documentos deben ser principalmente numéricos (ej: E-123456789 o AB12345678).`;
+  }
 
   if (tipo === 1) {
     // CC: solo dígitos, entre 5 y 10
-    if (!/^\d+$/.test(doc)) return "La Cédula de Ciudadanía (CC) debe contener solo dígitos";
-    if (doc.length < 5 || doc.length > 10) return "La CC debe tener entre 5 y 10 dígitos";
+    if (!/^\d+$/.test(doc))
+      return "La Cédula de Ciudadanía (CC) debe contener solo dígitos";
+    if (doc.length < 5 || doc.length > 10)
+      return "La CC debe tener entre 5 y 10 dígitos";
   } else if (tipo === 2) {
     // CE: puede tener letras, mínimo 3 dígitos, 4-15 chars
-    if (digitos < 3) return "La Cédula de Extranjería debe contener al menos 3 dígitos";
-    if (doc.length < 4 || doc.length > 15) return "La CE debe tener entre 4 y 15 caracteres";
+    if (digitos < 3)
+      return "La Cédula de Extranjería debe contener al menos 3 dígitos";
+    if (doc.length < 4 || doc.length > 15)
+      return "La CE debe tener entre 4 y 15 caracteres";
   } else if (tipo === 3) {
     // PP Pasaporte: alfanumérico, mínimo 2 dígitos, 5-12 chars
     if (digitos < 2) return "El Pasaporte debe contener al menos 2 dígitos";
-    if (doc.length < 5 || doc.length > 12) return "El Pasaporte debe tener entre 5 y 12 caracteres";
+    if (doc.length < 5 || doc.length > 12)
+      return "El Pasaporte debe tener entre 5 y 12 caracteres";
   } else if (tipo === 4 || tipo === 5) {
     // PEP / PPT: alfanumérico, mínimo 2 dígitos
     const nombre = tipo === 4 ? "PEP" : "PPT";
-    if (digitos < 2) return `El documento ${nombre} debe contener al menos 2 dígitos`;
-    if (doc.length < 4 || doc.length > 20) return `El documento ${nombre} debe tener entre 4 y 20 caracteres`;
+    if (digitos < 2)
+      return `El documento ${nombre} debe contener al menos 2 dígitos`;
+    if (doc.length < 4 || doc.length > 20)
+      return `El documento ${nombre} debe tener entre 4 y 20 caracteres`;
   } else {
     // Cualquier otro tipo: al menos un dígito
-    if (digitos === 0) return "El número de documento no puede estar compuesto únicamente de letras";
+    if (digitos === 0)
+      return "El número de documento no puede estar compuesto únicamente de letras";
   }
 
   return null;
@@ -59,8 +94,17 @@ export const createPersona = async (req, res) => {
     const dataPersona = req.body;
 
     // Validar número de documento
-    const errorDoc = validarNumeroDocumento(dataPersona.tipoDocumentoId, dataPersona.numeroDocumento);
-    if (errorDoc) return res.status(400).json({ message: errorDoc, status: 400 });
+    const errorDoc = validarNumeroDocumento(
+      dataPersona.tipoDocumentoId,
+      dataPersona.numeroDocumento,
+    );
+    if (errorDoc)
+      return res.status(400).json({ message: errorDoc, status: 400 });
+
+    // Validar teléfono
+    const errorTel = validarTelefono(dataPersona.telefono);
+    if (errorTel)
+      return res.status(400).json({ message: errorTel, status: 400 });
 
     // Validar que los nombres no contengan números
     const errorNombre = validarCamposNombre({
@@ -172,6 +216,11 @@ export const UpdatePersona = async (req, res) => {
     if (errorNombre) {
       return res.status(400).json({ message: errorNombre, status: 400 });
     }
+
+    // Validar teléfono
+    const errorTelUpd = validarTelefono(data.telefono);
+    if (errorTelUpd)
+      return res.status(400).json({ message: errorTelUpd, status: 400 });
 
     // Actualizar solo los campos editables (numeroDocumento no se toca)
     const [updated] = await personasModel.update(

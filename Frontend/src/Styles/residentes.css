@@ -1155,3 +1155,89 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   DARK MODE – Modal de torres
+   ========================================================= */
+[data-modo="oscuro"] .res-modal-overlay .res-modal {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+[data-modo="oscuro"] .res-modal-header {
+  background: #0f172a;
+  border-bottom-color: #334155;
+  color: #e2e8f0;
+}
+[data-modo="oscuro"] .res-modal-body {
+  background: #1e293b;
+}
+[data-modo="oscuro"] .res-apto-card {
+  background: #0f172a;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+[data-modo="oscuro"] .res-apto-numero {
+  color: #38bdf8;
+}
+[data-modo="oscuro"] .res-apto-activo {
+  border-left-color: #34d399;
+}
+[data-modo="oscuro"] .res-apto-finalizado {
+  border-left-color: #64748b;
+  color: #94a3b8;
+}
+
+/* =========================================================
+   BADGE LIBRE – Apartamento disponible
+   ========================================================= */
+.res-apto-libre {
+  display: inline-block;
+  background: #d4f1e4;
+  color: #155724;
+  border: 1.5px solid #27ae60;
+  border-radius: 6px;
+  padding: 1px 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
+[data-modo="oscuro"] .res-apto-libre {
+  background: #0f4c36;
+  color: #6ee7b7;
+  border-color: #059669;
+}
+
+.res-apto-card-libre {
+  border: 1.5px dashed #27ae60 !important;
+  opacity: 0.85;
+}
+
+[data-modo="oscuro"] .res-apto-card-libre {
+  border-color: #059669 !important;
+}
+
+.res-apto-libre-text {
+  font-size: 0.82rem;
+  color: #27ae60;
+  font-style: italic;
+  margin: 4px 0 0;
+}
+
+[data-modo="oscuro"] .res-apto-libre-text {
+  color: #34d399;
+}
+
+/* Contador de libres en la tarjeta de torre */
+.res-torre-libre-count {
+  font-size: 0.72rem;
+  color: #059669;
+  font-weight: 600;
+  margin: 2px 0 0;
+}
+
+[data-modo="oscuro"] .res-torre-libre-count {
+  color: #34d399;
+}

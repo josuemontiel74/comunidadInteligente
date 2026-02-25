@@ -103,6 +103,14 @@ export async function obtenerResidentes(token) {
   });
 }
 
+export async function obtenerTodosApartamentos(token) {
+  if (!token) throw new Error("Token requerido");
+  return fetch(`${API_BASE_URL}/apartamento`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
 export async function obtenerOcupantePorId(id, token) {
   if (!token)
     throw new Error("Token de autenticación requerido para obtener ocupante");
