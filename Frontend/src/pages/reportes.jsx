@@ -12,6 +12,7 @@ import {
   obtenerReporteOcupacion,
   obtenerReporteNinos,
   obtenerReportePoblacionEspecial,
+  obtenerReporteUsuarios,
 } from "../services/reportes.services.jsx";
 import "../Styles/reportes.css";
 
@@ -108,12 +109,15 @@ function Reportes() {
   const [rptOcupacion, setRptOcupacion] = useState(null);
   const [rptNinos, setRptNinos] = useState(null);
   const [rptPoblacion, setRptPoblacion] = useState(null);
+  const [rptUsuarios, setRptUsuarios] = useState(null);
 
   // --- Refs Charts ---
   const parkingChartRef = useRef(null);
   const parkingInstance = useRef(null);
   const visitasChartRef = useRef(null);
   const visitasInstance = useRef(null);
+  const actividadChartRef = useRef(null);
+  const actividadInstance = useRef(null);
 
   // ============================================================================
   // AUTH CHECK
@@ -170,7 +174,7 @@ function Reportes() {
     if (!t) return;
     setDataLoading(true);
     try {
-      const [parq, vis, paq, res, ocup, ninos, pobl] = await Promise.all([
+      const promesas = [
         obtenerReporteParqueaderos(t, fechaInicio, fechaFin),
         obtenerReporteVisitas(t, fechaInicio, fechaFin),
         obtenerReportePaquetes(t, fechaInicio, fechaFin),
@@ -178,7 +182,9 @@ function Reportes() {
         obtenerReporteOcupacion(t),
         obtenerReporteNinos(t),
         obtenerReportePoblacionEspecial(t),
-      ]);
+        showUserManagement ? obtenerReporteUsuarios(t, fechaInicio, fechaFin) : Promise.resolve(null),
+      ];
+      const [parq, vis, paq, res, ocup, ninos, pobl, usrs] = await Promise.all(promesas);
       setRptParqueaderos(parq);
       setRptVisitas(vis);
       setRptPaquetes(paq);
@@ -186,11 +192,12 @@ function Reportes() {
       setRptOcupacion(ocup);
       setRptNinos(ninos);
       setRptPoblacion(pobl);
+      setRptUsuarios(usrs);
     } catch (err) {
       // Error cargando reportes
     }
     setDataLoading(false);
-  }, [fechaInicio, fechaFin]);
+  }, [fechaInicio, fechaFin, showUserManagement]);
 
   useEffect(() => {
     if (!loading) cargarReportes();
@@ -275,6 +282,60 @@ function Reportes() {
       if (visitasInstance.current) visitasInstance.current.destroy();
     };
   }, [rptVisitas]);
+
+  // Gráfica actividad diaria usuarios
+  useEffect(() => {
+    if (!rptUsuarios || !actividadChartRef.current) return;
+    if (actividadInstance.current) actividadInstance.current.destroy();
+    const dias = rptUsuarios.actividadDiaria || [];
+    if (dias.length === 0) return;
+    const labels = dias.map((d) => {
+      const f = new Date(d.fecha);
+      return f.toLocaleDateString("es-CO", { day: "2-digit", month: "short" });
+    });
+    actividadInstance.current = new Chart(actividadChartRef.current, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Acciones",
+            data: dias.map((d) => d.acciones),
+            borderColor: "#0ea5e9",
+            backgroundColor: "rgba(14,165,233,0.1)",
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointBackgroundColor: "#0ea5e9",
+          },
+          {
+            label: "Usuarios activos",
+            data: dias.map((d) => d.usuariosActivos),
+            borderColor: "#8b5cf6",
+            backgroundColor: "rgba(139,92,246,0.08)",
+            fill: false,
+            tension: 0.4,
+            pointRadius: 4,
+            pointBackgroundColor: "#8b5cf6",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "top", labels: { usePointStyle: true, padding: 16 } },
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { maxRotation: 45 } },
+          y: { beginAtZero: true, grid: { color: "#f1f5f9" } },
+        },
+      },
+    });
+    return () => {
+      if (actividadInstance.current) actividadInstance.current.destroy();
+    };
+  }, [rptUsuarios]);
 
   // ============================================================================
   // CERRAR SESIÓN
@@ -507,6 +568,53 @@ function Reportes() {
       "Total Población Especial",
       toInt(pe.totalAdultosMayores) + toInt(pe.totalDiscapacidad),
     );
+
+    // ====== USUARIOS (solo superadmin) ======
+    if (showUserManagement && rptUsuarios) {
+      divider();
+      checkPage(16);
+      pdf.setFillColor(240, 249, 255);
+      pdf.rect(m, y - 4, pw - m * 2, 12, "F");
+      pdf.setFontSize(16);
+      pdf.setTextColor(3, 105, 161);
+      pdf.text("REPORTE DE USUARIOS", m + 5, y + 4);
+      pdf.setTextColor(30, 30, 30);
+      y += 16;
+
+      sectionTitle("Actividad del Sistema", "#0369a1");
+      stat("Acciones hoy", rptUsuarios.accionesHoy || 0);
+      stat("Usuarios activos hoy", rptUsuarios.usuariosActivosHoy || 0);
+      stat("Total acciones en el período", rptUsuarios.totalAccionesPeriodo || 0);
+
+      const activosPdf = rptUsuarios.masActivos || [];
+      if (activosPdf.length > 0) {
+        checkPage(10);
+        y += 4;
+        pdf.setFontSize(10);
+        pdf.setFont(undefined, "bold");
+        pdf.text("Top usuarios más activos:", m + 5, y);
+        pdf.setFont(undefined, "normal");
+        y += 6;
+        activosPdf.slice(0, 5).forEach((u) => {
+          stat(`${u.username} (${u.nombreRol || "N/A"})`, `${u.totalAcciones} acciones`);
+        });
+      }
+
+      const inactivosPdf = rptUsuarios.masInactivos || [];
+      if (inactivosPdf.length > 0) {
+        checkPage(10);
+        y += 4;
+        pdf.setFontSize(10);
+        pdf.setFont(undefined, "bold");
+        pdf.text("Usuarios con más días sin actividad:", m + 5, y);
+        pdf.setFont(undefined, "normal");
+        y += 6;
+        inactivosPdf.slice(0, 5).forEach((u) => {
+          const dias = u.diasSinActividad == null ? "nunca" : `${u.diasSinActividad} días`;
+          stat(`${u.username} (${u.nombreRol || "N/A"})`, dias);
+        });
+      }
+    }
 
     // ====== PÁGINA NUMBERS ======
     const totalPages = pdf.getNumberOfPages();
@@ -1494,6 +1602,248 @@ function Reportes() {
                   )}
                 </div>
               </div>
+
+              {/* ==================== USUARIOS (solo superadmin) ==================== */}
+              {showUserManagement && rptUsuarios && (
+                <>
+                  <div
+                    className="rpt-section-divider"
+                    style={{
+                      background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
+                      borderColor: "#7dd3fc",
+                      color: "#0369a1",
+                    }}
+                  >
+                    <i className="bi bi-people-fill section-icon"></i>
+                    <h3>Reporte de Usuarios</h3>
+                  </div>
+
+                  {/* Mini-cards de hoy */}
+                  <div className="rpt-card">
+                    <div className="rpt-card-header">
+                      <div className="header-icon" style={{ background: "#e0f2fe", color: "#0369a1" }}>
+                        <i className="bi bi-activity"></i>
+                      </div>
+                      <h4>Actividad del Sistema</h4>
+                    </div>
+                    <div className="rpt-card-body">
+                      <div className="rpt-mini-cards">
+                        <div className="rpt-mini-card" style={{ background: "#f0f9ff", borderColor: "#7dd3fc" }}>
+                          <div className="mini-icon" style={{ color: "#0369a1" }}>
+                            <i className="bi bi-lightning-charge-fill"></i>
+                          </div>
+                          <div className="mini-value" style={{ color: "#0369a1" }}>
+                            {rptUsuarios.accionesHoy || 0}
+                          </div>
+                          <div className="mini-label">Acciones Hoy</div>
+                        </div>
+                        <div className="rpt-mini-card" style={{ background: "#f5f3ff", borderColor: "#c4b5fd" }}>
+                          <div className="mini-icon" style={{ color: "#7c3aed" }}>
+                            <i className="bi bi-person-check-fill"></i>
+                          </div>
+                          <div className="mini-value" style={{ color: "#7c3aed" }}>
+                            {rptUsuarios.usuariosActivosHoy || 0}
+                          </div>
+                          <div className="mini-label">Usuarios Activos Hoy</div>
+                        </div>
+                        <div className="rpt-mini-card" style={{ background: "#f0fdf4", borderColor: "#86efac" }}>
+                          <div className="mini-icon" style={{ color: "#16a34a" }}>
+                            <i className="bi bi-journal-check"></i>
+                          </div>
+                          <div className="mini-value" style={{ color: "#16a34a" }}>
+                            {rptUsuarios.totalAccionesPeriodo || 0}
+                          </div>
+                          <div className="mini-label">Total Acciones Período</div>
+                        </div>
+                      </div>
+
+                      {/* Gráfica actividad diaria */}
+                      {(rptUsuarios.actividadDiaria || []).length > 0 && (
+                        <div className="rpt-chart-container mt-3" style={{ height: 260 }}>
+                          <canvas ref={actividadChartRef}></canvas>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Top usuarios más activos */}
+                  <div className="rpt-card">
+                    <div className="rpt-card-header">
+                      <div className="header-icon" style={{ background: "#fef9c3", color: "#ca8a04" }}>
+                        <i className="bi bi-trophy-fill"></i>
+                      </div>
+                      <h4>Usuarios Más Activos</h4>
+                      <span className="ms-auto rpt-badge" style={{ background: "#0369a1", fontSize: 12, padding: "4px 12px" }}>
+                        Período seleccionado
+                      </span>
+                    </div>
+                    <div className="rpt-card-body">
+                      {(rptUsuarios.masActivos || []).length > 0 ? (
+                        <div className="rpt-table-wrapper">
+                          <table className="rpt-table">
+                            <thead>
+                              <tr>
+                                <th>#</th>
+                                <th>Usuario</th>
+                                <th>Rol</th>
+                                <th>Acciones</th>
+                                <th>Última acción</th>
+                                <th>Estado</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rptUsuarios.masActivos.map((u, i) => {
+                                const estado = u.estadoId === 6 ? { label: "Activo", color: "#22c55e" } : { label: "Inactivo", color: "#f97316" };
+                                const ultimaAccionStr = u.ultimaAccion
+                                  ? new Date(u.ultimaAccion).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "2-digit" })
+                                  : "—";
+                                return (
+                                  <tr key={i}>
+                                    <td>
+                                      <span className="rpt-badge" style={{ background: i === 0 ? "#ca8a04" : i === 1 ? "#94a3b8" : i === 2 ? "#b45309" : "#e2e8f0", color: i < 3 ? "#fff" : "#475569" }}>
+                                        {i + 1}
+                                      </span>
+                                    </td>
+                                    <td className="fw-semibold">
+                                      <i className="bi bi-person-circle me-1" style={{ color: "#0369a1" }}></i>
+                                      {u.username}
+                                    </td>
+                                    <td>{u.nombreRol || "—"}</td>
+                                    <td>
+                                      <span className="rpt-badge" style={{ background: "#0369a1" }}>
+                                        {u.totalAcciones}
+                                      </span>
+                                    </td>
+                                    <td style={{ fontSize: 12, color: "#64748b" }}>{ultimaAccionStr}</td>
+                                    <td>
+                                      <span className="rpt-badge" style={{ background: estado.color }}>
+                                        {estado.label}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="rpt-empty">
+                          <i className="bi bi-people"></i>
+                          <p>Sin actividad registrada en este período</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Usuarios más inactivos */}
+                  <div className="rpt-card">
+                    <div className="rpt-card-header">
+                      <div className="header-icon" style={{ background: "#fff7ed", color: "#ea580c" }}>
+                        <i className="bi bi-moon-stars-fill"></i>
+                      </div>
+                      <h4>Usuarios con Mayor Inactividad</h4>
+                    </div>
+                    <div className="rpt-card-body">
+                      {(rptUsuarios.masInactivos || []).length > 0 ? (
+                        <div className="rpt-table-wrapper">
+                          <table className="rpt-table">
+                            <thead>
+                              <tr>
+                                <th>Usuario</th>
+                                <th>Rol</th>
+                                <th>Última actividad</th>
+                                <th>Días inactivo</th>
+                                <th>Estado</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rptUsuarios.masInactivos.map((u, i) => {
+                                const diasNum = u.diasSinActividad;
+                                const diasLabel = diasNum == null ? "Nunca inició sesión" : `${diasNum} días`;
+                                const color = diasNum == null || diasNum > 30 ? "#ef4444" : diasNum > 7 ? "#f97316" : "#22c55e";
+                                const ultimaAct = u.ultimaActividad
+                                  ? new Date(u.ultimaActividad).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "2-digit" })
+                                  : "—";
+                                const estado = u.estadoId === 6 ? { label: "Activo", color: "#22c55e" } : { label: "Inactivo", color: "#f97316" };
+                                return (
+                                  <tr key={i}>
+                                    <td className="fw-semibold">
+                                      <i className="bi bi-person-circle me-1" style={{ color: "#ea580c" }}></i>
+                                      {u.username}
+                                    </td>
+                                    <td>{u.nombreRol || "—"}</td>
+                                    <td style={{ fontSize: 12, color: "#64748b" }}>{ultimaAct}</td>
+                                    <td>
+                                      <span className="rpt-badge" style={{ background: color }}>
+                                        {diasLabel}
+                                      </span>
+                                    </td>
+                                    <td>
+                                      <span className="rpt-badge" style={{ background: estado.color }}>
+                                        {estado.label}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="rpt-empty">
+                          <i className="bi bi-moon-stars"></i>
+                          <p>Sin datos de inactividad</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Operaciones más frecuentes */}
+                  {(rptUsuarios.operacionesFrecuentes || []).length > 0 && (
+                    <div className="rpt-card">
+                      <div className="rpt-card-header">
+                        <div className="header-icon" style={{ background: "#f0fdf4", color: "#16a34a" }}>
+                          <i className="bi bi-bar-chart-steps"></i>
+                        </div>
+                        <h4>Operaciones Más Frecuentes</h4>
+                      </div>
+                      <div className="rpt-card-body">
+                        {(() => {
+                          const ops = rptUsuarios.operacionesFrecuentes;
+                          const maxOp = Math.max(...ops.map((o) => o.cantidad));
+                          return ops.map((op, i) => (
+                            <div key={i} className="rpt-hbar-row">
+                              <span className="rpt-hbar-label" style={{ minWidth: 110, fontSize: 12 }}>
+                                {op.operacionRealizada || "—"}
+                              </span>
+                              <div className="rpt-hbar-track">
+                                <div
+                                  className="rpt-hbar-fill"
+                                  style={{
+                                    width: `${maxOp > 0 ? (op.cantidad / maxOp) * 100 : 0}%`,
+                                    background: "linear-gradient(90deg, #0ea5e9, #0369a1)",
+                                  }}
+                                >
+                                  {op.cantidad / maxOp > 0.3 && (
+                                    <span className="rpt-hbar-text">
+                                      {op.cantidad} · {op.tablaAfectada || ""}
+                                    </span>
+                                  )}
+                                </div>
+                                {op.cantidad / maxOp <= 0.3 && (
+                                  <span className="rpt-hbar-text-dark">
+                                    {op.cantidad} · {op.tablaAfectada || ""}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </>
           )}
         </div>

@@ -9,6 +9,7 @@ import {
   obtenerReporteOcupacion,
   obtenerReporteNinos,
   obtenerReportePoblacionEspecial,
+  obtenerReporteUsuarios,
 } from "../controller/reportes.controller.js";
 
 const router = Router();
@@ -28,5 +29,10 @@ router.get("/consolidado", validarJWT, validarRol(1, 2, 3), obtenerReporteConsol
 router.get("/residentes/ocupacion", validarJWT, validarRol(1, 2, 3), obtenerReporteOcupacion);
 router.get("/residentes/ninos", validarJWT, validarRol(1, 2, 3), obtenerReporteNinos);
 router.get("/residentes/poblacion-especial", validarJWT, validarRol(1, 2, 3), obtenerReportePoblacionEspecial);
+
+// ============================================================================
+// REPORTE DE USUARIOS (solo superadmin — datos sensibles)
+// ============================================================================
+router.get("/usuarios", validarJWT, validarRol(1), obtenerReporteUsuarios);
 
 export default router;

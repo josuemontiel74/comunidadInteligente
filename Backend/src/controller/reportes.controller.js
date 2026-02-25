@@ -668,3 +668,137 @@ export const obtenerReportePoblacionEspecial = async (req, res) => {
     });
   }
 };
+
+// ============================================================================
+// REPORTE DE USUARIOS (actividad, inactividad, operaciones frecuentes)
+// ============================================================================
+export const obtenerReporteUsuarios = async (req, res) => {
+  try {
+    const { fechaInicio, fechaFin } = req.query;
+
+    if (!fechaInicio || !fechaFin) {
+      return res.status(400).json({
+        success: false,
+        message: "Se requieren fechaInicio y fechaFin",
+      });
+    }
+
+    // Usuarios más activos en el período (por acciones en auditorías)
+    const [masActivos] = await sequelize.query(
+      `
+      SELECT
+        u.username,
+        r.nombreRol,
+        u.estadoId,
+        u.ultimaActividad,
+        COUNT(a.idAuditoria) as totalAcciones,
+        MAX(a.fechaHoraAuditoria) as ultimaAccion
+      FROM usuarios u
+      LEFT JOIN auditorias a ON u.username = a.username
+        AND DATE(a.fechaHoraAuditoria) >= ? AND DATE(a.fechaHoraAuditoria) <= ?
+      LEFT JOIN roles r ON u.rolesId = r.idRol
+      GROUP BY u.username, r.nombreRol, u.estadoId, u.ultimaActividad
+      ORDER BY totalAcciones DESC
+      LIMIT 10
+      `,
+      { replacements: [fechaInicio, fechaFin] },
+    );
+
+    // Usuarios más inactivos (mayor tiempo sin actividad)
+    const [masInactivos] = await sequelize.query(
+      `
+      SELECT
+        u.username,
+        r.nombreRol,
+        u.estadoId,
+        u.ultimaActividad,
+        CASE
+          WHEN u.ultimaActividad IS NULL THEN 9999
+          ELSE DATEDIFF(NOW(), u.ultimaActividad)
+        END as diasSinActividad
+      FROM usuarios u
+      LEFT JOIN roles r ON u.rolesId = r.idRol
+      ORDER BY diasSinActividad DESC
+      LIMIT 10
+      `,
+    );
+
+    // Operaciones más frecuentes en el período
+    const [operacionesFrecuentes] = await sequelize.query(
+      `
+      SELECT operacionRealizada, tablaAfectada, COUNT(*) as cantidad
+      FROM auditorias
+      WHERE DATE(fechaHoraAuditoria) >= ? AND DATE(fechaHoraAuditoria) <= ?
+      GROUP BY operacionRealizada, tablaAfectada
+      ORDER BY cantidad DESC
+      LIMIT 8
+      `,
+      { replacements: [fechaInicio, fechaFin] },
+    );
+
+    // Actividad diaria en el período (para gráfica)
+    const [actividadDiaria] = await sequelize.query(
+      `
+      SELECT
+        DATE(fechaHoraAuditoria) as fecha,
+        COUNT(*) as acciones,
+        COUNT(DISTINCT username) as usuariosActivos
+      FROM auditorias
+      WHERE DATE(fechaHoraAuditoria) >= ? AND DATE(fechaHoraAuditoria) <= ?
+      GROUP BY DATE(fechaHoraAuditoria)
+      ORDER BY fecha ASC
+      `,
+      { replacements: [fechaInicio, fechaFin] },
+    );
+
+    // Acciones del día de hoy
+    const [hoy] = await sequelize.query(
+      `
+      SELECT COUNT(*) as total, COUNT(DISTINCT username) as usuarios
+      FROM auditorias
+      WHERE DATE(fechaHoraAuditoria) = CURDATE()
+      `,
+    );
+
+    // Total acciones en el período
+    const [totalPeriodo] = await sequelize.query(
+      `SELECT COUNT(*) as total FROM auditorias WHERE DATE(fechaHoraAuditoria) >= ? AND DATE(fechaHoraAuditoria) <= ?`,
+      { replacements: [fechaInicio, fechaFin] },
+    );
+
+    res.json({
+      success: true,
+      data: {
+        masActivos: masActivos.map((u) => ({
+          ...u,
+          totalAcciones: parseInt(u.totalAcciones) || 0,
+        })),
+        masInactivos: masInactivos.map((u) => ({
+          ...u,
+          diasSinActividad:
+            parseInt(u.diasSinActividad) === 9999
+              ? null
+              : parseInt(u.diasSinActividad),
+        })),
+        operacionesFrecuentes: operacionesFrecuentes.map((o) => ({
+          ...o,
+          cantidad: parseInt(o.cantidad) || 0,
+        })),
+        actividadDiaria: actividadDiaria.map((d) => ({
+          ...d,
+          acciones: parseInt(d.acciones) || 0,
+          usuariosActivos: parseInt(d.usuariosActivos) || 0,
+        })),
+        accionesHoy: parseInt(hoy[0]?.total) || 0,
+        usuariosActivosHoy: parseInt(hoy[0]?.usuarios) || 0,
+        totalAccionesPeriodo: parseInt(totalPeriodo[0]?.total) || 0,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error al generar reporte de usuarios",
+      error: error.message,
+    });
+  }
+};
