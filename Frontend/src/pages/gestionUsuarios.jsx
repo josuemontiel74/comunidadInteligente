@@ -48,7 +48,7 @@ const campoAmigable = (field) => {
     correoElectronico: "Correo electronico",
     telefono: "Telefono",
     username: "Username",
-    password: "Contrasena",
+    contrasena: "Contrasena",
     rolesId: "Rol",
   };
   return map[field] || field;
@@ -559,7 +559,8 @@ function GestionUsuarios() {
       }
     }
     // Validar documento según tipo
-    const tipoDocNombreGU = TIPO_DOC_MAP[parseInt(formData.tipoDocumentoId)] || "";
+    const tipoDocNombreGU =
+      TIPO_DOC_MAP[parseInt(formData.tipoDocumentoId)] || "";
     const errDocGU = validarDocumento(
       formData.numeroDocumento,
       formData.tipoDocumentoId,
