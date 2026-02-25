@@ -63,6 +63,7 @@
 .rpt-drawer.open {
   right: 0;
 }
+.rpt-drawer.open { right: 0; }
 
 .rpt-drawer-header {
   padding: 28px 22px 18px;
@@ -718,7 +719,7 @@
   color: #fbbf24;
 }
 
-/* ===================== POBLACI�N ===================== */
+/* ===================== POBLACIÓN ===================== */
 .rpt-pop-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -808,6 +809,7 @@
   font-size: 18px;
   margin-top: 2px;
 }
+.rpt-info-alert.warning i { color: #fbbf24; font-size: 18px; margin-top: 2px; }
 
 /* ===================== BOOTSTRAP OVERRIDE ===================== */
 .rpt-card-body .text-muted {

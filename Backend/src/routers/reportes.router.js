@@ -70,4 +70,9 @@ router.get(
 // ============================================================================
 router.get("/usuarios", validarJWT, validarRol(1), obtenerReporteUsuarios);
 
+// ============================================================================
+// REPORTE DE USUARIOS (solo superadmin — datos sensibles)
+// ============================================================================
+router.get("/usuarios", validarJWT, validarRol(1), obtenerReporteUsuarios);
+
 export default router;
