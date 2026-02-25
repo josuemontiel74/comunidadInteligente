@@ -280,8 +280,8 @@ function Residentes() {
         tieneAdultoMayor: o.tieneAdultoMayor || 0,
         tieneDiscapacidad: o.tieneDiscapacidad || 0,
         torre: mapTorre(o.torresId),
-        torresId: o.torresId,
-        apartamentosId: o.apartamentosId,
+        torresId: Number(o.torresId),
+        apartamentosId: Number(o.apartamentosId),
         numeroApartamento: o.numeroApartamento || o.apartamentosId,
         estado: ["activo", "activa"].includes(o.nombreEstado?.toLowerCase())
           ? "Activo"
@@ -319,9 +319,9 @@ function Residentes() {
       const lista = data.body || data;
       const aptos = lista
         .map((a) => ({
-          idApartamento: a.idApartamento,
+          idApartamento: Number(a.IdApartamento ?? a.idApartamento),
           numeroApartamento: a.numeroApartamento,
-          torresId: a.torresId,
+          torresId: Number(a.torresId),
         }))
         .sort((a, b) => a.idApartamento - b.idApartamento);
       setApartamentos(aptos);
