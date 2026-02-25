@@ -19,6 +19,34 @@ const validarCamposNombre = (campos) => {
   return null;
 };
 
+// ── Validación de número de documento ─────────────────────────────────────
+const contarDigitos = (str) => (str.match(/\d/g) || []).length;
+const validarNumeroDocumento = (tipoDocumentoId, numeroDocumento) => {
+  if (!numeroDocumento || !numeroDocumento.toString().trim()) return null;
+  const doc = numeroDocumento.toString().trim();
+  const tipo = parseInt(tipoDocumentoId) || 1;
+  if (!/^[a-zA-Z0-9\-]+$/.test(doc))
+    return "El número de documento solo puede contener letras, números o guiones";
+  const digitos = contarDigitos(doc);
+  if (tipo === 1) {
+    if (!/^\d+$/.test(doc)) return "La CC debe contener solo dígitos";
+    if (doc.length < 5 || doc.length > 10) return "La CC debe tener entre 5 y 10 dígitos";
+  } else if (tipo === 2) {
+    if (digitos < 3) return "La Cédula de Extranjería debe contener al menos 3 dígitos";
+    if (doc.length < 4 || doc.length > 15) return "La CE debe tener entre 4 y 15 caracteres";
+  } else if (tipo === 3) {
+    if (digitos < 2) return "El Pasaporte debe contener al menos 2 dígitos";
+    if (doc.length < 5 || doc.length > 12) return "El Pasaporte debe tener entre 5 y 12 caracteres";
+  } else if (tipo === 4 || tipo === 5) {
+    const nombre = tipo === 4 ? "PEP" : "PPT";
+    if (digitos < 2) return `El documento ${nombre} debe contener al menos 2 dígitos`;
+    if (doc.length < 4 || doc.length > 20) return `El ${nombre} debe tener entre 4 y 20 caracteres`;
+  } else {
+    if (digitos === 0) return "El número de documento no puede estar compuesto únicamente de letras";
+  }
+  return null;
+};
+
 export const crearOcupante = async (req, res) => {
   const t = await sequelize.transaction();
   try {
@@ -37,6 +65,13 @@ export const crearOcupante = async (req, res) => {
       telefono: dataOcupante.telefono,
       correoElectronico: dataOcupante.correoElectronico,
     };
+
+    // ── Validar documento ────────────────────────────────────────────────────────
+    const errorDoc = validarNumeroDocumento(dataOcupante.tipoDocumentoId, dataOcupante.numeroDocumento);
+    if (errorDoc) {
+      await t.rollback();
+      return res.status(400).json({ message: errorDoc, status: 400 });
+    }
 
     // ── Validar nombres antes de guardar ──────────────────────────────────
     const errorNombre = validarCamposNombre({
@@ -62,7 +97,10 @@ export const crearOcupante = async (req, res) => {
       });
       if (ocupanteExistente) {
         await t.rollback();
-        const tipo = dataOcupante.tipoOcupacion === "propietario" ? "propietario" : "arrendatario";
+        const tipo =
+          dataOcupante.tipoOcupacion === "propietario"
+            ? "propietario"
+            : "arrendatario";
         return res.status(409).json({
           message: `El apartamento ya tiene un ${tipo} activo. Finalice el proceso actual antes de registrar uno nuevo.`,
           status: 409,

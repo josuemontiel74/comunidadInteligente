@@ -909,3 +909,196 @@
     text-align: center;
   }
 }
+
+/* ===================================================
+   BOTÓN VISUALIZAR TORRES
+   =================================================== */
+.res-btn-torres {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  background: linear-gradient(135deg, #0d9488, #0f766e);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.35);
+  white-space: nowrap;
+}
+.res-btn-torres:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.5);
+}
+.res-btn-torres i { font-size: 1rem; }
+
+/* ===================================================
+   MODAL TORRES — caja más ancha
+   =================================================== */
+.res-torres-modal {
+  max-width: 900px !important;
+  width: 95vw !important;
+}
+
+/* ===================================================
+   GRID DE TORRES (10 tarjetas)
+   =================================================== */
+.res-torres-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.res-torre-card {
+  background: var(--res-card-bg, #fff);
+  border: 2px solid var(--res-border, #e2e8f0);
+  border-radius: 14px;
+  padding: 20px 12px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+.res-torre-card:hover {
+  border-color: #0d9488;
+  transform: translateY(-4px) scale(1.04);
+  box-shadow: 0 8px 22px rgba(13, 148, 136, 0.25);
+}
+
+.res-torre-letter {
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: #0d9488;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.res-torre-info {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  color: var(--res-text-muted, #64748b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.res-torre-info i { font-size: 0.8rem; color: #0d9488; }
+
+/* ===================================================
+   GRID DE APARTAMENTOS (dentro de torre)
+   =================================================== */
+.res-aptos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+  padding: 8px 0;
+}
+
+.res-apto-card {
+  background: var(--res-card-bg, #fff);
+  border: 1.5px solid var(--res-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  transition: box-shadow 0.2s;
+}
+.res-apto-card:hover { box-shadow: 0 4px 14px rgba(13,148,136,0.18); }
+
+.res-apto-numero {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0d9488;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--res-border, #e2e8f0);
+  padding-bottom: 8px;
+}
+
+.res-apto-ocupante {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--res-border, #e2e8f0);
+}
+.res-apto-ocupante:last-child { border-bottom: none; }
+
+.res-apto-activo { opacity: 1; }
+.res-apto-finalizado { opacity: 0.55; }
+
+.res-apto-nombre {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--res-text, #1e293b);
+}
+
+.res-apto-tags {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+.res-apto-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ccfbf1;
+  color: #0d9488;
+  font-size: 0.8rem;
+}
+
+/* ===================================================
+   BOTÓN VOLVER EN MODAL TORRES
+   =================================================== */
+.res-torres-back {
+  background: none;
+  border: 1.5px solid #0d9488;
+  color: #0d9488;
+  border-radius: 8px;
+  padding: 4px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+.res-torres-back:hover { background: #0d9488; color: #fff; }
+
+.res-torres-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--res-text-muted, #64748b);
+  font-size: 0.95rem;
+}
+
+/* ===================================================
+   DARK MODE — Torres Modal
+   =================================================== */
+[data-modo="oscuro"] .res-torre-card,
+[data-modo="oscuro"] .res-apto-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+[data-modo="oscuro"] .res-torre-info { color: #94a3b8; }
+[data-modo="oscuro"] .res-apto-nombre { color: #e2e8f0; }
+[data-modo="oscuro"] .res-apto-ocupante { border-bottom-color: #334155; }
+[data-modo="oscuro"] .res-apto-numero { border-bottom-color: #334155; }
+[data-modo="oscuro"] .res-apto-tag { background: #0f4c45; }
+[data-modo="oscuro"] .res-torres-back { border-color: #0d9488; color: #34d399; }
+[data-modo="oscuro"] .res-torres-back:hover { background: #0d9488; color: #fff; }
+
+/* Responsive torres */
+@media (max-width: 600px) {
+  .res-torres-grid { grid-template-columns: repeat(2, 1fr); }
+  .res-aptos-grid  { grid-template-columns: 1fr; }
+}

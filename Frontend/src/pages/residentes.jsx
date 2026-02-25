@@ -173,6 +173,9 @@ function Residentes() {
   const [paginaActual, setPaginaActual] = useState(1);
   const elementosPorPagina = 10;
 
+  const [modalTorres, setModalTorres] = useState(false);
+  const [torreSeleccionada, setTorreSeleccionada] = useState(null);
+
   const [formData, setFormData] = useState({
     tipoDocumento: "CC",
     numeroDocumento: "",
@@ -278,6 +281,7 @@ function Residentes() {
         torre: mapTorre(o.torresId),
         torresId: o.torresId,
         apartamentosId: o.apartamentosId,
+        numeroApartamento: o.numeroApartamento || o.apartamentosId,
         estado: o.nombreEstado === "activa" ? "Activo" : "Finalizado",
         estadoId: o.estadoId,
         nombreEstado: o.nombreEstado,
@@ -317,7 +321,7 @@ function Residentes() {
           ids.add(o.apartamentosId);
           unicos.push({
             idApartamento: o.apartamentosId,
-            numeroApartamento: o.apartamentosId?.toString(),
+            numeroApartamento: o.numeroApartamento || o.apartamentosId?.toString(),
             torresId: o.torresId,
           });
         }
@@ -471,6 +475,19 @@ function Residentes() {
         "El teléfono debe contener solo números (entre 7 y 15 dígitos)",
         "error",
       );
+
+    // Validar número de documento por tipo
+    if (formData.numeroDocumento.trim()) {
+      const doc = formData.numeroDocumento.trim();
+      if (!/^[a-zA-Z0-9\-]+$/.test(doc))
+        return Swal.fire("Error", "El número de documento solo puede contener letras, números o guiones.", "error");
+      if (!/[0-9]/.test(doc))
+        return Swal.fire("Error", "El número de documento no puede estar compuesto únicamente de letras.", "error");
+      if (formData.tipoDocumento === "CC" && !/^\d+$/.test(doc))
+        return Swal.fire("Error", "La Cédula de Ciudadanía (CC) debe contener solo dígitos.", "error");
+      if (formData.tipoDocumento === "CC" && (doc.length < 5 || doc.length > 10))
+        return Swal.fire("Error", "La CC debe tener entre 5 y 10 dígitos.", "error");
+    }
 
     // Validar duplicidad de documento al crear
     if (editIndex === null && formData.numeroDocumento.trim()) {
@@ -963,6 +980,13 @@ function Residentes() {
                 <i className="bi bi-grid-3x3-gap-fill"></i>
               </button>
             </div>
+            <button
+              className="res-btn-torres"
+              onClick={() => { setTorreSeleccionada(null); setModalTorres(true); }}
+              title="Ver mapa de torres y apartamentos"
+            >
+              <i className="bi bi-buildings"></i> Visualizar Torres
+            </button>
           </div>
 
           {/* TOOLBAR */}
@@ -1059,7 +1083,7 @@ function Residentes() {
                           {r.numeroDocumento}
                         </td>
                         <td>
-                          {r.torre}-{r.apartamentosId}
+                          {r.torre}-{r.numeroApartamento || r.apartamentosId}
                         </td>
                         <td>
                           <span
@@ -1138,7 +1162,7 @@ function Residentes() {
                       <div className="res-card-row">
                         <span className="label">Torre - Apto</span>
                         <span className="value">
-                          {r.torre} - {r.apartamentosId}
+                          {r.torre} - {r.numeroApartamento || r.apartamentosId}
                         </span>
                       </div>
                       <div className="res-card-row">
@@ -1494,6 +1518,169 @@ function Residentes() {
         </div>
       )}
 
+      {/* ===== MODAL TORRES ===== */}
+      {modalTorres && (
+        <div className="res-modal-overlay" onClick={() => setModalTorres(false)}>
+          <div
+            className="res-modal-box res-torres-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="res-modal-header">
+              {torreSeleccionada !== null ? (
+                <>
+                  <button
+                    className="res-torres-back"
+                    onClick={() => setTorreSeleccionada(null)}
+                  >
+                    <i className="bi bi-arrow-left"></i> Volver
+                  </button>
+                  <h2 className="res-modal-title">
+                    <i className="bi bi-building"></i> Torre{" "}
+                    {["A","B","C","D","E","F","G","H","I","J"][torreSeleccionada - 1]}
+                    {" — Apartamentos"}
+                  </h2>
+                </>
+              ) : (
+                <h2 className="res-modal-title">
+                  <i className="bi bi-buildings"></i> Mapa de Torres
+                </h2>
+              )}
+              <button
+                className="res-modal-close"
+                onClick={() => setModalTorres(false)}
+              >
+                <i className="bi bi-x-lg"></i>
+              </button>
+            </div>
+
+            <div className="res-modal-body">
+              {torreSeleccionada === null ? (
+                /* ---- Vista: selección de torre ---- */
+                <div className="res-torres-grid">
+                  {Array.from({ length: 10 }, (_, i) => i + 1).map((tid) => {
+                    const letra = ["A","B","C","D","E","F","G","H","I","J"][tid - 1];
+                    const resEnTorre = residentes.filter(
+                      (r) => r.torresId === tid && r.estado === "Activo",
+                    );
+                    const aptosEnTorre = [
+                      ...new Set(resEnTorre.map((r) => r.apartamentosId)),
+                    ].length;
+                    return (
+                      <div
+                        key={tid}
+                        className="res-torre-card"
+                        onClick={() => setTorreSeleccionada(tid)}
+                        title={`Ver apartamentos Torre ${letra}`}
+                      >
+                        <div className="res-torre-letter">{letra}</div>
+                        <p className="res-torre-info">
+                          <i className="bi bi-door-open"></i>{" "}
+                          {aptosEnTorre} apto{aptosEnTorre !== 1 ? "s" : ""}
+                        </p>
+                        <p className="res-torre-info">
+                          <i className="bi bi-people"></i>{" "}
+                          {resEnTorre.length} residente
+                          {resEnTorre.length !== 1 ? "s" : ""}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* ---- Vista: apartamentos de la torre ---- */
+                (() => {
+                  const letra = ["A","B","C","D","E","F","G","H","I","J"][
+                    torreSeleccionada - 1
+                  ];
+                  const resEnTorre = residentes.filter(
+                    (r) => r.torresId === torreSeleccionada,
+                  );
+                  const aptosMap = {};
+                  resEnTorre.forEach((r) => {
+                    const key = r.apartamentosId;
+                    if (!aptosMap[key])
+                      aptosMap[key] = {
+                        numeroApartamento:
+                          r.numeroApartamento || r.apartamentosId,
+                        ocupantes: [],
+                      };
+                    aptosMap[key].ocupantes.push(r);
+                  });
+                  const aptosList = Object.values(aptosMap).sort(
+                    (a, b) => a.numeroApartamento - b.numeroApartamento,
+                  );
+                  if (aptosList.length === 0)
+                    return (
+                      <p className="res-torres-empty">
+                        No hay residentes registrados en Torre {letra}.
+                      </p>
+                    );
+                  return (
+                    <div className="res-aptos-grid">
+                      {aptosList.map((ap) => (
+                        <div key={ap.numeroApartamento} className="res-apto-card">
+                          <div className="res-apto-numero">
+                            <i className="bi bi-door-closed"></i>{" "}
+                            Apto {ap.numeroApartamento}
+                          </div>
+                          {ap.ocupantes.map((oc) => (
+                            <div
+                              key={oc.idOcupante}
+                              className={`res-apto-ocupante ${
+                                oc.estado === "Activo"
+                                  ? "res-apto-activo"
+                                  : "res-apto-finalizado"
+                              }`}
+                            >
+                              <span className="res-apto-nombre">
+                                {oc.nombreCompleto}
+                              </span>
+                              <span
+                                className={`res-badge ${
+                                  oc.tipoOcupacion?.toLowerCase() ===
+                                  "propietario"
+                                    ? "res-badge-propietario"
+                                    : "res-badge-arrendatario"
+                                }`}
+                              >
+                                {oc.tipoOcupacion}
+                              </span>
+                              <div className="res-apto-tags">
+                                {Number(oc.tieneNinos) === 1 && (
+                                  <span className="res-apto-tag" title="Tiene niños">
+                                    <i className="bi bi-emoji-smile"></i>
+                                  </span>
+                                )}
+                                {Number(oc.tieneAdultoMayor) === 1 && (
+                                  <span
+                                    className="res-apto-tag"
+                                    title="Adulto mayor"
+                                  >
+                                    <i className="bi bi-person-cane"></i>
+                                  </span>
+                                )}
+                                {Number(oc.tieneDiscapacidad) === 1 && (
+                                  <span
+                                    className="res-apto-tag"
+                                    title="Discapacidad"
+                                  >
+                                    <i className="bi bi-universal-access"></i>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ===== MODAL DETALLES ===== */}
       {showModalDetalles && residenteSeleccionado && (
         <div
@@ -1572,7 +1759,7 @@ function Residentes() {
                   </span>
                   <span className="res-detail-value">
                     Torre {residenteSeleccionado.torre} - Apto{" "}
-                    {residenteSeleccionado.apartamentosId}
+                    {residenteSeleccionado.numeroApartamento || residenteSeleccionado.apartamentosId}
                   </span>
                 </div>
                 <div className="res-detail-row">
