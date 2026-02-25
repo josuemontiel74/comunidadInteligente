@@ -8,6 +8,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { obtenerResumenDashboard } from "../services/dashboard.services.jsx";
 import { logoutUsuario } from "../services/gestionUsuarios.jsx";
+import { API_BASE } from "../services/api.config.js";
 import DescargaAppMovil from "./DescargaAppMovil.jsx";
 import ModoOscuro from "./ModoOscuro.jsx";
 import WhatsAppModal from "./WhatsAppModal.jsx";
@@ -43,13 +44,11 @@ function Dashboard() {
 
   // Modo oscuro – reactive para re-renderizar gráficas
   const [oscuro, setOscuro] = useState(
-    () => document.documentElement.getAttribute("data-modo") === "oscuro",
+    () => document.documentElement.dataset.modo === "oscuro",
   );
   useEffect(() => {
     const obs = new MutationObserver(() =>
-      setOscuro(
-        document.documentElement.getAttribute("data-modo") === "oscuro",
-      ),
+      setOscuro(document.documentElement.dataset.modo === "oscuro"),
     );
     obs.observe(document.documentElement, {
       attributes: true,
@@ -57,16 +56,6 @@ function Dashboard() {
     });
     return () => obs.disconnect();
   }, []);
-
-  // Token helpers
-  const verificarTokenVencido = (token) => {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return Date.now() >= payload.exp * 1000;
-    } catch {
-      return true;
-    }
-  };
 
   // Verificar sesión
   useEffect(() => {
@@ -98,7 +87,7 @@ function Dashboard() {
         navigator("/");
       }
     } else {
-      fetch("http://localhost:3001/api/usuario", {
+      fetch(`${API_BASE}/usuario`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -151,7 +140,8 @@ function Dashboard() {
         setVisitasHoy(datos.visitas?.hoy ?? 0);
         setVisitasActivas(datos.visitas?.activas ?? 0);
       }
-    } catch (error) {
+    } catch {
+      /* error de red ignorado, el dashboard muestra 0s */
     } finally {
       setDataLoading(false);
     }

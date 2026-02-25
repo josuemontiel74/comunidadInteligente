@@ -1,11 +1,43 @@
 import dayjs from "dayjs";
+import { fn, col, literal, where, Op } from "sequelize";
 import RecepcionPaquetes from "../models/recepcionPaquetes.model.js";
 import Estado from "../models/estados.model.js";
 import Apartamento from "../models/apartamentos.model.js";
 import { sequelize } from "../config/connect.db.js";
 import { registrarAuditoria } from "../services/auditorias.service.js";
 import { registrarFallo } from "../services/logger.service.js";
-import { ESTADO_PAQUETE, USUARIO_DESCONOCIDO } from "../utils/constantes.js";
+import {
+  ESTADO_PAQUETE,
+  USUARIO_DESCONOCIDO,
+  AÑO_MAXIMO,
+} from "../utils/constantes.js";
+
+/** Columnas que se copian directamente de req.body si están presentes */
+const CAMPOS_OPCIONALES_PAQUETE = [
+  "nombreDestinatario",
+  "empresaMensajeria",
+  "fechaEntrega",
+  "observaciones",
+  "estadoId",
+];
+
+/** Atributos compartidos por todos los grupos del informe */
+const atributosBaseInforme = () => [
+  [fn("YEAR", col("fechaRecepcion")), "anio"],
+  [fn("COUNT", col("idPaquete")), "recibidos"],
+  [
+    literal(
+      `SUM(CASE WHEN estadoId = ${ESTADO_PAQUETE.RECIBIDO} THEN 1 ELSE 0 END)`,
+    ),
+    "pendientes",
+  ],
+  [
+    literal(
+      `SUM(CASE WHEN estadoId = ${ESTADO_PAQUETE.ENTREGADO} THEN 1 ELSE 0 END)`,
+    ),
+    "entregados",
+  ],
+];
 
 export const crearRecepcionPaquete = async (req, res) => {
   try {
@@ -30,9 +62,9 @@ export const crearRecepcionPaquete = async (req, res) => {
       });
     }
 
-    if (fechaRecepcion.year() > 2100) {
+    if (fechaRecepcion.year() > AÑO_MAXIMO) {
       return res.status(400).json({
-        error: "El año de la fecha de recepción no puede ser mayor a 2100",
+        error: `El año de la fecha de recepción no puede ser mayor a ${AÑO_MAXIMO}`,
       });
     }
 
@@ -132,20 +164,19 @@ export const obtenerRecepcionPaquetePorId = async (req, res) => {
     const recepcionPaquete = await RecepcionPaquetes.findByPk(idPaquete, {
       include: [Estado, Apartamento],
     });
-    if (recepcionPaquete) {
-      res.status(200).json({
-        ok: true,
-        status: 200,
-        message: "Mostrando Recepcion de Paquete",
-        body: recepcionPaquete,
-      });
-    } else {
-      res.status(404).json({
+    if (!recepcionPaquete) {
+      return res.status(404).json({
         ok: false,
         status: 404,
         message: "Recepcion de Paquete no encontrado",
       });
     }
+    res.status(200).json({
+      ok: true,
+      status: 200,
+      message: "Mostrando Recepcion de Paquete",
+      body: recepcionPaquete,
+    });
   } catch (error) {
     const username = req.user?.username || USUARIO_DESCONOCIDO;
     const ruta = "GET /recepcionpaquetes/:id";
@@ -179,7 +210,6 @@ export const actualizarRecepcionPaquete = async (req, res) => {
       datosActualizacion.apartamentoId = req.body.apartamentoId;
     }
 
-    // Validar y agregar fechaRecepcion si se proporciona
     if (req.body.fechaRecepcion) {
       const fecha = dayjs(req.body.fechaRecepcion, "YYYY-MM-DD HH:mm", true);
 
@@ -189,30 +219,19 @@ export const actualizarRecepcionPaquete = async (req, res) => {
           .json({ error: "La fecha de recepción no es válida" });
       }
 
-      if (fecha.year() > 2100) {
+      if (fecha.year() > AÑO_MAXIMO) {
         return res.status(400).json({
-          error: "El año de la fecha de recepción no puede ser mayor a 2100",
+          error: `El año de la fecha de recepción no puede ser mayor a ${AÑO_MAXIMO}`,
         });
       }
 
       datosActualizacion.fechaRecepcion = fecha.format("YYYY-MM-DD HH:mm");
     }
 
-    // Agregar los demás campos opcionales
-    if (req.body.nombreDestinatario !== undefined) {
-      datosActualizacion.nombreDestinatario = req.body.nombreDestinatario;
-    }
-    if (req.body.empresaMensajeria !== undefined) {
-      datosActualizacion.empresaMensajeria = req.body.empresaMensajeria;
-    }
-    if (req.body.fechaEntrega !== undefined) {
-      datosActualizacion.fechaEntrega = req.body.fechaEntrega;
-    }
-    if (req.body.observaciones !== undefined) {
-      datosActualizacion.observaciones = req.body.observaciones;
-    }
-    if (req.body.estadoId !== undefined) {
-      datosActualizacion.estadoId = req.body.estadoId;
+    // Agregar campos opcionales presentes en el body
+    for (const campo of CAMPOS_OPCIONALES_PAQUETE) {
+      if (req.body[campo] !== undefined)
+        datosActualizacion[campo] = req.body[campo];
     }
 
     const [updated] = await RecepcionPaquetes.update(datosActualizacion, {
@@ -272,9 +291,8 @@ export const FinalizarRecepcionPaquete = async (req, res) => {
         message: "Recepcion de Paquete no encontrado",
       });
     }
-    await paquete.update({ estadoId: 15 });
-
     await paquete.update({
+      estadoId: ESTADO_PAQUETE.ENTREGADO,
       fechaEntrega: dayjs().format("YYYY-MM-DD HH:mm"),
     });
 
@@ -361,42 +379,18 @@ export const informePaqueteria = async (req, res) => {
     switch (reportPor) {
       case 1:
         informepaqueteria = await RecepcionPaquetes.findAll({
-          attributes: [
-            [fn("YEAR", col("fechaRecepcion")), "anio"],
-            [fn("COUNT", col("idPaquete")), "recibidos"],
-            [
-              literal(
-                `SUM(CASE WHEN estadoId = ${ESTADO_PAQUETE.RECIBIDO} THEN 1 ELSE 0 END)`,
-              ),
-              "pendientes",
-            ],
-            [
-              literal(`SUM(CASE WHEN estadoId = 15 THEN 1 ELSE 0 END)`),
-              "entregados",
-            ],
-          ],
+          attributes: atributosBaseInforme(),
           ...queryConfig,
           group: [fn("YEAR", col("fechaRecepcion"))],
           order: [[fn("YEAR", col("fechaRecepcion")), "ASC"]],
         });
         break;
 
-      case 2: // Agrupación por Año y Mes
+      case 2:
         informepaqueteria = await RecepcionPaquetes.findAll({
           attributes: [
-            [fn("YEAR", col("fechaRecepcion")), "anio"],
+            ...atributosBaseInforme(),
             [fn("MONTH", col("fechaRecepcion")), "mes"],
-            [fn("COUNT", col("idPaquete")), "recibidos"],
-            [
-              literal(
-                `SUM(CASE WHEN estadoId = ${ESTADO_PAQUETE.RECIBIDO} THEN 1 ELSE 0 END)`,
-              ),
-              "pendientes",
-            ],
-            [
-              literal(`SUM(CASE WHEN estadoId = 15 THEN 1 ELSE 0 END)`),
-              "entregados",
-            ],
           ],
           ...queryConfig,
           group: [
@@ -413,22 +407,11 @@ export const informePaqueteria = async (req, res) => {
       case 3:
         informepaqueteria = await RecepcionPaquetes.findAll({
           attributes: [
-            [fn("YEAR", col("fechaRecepcion")), "anio"],
+            ...atributosBaseInforme(),
             [fn("MONTH", col("fechaRecepcion")), "mes"],
             [
               literal(`FLOOR((DAYOFMONTH(fechaRecepcion) - 1) / 7) + 1`),
               "semana",
-            ],
-            [fn("COUNT", col("idPaquete")), "recibidos"],
-            [
-              literal(
-                `SUM(CASE WHEN estadoId = ${ESTADO_PAQUETE.RECIBIDO} THEN 1 ELSE 0 END)`,
-              ),
-              "pendientes",
-            ],
-            [
-              literal(`SUM(CASE WHEN estadoId = 15 THEN 1 ELSE 0 END)`),
-              "entregados",
             ],
           ],
           ...queryConfig,

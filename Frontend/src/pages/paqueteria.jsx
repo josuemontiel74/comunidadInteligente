@@ -40,12 +40,6 @@ const obtenerApartamentoId = (torre, apartamento) => {
   return letraIndex * 5 + pos;
 };
 
-const convertirTorreIdALetra = (id) => {
-  const n = parseInt(id);
-  if (isNaN(n) || n < 1 || n > 10) return "";
-  return String.fromCharCode(64 + n);
-};
-
 // ── Formatear fechas a Colombia UTC-5 ──
 const formatearFecha = (fechaStr) => {
   if (!fechaStr) return "N/A";
@@ -92,6 +86,23 @@ const normalizarFechaHora = (fechaHoraString) => {
     return fechaHoraString.replace("T", " ");
   }
 };
+
+/** Convierte una fecha ISO UTC a datetime-local en hora Colombia (UTC-5) */
+function parsearFechaHoraColombia(fechaRaw) {
+  try {
+    const d = new Date(fechaRaw);
+    const utcMs = d.getTime() + d.getTimezoneOffset() * 60000;
+    const col = new Date(utcMs + -5 * 60 * 60000);
+    const yyyy = col.getFullYear();
+    const mm = String(col.getMonth() + 1).padStart(2, "0");
+    const dd = String(col.getDate()).padStart(2, "0");
+    const hh = String(col.getHours()).padStart(2, "0");
+    const min = String(col.getMinutes()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+  } catch {
+    return "";
+  }
+}
 
 function Paqueteria() {
   const navigator = useNavigate();
@@ -310,6 +321,41 @@ function Paqueteria() {
     (p) => (p.nombreEstado || "").toLowerCase() === "entregado",
   ).length;
 
+  // ── Helpers de respuesta CRUD ──
+  const manejarSesionExpiradaPaq = () => {
+    Swal.fire({
+      icon: "warning",
+      title: "Sesión expirada",
+      timer: 2000,
+      showConfirmButton: false,
+    });
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigator("/");
+  };
+
+  const handleRespuestaPaquete = async (
+    response,
+    { tituloOk, errorPrefix, onOk },
+  ) => {
+    if (response.status === 401 || response.status === 403) {
+      manejarSesionExpiradaPaq();
+      return;
+    }
+    if (response.ok) {
+      Swal.fire({
+        icon: "success",
+        title: tituloOk,
+        timer: 2500,
+        showConfirmButton: false,
+      });
+      await onOk();
+    } else {
+      const errText = await response.text();
+      Swal.fire(errorPrefix, `${response.status}: ${errText}`, "error");
+    }
+  };
+
   // ── CRUD: Crear ──
   const handleSubmitCrear = async (e) => {
     e.preventDefault();
@@ -341,38 +387,15 @@ function Paqueteria() {
       };
 
       const response = await registrarPaquete(body, token);
-
-      if (response.status === 401 || response.status === 403) {
-        Swal.fire({
-          icon: "warning",
-          title: "Sesión expirada",
-          timer: 2000,
-          showConfirmButton: false,
-        });
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigator("/");
-        return;
-      }
-
-      if (response.ok) {
-        Swal.fire({
-          icon: "success",
-          title: "Registrado correctamente",
-          timer: 2500,
-          showConfirmButton: false,
-        });
-        setModalCrear(false);
-        setFormCrear(formCrearVacio);
-        await cargarPaquetes();
-      } else {
-        const errText = await response.text();
-        Swal.fire(
-          "Error al registrar",
-          `${response.status}: ${errText}`,
-          "error",
-        );
-      }
+      await handleRespuestaPaquete(response, {
+        tituloOk: "Registrado correctamente",
+        errorPrefix: "Error al registrar",
+        onOk: async () => {
+          setModalCrear(false);
+          setFormCrear(formCrearVacio);
+          await cargarPaquetes();
+        },
+      });
     } catch (err) {
       Swal.fire({
         icon: "error",
@@ -388,29 +411,12 @@ function Paqueteria() {
   // ── CRUD: Editar ──
   const abrirEditar = (paq) => {
     const torreLetra = (paq.nombreTorre || "").replace(/^Torre\s*/i, "").trim();
-    const fechaRaw = paq.fechaRecepcion || "";
-    let dtLocal = "";
-    try {
-      const d = new Date(fechaRaw);
-      const colombiaOffset = -5 * 60;
-      const utcMs = d.getTime() + d.getTimezoneOffset() * 60000;
-      const col = new Date(utcMs + colombiaOffset * 60000);
-      const yyyy = col.getFullYear();
-      const mm = String(col.getMonth() + 1).padStart(2, "0");
-      const dd = String(col.getDate()).padStart(2, "0");
-      const hh = String(col.getHours()).padStart(2, "0");
-      const min = String(col.getMinutes()).padStart(2, "0");
-      dtLocal = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
-    } catch {
-      dtLocal = "";
-    }
-
     setFormEditar({
       residente: paq.nombreDestinatario || "",
       torre: torreLetra,
       apartamento: String(paq.numeroApartamento || ""),
       transportadora: paq.empresaMensajeria || "",
-      fechaHoraRecepcion: dtLocal,
+      fechaHoraRecepcion: parsearFechaHoraColombia(paq.fechaRecepcion || ""),
       observaciones: paq.observaciones || "",
     });
     setPaqueteEditar(paq);
@@ -451,39 +457,16 @@ function Paqueteria() {
         body,
         token,
       );
-
-      if (response.status === 401 || response.status === 403) {
-        Swal.fire({
-          icon: "warning",
-          title: "Sesión expirada",
-          timer: 2000,
-          showConfirmButton: false,
-        });
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigator("/");
-        return;
-      }
-
-      if (response.ok) {
-        Swal.fire({
-          icon: "success",
-          title: "Actualizado correctamente",
-          timer: 2500,
-          showConfirmButton: false,
-        });
-        setModalEditar(false);
-        setPaqueteEditar(null);
-        setFormEditar(formCrearVacio);
-        await cargarPaquetes();
-      } else {
-        const errText = await response.text();
-        Swal.fire(
-          "Error al actualizar",
-          `${response.status}: ${errText}`,
-          "error",
-        );
-      }
+      await handleRespuestaPaquete(response, {
+        tituloOk: "Actualizado correctamente",
+        errorPrefix: "Error al actualizar",
+        onOk: async () => {
+          setModalEditar(false);
+          setPaqueteEditar(null);
+          setFormEditar(formCrearVacio);
+          await cargarPaquetes();
+        },
+      });
     } catch (err) {
       Swal.fire({
         icon: "error",

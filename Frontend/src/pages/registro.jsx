@@ -1,12 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-import {
-  Routes,
-  Route,
-  Link,
-  useNavigate,
-  useLocation,
-} from "react-router-dom";
-import Chart from "chart.js/auto";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import "../Styles/registro.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
@@ -29,6 +22,11 @@ export default function Registro() {
       ...formData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    SuperAdmin();
   };
   return (
     <div className="registro-container">

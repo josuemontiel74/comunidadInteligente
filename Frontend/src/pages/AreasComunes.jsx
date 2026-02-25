@@ -1,7 +1,6 @@
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "../Styles/estiloAreasComunes.css";
-import logo from "../../img/logo.png";
 import {
   validarNombreCompleto,
   validarTelefono,
@@ -22,6 +21,87 @@ import { logoutUsuario } from "../services/gestionUsuarios.jsx";
 import React, { useState, useEffect, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+
+/** Genera el HTML de ticket térmico para impresión de recibo de reserva */
+function buildTicketHtml({
+  id,
+  nombre,
+  doc,
+  tel,
+  area,
+  apto,
+  torre,
+  fecha,
+  hi,
+  hf,
+  asistentes,
+  motivo,
+  estado,
+  fechaImpresion,
+}) {
+  return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Recibo Reserva #${id}</title>
+<style>
+  @page { margin: 0; size: 80mm auto; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Courier New', monospace;
+    width: 80mm;
+    padding: 4mm;
+    background: #fff;
+    color: #000;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .ticket-center { text-align: center; }
+  .ticket-title { font-size: 16px; font-weight: bold; margin: 4px 0 2px; }
+  .ticket-subtitle { font-size: 10px; color: #555; margin-bottom: 6px; }
+  .ticket-divider { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+  .ticket-section-title { font-size: 11px; font-weight: bold; text-transform: uppercase; background: #f0f0f0; padding: 2px 4px; margin: 4px 0; }
+  .ticket-row { display: flex; justify-content: space-between; padding: 1px 0; font-size: 11px; }
+  .ticket-row .label { font-weight: bold; flex-shrink: 0; }
+  .ticket-row .value { text-align: right; word-break: break-word; max-width: 55%; }
+  .ticket-id { font-size: 18px; font-weight: bold; letter-spacing: 2px; }
+  .ticket-footer { text-align: center; font-size: 9px; color: #777; margin-top: 8px; padding-top: 4px; }
+  .ticket-barcode { text-align: center; font-size: 24px; letter-spacing: 4px; font-family: 'Libre Barcode 39', cursive, monospace; margin: 6px 0; }
+  @media print { body { width: 80mm; } }
+</style></head>
+<body>
+  <div class="ticket-center">
+    <div class="ticket-title">AZAHAR</div>
+    <div class="ticket-subtitle">Conjunto Residencial</div>
+    <div class="ticket-subtitle">NIT: 900.XXX.XXX-X</div>
+  </div>
+  <hr class="ticket-divider">
+  <div class="ticket-center">
+    <div style="font-size:11px;font-weight:bold;">COMPROBANTE DE RESERVA</div>
+    <div class="ticket-id">#${id}</div>
+  </div>
+  <hr class="ticket-divider">
+  <div class="ticket-section-title">SOLICITANTE</div>
+  <div class="ticket-row"><span class="label">Nombre:</span><span class="value">${nombre}</span></div>
+  <div class="ticket-row"><span class="label">Doc:</span><span class="value">${doc}</span></div>
+  <div class="ticket-row"><span class="label">Tel:</span><span class="value">${tel}</span></div>
+  <hr class="ticket-divider">
+  <div class="ticket-section-title">RESERVA</div>
+  <div class="ticket-row"><span class="label">Área:</span><span class="value">${area}</span></div>
+  <div class="ticket-row"><span class="label">Apto:</span><span class="value">${apto}${torre ? " - " + torre : ""}</span></div>
+  <div class="ticket-row"><span class="label">Fecha:</span><span class="value">${fecha}</span></div>
+  <div class="ticket-row"><span class="label">Hora:</span><span class="value">${hi} - ${hf}</span></div>
+  <div class="ticket-row"><span class="label">Asist.:</span><span class="value">${asistentes}</span></div>
+  <div class="ticket-row"><span class="label">Motivo:</span><span class="value">${motivo}</span></div>
+  <div class="ticket-row"><span class="label">Estado:</span><span class="value">${estado}</span></div>
+  <hr class="ticket-divider">
+  <div class="ticket-center ticket-barcode">*${String(id).padStart(6, "0")}*</div>
+  <hr class="ticket-divider">
+  <div class="ticket-footer">
+    Impreso: ${fechaImpresion}<br>
+    Este documento es un comprobante de su reserva.<br>
+    Conserve este recibo para cualquier reclamo.<br>
+    ¡Gracias por usar nuestros servicios!
+  </div>
+</body></html>`;
+}
 
 /* ═══════════════════════════════════════════════════════════
    ÁREAS COMUNES — Gestión de Reservas
@@ -213,21 +293,6 @@ function AreasComunes() {
     }
   }, [token]);
 
-  /** Genera apartamentos de prueba (Torres A-J, 9 aptos c/u) */
-  const generarApartamentosPrueba = () => {
-    const aptos = [];
-    for (let t = 0; t < 10; t++) {
-      for (let j = 1; j <= 9; j++) {
-        aptos.push({
-          idApartamento: t * 9 + j,
-          numeroApartamento: (t + 1) * 100 + j,
-          torresId: t + 1,
-        });
-      }
-    }
-    return aptos;
-  };
-
   const obtenerDatosIniciales = useCallback(async () => {
     // Apartamentos
     try {
@@ -314,7 +379,7 @@ function AreasComunes() {
 
   useEffect(() => {
     if (location.state?.abrirModal) abrirModal(location.state?.prefill || null);
-  }, [location.state]);
+  }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ════════════════════════════════════════════════════════
   // FILTRADO POR TORRE
@@ -383,17 +448,9 @@ function AreasComunes() {
   // CRUD OPERATIONS
   // ════════════════════════════════════════════════════════
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!reserva.aceptaReglamento) {
-      Swal.fire("Error", "Debe aceptar el reglamento para continuar", "error");
-      return;
-    }
-
-    // Validar fecha
+  const validarFechasReserva = (r) => {
     const hoy = new Date();
-    const fechaRes = new Date(reserva.fechaReserva);
+    const fechaRes = new Date(r.fechaReserva);
     const hoyLimpio = new Date(
       hoy.getFullYear(),
       hoy.getMonth(),
@@ -404,56 +461,51 @@ function AreasComunes() {
       fechaRes.getMonth(),
       fechaRes.getDate(),
     );
-    if (fechaLimpia < hoyLimpio) {
-      Swal.fire("Error", "No puedes reservar en fechas pasadas", "error");
-      return;
-    }
+    if (fechaLimpia < hoyLimpio) return "No puedes reservar en fechas pasadas";
     const dosMeses = new Date();
     dosMeses.setMonth(dosMeses.getMonth() + 2);
-    if (fechaRes > dosMeses) {
-      Swal.fire(
-        "Error",
-        "No puedes reservar con más de 2 meses de anticipación",
-        "error",
-      );
-      return;
-    }
-    if (reserva.horaInicio >= reserva.horaFin) {
-      Swal.fire(
-        "Error",
-        "La hora de inicio debe ser menor que la hora de fin",
-        "error",
-      );
-      return;
-    }
+    if (fechaRes > dosMeses)
+      return "No puedes reservar con más de 2 meses de anticipación";
+    if (r.horaInicio >= r.horaFin)
+      return "La hora de inicio debe ser menor que la hora de fin";
+    return null;
+  };
 
-    // Validaciones de datos del solicitante
+  const validarSolicitanteReserva = (r) => {
     const tipoDocObj = tiposDocumento.find(
-      (t) => String(t.tipoDocumentoId) === String(reserva.tipoDocumentoId),
+      (t) => String(t.tipoDocumentoId) === String(r.tipoDocumentoId),
     );
     const tipoDocNombre = tipoDocObj ? tipoDocObj.nombre : "";
     const errDoc = validarDocumento(
-      reserva.documentoSolicitante,
-      reserva.tipoDocumentoId,
+      r.documentoSolicitante,
+      r.tipoDocumentoId,
       tipoDocNombre,
     );
-    if (errDoc) {
-      Swal.fire("Documento inválido", errDoc, "error");
+    if (errDoc) return { titulo: "Documento inválido", msg: errDoc };
+    const errNom = validarNombreCompleto(r.nombreSolicitante);
+    if (errNom) return { titulo: "Nombre inválido", msg: errNom };
+    const errTel = validarTelefono(r.telefonoSolicitante);
+    if (errTel) return { titulo: "Teléfono inválido", msg: errTel };
+    const errEmail = validarEmail(r.correoSolicitante);
+    if (errEmail) return { titulo: "Correo inválido", msg: errEmail };
+    return null;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!reserva.aceptaReglamento) {
+      Swal.fire("Error", "Debe aceptar el reglamento para continuar", "error");
       return;
     }
-    const errNomAC = validarNombreCompleto(reserva.nombreSolicitante);
-    if (errNomAC) {
-      Swal.fire("Nombre inválido", errNomAC, "error");
+    const errFechas = validarFechasReserva(reserva);
+    if (errFechas) {
+      Swal.fire("Error", errFechas, "error");
       return;
     }
-    const errTelAC = validarTelefono(reserva.telefonoSolicitante);
-    if (errTelAC) {
-      Swal.fire("Teléfono inválido", errTelAC, "error");
-      return;
-    }
-    const errEmailAC = validarEmail(reserva.correoSolicitante);
-    if (errEmailAC) {
-      Swal.fire("Correo inválido", errEmailAC, "error");
+    const errSolicitante = validarSolicitanteReserva(reserva);
+    if (errSolicitante) {
+      Swal.fire(errSolicitante.titulo, errSolicitante.msg, "error");
       return;
     }
 
@@ -805,127 +857,37 @@ function AreasComunes() {
   /** Abre una ventana con formato de ticket térmico (80mm) y lanza impresión */
   const imprimirRecibo = (res) => {
     if (!res) return;
-    const fecha = res.fechaReserva || "";
     const hi = normalizeTime((res.horaInicio || "").replace(/:00$/, ""));
     const hf = normalizeTime((res.horaFin || "").replace(/:00$/, ""));
-    const nombre = res.nombreSolicitante || "";
-    const doc = res.documentoSolicitante || "";
-    const tel = res.telefonoSolicitante || "";
-    const area = res.nombreArea || "";
-    const apto = res.numeroApartamento || "";
-    const torre = res.nombreTorre || "";
-    const asistentes = res.cantidadAsistentes || "";
-    const motivo = res.motivoReserva || "";
-    const estado = res.nombreEstado || "Activa";
-    const id = res.idReservas || "";
-
     const ahora = new Date();
-    const fechaImpresion = `${ahora.getDate().toString().padStart(2, "0")}/${(ahora.getMonth() + 1).toString().padStart(2, "0")}/${ahora.getFullYear()} ${ahora.getHours().toString().padStart(2, "0")}:${ahora.getMinutes().toString().padStart(2, "0")}`;
+    const fechaImpresion =
+      [
+        String(ahora.getDate()).padStart(2, "0"),
+        String(ahora.getMonth() + 1).padStart(2, "0"),
+        ahora.getFullYear(),
+      ].join("/") +
+      " " +
+      [
+        String(ahora.getHours()).padStart(2, "0"),
+        String(ahora.getMinutes()).padStart(2, "0"),
+      ].join(":");
 
-    const html = `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Recibo Reserva #${id}</title>
-<style>
-  @page { margin: 0; size: 80mm auto; }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: 'Courier New', monospace;
-    width: 80mm;
-    padding: 4mm;
-    background: #fff;
-    color: #000;
-    font-size: 12px;
-    line-height: 1.4;
-  }
-  .ticket-center { text-align: center; }
-  .ticket-title {
-    font-size: 16px;
-    font-weight: bold;
-    margin: 4px 0 2px;
-  }
-  .ticket-subtitle {
-    font-size: 10px;
-    color: #555;
-    margin-bottom: 6px;
-  }
-  .ticket-divider {
-    border: none;
-    border-top: 1px dashed #000;
-    margin: 6px 0;
-  }
-  .ticket-section-title {
-    font-size: 11px;
-    font-weight: bold;
-    text-transform: uppercase;
-    background: #f0f0f0;
-    padding: 2px 4px;
-    margin: 4px 0;
-  }
-  .ticket-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 1px 0;
-    font-size: 11px;
-  }
-  .ticket-row .label { font-weight: bold; flex-shrink: 0; }
-  .ticket-row .value { text-align: right; word-break: break-word; max-width: 55%; }
-  .ticket-id {
-    font-size: 18px;
-    font-weight: bold;
-    letter-spacing: 2px;
-  }
-  .ticket-footer {
-    text-align: center;
-    font-size: 9px;
-    color: #777;
-    margin-top: 8px;
-    padding-top: 4px;
-  }
-  .ticket-barcode {
-    text-align: center;
-    font-size: 24px;
-    letter-spacing: 4px;
-    font-family: 'Libre Barcode 39', cursive, monospace;
-    margin: 6px 0;
-  }
-  @media print {
-    body { width: 80mm; }
-  }
-</style></head>
-<body>
-  <div class="ticket-center">
-    <div class="ticket-title">AZAHAR</div>
-    <div class="ticket-subtitle">Conjunto Residencial</div>
-    <div class="ticket-subtitle">NIT: 900.XXX.XXX-X</div>
-  </div>
-  <hr class="ticket-divider">
-  <div class="ticket-center">
-    <div style="font-size:11px;font-weight:bold;">COMPROBANTE DE RESERVA</div>
-    <div class="ticket-id">#${id}</div>
-  </div>
-  <hr class="ticket-divider">
-  <div class="ticket-section-title">SOLICITANTE</div>
-  <div class="ticket-row"><span class="label">Nombre:</span><span class="value">${nombre}</span></div>
-  <div class="ticket-row"><span class="label">Doc:</span><span class="value">${doc}</span></div>
-  <div class="ticket-row"><span class="label">Tel:</span><span class="value">${tel}</span></div>
-  <hr class="ticket-divider">
-  <div class="ticket-section-title">RESERVA</div>
-  <div class="ticket-row"><span class="label">Área:</span><span class="value">${area}</span></div>
-  <div class="ticket-row"><span class="label">Apto:</span><span class="value">${apto}${torre ? " - " + torre : ""}</span></div>
-  <div class="ticket-row"><span class="label">Fecha:</span><span class="value">${fecha}</span></div>
-  <div class="ticket-row"><span class="label">Hora:</span><span class="value">${hi} - ${hf}</span></div>
-  <div class="ticket-row"><span class="label">Asist.:</span><span class="value">${asistentes}</span></div>
-  <div class="ticket-row"><span class="label">Motivo:</span><span class="value">${motivo}</span></div>
-  <div class="ticket-row"><span class="label">Estado:</span><span class="value">${estado}</span></div>
-  <hr class="ticket-divider">
-  <div class="ticket-center ticket-barcode">*${String(id).padStart(6, "0")}*</div>
-  <hr class="ticket-divider">
-  <div class="ticket-footer">
-    Impreso: ${fechaImpresion}<br>
-    Este documento es un comprobante de su reserva.<br>
-    Conserve este recibo para cualquier reclamo.<br>
-    ¡Gracias por usar nuestros servicios!
-  </div>
-</body></html>`;
+    const html = buildTicketHtml({
+      id: res.idReservas || "",
+      nombre: res.nombreSolicitante || "",
+      doc: res.documentoSolicitante || "",
+      tel: res.telefonoSolicitante || "",
+      area: res.nombreArea || "",
+      apto: res.numeroApartamento || "",
+      torre: res.nombreTorre || "",
+      fecha: res.fechaReserva || "",
+      hi,
+      hf,
+      asistentes: res.cantidadAsistentes || "",
+      motivo: res.motivoReserva || "",
+      estado: res.nombreEstado || "Activa",
+      fechaImpresion,
+    });
 
     const ventana = window.open("", "_blank", "width=320,height=600");
     if (!ventana) {
@@ -938,7 +900,6 @@ function AreasComunes() {
     }
     ventana.document.write(html);
     ventana.document.close();
-    // Esperar a que cargue y lanzar impresión
     ventana.onload = () => {
       setTimeout(() => {
         ventana.print();

@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:3001/api";
+import { API_BASE as API_BASE_URL } from "./api.config.js";
 
 // NOTE: this module no longer reads token from storage.
 // The caller must pass a valid `token` string to each API function.

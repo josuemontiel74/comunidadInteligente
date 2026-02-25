@@ -17,6 +17,190 @@ import {
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+// ── Regex de placa colombiana ─────────────────────────────────────────────────
+const PLACA_REGEX = /^[A-Z]{3}[0-9]{2,3}[A-Z]?$/;
+
+// ── Helpers privados ──────────────────────────────────────────────────────────
+
+/** Construye el objeto de campos a actualizar para un Visitante */
+function buildVisitanteData(nombreVisitante, tipoDocumentoId) {
+  const data = {};
+  if (nombreVisitante) data.nombreVisitante = nombreVisitante;
+  if (tipoDocumentoId) data.tipoDocumentoId = tipoDocumentoId;
+  return data;
+}
+
+/** Libera el parqueadero asignado a un vehículo por matrícula */
+async function liberarParqueaderoDeVehiculo(matricula) {
+  if (!matricula) return;
+  const vehiculo = await Vehiculo.findByPk(matricula);
+  if (vehiculo?.codigoParqueadero) {
+    await Parqueadero.update(
+      { estadoId: ESTADO_PARQUEADERO.DISPONIBLE },
+      { where: { codigoParqueadero: vehiculo.codigoParqueadero } },
+    );
+  }
+}
+
+/**
+ * Procesa la asignación de vehículo al crear una visita.
+ * @returns {{ vehiculoMatricula: string, parqueadero: object }}
+ */
+async function procesarVehiculoNuevo(
+  matricula,
+  tipoVehiculoId,
+  codigoParqueadero,
+) {
+  const placaLimpia = matricula.trim().toUpperCase();
+  if (!PLACA_REGEX.test(placaLimpia)) {
+    throw Object.assign(
+      new Error(
+        "La matrícula no tiene un formato válido. Use el formato colombiano: ABC123 (carro) o ABC12D / ABC12 (moto). Sin caracteres especiales ni secuencias inválidas.",
+      ),
+      { status: 400 },
+    );
+  }
+
+  if (
+    !tipoVehiculoId ||
+    !codigoParqueadero ||
+    codigoParqueadero.trim() === ""
+  ) {
+    throw Object.assign(
+      new Error("Debe proporcionar tipo de vehículo y código de parqueadero"),
+      { status: 400 },
+    );
+  }
+
+  const parqueadero = await Parqueadero.findByPk(codigoParqueadero);
+  if (!parqueadero)
+    throw Object.assign(new Error("El parqueadero no existe"), { status: 400 });
+  if (Number(parqueadero.estadoId) !== ESTADO_PARQUEADERO.DISPONIBLE) {
+    throw Object.assign(new Error("El parqueadero no está disponible"), {
+      status: 400,
+    });
+  }
+
+  let vehiculo = await Vehiculo.findByPk(matricula);
+  if (!vehiculo) {
+    vehiculo = await Vehiculo.create({
+      matricula,
+      tipoVehiculoId,
+      codigoParqueadero,
+    });
+  } else {
+    if (
+      vehiculo.codigoParqueadero &&
+      vehiculo.codigoParqueadero !== codigoParqueadero
+    ) {
+      await Parqueadero.update(
+        { estadoId: ESTADO_PARQUEADERO.DISPONIBLE },
+        { where: { codigoParqueadero: vehiculo.codigoParqueadero } },
+      );
+    }
+    await vehiculo.update({ tipoVehiculoId, codigoParqueadero });
+  }
+  return { vehiculoMatricula: matricula, parqueadero };
+}
+
+/**
+ * Analiza y valida la fecha de ingreso para una visita.
+ * @returns {import("dayjs").Dayjs} fecha válida en zona Colombia
+ */
+function parseFechaIngreso(fechaHoraIngreso, fechaActual) {
+  if (!fechaHoraIngreso) return fechaActual;
+  let fecha = dayjs(fechaHoraIngreso, "YYYY-MM-DD HH:mm", true);
+  if (!fecha.isValid())
+    fecha = dayjs(fechaHoraIngreso, "YYYY-MM-DD hh:mm A", true);
+  if (fecha.isValid()) fecha = fecha.tz(TIMEZONE_COLOMBIA, true);
+  return fecha;
+}
+
+/**
+ * Procesa el cambio de vehículo al actualizar una visita.
+ * @returns {string|null} vehiculoMatricula resultante
+ */
+async function procesarActualizacionVehiculo(
+  visita,
+  matricula,
+  tipoVehiculoId,
+  codigoParqueadero,
+) {
+  // Quitar vehículo
+  if (!matricula || matricula.trim() === "") {
+    await liberarParqueaderoDeVehiculo(visita.vehiculoMatricula);
+    return null;
+  }
+
+  // Faltan datos obligatorios
+  if (
+    !tipoVehiculoId ||
+    !codigoParqueadero ||
+    codigoParqueadero.trim() === ""
+  ) {
+    throw Object.assign(
+      new Error(
+        "Debe proporcionar tipo de vehículo y código de parqueadero para asignar un vehículo",
+      ),
+      { status: 400 },
+    );
+  }
+
+  const parqueadero = await Parqueadero.findByPk(codigoParqueadero);
+  if (!parqueadero)
+    throw Object.assign(new Error("El parqueadero no existe"), { status: 400 });
+
+  const vehiculoActual = visita.vehiculoMatricula
+    ? await Vehiculo.findByPk(visita.vehiculoMatricula)
+    : null;
+  const esElMismoParqueadero =
+    vehiculoActual?.codigoParqueadero === codigoParqueadero;
+
+  if (
+    !esElMismoParqueadero &&
+    parqueadero.estadoId !== ESTADO_PARQUEADERO.DISPONIBLE
+  ) {
+    throw Object.assign(new Error("El parqueadero no está disponible"), {
+      status: 400,
+    });
+  }
+
+  // Liberar parqueadero anterior si el vehículo de la visita cambia
+  if (visita.vehiculoMatricula && visita.vehiculoMatricula !== matricula) {
+    await liberarParqueaderoDeVehiculo(visita.vehiculoMatricula);
+  }
+
+  // Crear o actualizar el vehículo
+  let vehiculo = await Vehiculo.findByPk(matricula);
+  if (!vehiculo) {
+    vehiculo = await Vehiculo.create({
+      matricula,
+      tipoVehiculoId,
+      codigoParqueadero,
+    });
+  } else {
+    if (
+      vehiculo.codigoParqueadero &&
+      vehiculo.codigoParqueadero !== codigoParqueadero
+    ) {
+      await Parqueadero.update(
+        { estadoId: ESTADO_PARQUEADERO.DISPONIBLE },
+        { where: { codigoParqueadero: vehiculo.codigoParqueadero } },
+      );
+    }
+    await vehiculo.update({ tipoVehiculoId, codigoParqueadero });
+  }
+
+  if (!esElMismoParqueadero) {
+    await Parqueadero.update(
+      { estadoId: ESTADO_PARQUEADERO.OCUPADO },
+      { where: { codigoParqueadero } },
+    );
+  }
+
+  return vehiculo.matricula;
+}
+
 export const crearVisita = async (req, res) => {
   try {
     const {
@@ -33,59 +217,41 @@ export const crearVisita = async (req, res) => {
     } = req.body;
 
     const fechaActual = dayjs().tz(TIMEZONE_COLOMBIA);
+    const fechaIngreso = parseFechaIngreso(fechaHoraIngreso, fechaActual);
 
-    // Parsear fecha con múltiples formatos posibles
-    let fechaIngreso = fechaActual;
-    if (fechaHoraIngreso) {
-      // Intentar primero con formato 24h
-      fechaIngreso = dayjs(fechaHoraIngreso, "YYYY-MM-DD HH:mm", true);
-      // Si no es válido, intentar con formato AM/PM
-      if (!fechaIngreso.isValid()) {
-        fechaIngreso = dayjs(fechaHoraIngreso, "YYYY-MM-DD hh:mm A", true);
-      }
-      // Aplicar timezone de Colombia
-      if (fechaIngreso.isValid()) {
-        fechaIngreso = fechaIngreso.tz(TIMEZONE_COLOMBIA, true);
-      }
-    }
-
-    // Validaciones de fecha
     if (!fechaIngreso.isValid()) {
       return res
         .status(400)
         .json({ error: "La fecha de ingreso no es válida" });
     }
-
-    // Período de gracia: permitir hasta 2 horas antes de la hora actual
     if (fechaIngreso.isBefore(fechaActual.subtract(2, "hour"))) {
       return res.status(400).json({
         error:
           "La fecha y hora de ingreso no puede ser anterior a 2 horas de la actual",
       });
     }
-
     if (fechaIngreso.year() > 2100) {
       return res.status(400).json({
         error: "El año de la fecha de ingreso no puede ser mayor a 2100",
       });
     }
 
-    //  Crear o actualizar visitante
+    // Crear o actualizar visitante
     let visitante = await Visitante.findByPk(numeroDocumento);
+    const camposVisitante = buildVisitanteData(
+      nombreVisitante,
+      tipoDocumentoId,
+    );
     if (!visitante) {
       visitante = await Visitante.create({
         numeroDocumento,
-        ...(nombreVisitante && { nombreVisitante }),
-        ...(tipoDocumentoId && { tipoDocumentoId }),
+        ...camposVisitante,
       });
-    } else if (nombreVisitante || tipoDocumentoId) {
-      await visitante.update({
-        ...(nombreVisitante && { nombreVisitante }),
-        ...(tipoDocumentoId && { tipoDocumentoId }),
-      });
+    } else if (Object.keys(camposVisitante).length > 0) {
+      await visitante.update(camposVisitante);
     }
 
-    // Verificar si ya hay una visita activa para este documento
+    // Verificar visita activa duplicada
     const visitaActiva = await Visita.findOne({
       where: { numeroDocumento, estadoId: ESTADO_VISITA.ACTIVA },
     });
@@ -99,78 +265,23 @@ export const crearVisita = async (req, res) => {
     let vehiculoMatricula = null;
     let parqueadero = null;
 
-    // Procesar vehículo solo si se envía matrícula
     if (matricula && matricula.trim() !== "") {
-      // Validar formato matrícula colombiana: ABC123 (carro) | ABC12D o ABC12 (moto)
-      const placaLimpia = matricula.trim().toUpperCase();
-      const placaRegex = /^[A-Z]{3}[0-9]{2,3}[A-Z]?$/;
-      if (!placaRegex.test(placaLimpia)) {
-        return res.status(400).json({
-          error:
-            "La matrícula no tiene un formato válido. Use el formato colombiano: ABC123 (carro) o ABC12D / ABC12 (moto). Sin caracteres especiales ni secuencias inválidas.",
-        });
-      }
-
-      if (
-        !tipoVehiculoId ||
-        !codigoParqueadero ||
-        codigoParqueadero.trim() === ""
-      ) {
-        return res.status(400).json({
-          error: "Debe proporcionar tipo de vehículo y código de parqueadero",
-        });
-      }
-
-      parqueadero = await Parqueadero.findByPk(codigoParqueadero);
-      if (!parqueadero) {
-        return res.status(400).json({ error: "El parqueadero no existe" });
-      }
-
-      if (Number(parqueadero.estadoId) !== ESTADO_PARQUEADERO.DISPONIBLE) {
-        return res
-          .status(400)
-          .json({ error: "El parqueadero no está disponible" });
-      }
-
-      let vehiculo = await Vehiculo.findByPk(matricula);
-      if (!vehiculo) {
-        vehiculo = await Vehiculo.create({
-          matricula,
-          tipoVehiculoId,
-          codigoParqueadero,
-        });
-      } else {
-        // Si tenía parqueadero distinto → liberarlo
-        if (
-          vehiculo.codigoParqueadero &&
-          vehiculo.codigoParqueadero !== codigoParqueadero
-        ) {
-          await Parqueadero.update(
-            { estadoId: ESTADO_PARQUEADERO.DISPONIBLE },
-            { where: { codigoParqueadero: vehiculo.codigoParqueadero } },
-          );
-        }
-
-        await vehiculo.update({
-          tipoVehiculoId,
-          codigoParqueadero,
-        });
-      }
-
-      vehiculoMatricula = matricula;
+      ({ vehiculoMatricula, parqueadero } = await procesarVehiculoNuevo(
+        matricula,
+        tipoVehiculoId,
+        codigoParqueadero,
+      ));
     }
 
-    //  Crear la visita
     const visita = await Visita.create({
       numeroDocumento,
       apartamentoId,
       fechaHoraIngreso: fechaIngreso.format("YYYY-MM-DD HH:mm"),
-      estadoId: estadoId || ESTADO_VISITA.ACTIVA, // Por defecto "En curso" o "Activa"
+      estadoId: estadoId || ESTADO_VISITA.ACTIVA,
       vehiculoMatricula,
       observaciones: observaciones || null,
     });
 
-    // Registrar en auditoría
     const usuarioActual = req.user?.username || "desconocido";
     await registrarAuditoria(
       usuarioActual,
@@ -179,15 +290,11 @@ export const crearVisita = async (req, res) => {
       visita.idVisita,
     );
 
-    // Ocupar parqueadero SOLO si la visita fue creada correctamente
     if (parqueadero && vehiculoMatricula) {
       await parqueadero.update({ estadoId: ESTADO_PARQUEADERO.OCUPADO });
     }
 
-    res.status(201).json({
-      mensaje: "Visita creada correctamente",
-      visita,
-    });
+    res.status(201).json({ mensaje: "Visita creada correctamente", visita });
   } catch (error) {
     return res.status(400).json({ error: error.message });
   }
@@ -325,206 +432,72 @@ export const actualizarVisita = async (req, res) => {
 
     const visita = await Visita.findByPk(idVisita);
     if (!visita) {
-      return res.status(404).json({
-        error: "Visita no encontrada",
-        status: 404,
-      });
+      return res
+        .status(404)
+        .json({ error: "Visita no encontrada", status: 404 });
     }
 
     const updateData = {};
 
-    // Validar fecha solo si se proporciona
+    // Validar fecha
     if (fechaHoraIngreso) {
       const fechaIngreso = dayjs(fechaHoraIngreso, "YYYY-MM-DD HH:mm", true).tz(
         TIMEZONE_COLOMBIA,
       );
-
       if (!fechaIngreso.isValid()) {
-        return res.status(400).json({
-          error: "La fecha de ingreso no es válida",
-        });
+        return res
+          .status(400)
+          .json({ error: "La fecha de ingreso no es válida" });
       }
-
       if (fechaIngreso.year() > 2100) {
         return res.status(400).json({
           error: "El año de la fecha de ingreso no puede ser mayor a 2100",
         });
       }
-
       updateData.fechaHoraIngreso = fechaIngreso.format("YYYY-MM-DD HH:mm");
     }
 
-    // Actualizar campos básicos
     if (apartamentoId !== undefined) updateData.apartamentoId = apartamentoId;
     if (estadoId !== undefined) updateData.estadoId = estadoId;
     if (observaciones !== undefined) updateData.observaciones = observaciones;
 
-    // Actualizar visitante si cambió
+    // Actualizar visitante
+    const camposVisitante = buildVisitanteData(
+      nombreVisitante,
+      tipoDocumentoId,
+    );
     if (numeroDocumento && numeroDocumento !== visita.numeroDocumento) {
       let visitante = await Visitante.findByPk(numeroDocumento);
       if (!visitante) {
-        const visitanteData = {
+        visitante = await Visitante.create({
           numeroDocumento,
-          ...(nombreVisitante && { nombreVisitante }),
-          ...(tipoDocumentoId && { tipoDocumentoId }),
-        };
-        visitante = await Visitante.create(visitanteData);
-      } else if (nombreVisitante || tipoDocumentoId) {
-        const visitanteUpdateData = {};
-        if (nombreVisitante)
-          visitanteUpdateData.nombreVisitante = nombreVisitante;
-        if (tipoDocumentoId)
-          visitanteUpdateData.tipoDocumentoId = tipoDocumentoId;
-
-        await visitante.update(visitanteUpdateData);
+          ...camposVisitante,
+        });
+      } else if (Object.keys(camposVisitante).length > 0) {
+        await visitante.update(camposVisitante);
       }
       updateData.numeroDocumento = numeroDocumento;
-    } else if (nombreVisitante || tipoDocumentoId) {
-      // Actualizar visitante actual
+    } else if (Object.keys(camposVisitante).length > 0) {
       const visitanteActual = await Visitante.findByPk(visita.numeroDocumento);
-      if (visitanteActual) {
-        const visitanteUpdateData = {};
-        if (nombreVisitante)
-          visitanteUpdateData.nombreVisitante = nombreVisitante;
-        if (tipoDocumentoId)
-          visitanteUpdateData.tipoDocumentoId = tipoDocumentoId;
-
-        await visitanteActual.update(visitanteUpdateData);
-      }
+      if (visitanteActual) await visitanteActual.update(camposVisitante);
     }
 
-    // Manejar actualización de vehículo
+    // Actualizar vehículo
     if (
       matricula !== undefined ||
       tipoVehiculoId !== undefined ||
       codigoParqueadero !== undefined
     ) {
-      // Si se está removiendo el vehículo
-      if (!matricula || matricula.trim() === "") {
-        // Liberar parqueadero anterior si existía
-        if (visita.vehiculoMatricula) {
-          const vehiculoAnterior = await Vehiculo.findByPk(
-            visita.vehiculoMatricula,
-          );
-          if (vehiculoAnterior?.codigoParqueadero) {
-            await Parqueadero.update(
-              { estadoId: ESTADO_PARQUEADERO.DISPONIBLE },
-              {
-                where: {
-                  codigoParqueadero: vehiculoAnterior.codigoParqueadero,
-                },
-              },
-            );
-          }
-        }
-        updateData.vehiculoMatricula = null;
-      }
-      // Si se está asignando o cambiando un vehículo
-      else if (
-        matricula &&
-        tipoVehiculoId &&
-        codigoParqueadero &&
-        codigoParqueadero.trim() !== ""
-      ) {
-        const parqueadero = await Parqueadero.findByPk(codigoParqueadero);
-        if (!parqueadero) {
-          return res.status(400).json({ error: "El parqueadero no existe" });
-        }
-
-        // Verificar disponibilidad del parqueadero
-        const vehiculoActual = visita.vehiculoMatricula
-          ? await Vehiculo.findByPk(visita.vehiculoMatricula)
-          : null;
-
-        const esElMismoVehiculo = visita.vehiculoMatricula === matricula;
-        const esElMismoParqueadero =
-          vehiculoActual &&
-          vehiculoActual.codigoParqueadero === codigoParqueadero;
-
-        if (
-          !esElMismoParqueadero &&
-          parqueadero.estadoId !== ESTADO_PARQUEADERO.DISPONIBLE
-        ) {
-          return res
-            .status(400)
-            .json({ error: "El parqueadero no está disponible" });
-        }
-
-        // Liberar parqueadero anterior si la visita tenía un vehículo diferente
-        if (
-          visita.vehiculoMatricula &&
-          visita.vehiculoMatricula !== matricula
-        ) {
-          const vehiculoAnterior = await Vehiculo.findByPk(
-            visita.vehiculoMatricula,
-          );
-          if (vehiculoAnterior?.codigoParqueadero) {
-            await Parqueadero.update(
-              { estadoId: ESTADO_PARQUEADERO.DISPONIBLE },
-              {
-                where: {
-                  codigoParqueadero: vehiculoAnterior.codigoParqueadero,
-                },
-              },
-            );
-          }
-        }
-
-        // Manejar el vehículo
-        let vehiculo = await Vehiculo.findByPk(matricula);
-        if (!vehiculo) {
-          vehiculo = await Vehiculo.create({
-            matricula,
-            tipoVehiculoId,
-            codigoParqueadero,
-          });
-        } else {
-          // Liberar parqueadero anterior del vehículo si es diferente
-          if (
-            vehiculo.codigoParqueadero &&
-            vehiculo.codigoParqueadero !== codigoParqueadero
-          ) {
-            await Parqueadero.update(
-              { estadoId: ESTADO_PARQUEADERO.DISPONIBLE },
-              { where: { codigoParqueadero: vehiculo.codigoParqueadero } },
-            );
-          }
-
-          await vehiculo.update({
-            tipoVehiculoId,
-            codigoParqueadero,
-          });
-        }
-
-        // Ocupar el nuevo parqueadero
-        if (!esElMismoParqueadero) {
-          await Parqueadero.update(
-            { estadoId: ESTADO_PARQUEADERO.OCUPADO },
-            { where: { codigoParqueadero } },
-          );
-        }
-
-        updateData.vehiculoMatricula = vehiculo.matricula;
-      }
-      // Si faltan datos del vehículo
-      else if (
-        matricula &&
-        matricula.trim() !== "" &&
-        (!tipoVehiculoId ||
-          !codigoParqueadero ||
-          codigoParqueadero.trim() === "")
-      ) {
-        return res.status(400).json({
-          error:
-            "Debe proporcionar tipo de vehículo y código de parqueadero para asignar un vehículo",
-        });
-      }
+      updateData.vehiculoMatricula = await procesarActualizacionVehiculo(
+        visita,
+        matricula,
+        tipoVehiculoId,
+        codigoParqueadero,
+      );
     }
 
-    // Actualizar la visita
     await visita.update(updateData);
 
-    // Registrar en auditoría
     const usuarioActual = req.user?.username || "desconocido";
     await registrarAuditoria(usuarioActual, "visitas", "UPDATE", idVisita);
 
@@ -535,10 +508,9 @@ export const actualizarVisita = async (req, res) => {
       body: visita,
     });
   } catch (error) {
-    res.status(500).json({
-      error: error.message,
-      message: "Error al actualizar la visita",
-    });
+    res
+      .status(500)
+      .json({ error: error.message, message: "Error al actualizar la visita" });
   }
 };
 

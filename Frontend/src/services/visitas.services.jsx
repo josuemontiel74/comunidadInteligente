@@ -1,23 +1,32 @@
-const BASE = "http://localhost:3001/api";
+import { API_BASE as BASE } from "./api.config.js";
 
 export async function obtenerVisitas(token) {
   return fetch(`${BASE}/visita`, {
     method: "GET",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
   });
 }
 
 export async function obtenerVisitasJoin(token) {
   return fetch(`${BASE}/visitaJoin`, {
     method: "GET",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
   });
 }
 
 export async function crearVisita(datos, token) {
   return fetch(`${BASE}/visita`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify(datos),
   });
 }
@@ -25,7 +34,10 @@ export async function crearVisita(datos, token) {
 export async function actualizarVisita(id, datos, token) {
   return fetch(`${BASE}/visita/${id}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify(datos),
   });
 }
@@ -43,10 +55,9 @@ export async function finalizarVisita(id, token) {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
- export async function visitasDia(token) {
-  return fetch(`${BASE}/visitasDia`,
-  {
-    method:"GET",
-    headers:{Authorization:`Bearer ${token}`}
+export async function visitasDia(token) {
+  return fetch(`${BASE}/visitasDia`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
   });
- }
+}

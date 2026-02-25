@@ -40,6 +40,34 @@ const stats = [
   { value: "100%", label: "Digital y sin papeles" },
 ];
 
+function StatItem({ value, label }) {
+  return (
+    <div className="ld-stat-item">
+      <span className="ld-stat-value">{value}</span>
+      <span className="ld-stat-label">{label}</span>
+    </div>
+  );
+}
+
+function FeatureCard({ feature: f, index: i, visible }) {
+  return (
+    <div
+      className={`ld-feature-card ${visible ? "ld-feature-card--visible" : ""}`}
+      data-idx={i}
+      style={{ transitionDelay: `${i * 80}ms` }}
+    >
+      <div
+        className="ld-feature-icon"
+        style={{ background: f.color + "22", color: f.color }}
+      >
+        <i className={`bi ${f.icon}`} />
+      </div>
+      <h3 className="ld-feature-title">{f.title}</h3>
+      <p className="ld-feature-desc">{f.desc}</p>
+    </div>
+  );
+}
+
 export default function Landing() {
   const navigate = useNavigate();
   const heroRef = useRef(null);
@@ -163,10 +191,7 @@ export default function Landing() {
         {/* Stats flotantes */}
         <div className="ld-stats-bar">
           {stats.map(({ value, label }) => (
-            <div className="ld-stat-item" key={label}>
-              <span className="ld-stat-value">{value}</span>
-              <span className="ld-stat-label">{label}</span>
-            </div>
+            <StatItem key={label} value={value} label={label} />
           ))}
         </div>
       </section>
@@ -259,21 +284,12 @@ export default function Landing() {
           </div>
           <div className="ld-features-grid">
             {features.map((f, i) => (
-              <div
+              <FeatureCard
                 key={f.title}
-                className={`ld-feature-card ${visibleCards.includes(i) ? "ld-feature-card--visible" : ""}`}
-                data-idx={i}
-                style={{ transitionDelay: `${i * 80}ms` }}
-              >
-                <div
-                  className="ld-feature-icon"
-                  style={{ background: f.color + "22", color: f.color }}
-                >
-                  <i className={`bi ${f.icon}`} />
-                </div>
-                <h3 className="ld-feature-title">{f.title}</h3>
-                <p className="ld-feature-desc">{f.desc}</p>
-              </div>
+                feature={f}
+                index={i}
+                visible={visibleCards.includes(i)}
+              />
             ))}
           </div>
         </div>

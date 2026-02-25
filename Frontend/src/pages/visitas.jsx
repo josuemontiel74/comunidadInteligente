@@ -4,10 +4,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "../Styles/estiloVisitas.css";
 import Swal from "sweetalert2";
-import {
-  validarNombreCompleto,
-  validarDocumento,
-} from "../utils/validaciones.js";
+import { validarNombreCompleto } from "../utils/validaciones.js";
 import {
   validarNombreCompleto,
   validarDocumento,
@@ -19,10 +16,7 @@ import {
   finalizarVisita,
 } from "../services/visitas.services.jsx";
 import { logoutUsuario } from "../services/gestionUsuarios.jsx";
-import {
-  obtenerParqueaderos,
-  actualizarParqueadero,
-} from "../services/parqueadero.services.jsx";
+import { obtenerParqueaderos } from "../services/parqueadero.services.jsx";
 
 function Visitas() {
   const navigate = useNavigate();
@@ -338,12 +332,7 @@ function Visitas() {
       const data = await res.json();
       const lista = Array.isArray(data) ? data : data.body ? data.body : [];
       // Filtrar: estadoId === 4 (disponible)
-      const disponibles = lista.filter((p) => {
-        const disponible = p.estadoId === 4;
-        const tipoMatch =
-          !tipoVehiculo || p.tipoVehiculoId === parseInt(tipoVehiculo);
-        return disponible;
-      });
+      const disponibles = lista.filter((p) => p.estadoId === 4);
       // Marcar como disabled los que no coinciden con el tipo
       const conMarca = disponibles.map((p) => ({
         ...p,

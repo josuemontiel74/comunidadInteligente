@@ -71,6 +71,114 @@ const hexToRgb = (hex) => {
 };
 
 // ============================================================================
+// HELPERS DE PDF (fuera del componente para reducir complejidad cognitiva)
+// ============================================================================
+function createPdfHelpers(pdf, ctx, { m, ph, pw, colLabel, colValue }) {
+  const barX = colLabel;
+  const barW = pw - m * 2 - 8;
+
+  const checkPage = (h) => {
+    if (ctx.y + h > ph - m - 8) {
+      pdf.addPage();
+      pdf.setFillColor(124, 58, 237);
+      pdf.rect(0, 0, 3, ph, "F");
+      ctx.y = m;
+    }
+  };
+
+  const sectionTitle = (text, hexColor) => {
+    checkPage(14);
+    const rgb = hexToRgb(hexColor);
+    pdf.setFillColor(...rgb);
+    pdf.rect(m, ctx.y - 1, pw - m * 2, 10, "F");
+    pdf.setFillColor(rgb[0] * 0.7, rgb[1] * 0.7, rgb[2] * 0.7);
+    pdf.rect(m, ctx.y + 9, pw - m * 2, 0.5, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(11);
+    pdf.setFont(undefined, "bold");
+    pdf.text(text, colLabel + 2, ctx.y + 6.5);
+    pdf.setFont(undefined, "normal");
+    pdf.setTextColor(30, 30, 30);
+    ctx.y += 14;
+  };
+
+  const subTitle = (text) => {
+    checkPage(10);
+    pdf.setFontSize(10);
+    pdf.setFont(undefined, "bold");
+    pdf.setTextColor(80, 40, 160);
+    pdf.text(text, colLabel, ctx.y);
+    pdf.setFont(undefined, "normal");
+    pdf.setTextColor(30, 30, 30);
+    ctx.y += 7;
+  };
+
+  const stat = (label, value) => {
+    checkPage(7);
+    const valStr = String(value);
+    pdf.setFontSize(9.5);
+    pdf.setFont(undefined, "normal");
+    pdf.setTextColor(100, 100, 120);
+    pdf.text(`${label}:`, colLabel + 2, ctx.y);
+    pdf.setFont(undefined, "bold");
+    pdf.setTextColor(30, 30, 30);
+    const maxW = pw - colLabel - 2 - 30;
+    const splitVal = pdf.splitTextToSize(valStr, maxW);
+    pdf.text(splitVal[0], colValue, ctx.y, { align: "right" });
+    pdf.setFont(undefined, "normal");
+    pdf.setTextColor(30, 30, 30);
+    ctx.y += 6.5;
+  };
+
+  const progressBar = (label, val, total, fillColor) => {
+    checkPage(16);
+    const pct = total > 0 ? val / total : 0;
+    const pctText = `${(pct * 100).toFixed(1)}%`;
+    pdf.setFontSize(9);
+    pdf.setFont(undefined, "normal");
+    pdf.setTextColor(80, 80, 100);
+    pdf.text(label, colLabel + 2, ctx.y);
+    pdf.setFont(undefined, "bold");
+    pdf.setTextColor(50, 50, 50);
+    pdf.text(`${val} / ${total}`, colValue, ctx.y, { align: "right" });
+    pdf.setFont(undefined, "normal");
+    ctx.y += 5;
+    pdf.setFillColor(220, 220, 230);
+    pdf.roundedRect(barX + 2, ctx.y, barW - 4, 5, 2, 2, "F");
+    const rgb = hexToRgb(fillColor);
+    pdf.setFillColor(...rgb);
+    if (pct > 0)
+      pdf.roundedRect(
+        barX + 2,
+        ctx.y,
+        Math.max(4, (barW - 4) * pct),
+        5,
+        2,
+        2,
+        "F",
+      );
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(255, 255, 255);
+    if (pct > 0.12)
+      pdf.text(pctText, barX + 2 + ((barW - 4) * pct) / 2, ctx.y + 3.5, {
+        align: "center",
+      });
+    pdf.setTextColor(30, 30, 30);
+    ctx.y += 9;
+  };
+
+  const divider = () => {
+    checkPage(8);
+    pdf.setDrawColor(200, 195, 220);
+    pdf.setLineWidth(0.3);
+    pdf.line(m, ctx.y, pw - m, ctx.y);
+    ctx.y += 7;
+  };
+
+  return { checkPage, sectionTitle, subTitle, stat, progressBar, divider };
+}
+
+// ============================================================================
 // COMPONENTE PRINCIPAL
 // ============================================================================
 function Reportes() {
@@ -375,119 +483,9 @@ function Reportes() {
     const m = 14;
     const colLabel = m + 4;
     const colValue = pw - m - 4;
-    const barX = colLabel;
-    const barW = pw - m * 2 - 8;
-    let y = m;
-
-    // —— helpers ——
-    const checkPage = (h) => {
-      if (y + h > ph - m - 8) {
-        pdf.addPage();
-        // barra lateral izquierda sutil en cada página
-        pdf.setFillColor(124, 58, 237);
-        pdf.rect(0, 0, 3, ph, "F");
-        y = m;
-      }
-    };
-
-    // Banner de sección con color de fondo
-    const sectionTitle = (text, hexColor) => {
-      checkPage(14);
-      const rgb = hexToRgb(hexColor);
-      pdf.setFillColor(...rgb);
-      pdf.rect(m, y - 1, pw - m * 2, 10, "F");
-      // sombra sutil
-      pdf.setFillColor(rgb[0] * 0.7, rgb[1] * 0.7, rgb[2] * 0.7);
-      pdf.rect(m, y + 9, pw - m * 2, 0.5, "F");
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(11);
-      pdf.setFont(undefined, "bold");
-      pdf.text(text, colLabel + 2, y + 6.5);
-      pdf.setFont(undefined, "normal");
-      pdf.setTextColor(30, 30, 30);
-      y += 14;
-    };
-
-    // Cabecera de sub-sección (texto destacado sin fondo)
-    const subTitle = (text) => {
-      checkPage(10);
-      pdf.setFontSize(10);
-      pdf.setFont(undefined, "bold");
-      pdf.setTextColor(80, 40, 160);
-      pdf.text(text, colLabel, y);
-      pdf.setFont(undefined, "normal");
-      pdf.setTextColor(30, 30, 30);
-      y += 7;
-    };
-
-    // Fila stat: etiqueta gris a la izquierda, valor negrita a la derecha
-    const stat = (label, value) => {
-      checkPage(7);
-      const valStr = String(value);
-      pdf.setFontSize(9.5);
-      pdf.setFont(undefined, "normal");
-      pdf.setTextColor(100, 100, 120);
-      pdf.text(`${label}:`, colLabel + 2, y);
-      pdf.setFont(undefined, "bold");
-      pdf.setTextColor(30, 30, 30);
-      // Truncar si es muy largo
-      const maxW = pw - colLabel - 2 - 30;
-      const splitVal = pdf.splitTextToSize(valStr, maxW);
-      pdf.text(splitVal[0], colValue, y, { align: "right" });
-      pdf.setFont(undefined, "normal");
-      pdf.setTextColor(30, 30, 30);
-      y += 6.5;
-    };
-
-    // Barra de progreso con % en texto
-    const progressBar = (label, val, total, fillColor) => {
-      checkPage(16);
-      const pct = total > 0 ? val / total : 0;
-      const pctText = `${(pct * 100).toFixed(1)}%`;
-      pdf.setFontSize(9);
-      pdf.setFont(undefined, "normal");
-      pdf.setTextColor(80, 80, 100);
-      pdf.text(label, colLabel + 2, y);
-      pdf.setFont(undefined, "bold");
-      pdf.setTextColor(50, 50, 50);
-      pdf.text(`${val} / ${total}`, colValue, y, { align: "right" });
-      pdf.setFont(undefined, "normal");
-      y += 5;
-      // track
-      pdf.setFillColor(220, 220, 230);
-      pdf.roundedRect(barX + 2, y, barW - 4, 5, 2, 2, "F");
-      // fill
-      const rgb = hexToRgb(fillColor);
-      pdf.setFillColor(...rgb);
-      if (pct > 0)
-        pdf.roundedRect(
-          barX + 2,
-          y,
-          Math.max(4, (barW - 4) * pct),
-          5,
-          2,
-          2,
-          "F",
-        );
-      // pct label inside bar
-      pdf.setFontSize(7.5);
-      pdf.setTextColor(255, 255, 255);
-      if (pct > 0.12)
-        pdf.text(pctText, barX + 2 + ((barW - 4) * pct) / 2, y + 3.5, {
-          align: "center",
-        });
-      pdf.setTextColor(30, 30, 30);
-      y += 9;
-    };
-
-    // Separador fino
-    const divider = () => {
-      checkPage(8);
-      pdf.setDrawColor(200, 195, 220);
-      pdf.setLineWidth(0.3);
-      pdf.line(m, y, pw - m, y);
-      y += 7;
-    };
+    const ctx = { y: m };
+    const { checkPage, sectionTitle, subTitle, stat, progressBar, divider } =
+      createPdfHelpers(pdf, ctx, { m, ph, pw, colLabel, colValue });
 
     // ====== PORTADA / HEADER ======
     // Fondo degradado simulado con rectángulos
@@ -521,7 +519,7 @@ function Reportes() {
 
     pdf.setTextColor(30, 30, 30);
     pdf.setFont(undefined, "normal");
-    y = 52;
+    ctx.y = 52;
 
     // ====== PARQUEADEROS ======
     sectionTitle("PARQUEADEROS", "#2563eb");
@@ -614,16 +612,16 @@ function Reportes() {
     // ====== RESIDENTES HEADER ======
     checkPage(18);
     pdf.setFillColor(237, 233, 254);
-    pdf.rect(m, y - 3, pw - m * 2, 13, "F");
+    pdf.rect(m, ctx.y - 3, pw - m * 2, 13, "F");
     pdf.setFillColor(124, 58, 237);
-    pdf.rect(m, y + 10, pw - m * 2, 1, "F");
+    pdf.rect(m, ctx.y + 10, pw - m * 2, 1, "F");
     pdf.setFontSize(13);
     pdf.setFont(undefined, "bold");
     pdf.setTextColor(80, 20, 200);
-    pdf.text("REPORTES DE RESIDENTES", colLabel + 2, y + 7);
+    pdf.text("REPORTES DE RESIDENTES", colLabel + 2, ctx.y + 7);
     pdf.setFont(undefined, "normal");
     pdf.setTextColor(30, 30, 30);
-    y += 17;
+    ctx.y += 17;
 
     // ====== OCUPACIÓN POR TORRES ======
     sectionTitle("Ocupación por Torres", "#7c3aed");
@@ -672,16 +670,16 @@ function Reportes() {
       divider();
       checkPage(18);
       pdf.setFillColor(224, 242, 254);
-      pdf.rect(m, y - 3, pw - m * 2, 13, "F");
+      pdf.rect(m, ctx.y - 3, pw - m * 2, 13, "F");
       pdf.setFillColor(3, 105, 161);
-      pdf.rect(m, y + 10, pw - m * 2, 1, "F");
+      pdf.rect(m, ctx.y + 10, pw - m * 2, 1, "F");
       pdf.setFontSize(13);
       pdf.setFont(undefined, "bold");
       pdf.setTextColor(3, 80, 130);
-      pdf.text("REPORTE DE USUARIOS DEL SISTEMA", colLabel + 2, y + 7);
+      pdf.text("REPORTE DE USUARIOS DEL SISTEMA", colLabel + 2, ctx.y + 7);
       pdf.setFont(undefined, "normal");
       pdf.setTextColor(30, 30, 30);
-      y += 17;
+      ctx.y += 17;
 
       sectionTitle("Actividad del Sistema", "#0369a1");
       stat("Registros hoy", rptUsuarios.registrosHoy || 0);

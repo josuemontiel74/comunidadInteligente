@@ -1,4 +1,4 @@
-const BASE = "http://localhost:3001/api";
+import { API_BASE as BASE } from "./api.config.js";
 
 export async function obtenerResumenDashboard(token, signal) {
   return fetch(`${BASE}/dashboard/resumen`, {
