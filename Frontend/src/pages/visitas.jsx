@@ -896,16 +896,38 @@ function Visitas() {
                 </Link>
               </>
             )}
-            {rolesId === 1 && (
+            {(rolesId === 1 || rolesId === 2) && (
               <Link
                 className="vis-menu-item"
-                to="/GestionUsuario"
+                to="/Reportes"
                 onClick={() => setMenuOpen(false)}
               >
-                <i className="bi bi-person-gear"></i>
-                <span>Gestión Usuarios</span>
+                <i className="bi bi-graph-up-arrow"></i>
+                <span>Reportes</span>
                 <i className="bi bi-chevron-right vis-menu-arrow"></i>
               </Link>
+            )}
+            {rolesId === 1 && (
+              <>
+                <Link
+                  className="vis-menu-item"
+                  to="/GestionUsuario"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-person-gear"></i>
+                  <span>Gestión Usuarios</span>
+                  <i className="bi bi-chevron-right vis-menu-arrow"></i>
+                </Link>
+                <Link
+                  className="vis-menu-item"
+                  to="/LogErrores"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-bug"></i>
+                  <span>Log de Errores</span>
+                  <i className="bi bi-chevron-right vis-menu-arrow"></i>
+                </Link>
+              </>
             )}
           </div>
         </div>
@@ -1256,7 +1278,13 @@ function Visitas() {
                         {v.matricula && (
                           <div className="vis-card-info-row">
                             <div className="vis-card-info-icon green">
-                              <i className={v.nombreVehiculo === "Moto" ? "bi bi-scooter" : "bi bi-car-front"}></i>
+                              <i
+                                className={
+                                  v.nombreVehiculo === "Moto"
+                                    ? "bi bi-scooter"
+                                    : "bi bi-car-front"
+                                }
+                              ></i>
                             </div>
                             <div>
                               <div className="vis-card-info-label">

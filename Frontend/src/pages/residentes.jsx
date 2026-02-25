@@ -972,6 +972,15 @@ function Residentes() {
                   <span>Auditorías</span>
                   <i className="bi bi-chevron-right res-menu-arrow"></i>
                 </Link>
+                <Link
+                  className="res-menu-item"
+                  to="/LogErrores"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-bug"></i>
+                  <span>Log de Errores</span>
+                  <i className="bi bi-chevron-right res-menu-arrow"></i>
+                </Link>
               </>
             )}
           </div>
@@ -1572,7 +1581,9 @@ function Residentes() {
                         }))
                       }
                     />
-                    <label htmlFor="tieneNinos"><i className="bi bi-emoji-smile"></i> Niños</label>
+                    <label htmlFor="tieneNinos">
+                      <i className="bi bi-emoji-smile"></i> Niños
+                    </label>
                   </div>
                   <div className="res-form-check">
                     <input
@@ -1586,7 +1597,9 @@ function Residentes() {
                         }))
                       }
                     />
-                    <label htmlFor="tieneAdultoMayor"><i className="bi bi-person-cane"></i> Adulto Mayor</label>
+                    <label htmlFor="tieneAdultoMayor">
+                      <i className="bi bi-person-cane"></i> Adulto Mayor
+                    </label>
                   </div>
                   <div className="res-form-check">
                     <input
@@ -1600,7 +1613,9 @@ function Residentes() {
                         }))
                       }
                     />
-                    <label htmlFor="tieneDiscapacidad"><i className="bi bi-wheelchair"></i> Discapacidad</label>
+                    <label htmlFor="tieneDiscapacidad">
+                      <i className="bi bi-wheelchair"></i> Discapacidad
+                    </label>
                   </div>
                 </div>
               </div>
@@ -1983,19 +1998,25 @@ function Residentes() {
                   </span>
                 </div>
                 <div className="res-detail-row">
-                  <span className="res-detail-label"><i className="bi bi-emoji-smile"></i> Niños</span>
+                  <span className="res-detail-label">
+                    <i className="bi bi-emoji-smile"></i> Niños
+                  </span>
                   <span className="res-detail-value">
                     {residenteSeleccionado.tieneNinos === 1 ? "Sí" : "No"}
                   </span>
                 </div>
                 <div className="res-detail-row">
-                  <span className="res-detail-label"><i className="bi bi-person-cane"></i> Adulto Mayor</span>
+                  <span className="res-detail-label">
+                    <i className="bi bi-person-cane"></i> Adulto Mayor
+                  </span>
                   <span className="res-detail-value">
                     {residenteSeleccionado.tieneAdultoMayor === 1 ? "Sí" : "No"}
                   </span>
                 </div>
                 <div className="res-detail-row">
-                  <span className="res-detail-label"><i className="bi bi-wheelchair"></i> Discapacidad</span>
+                  <span className="res-detail-label">
+                    <i className="bi bi-wheelchair"></i> Discapacidad
+                  </span>
                   <span className="res-detail-value">
                     {residenteSeleccionado.tieneDiscapacidad === 1
                       ? "Sí"

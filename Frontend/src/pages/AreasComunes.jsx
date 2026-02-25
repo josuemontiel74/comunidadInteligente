@@ -1053,6 +1053,15 @@ function AreasComunes() {
                   <span>Auditorías</span>
                   <i className="bi bi-chevron-right ac-menu-arrow" />
                 </Link>
+                <Link
+                  className="ac-menu-item"
+                  to="/LogErrores"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-bug" />
+                  <span>Log de Errores</span>
+                  <i className="bi bi-chevron-right ac-menu-arrow" />
+                </Link>
               </>
             )}
           </div>

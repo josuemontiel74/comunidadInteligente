@@ -661,6 +661,15 @@ function Paqueteria() {
                   <span>Auditorías</span>
                   <i className="bi bi-chevron-right paq-menu-arrow"></i>
                 </Link>
+                <Link
+                  className="paq-menu-item"
+                  to="/LogErrores"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-bug"></i>
+                  <span>Log de Errores</span>
+                  <i className="bi bi-chevron-right paq-menu-arrow"></i>
+                </Link>
               </>
             )}
           </div>

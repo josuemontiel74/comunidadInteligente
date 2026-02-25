@@ -1182,6 +1182,15 @@ function GestionUsuarios() {
               <span>Reportes</span>
               <i className="bi bi-chevron-right gu-menu-arrow"></i>
             </Link>
+            <Link
+              className="gu-menu-item"
+              to="/LogErrores"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-bug"></i>
+              <span>Log de Errores</span>
+              <i className="bi bi-chevron-right gu-menu-arrow"></i>
+            </Link>
           </div>
         </div>
         <div className="gu-drawer-footer">

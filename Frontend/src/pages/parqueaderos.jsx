@@ -457,15 +457,26 @@ function Parqueaderos() {
                   </>
                 )}
                 {rolesId === 1 && (
-                  <Link
-                    className="parq-menu-item"
-                    to="/GestionUsuario"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    <i className="bi bi-person-gear"></i>
-                    <span>Gestión Usuarios</span>
-                    <i className="bi bi-chevron-right parq-menu-arrow"></i>
-                  </Link>
+                  <>
+                    <Link
+                      className="parq-menu-item"
+                      to="/GestionUsuario"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <i className="bi bi-person-gear"></i>
+                      <span>Gestión Usuarios</span>
+                      <i className="bi bi-chevron-right parq-menu-arrow"></i>
+                    </Link>
+                    <Link
+                      className="parq-menu-item"
+                      to="/LogErrores"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <i className="bi bi-bug"></i>
+                      <span>Log de Errores</span>
+                      <i className="bi bi-chevron-right parq-menu-arrow"></i>
+                    </Link>
+                  </>
                 )}
               </div>
             </>
