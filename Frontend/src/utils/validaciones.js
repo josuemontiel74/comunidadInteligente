@@ -55,8 +55,7 @@ const tieneSentido = (str) => {
  */
 export const validarNombre = (str) => {
   const s = (str || "").trim();
-  if (!s || s.length < 2)
-    return "El nombre debe tener al menos 2 caracteres.";
+  if (!s || s.length < 2) return "El nombre debe tener al menos 2 caracteres.";
   if (!REGEX_SOLO_LETRAS.test(s))
     return "El nombre solo puede contener letras, espacios y guiones. No se permiten números ni caracteres especiales.";
   if (!tieneSentido(s))
@@ -194,8 +193,7 @@ export const validarTransportadora = (str) => {
   if (!/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ0-9\s'.,-]+$/.test(s))
     return "La transportadora no puede contener caracteres especiales como @, #, !, etc.";
 
-  if (s.length < 2)
-    return "El nombre de la transportadora es demasiado corto.";
+  if (s.length < 2) return "El nombre de la transportadora es demasiado corto.";
 
   // Verificar que si tiene letras, estas tengan sentido
   const soloLetras = s.replace(/[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]/g, "");

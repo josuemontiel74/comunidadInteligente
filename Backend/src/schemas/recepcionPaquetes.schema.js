@@ -7,14 +7,16 @@ export const crearRecepcionPaquete = Joi.object({
     .required()
     .pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/)
     .messages({
-      "string.pattern.base": "El nombre del destinatario solo puede contener letras y espacios.",
+      "string.pattern.base":
+        "El nombre del destinatario solo puede contener letras y espacios.",
     }),
   empresaMensajeria: Joi.string()
     .max(45)
     .required()
     .pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ0-9\s'.,-]+$/)
     .messages({
-      "string.pattern.base": "El nombre de la transportadora no puede contener caracteres especiales.",
+      "string.pattern.base":
+        "El nombre de la transportadora no puede contener caracteres especiales.",
     }),
   fechaRecepcion: Joi.date().required(),
   fechaEntrega: Joi.date().optional().allow(null),

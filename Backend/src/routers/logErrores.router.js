@@ -9,25 +9,20 @@ import { validarJWT, validarRol } from "../middlewares/auth.middleware.js";
 const router = Router();
 
 // Solo superAdministrador (rolesId = 1)
-router.get(
-  "/log-errores",
-  validarJWT,
-  validarRol(1),
-  obtenerLogErrores
-);
+router.get("/log-errores", validarJWT, validarRol(1), obtenerLogErrores);
 
 router.get(
   "/log-errores/resumen",
   validarJWT,
   validarRol(1),
-  obtenerResumenLogErrores
+  obtenerResumenLogErrores,
 );
 
 router.delete(
   "/log-errores/limpiar",
   validarJWT,
   validarRol(1),
-  limpiarLogErrores
+  limpiarLogErrores,
 );
 
 export default router;

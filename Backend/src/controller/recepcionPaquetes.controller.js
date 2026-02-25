@@ -5,6 +5,7 @@ import Apartamento from "../models/apartamentos.model.js";
 import { sequelize } from "../config/connect.db.js";
 import { registrarAuditoria } from "../services/auditorias.service.js";
 import { registrarFallo } from "../services/logger.service.js";
+import { ESTADO_PAQUETE, USUARIO_DESCONOCIDO } from "../utils/constantes.js";
 
 export const crearRecepcionPaquete = async (req, res) => {
   try {
@@ -37,14 +38,14 @@ export const crearRecepcionPaquete = async (req, res) => {
 
     const dataPaquete = {
       ...req.body,
-      estadoId: 14,
+      estadoId: ESTADO_PAQUETE.RECIBIDO,
       fechaRecepcion: fechaRecepcion.format("YYYY-MM-DD HH:mm"),
     };
 
     const nuevoPaquete = await RecepcionPaquetes.create(dataPaquete);
 
     // Registrar en auditoría
-    const usuarioActual = req.user?.username || "desconocido";
+    const usuarioActual = req.user?.username || USUARIO_DESCONOCIDO;
     await registrarAuditoria(
       usuarioActual,
       "recepcionpaquetes",
@@ -59,7 +60,7 @@ export const crearRecepcionPaquete = async (req, res) => {
       body: nuevoPaquete,
     });
   } catch (error) {
-    const username = req.user?.username || "desconocido";
+    const username = req.user?.username || USUARIO_DESCONOCIDO;
     const ruta = "POST /recepcionpaquetes";
 
     await registrarFallo("ERROR", username, ruta, error.message, error.stack);
@@ -89,7 +90,7 @@ export const obtenerRecepcionPaquetesSQL = async (req, res) => {
 
     res.json(results);
   } catch (error) {
-    const username = req.user?.username || "desconocido";
+    const username = req.user?.username || USUARIO_DESCONOCIDO;
     const ruta = "GET /recepcionpaquetes";
 
     await registrarFallo("ERROR", username, ruta, error.message, error.stack);
@@ -111,7 +112,7 @@ export const obtenerRecepcionesPaquetes = async (req, res) => {
       body: recepcionesPaquetes,
     });
   } catch (error) {
-    const username = req.user?.username || "desconocido";
+    const username = req.user?.username || USUARIO_DESCONOCIDO;
     const ruta = "GET /recepcionpaquetes";
 
     await registrarFallo("ERROR", username, ruta, error.message, error.stack);
@@ -146,7 +147,7 @@ export const obtenerRecepcionPaquetePorId = async (req, res) => {
       });
     }
   } catch (error) {
-    const username = req.user?.username || "desconocido";
+    const username = req.user?.username || USUARIO_DESCONOCIDO;
     const ruta = "GET /recepcionpaquetes/:id";
 
     await registrarFallo("ERROR", username, ruta, error.message, error.stack);
@@ -224,7 +225,7 @@ export const actualizarRecepcionPaquete = async (req, res) => {
       });
 
       // Registrar en auditoría
-      const usuarioActual = req.user?.username || "desconocido";
+      const usuarioActual = req.user?.username || USUARIO_DESCONOCIDO;
       await registrarAuditoria(
         usuarioActual,
         "recepcionpaquetes",
@@ -246,7 +247,7 @@ export const actualizarRecepcionPaquete = async (req, res) => {
       });
     }
   } catch (error) {
-    const username = req.user?.username || "desconocido";
+    const username = req.user?.username || USUARIO_DESCONOCIDO;
     const ruta = "PATCH /recepcionpaquetes/:id";
 
     await registrarFallo("ERROR", username, ruta, error.message, error.stack);
@@ -278,7 +279,7 @@ export const FinalizarRecepcionPaquete = async (req, res) => {
     });
 
     // Registrar en auditoría
-    const usuarioActual = req.user?.username || "desconocido";
+    const usuarioActual = req.user?.username || USUARIO_DESCONOCIDO;
     await registrarAuditoria(
       usuarioActual,
       "recepcionpaquetes",
@@ -292,7 +293,7 @@ export const FinalizarRecepcionPaquete = async (req, res) => {
       message: "Recepcion de Paquete finalizado exitosamente",
     });
   } catch (error) {
-    const username = req.user?.username || "desconocido";
+    const username = req.user?.username || USUARIO_DESCONOCIDO;
     const ruta = "DELETE /recepcionpaquetes/:id";
 
     await registrarFallo("ERROR", username, ruta, error.message, error.stack);
@@ -364,7 +365,7 @@ export const informePaqueteria = async (req, res) => {
             [fn("YEAR", col("fechaRecepcion")), "anio"],
             [fn("COUNT", col("idPaquete")), "recibidos"],
             [
-              literal(`SUM(CASE WHEN estadoId = 14 THEN 1 ELSE 0 END)`),
+              literal(`SUM(CASE WHEN estadoId = ${ESTADO_PAQUETE.RECIBIDO} THEN 1 ELSE 0 END)`),
               "pendientes",
             ],
             [
@@ -385,7 +386,7 @@ export const informePaqueteria = async (req, res) => {
             [fn("MONTH", col("fechaRecepcion")), "mes"],
             [fn("COUNT", col("idPaquete")), "recibidos"],
             [
-              literal(`SUM(CASE WHEN estadoId = 14 THEN 1 ELSE 0 END)`),
+              literal(`SUM(CASE WHEN estadoId = ${ESTADO_PAQUETE.RECIBIDO} THEN 1 ELSE 0 END)`),
               "pendientes",
             ],
             [
@@ -416,7 +417,7 @@ export const informePaqueteria = async (req, res) => {
             ],
             [fn("COUNT", col("idPaquete")), "recibidos"],
             [
-              literal(`SUM(CASE WHEN estadoId = 14 THEN 1 ELSE 0 END)`),
+              literal(`SUM(CASE WHEN estadoId = ${ESTADO_PAQUETE.RECIBIDO} THEN 1 ELSE 0 END)`),
               "pendientes",
             ],
             [

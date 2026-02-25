@@ -11,7 +11,8 @@ export const crearVisitanteSchema = Joi.object({
     .required()
     .pattern(/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/)
     .messages({
-      "string.pattern.base": "El nombre del visitante solo puede contener letras y espacios, sin n\u00fameros ni caracteres especiales.",
+      "string.pattern.base":
+        "El nombre del visitante solo puede contener letras y espacios, sin n\u00fameros ni caracteres especiales.",
     }),
   tipoDocumentoId: Joi.number().integer().min(1).required(),
 });

@@ -10,6 +10,42 @@ import Tipodocumentos from "../models/tipoDocumento.model.js";
 import Torre from "../models/torres.model.js";
 import { registrarAuditoria } from "../services/auditorias.service.js";
 import { registrarFallo } from "../services/logger.service.js";
+import { ESTADO_RESERVA } from "../utils/constantes.js";
+
+// ── Helpers para calcular estados de reservas ─────────────────────────────────
+
+/** Extrae la parte de fecha (YYYY-MM-DD) desde distintos formatos */
+const resolverFechaReservaStr = (fechaReserva) => {
+  if (typeof fechaReserva === "string") return fechaReserva.split("T")[0];
+  if (fechaReserva instanceof Date) return fechaReserva.toISOString().split("T")[0];
+  return dayjs(fechaReserva).format("YYYY-MM-DD");
+};
+
+/** Determina el nuevo estadoId para una reserva dado el contexto horario actual */
+const calcularNuevoEstado = (reserva, fechaHoy, horaActual) => {
+  const { horaInicio, horaFin, estadoId } = reserva;
+  const fechaReservaStr = resolverFechaReservaStr(reserva.fechaReserva);
+  const fechaReservaDayjs = dayjs(fechaReservaStr, "YYYY-MM-DD");
+  const hoyDayjs = dayjs(fechaHoy, "YYYY-MM-DD");
+
+  if (fechaReservaDayjs.isBefore(hoyDayjs, "day")) {
+    return estadoId !== ESTADO_RESERVA.FINALIZADA ? ESTADO_RESERVA.FINALIZADA : null;
+  }
+
+  if (!fechaReservaDayjs.isSame(hoyDayjs, "day")) return null;
+
+  if (horaFin && horaActual > horaFin) {
+    return estadoId !== ESTADO_RESERVA.FINALIZADA ? ESTADO_RESERVA.FINALIZADA : null;
+  }
+
+  const enCurso = horaInicio && horaActual >= horaInicio &&
+    (!horaFin || horaActual <= horaFin);
+  if (enCurso) {
+    return estadoId !== ESTADO_RESERVA.EN_CURSO ? ESTADO_RESERVA.EN_CURSO : null;
+  }
+
+  return null;
+};
 
 // ============================================================
 // Función auxiliar: actualizar estados de reservas automáticamente
@@ -22,46 +58,18 @@ const actualizarEstadosReservas = async () => {
     const horaActual = ahora.format("HH:mm:ss");
 
     const reservas = await reservasAreasModel.findAll({
-      where: { estadoId: [7, 8] },
+      where: { estadoId: [ESTADO_RESERVA.PENDIENTE, ESTADO_RESERVA.EN_CURSO] },
     });
 
     for (const reserva of reservas) {
-      let fechaReservaStr;
-      if (typeof reserva.fechaReserva === "string") {
-        fechaReservaStr = reserva.fechaReserva.split("T")[0];
-      } else if (reserva.fechaReserva instanceof Date) {
-        fechaReservaStr = reserva.fechaReserva.toISOString().split("T")[0];
-      } else {
-        fechaReservaStr = dayjs(reserva.fechaReserva).format("YYYY-MM-DD");
-      }
-
-      const horaInicio = reserva.horaInicio;
-      const horaFin = reserva.horaFin;
-
-      const fechaReservaDayjs = dayjs(fechaReservaStr, "YYYY-MM-DD");
-      const hoyDayjs = dayjs(fechaHoy, "YYYY-MM-DD");
-
-      if (fechaReservaDayjs.isBefore(hoyDayjs, "day")) {
-        if (reserva.estadoId !== 9) {
-          await reserva.update({ estadoId: 9 });
-        }
-      } else if (fechaReservaDayjs.isSame(hoyDayjs, "day")) {
-        if (horaFin && horaActual > horaFin) {
-          if (reserva.estadoId !== 9) {
-            await reserva.update({ estadoId: 9 });
-          }
-        } else if (
-          horaInicio &&
-          horaActual >= horaInicio &&
-          (!horaFin || horaActual <= horaFin)
-        ) {
-          if (reserva.estadoId !== 8) {
-            await reserva.update({ estadoId: 8 });
-          }
-        }
+      const nuevoEstado = calcularNuevoEstado(reserva, fechaHoy, horaActual);
+      if (nuevoEstado !== null) {
+        await reserva.update({ estadoId: nuevoEstado });
       }
     }
-  } catch (error) {}
+  } catch {
+    // Error silenciado intencionalmente: no debe interrumpir el flujo principal
+  }
 };
 
 // ============================================================

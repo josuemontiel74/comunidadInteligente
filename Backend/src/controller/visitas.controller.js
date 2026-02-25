@@ -8,6 +8,7 @@ import timezone from "dayjs/plugin/timezone.js";
 import tiposVehiculoModel from "../models/tiposVehiculo.model.js";
 import { sequelize } from "../config/connect.db.js";
 import { registrarAuditoria } from "../services/auditorias.service.js";
+import { ESTADO_PARQUEADERO, ESTADO_VISITA, TIMEZONE_COLOMBIA } from "../utils/constantes.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -27,7 +28,7 @@ export const crearVisita = async (req, res) => {
       codigoParqueadero,
     } = req.body;
 
-    const fechaActual = dayjs().tz("America/Bogota");
+    const fechaActual = dayjs().tz(TIMEZONE_COLOMBIA);
 
     // Parsear fecha con múltiples formatos posibles
     let fechaIngreso = fechaActual;
@@ -40,7 +41,7 @@ export const crearVisita = async (req, res) => {
       }
       // Aplicar timezone de Colombia
       if (fechaIngreso.isValid()) {
-        fechaIngreso = fechaIngreso.tz("America/Bogota", true);
+        fechaIngreso = fechaIngreso.tz(TIMEZONE_COLOMBIA, true);
       }
     }
 
@@ -82,7 +83,7 @@ export const crearVisita = async (req, res) => {
 
     // Verificar si ya hay una visita activa para este documento
     const visitaActiva = await Visita.findOne({
-      where: { numeroDocumento, estadoId: 8 },
+      where: { numeroDocumento, estadoId: ESTADO_VISITA.ACTIVA },
     });
     if (visitaActiva) {
       return res.status(409).json({
@@ -121,7 +122,7 @@ export const crearVisita = async (req, res) => {
         return res.status(400).json({ error: "El parqueadero no existe" });
       }
 
-      if (Number(parqueadero.estadoId) !== 4) {
+      if (Number(parqueadero.estadoId) !== ESTADO_PARQUEADERO.DISPONIBLE) {
         return res
           .status(400)
           .json({ error: "El parqueadero no está disponible" });
@@ -141,7 +142,7 @@ export const crearVisita = async (req, res) => {
           vehiculo.codigoParqueadero !== codigoParqueadero
         ) {
           await Parqueadero.update(
-            { estadoId: 4 },
+            { estadoId: ESTADO_PARQUEADERO.DISPONIBLE },
             { where: { codigoParqueadero: vehiculo.codigoParqueadero } },
           );
         }
@@ -160,7 +161,7 @@ export const crearVisita = async (req, res) => {
       numeroDocumento,
       apartamentoId,
       fechaHoraIngreso: fechaIngreso.format("YYYY-MM-DD HH:mm"),
-      estadoId: estadoId || 8, // Por defecto "En curso" o "Activa"
+      estadoId: estadoId || ESTADO_VISITA.ACTIVA, // Por defecto "En curso" o "Activa"
       vehiculoMatricula,
       observaciones: observaciones || null,
     });
@@ -176,7 +177,7 @@ export const crearVisita = async (req, res) => {
 
     // Ocupar parqueadero SOLO si la visita fue creada correctamente
     if (parqueadero && vehiculoMatricula) {
-      await parqueadero.update({ estadoId: 3 });
+      await parqueadero.update({ estadoId: ESTADO_PARQUEADERO.OCUPADO });
     }
 
     res.status(201).json({
@@ -245,11 +246,11 @@ export const obtenerVisitas = async (req, res) => {
       body: visita.map((visita) => ({
         ...visita.toJSON(),
         fechaHoraIngreso: dayjs(visita.fechaHoraIngreso)
-          .tz("America/Bogota")
+          .tz(TIMEZONE_COLOMBIA)
           .format("YYYY-MM-DD hh:mm A"),
         fechaHoraSalida: visita.fechaHoraSalida
           ? dayjs(visita.fechaHoraSalida)
-              .tz("America/Bogota")
+              .tz(TIMEZONE_COLOMBIA)
               .format("YYYY-MM-DD hh:mm A")
           : null,
       })),
@@ -284,11 +285,11 @@ export const obtenerVisitaPorId = async (req, res) => {
       body: {
         ...visita.toJSON(),
         fechaHoraIngreso: dayjs(visita.fechaHoraIngreso)
-          .tz("America/Bogota")
+          .tz(TIMEZONE_COLOMBIA)
           .format("YYYY-MM-DD hh:mm A"),
         fechaHoraSalida: visita.fechaHoraSalida
           ? dayjs(visita.fechaHoraSalida)
-              .tz("America/Bogota")
+              .tz(TIMEZONE_COLOMBIA)
               .format("YYYY-MM-DD hh:mm A")
           : null,
       },
@@ -331,7 +332,7 @@ export const actualizarVisita = async (req, res) => {
     // Validar fecha solo si se proporciona
     if (fechaHoraIngreso) {
       const fechaIngreso = dayjs(fechaHoraIngreso, "YYYY-MM-DD HH:mm", true).tz(
-        "America/Bogota",
+        TIMEZONE_COLOMBIA,
       );
 
       if (!fechaIngreso.isValid()) {
@@ -403,7 +404,7 @@ export const actualizarVisita = async (req, res) => {
           );
           if (vehiculoAnterior && vehiculoAnterior.codigoParqueadero) {
             await Parqueadero.update(
-              { estadoId: 4 },
+              { estadoId: ESTADO_PARQUEADERO.DISPONIBLE },
               {
                 where: {
                   codigoParqueadero: vehiculoAnterior.codigoParqueadero,
@@ -436,7 +437,7 @@ export const actualizarVisita = async (req, res) => {
           vehiculoActual &&
           vehiculoActual.codigoParqueadero === codigoParqueadero;
 
-        if (!esElMismoParqueadero && parqueadero.estadoId !== 4) {
+        if (!esElMismoParqueadero && parqueadero.estadoId !== ESTADO_PARQUEADERO.DISPONIBLE) {
           return res
             .status(400)
             .json({ error: "El parqueadero no está disponible" });
@@ -452,7 +453,7 @@ export const actualizarVisita = async (req, res) => {
           );
           if (vehiculoAnterior && vehiculoAnterior.codigoParqueadero) {
             await Parqueadero.update(
-              { estadoId: 4 },
+              { estadoId: ESTADO_PARQUEADERO.DISPONIBLE },
               {
                 where: {
                   codigoParqueadero: vehiculoAnterior.codigoParqueadero,
@@ -477,7 +478,7 @@ export const actualizarVisita = async (req, res) => {
             vehiculo.codigoParqueadero !== codigoParqueadero
           ) {
             await Parqueadero.update(
-              { estadoId: 4 },
+              { estadoId: ESTADO_PARQUEADERO.DISPONIBLE },
               { where: { codigoParqueadero: vehiculo.codigoParqueadero } },
             );
           }
@@ -491,7 +492,7 @@ export const actualizarVisita = async (req, res) => {
         // Ocupar el nuevo parqueadero
         if (!esElMismoParqueadero) {
           await Parqueadero.update(
-            { estadoId: 3 },
+            { estadoId: ESTADO_PARQUEADERO.OCUPADO },
             { where: { codigoParqueadero } },
           );
         }
@@ -537,7 +538,7 @@ export const actualizarVisita = async (req, res) => {
 export const finalizarVisita = async (req, res) => {
   try {
     const { idVisita } = req.params;
-    let fechaHoraSalida = dayjs().tz("America/Bogota").toDate();
+    let fechaHoraSalida = dayjs().tz(TIMEZONE_COLOMBIA).toDate();
 
     const visita = await Visita.findByPk(idVisita);
     if (!visita) {
@@ -547,7 +548,7 @@ export const finalizarVisita = async (req, res) => {
       });
     }
 
-    if (visita.estadoId === 9) {
+    if (visita.estadoId === ESTADO_VISITA.FINALIZADA) {
       return res.status(400).json({
         error: "La visita ya está finalizada",
         status: 400,
@@ -559,13 +560,13 @@ export const finalizarVisita = async (req, res) => {
       const vehiculo = await Vehiculo.findByPk(visita.vehiculoMatricula);
       if (vehiculo && vehiculo.codigoParqueadero) {
         await Parqueadero.update(
-          { estadoId: 4 }, // Disponible
+          { estadoId: ESTADO_PARQUEADERO.DISPONIBLE }, // Disponible
           { where: { codigoParqueadero: vehiculo.codigoParqueadero } },
         );
       }
     }
     await visita.update({
-      estadoId: 9,
+      estadoId: ESTADO_VISITA.FINALIZADA,
       fechaHoraSalida,
     });
 

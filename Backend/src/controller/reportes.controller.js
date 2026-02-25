@@ -98,7 +98,11 @@ export const obtenerReporteParqueaderos = async (req, res) => {
       success: true,
       data: {
         capacidad: capacidad,
-        resumenPeriodo: resumenPeriodoRaw[0] || { totalVehiculos: 0, carros: 0, motos: 0 },
+        resumenPeriodo: resumenPeriodoRaw[0] || {
+          totalVehiculos: 0,
+          carros: 0,
+          motos: 0,
+        },
         diaPico: diaPicoRaw[0] || null,
         usoDiario: usoDiario,
         picoOcupacion: picoOcupacion,

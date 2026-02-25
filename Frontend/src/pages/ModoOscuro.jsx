@@ -21,9 +21,9 @@ export default function ModoOscuro({ btnClass = "" }) {
   /* Aplica el atributo en <html> cada vez que cambia el estado */
   useEffect(() => {
     if (oscuro) {
-      document.documentElement.setAttribute("data-modo", "oscuro");
+      document.documentElement.dataset.modo = "oscuro";
     } else {
-      document.documentElement.removeAttribute("data-modo");
+      delete document.documentElement.dataset.modo;
     }
     localStorage.setItem(DARK_KEY, oscuro ? "1" : "0");
   }, [oscuro]);
@@ -32,7 +32,7 @@ export default function ModoOscuro({ btnClass = "" }) {
      después de que otro componente borrara el atributo) */
   useEffect(() => {
     if (localStorage.getItem(DARK_KEY) === "1") {
-      document.documentElement.setAttribute("data-modo", "oscuro");
+      document.documentElement.dataset.modo = "oscuro";
     }
   }, []);
 

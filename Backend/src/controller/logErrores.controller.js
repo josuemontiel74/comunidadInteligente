@@ -46,7 +46,7 @@ export const obtenerLogErrores = async (req, res) => {
 
 export const obtenerResumenLogErrores = async (req, res) => {
   try {
-    const { sequelize } = (await import("../config/connect.db.js"));
+    const { sequelize } = await import("../config/connect.db.js");
 
     const [resumen] = await sequelize.query(`
       SELECT 

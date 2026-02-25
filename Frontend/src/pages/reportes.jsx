@@ -460,12 +460,22 @@ function Reportes() {
       const rgb = hexToRgb(fillColor);
       pdf.setFillColor(...rgb);
       if (pct > 0)
-        pdf.roundedRect(barX + 2, y, Math.max(4, (barW - 4) * pct), 5, 2, 2, "F");
+        pdf.roundedRect(
+          barX + 2,
+          y,
+          Math.max(4, (barW - 4) * pct),
+          5,
+          2,
+          2,
+          "F",
+        );
       // pct label inside bar
       pdf.setFontSize(7.5);
       pdf.setTextColor(255, 255, 255);
       if (pct > 0.12)
-        pdf.text(pctText, barX + 2 + ((barW - 4) * pct) / 2, y + 3.5, { align: "center" });
+        pdf.text(pctText, barX + 2 + ((barW - 4) * pct) / 2, y + 3.5, {
+          align: "center",
+        });
       pdf.setTextColor(30, 30, 30);
       y += 9;
     };
@@ -500,10 +510,14 @@ function Reportes() {
     pdf.setFont(undefined, "normal");
     pdf.text("Reporte General de Actividad", pw / 2, 21, { align: "center" });
     pdf.setFontSize(10);
-    pdf.text(`Período: ${fechaInicio}  →  ${fechaFin}`, pw / 2, 30, { align: "center" });
+    pdf.text(`Período: ${fechaInicio}  →  ${fechaFin}`, pw / 2, 30, {
+      align: "center",
+    });
     pdf.setFontSize(8.5);
     pdf.setTextColor(220, 210, 255);
-    pdf.text(`Generado el ${new Date().toLocaleString("es-CO")}`, pw / 2, 38, { align: "center" });
+    pdf.text(`Generado el ${new Date().toLocaleString("es-CO")}`, pw / 2, 38, {
+      align: "center",
+    });
 
     pdf.setTextColor(30, 30, 30);
     pdf.setFont(undefined, "normal");
@@ -513,7 +527,8 @@ function Reportes() {
     sectionTitle("PARQUEADEROS", "#2563eb");
 
     const capPdf = rptParqueaderos?.capacidad || [];
-    let cuposCarrosPdf = 0, cuposMotosPdf = 0;
+    let cuposCarrosPdf = 0,
+      cuposMotosPdf = 0;
     capPdf.forEach((r) => {
       const nom = (r.nombreVehiculo || "").toLowerCase();
       if (nom === "carro") cuposCarrosPdf = toInt(r.totalCupos);
@@ -530,9 +545,19 @@ function Reportes() {
     stat("Cupos para carros", cuposCarrosPdf);
     stat("Cupos para motos", cuposMotosPdf);
     stat("Vehículos ingresados en el período", totalVehPdf);
-    stat("Carros ingresados", `${carrosPdf}  (${calcPct(carrosPdf, totalVehPdf)}%)`);
-    stat("Motos ingresadas", `${motosPdf}  (${calcPct(motosPdf, totalVehPdf)}%)`);
-    if (dPico) stat("Día pico", `${dPico.fecha}  (${toInt(dPico.totalVehiculos)} vehículos)`);
+    stat(
+      "Carros ingresados",
+      `${carrosPdf}  (${calcPct(carrosPdf, totalVehPdf)}%)`,
+    );
+    stat(
+      "Motos ingresadas",
+      `${motosPdf}  (${calcPct(motosPdf, totalVehPdf)}%)`,
+    );
+    if (dPico)
+      stat(
+        "Día pico",
+        `${dPico.fecha}  (${toInt(dPico.totalVehiculos)} vehículos)`,
+      );
     progressBar("Carros vs total", carrosPdf, totalVehPdf, "#3b82f6");
     progressBar("Motos vs total", motosPdf, totalVehPdf, "#f97316");
     divider();
@@ -636,7 +661,8 @@ function Reportes() {
     // ====== POBLACIÓN ESPECIAL ======
     sectionTitle("Población Especial", "#4f46e5");
     const pe = rptPoblacion || {};
-    const totalEspecial = toInt(pe.totalAdultosMayores) + toInt(pe.totalDiscapacidad);
+    const totalEspecial =
+      toInt(pe.totalAdultosMayores) + toInt(pe.totalDiscapacidad);
     stat("Adultos mayores (60+)", toInt(pe.totalAdultosMayores));
     stat("Personas con discapacidad", toInt(pe.totalDiscapacidad));
     stat("Total población especial", totalEspecial);
@@ -660,7 +686,10 @@ function Reportes() {
       sectionTitle("Actividad del Sistema", "#0369a1");
       stat("Registros hoy", rptUsuarios.registrosHoy || 0);
       stat("Usuarios activos hoy", rptUsuarios.usuariosActivosHoy || 0);
-      stat("Total registros en el período", rptUsuarios.totalRegistrosPeriodo || 0);
+      stat(
+        "Total registros en el período",
+        rptUsuarios.totalRegistrosPeriodo || 0,
+      );
 
       const activosPdf = rptUsuarios.masActivos || [];
       if (activosPdf.length > 0) {
@@ -679,7 +708,9 @@ function Reportes() {
         subTitle("Usuarios con más días sin actividad:");
         inactivosPdf.slice(0, 5).forEach((u) => {
           const dias =
-            u.diasSinActividad == null ? "nunca usó el sistema" : `${u.diasSinActividad} días`;
+            u.diasSinActividad == null
+              ? "nunca usó el sistema"
+              : `${u.diasSinActividad} días`;
           stat(`${u.username}  (${u.nombreRol || "N/A"})`, dias);
         });
       }
@@ -690,7 +721,12 @@ function Reportes() {
         subTitle("Módulos más utilizados:");
         const maxMod = Math.max(...mods.map((m) => m.cantidad), 1);
         mods.slice(0, 6).forEach((mod) => {
-          progressBar(mod.nombre || mod.tabla || "—", mod.cantidad, maxMod, "#0369a1");
+          progressBar(
+            mod.nombre || mod.tabla || "—",
+            mod.cantidad,
+            maxMod,
+            "#0369a1",
+          );
         });
       }
     }
@@ -707,9 +743,14 @@ function Reportes() {
       pdf.rect(0, ph - 10, pw, 10, "F");
       pdf.setFontSize(8);
       pdf.setTextColor(120, 90, 180);
-      pdf.text(`Comunidad Inteligente  ·  Página ${p} de ${totalPages}`, pw / 2, ph - 3.5, {
-        align: "center",
-      });
+      pdf.text(
+        `Comunidad Inteligente  ·  Página ${p} de ${totalPages}`,
+        pw / 2,
+        ph - 3.5,
+        {
+          align: "center",
+        },
+      );
     }
 
     pdf.save(`Reporte_Comunidad_${new Date().toISOString().split("T")[0]}.pdf`);
