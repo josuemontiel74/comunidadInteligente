@@ -29,7 +29,7 @@ const toType = object => {
 
 const getUID = prefix => {
   do {
-    prefix += Math.floor(Math.random() * MAX_UID);
+    prefix += Math.floor(Math.random() * MAX_UID); // NOSONAR - vendored Bootstrap: UID generation, not security-sensitive
   } while (document.getElementById(prefix));
 
   return prefix;
@@ -330,7 +330,7 @@ const getNextActiveElement = (list, activeElement, shouldGetNext, isCycleAllowed
  * Constants
  */
 
-const namespaceRegex = /[^.]*(?=\..*)\.|.*/;
+const namespaceRegex = /[^.]*(?=\..*)\.|.*/; // NOSONAR - vendored Bootstrap: event namespace parsing on short controlled strings
 const stripNameRegex = /\..*/;
 const stripUidRegex = /::\d+$/;
 const eventRegistry = {}; // Events storage
