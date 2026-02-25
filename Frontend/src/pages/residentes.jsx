@@ -1,7 +1,6 @@
 ﻿import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "../Styles/residentes.css";
-import logo from "../../img/logo.png";
 
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -76,20 +75,6 @@ const mapTorre = (id) =>
     9: "I",
     10: "J",
   })[id] || "";
-const mapTorreId = (l) =>
-  ({
-    A: 1,
-    B: 2,
-    C: 3,
-    D: 4,
-    E: 5,
-    F: 6,
-    G: 7,
-    H: 8,
-    I: 9,
-    J: 10,
-  })[l] || 1;
-
 const campoAmigable = (field) => {
   const map = {
     numeroDocumento: "Número de documento",
@@ -241,7 +226,7 @@ function validarDatosResidente(fd, editIndex) {
     };
   if (fd.numeroDocumento.trim()) {
     const doc = fd.numeroDocumento.trim();
-    if (!/^[a-zA-Z0-9\-]+$/.test(doc))
+    if (!/^[a-zA-Z0-9-]+$/.test(doc))
       return {
         titulo: "Documento inválido",
         msg: "El número de documento solo puede contener letras, números o guiones. No se permiten caracteres especiales.",
@@ -351,11 +336,11 @@ function Residentes() {
     cargarApartamentos();
     const intervalo = setInterval(cargarResidentes, 30000);
     return () => clearInterval(intervalo);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (location.state?.abrirModal) abrirModal();
-  }, [location.state]);
+  }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     setPaginaActual(1);

@@ -1,7 +1,6 @@
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "../Styles/estiloAreasComunes.css";
-import logo from "../../img/logo.png";
 import {
   validarNombreCompleto,
   validarTelefono,
@@ -294,21 +293,6 @@ function AreasComunes() {
     }
   }, [token]);
 
-  /** Genera apartamentos de prueba (Torres A-J, 9 aptos c/u) */
-  const generarApartamentosPrueba = () => {
-    const aptos = [];
-    for (let t = 0; t < 10; t++) {
-      for (let j = 1; j <= 9; j++) {
-        aptos.push({
-          idApartamento: t * 9 + j,
-          numeroApartamento: (t + 1) * 100 + j,
-          torresId: t + 1,
-        });
-      }
-    }
-    return aptos;
-  };
-
   const obtenerDatosIniciales = useCallback(async () => {
     // Apartamentos
     try {
@@ -395,7 +379,7 @@ function AreasComunes() {
 
   useEffect(() => {
     if (location.state?.abrirModal) abrirModal(location.state?.prefill || null);
-  }, [location.state]);
+  }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ════════════════════════════════════════════════════════
   // FILTRADO POR TORRE

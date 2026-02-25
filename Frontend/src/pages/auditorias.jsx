@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from "react";
 import Swal from "sweetalert2";
 import { Link, useNavigate } from "react-router-dom";
 import "../Styles/auditorias.css";
-import logo from "../../img/logo.png";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { obtenerRegistrosAuditoria } from "../services/auditorias.services.jsx";
@@ -16,7 +15,6 @@ function Auditorias() {
   const [error, setError] = useState(null);
   const [usuario, setUsuario] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
 
   // Filtros (igual que Flutter)
   const [busquedaUsuario, setBusquedaUsuario] = useState("");
@@ -48,9 +46,6 @@ function Auditorias() {
       return null;
     }
   };
-
-  const tokenLocal = localStorage.getItem("token");
-  const rolesId = tokenLocal ? obtenerRolFromToken(tokenLocal) : null;
 
   // Verificar sesión y rol
   useEffect(() => {

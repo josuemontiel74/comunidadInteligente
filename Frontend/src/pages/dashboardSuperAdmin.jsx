@@ -188,10 +188,9 @@ function Dashboard() {
         const nombres = Object.keys(enLineaData);
         setUsuariosEnLinea(nombres);
         setTotalEnLinea(nombres.length);
-      } catch (err) {
-        // Error al obtener usuarios en linea
+      } catch { /* fallo al obtener usuarios en linea */
       }
-    } catch (error) {
+    } catch { /* error de red ignorado, el dashboard muestra 0s */
     } finally {
       setDataLoading(false);
     }

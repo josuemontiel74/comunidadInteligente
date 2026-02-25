@@ -8,12 +8,11 @@ import "../Styles/estiloCalendario.css";
 
 export default function CalendarioReservas() {
   const navigate = useNavigate();
-  const [mesActual, setMesActual] = useState(new Date());
+  const [mesActual, _setMesActual] = useState(new Date());
   const [reservas, setReservas] = useState([]);
-  const [diaSeleccionado, setDiaSeleccionado] = useState(null);
+  const [diaSeleccionado, _setDiaSeleccionado] = useState(null);
   const [loading, setLoading] = useState(true);
   const [menuAbierto, setMenuAbierto] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
 
   // Funciones para manejar token y usuario
   const obtenerToken = () => {
@@ -51,7 +50,6 @@ export default function CalendarioReservas() {
     }
   };
 
-  const token = obtenerToken();
   const nombreUsuario = obtenerUsuarioDelToken();
   const rolesId = obtenerRolDelToken();
 
@@ -82,11 +80,9 @@ export default function CalendarioReservas() {
     navigate("/");
   };
 
-  const toggleMenu = () => setMenuAbierto(!menuAbierto);
-
   useEffect(() => {
     cargarReservas();
-  }, [mesActual]);
+  }, [mesActual]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cargarReservas = async () => {
     try {

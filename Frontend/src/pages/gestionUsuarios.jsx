@@ -182,10 +182,6 @@ const savePhoto = (docOrUser, base64) => {
   photos[docOrUser] = base64;
   localStorage.setItem(PHOTO_STORAGE_KEY, JSON.stringify(photos));
 };
-const getPhoto = (user) => {
-  const photos = getPhotos();
-  return photos[user.numeroDocumento] || photos[user.username] || null;
-};
 
 function GestionUsuarios() {
   const navigate = useNavigate();
@@ -251,10 +247,6 @@ function GestionUsuarios() {
     }
   };
 
-  const rolUsuario = useMemo(() => {
-    const t = localStorage.getItem("token");
-    return t ? obtenerRolFromToken(t) : null;
-  }, []);
   const usernameActual = useMemo(() => {
     const t = localStorage.getItem("token");
     return t ? obtenerUsernameFromToken(t) : null;
@@ -323,7 +315,7 @@ function GestionUsuarios() {
         localStorage.setItem(PHOTO_STORAGE_KEY, JSON.stringify(photosLocales));
         setUserPhotos({ ...photosLocales });
       }
-    } catch (err) {
+    } catch { /* fallo al sincronizar fotos de perfil */
     } finally {
       setLoading(false);
     }
@@ -1001,7 +993,8 @@ function GestionUsuarios() {
         const p = await obtenerPersonaPorDocumento(user.numeroDocumento, token);
         detalle = { ...detalle, ...p };
       }
-    } catch {}
+    } catch { /* persona sin ficha: se muestra con datos base */
+    }
     setDetalleUsuario(detalle);
     setShowModalDetalle(true);
   };

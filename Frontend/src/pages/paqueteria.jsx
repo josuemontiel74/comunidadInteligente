@@ -40,12 +40,6 @@ const obtenerApartamentoId = (torre, apartamento) => {
   return letraIndex * 5 + pos;
 };
 
-const convertirTorreIdALetra = (id) => {
-  const n = parseInt(id);
-  if (isNaN(n) || n < 1 || n > 10) return "";
-  return String.fromCharCode(64 + n);
-};
-
 // ── Formatear fechas a Colombia UTC-5 ──
 const formatearFecha = (fechaStr) => {
   if (!fechaStr) return "N/A";

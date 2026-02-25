@@ -33,7 +33,6 @@ function Login() {
   const [intentos, setIntentos] = useState(0);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [exito, setExito] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -64,7 +63,6 @@ function Login() {
 
       if (data.usuario.estadoId != 2) {
         setFeedback("ok");
-        setExito(true);
         setTimeout(() => {
           // replace:true elimina /login del historial — el usuario
           // no puede volver al login con el botón atrás tras autenticarse

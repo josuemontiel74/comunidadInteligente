@@ -68,16 +68,6 @@ function Dashboard() {
     return () => obs.disconnect();
   }, []);
 
-  // Token helpers
-  const verificarTokenVencido = (token) => {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return Date.now() >= payload.exp * 1000;
-    } catch {
-      return true;
-    }
-  };
-
   // Verificar sesión
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -166,7 +156,7 @@ function Dashboard() {
         setReservasHoy(datos.reservas?.hoy ?? 0);
         setResidentesActivos(datos.residentes?.activos ?? 0);
       }
-    } catch (error) {
+    } catch { /* error de red ignorado, el dashboard muestra 0s */
     } finally {
       setDataLoading(false);
     }
