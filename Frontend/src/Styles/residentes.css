@@ -1241,3 +1241,72 @@
 [data-modo="oscuro"] .res-torre-libre-count {
   color: #34d399;
 }
+
+/* =====================================================
+   DARK MODE — Modal Crear/Editar + Modal Detalles
+   (Ampliación — el overlay ya estaba en dark mode)
+   ===================================================== */
+
+/* Formulario crear/editar */
+[data-modo="oscuro"] .res-modal-section-title {
+  color: #2dd4bf !important;
+  border-bottom-color: #134e4a !important;
+}
+[data-modo="oscuro"] .res-form-group label {
+  color: #94a3b8 !important;
+}
+[data-modo="oscuro"] .res-form-group input,
+[data-modo="oscuro"] .res-form-group select {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+[data-modo="oscuro"] .res-form-group input:focus,
+[data-modo="oscuro"] .res-form-group select:focus {
+  border-color: #14b8a6 !important;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2) !important;
+}
+[data-modo="oscuro"] .res-form-group input:disabled {
+  background: #1e293b !important;
+  color: #475569 !important;
+}
+[data-modo="oscuro"] .res-form-check {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+}
+[data-modo="oscuro"] .res-form-check:hover {
+  background: #0d2d2a !important;
+  border-color: #0d9488 !important;
+}
+[data-modo="oscuro"] .res-form-check label {
+  color: #cbd5e1 !important;
+}
+
+/* Botones del footer del modal */
+[data-modo="oscuro"] .res-btn-cancel {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #94a3b8 !important;
+}
+[data-modo="oscuro"] .res-btn-cancel:hover {
+  background: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+/* Modal detalles */
+[data-modo="oscuro"] .res-detail-section {
+  background: #0d2d2a !important;
+  border-color: #134e4a !important;
+}
+[data-modo="oscuro"] .res-detail-section-title {
+  color: #2dd4bf !important;
+}
+[data-modo="oscuro"] .res-detail-row {
+  border-bottom-color: #1a3d3a !important;
+}
+[data-modo="oscuro"] .res-detail-label {
+  color: #94a3b8 !important;
+}
+[data-modo="oscuro"] .res-detail-value {
+  color: #e2e8f0 !important;
+}
