@@ -205,7 +205,12 @@ export default function CalendarioReservas() {
         navigate("/AreasComunes", {
           state: {
             abrirModal: true,
-            prefill: { areaComunId: e.areaId, fechaReserva: fechaStr, horaInicio: e.horaInicio, horaFin: e.horaFin },
+            prefill: {
+              areaComunId: e.areaId,
+              fechaReserva: fechaStr,
+              horaInicio: e.horaInicio,
+              horaFin: e.horaFin,
+            },
           },
         });
         Swal.close();
@@ -217,7 +222,9 @@ export default function CalendarioReservas() {
     const reservasDia = obtenerReservasPorDia(fecha);
     const espacios = calcularEspaciosDisponibles(fecha);
     const diaTexto = `${diasSemana[fecha.getDay()]} ${fecha.getDate()} de ${nombresMeses[fecha.getMonth()]}`;
-    const esHoy = fecha.toISOString().split("T")[0] === new Date().toISOString().split("T")[0];
+    const esHoy =
+      fecha.toISOString().split("T")[0] ===
+      new Date().toISOString().split("T")[0];
     const html =
       `<div style="text-align:left">` +
       buildHtmlReservasDia(reservasDia) +
@@ -245,22 +252,47 @@ export default function CalendarioReservas() {
     return reservas.filter((r) => r.fechaReserva === fechaStr);
   };
 
-  const calcularEspaciosDeArea = (areaId, reservasArea, horaInicio, horaFin) => {
+  const calcularEspaciosDeArea = (
+    areaId,
+    reservasArea,
+    horaInicio,
+    horaFin,
+  ) => {
     if (reservasArea.length === 0) {
-      return [{ areaId, nombreArea: obtenerNombreArea(areaId), horaInicio: `${horaInicio}:00`, horaFin: `${horaFin}:00`, duracion: horaFin - horaInicio }];
+      return [
+        {
+          areaId,
+          nombreArea: obtenerNombreArea(areaId),
+          horaInicio: `${horaInicio}:00`,
+          horaFin: `${horaFin}:00`,
+          duracion: horaFin - horaInicio,
+        },
+      ];
     }
     const result = [];
     let horaActual = horaInicio;
     reservasArea.forEach((reserva) => {
       const [h] = reserva.horaInicio.split(":").map(Number);
       if (horaActual < h) {
-        result.push({ areaId, nombreArea: obtenerNombreArea(areaId), horaInicio: `${horaActual}:00`, horaFin: `${h}:00`, duracion: h - horaActual });
+        result.push({
+          areaId,
+          nombreArea: obtenerNombreArea(areaId),
+          horaInicio: `${horaActual}:00`,
+          horaFin: `${h}:00`,
+          duracion: h - horaActual,
+        });
       }
       const [hFin] = reserva.horaFin.split(":").map(Number);
       horaActual = Math.ceil(hFin);
     });
     if (horaActual < horaFin) {
-      result.push({ areaId, nombreArea: obtenerNombreArea(areaId), horaInicio: `${horaActual}:00`, horaFin: `${horaFin}:00`, duracion: horaFin - horaActual });
+      result.push({
+        areaId,
+        nombreArea: obtenerNombreArea(areaId),
+        horaInicio: `${horaActual}:00`,
+        horaFin: `${horaFin}:00`,
+        duracion: horaFin - horaActual,
+      });
     }
     return result;
   };
@@ -586,11 +618,19 @@ export default function CalendarioReservas() {
                             };
                         const handleCellClick = () => {
                           if (reservado) {
-                            Swal.fire("Fecha reservada", `La fecha ${cell.iso} ya está reservada.`, "info");
+                            Swal.fire(
+                              "Fecha reservada",
+                              `La fecha ${cell.iso} ya está reservada.`,
+                              "info",
+                            );
                             return;
                           }
                           if (esPasado) {
-                            Swal.fire("Fecha pasada", "No es posible reservar fechas pasadas.", "warning");
+                            Swal.fire(
+                              "Fecha pasada",
+                              "No es posible reservar fechas pasadas.",
+                              "warning",
+                            );
                             return;
                           }
                           mostrarDetallesDia(new Date(cell.iso));

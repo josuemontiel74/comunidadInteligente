@@ -11,6 +11,7 @@ import {
   obtenerUsuariosEnLinea,
   logoutUsuario,
 } from "../services/gestionUsuarios.jsx";
+import { API_BASE } from "../services/api.config.js";
 import DescargaAppMovil from "./DescargaAppMovil.jsx";
 import ModoOscuro from "./ModoOscuro.jsx";
 import WhatsAppModal from "./WhatsAppModal.jsx";
@@ -126,9 +127,12 @@ function Dashboard() {
 
     (async () => {
       try {
-        const res = await fetch("http://localhost:3001/api/usuario", {
+        const res = await fetch(`${API_BASE}/usuario`, {
           method: "GET",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
         });
         if (!res.ok) throw new Error("No autorizado");
         const data = await res.json();

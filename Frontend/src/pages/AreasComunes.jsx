@@ -24,7 +24,22 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 
 /** Genera el HTML de ticket térmico para impresión de recibo de reserva */
-function buildTicketHtml({ id, nombre, doc, tel, area, apto, torre, fecha, hi, hf, asistentes, motivo, estado, fechaImpresion }) {
+function buildTicketHtml({
+  id,
+  nombre,
+  doc,
+  tel,
+  area,
+  apto,
+  torre,
+  fecha,
+  hi,
+  hf,
+  asistentes,
+  motivo,
+  estado,
+  fechaImpresion,
+}) {
   return `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Recibo Reserva #${id}</title>
 <style>
@@ -452,20 +467,36 @@ function AreasComunes() {
   const validarFechasReserva = (r) => {
     const hoy = new Date();
     const fechaRes = new Date(r.fechaReserva);
-    const hoyLimpio = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
-    const fechaLimpia = new Date(fechaRes.getFullYear(), fechaRes.getMonth(), fechaRes.getDate());
+    const hoyLimpio = new Date(
+      hoy.getFullYear(),
+      hoy.getMonth(),
+      hoy.getDate(),
+    );
+    const fechaLimpia = new Date(
+      fechaRes.getFullYear(),
+      fechaRes.getMonth(),
+      fechaRes.getDate(),
+    );
     if (fechaLimpia < hoyLimpio) return "No puedes reservar en fechas pasadas";
     const dosMeses = new Date();
     dosMeses.setMonth(dosMeses.getMonth() + 2);
-    if (fechaRes > dosMeses) return "No puedes reservar con más de 2 meses de anticipación";
-    if (r.horaInicio >= r.horaFin) return "La hora de inicio debe ser menor que la hora de fin";
+    if (fechaRes > dosMeses)
+      return "No puedes reservar con más de 2 meses de anticipación";
+    if (r.horaInicio >= r.horaFin)
+      return "La hora de inicio debe ser menor que la hora de fin";
     return null;
   };
 
   const validarSolicitanteReserva = (r) => {
-    const tipoDocObj = tiposDocumento.find((t) => String(t.tipoDocumentoId) === String(r.tipoDocumentoId));
+    const tipoDocObj = tiposDocumento.find(
+      (t) => String(t.tipoDocumentoId) === String(r.tipoDocumentoId),
+    );
     const tipoDocNombre = tipoDocObj ? tipoDocObj.nombre : "";
-    const errDoc = validarDocumento(r.documentoSolicitante, r.tipoDocumentoId, tipoDocNombre);
+    const errDoc = validarDocumento(
+      r.documentoSolicitante,
+      r.tipoDocumentoId,
+      tipoDocNombre,
+    );
     if (errDoc) return { titulo: "Documento inválido", msg: errDoc };
     const errNom = validarNombreCompleto(r.nombreSolicitante);
     if (errNom) return { titulo: "Nombre inválido", msg: errNom };
@@ -484,9 +515,15 @@ function AreasComunes() {
       return;
     }
     const errFechas = validarFechasReserva(reserva);
-    if (errFechas) { Swal.fire("Error", errFechas, "error"); return; }
+    if (errFechas) {
+      Swal.fire("Error", errFechas, "error");
+      return;
+    }
     const errSolicitante = validarSolicitanteReserva(reserva);
-    if (errSolicitante) { Swal.fire(errSolicitante.titulo, errSolicitante.msg, "error"); return; }
+    if (errSolicitante) {
+      Swal.fire(errSolicitante.titulo, errSolicitante.msg, "error");
+      return;
+    }
 
     try {
       setLoading(true);
@@ -840,9 +877,16 @@ function AreasComunes() {
     const hf = normalizeTime((res.horaFin || "").replace(/:00$/, ""));
     const ahora = new Date();
     const fechaImpresion =
-      [String(ahora.getDate()).padStart(2, "0"), String(ahora.getMonth() + 1).padStart(2, "0"), ahora.getFullYear()].join("/") +
+      [
+        String(ahora.getDate()).padStart(2, "0"),
+        String(ahora.getMonth() + 1).padStart(2, "0"),
+        ahora.getFullYear(),
+      ].join("/") +
       " " +
-      [String(ahora.getHours()).padStart(2, "0"), String(ahora.getMinutes()).padStart(2, "0")].join(":");
+      [
+        String(ahora.getHours()).padStart(2, "0"),
+        String(ahora.getMinutes()).padStart(2, "0"),
+      ].join(":");
 
     const html = buildTicketHtml({
       id: res.idReservas || "",
@@ -863,14 +907,21 @@ function AreasComunes() {
 
     const ventana = window.open("", "_blank", "width=320,height=600");
     if (!ventana) {
-      Swal.fire("Error", "El navegador bloqueó la ventana emergente. Permite las ventanas emergentes e intenta de nuevo.", "warning");
+      Swal.fire(
+        "Error",
+        "El navegador bloqueó la ventana emergente. Permite las ventanas emergentes e intenta de nuevo.",
+        "warning",
+      );
       return;
     }
     ventana.document.write(html);
     ventana.document.close();
-    ventana.onload = () => { setTimeout(() => { ventana.print(); }, 300); };
+    ventana.onload = () => {
+      setTimeout(() => {
+        ventana.print();
+      }, 300);
+    };
   };
-
 
   // ════════════════════════════════════════════════════════
   // HELPERS DE RENDER

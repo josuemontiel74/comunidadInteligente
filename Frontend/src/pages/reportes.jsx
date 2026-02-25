@@ -148,11 +148,21 @@ function createPdfHelpers(pdf, ctx, { m, ph, pw, colLabel, colValue }) {
     const rgb = hexToRgb(fillColor);
     pdf.setFillColor(...rgb);
     if (pct > 0)
-      pdf.roundedRect(barX + 2, ctx.y, Math.max(4, (barW - 4) * pct), 5, 2, 2, "F");
+      pdf.roundedRect(
+        barX + 2,
+        ctx.y,
+        Math.max(4, (barW - 4) * pct),
+        5,
+        2,
+        2,
+        "F",
+      );
     pdf.setFontSize(7.5);
     pdf.setTextColor(255, 255, 255);
     if (pct > 0.12)
-      pdf.text(pctText, barX + 2 + ((barW - 4) * pct) / 2, ctx.y + 3.5, { align: "center" });
+      pdf.text(pctText, barX + 2 + ((barW - 4) * pct) / 2, ctx.y + 3.5, {
+        align: "center",
+      });
     pdf.setTextColor(30, 30, 30);
     ctx.y += 9;
   };

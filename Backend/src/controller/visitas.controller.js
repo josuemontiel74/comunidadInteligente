@@ -46,29 +46,53 @@ async function liberarParqueaderoDeVehiculo(matricula) {
  * Procesa la asignación de vehículo al crear una visita.
  * @returns {{ vehiculoMatricula: string, parqueadero: object }}
  */
-async function procesarVehiculoNuevo(matricula, tipoVehiculoId, codigoParqueadero) {
+async function procesarVehiculoNuevo(
+  matricula,
+  tipoVehiculoId,
+  codigoParqueadero,
+) {
   const placaLimpia = matricula.trim().toUpperCase();
   if (!PLACA_REGEX.test(placaLimpia)) {
-    throw Object.assign(new Error(
-      "La matrícula no tiene un formato válido. Use el formato colombiano: ABC123 (carro) o ABC12D / ABC12 (moto). Sin caracteres especiales ni secuencias inválidas.",
-    ), { status: 400 });
+    throw Object.assign(
+      new Error(
+        "La matrícula no tiene un formato válido. Use el formato colombiano: ABC123 (carro) o ABC12D / ABC12 (moto). Sin caracteres especiales ni secuencias inválidas.",
+      ),
+      { status: 400 },
+    );
   }
 
-  if (!tipoVehiculoId || !codigoParqueadero || codigoParqueadero.trim() === "") {
-    throw Object.assign(new Error("Debe proporcionar tipo de vehículo y código de parqueadero"), { status: 400 });
+  if (
+    !tipoVehiculoId ||
+    !codigoParqueadero ||
+    codigoParqueadero.trim() === ""
+  ) {
+    throw Object.assign(
+      new Error("Debe proporcionar tipo de vehículo y código de parqueadero"),
+      { status: 400 },
+    );
   }
 
   const parqueadero = await Parqueadero.findByPk(codigoParqueadero);
-  if (!parqueadero) throw Object.assign(new Error("El parqueadero no existe"), { status: 400 });
+  if (!parqueadero)
+    throw Object.assign(new Error("El parqueadero no existe"), { status: 400 });
   if (Number(parqueadero.estadoId) !== ESTADO_PARQUEADERO.DISPONIBLE) {
-    throw Object.assign(new Error("El parqueadero no está disponible"), { status: 400 });
+    throw Object.assign(new Error("El parqueadero no está disponible"), {
+      status: 400,
+    });
   }
 
   let vehiculo = await Vehiculo.findByPk(matricula);
   if (!vehiculo) {
-    vehiculo = await Vehiculo.create({ matricula, tipoVehiculoId, codigoParqueadero });
+    vehiculo = await Vehiculo.create({
+      matricula,
+      tipoVehiculoId,
+      codigoParqueadero,
+    });
   } else {
-    if (vehiculo.codigoParqueadero && vehiculo.codigoParqueadero !== codigoParqueadero) {
+    if (
+      vehiculo.codigoParqueadero &&
+      vehiculo.codigoParqueadero !== codigoParqueadero
+    ) {
       await Parqueadero.update(
         { estadoId: ESTADO_PARQUEADERO.DISPONIBLE },
         { where: { codigoParqueadero: vehiculo.codigoParqueadero } },
@@ -86,7 +110,8 @@ async function procesarVehiculoNuevo(matricula, tipoVehiculoId, codigoParqueader
 function parseFechaIngreso(fechaHoraIngreso, fechaActual) {
   if (!fechaHoraIngreso) return fechaActual;
   let fecha = dayjs(fechaHoraIngreso, "YYYY-MM-DD HH:mm", true);
-  if (!fecha.isValid()) fecha = dayjs(fechaHoraIngreso, "YYYY-MM-DD hh:mm A", true);
+  if (!fecha.isValid())
+    fecha = dayjs(fechaHoraIngreso, "YYYY-MM-DD hh:mm A", true);
   if (fecha.isValid()) fecha = fecha.tz(TIMEZONE_COLOMBIA, true);
   return fecha;
 }
@@ -95,7 +120,12 @@ function parseFechaIngreso(fechaHoraIngreso, fechaActual) {
  * Procesa el cambio de vehículo al actualizar una visita.
  * @returns {string|null} vehiculoMatricula resultante
  */
-async function procesarActualizacionVehiculo(visita, matricula, tipoVehiculoId, codigoParqueadero) {
+async function procesarActualizacionVehiculo(
+  visita,
+  matricula,
+  tipoVehiculoId,
+  codigoParqueadero,
+) {
   // Quitar vehículo
   if (!matricula || matricula.trim() === "") {
     await liberarParqueaderoDeVehiculo(visita.vehiculoMatricula);
@@ -103,22 +133,36 @@ async function procesarActualizacionVehiculo(visita, matricula, tipoVehiculoId, 
   }
 
   // Faltan datos obligatorios
-  if (!tipoVehiculoId || !codigoParqueadero || codigoParqueadero.trim() === "") {
-    throw Object.assign(new Error(
-      "Debe proporcionar tipo de vehículo y código de parqueadero para asignar un vehículo",
-    ), { status: 400 });
+  if (
+    !tipoVehiculoId ||
+    !codigoParqueadero ||
+    codigoParqueadero.trim() === ""
+  ) {
+    throw Object.assign(
+      new Error(
+        "Debe proporcionar tipo de vehículo y código de parqueadero para asignar un vehículo",
+      ),
+      { status: 400 },
+    );
   }
 
   const parqueadero = await Parqueadero.findByPk(codigoParqueadero);
-  if (!parqueadero) throw Object.assign(new Error("El parqueadero no existe"), { status: 400 });
+  if (!parqueadero)
+    throw Object.assign(new Error("El parqueadero no existe"), { status: 400 });
 
   const vehiculoActual = visita.vehiculoMatricula
     ? await Vehiculo.findByPk(visita.vehiculoMatricula)
     : null;
-  const esElMismoParqueadero = vehiculoActual?.codigoParqueadero === codigoParqueadero;
+  const esElMismoParqueadero =
+    vehiculoActual?.codigoParqueadero === codigoParqueadero;
 
-  if (!esElMismoParqueadero && parqueadero.estadoId !== ESTADO_PARQUEADERO.DISPONIBLE) {
-    throw Object.assign(new Error("El parqueadero no está disponible"), { status: 400 });
+  if (
+    !esElMismoParqueadero &&
+    parqueadero.estadoId !== ESTADO_PARQUEADERO.DISPONIBLE
+  ) {
+    throw Object.assign(new Error("El parqueadero no está disponible"), {
+      status: 400,
+    });
   }
 
   // Liberar parqueadero anterior si el vehículo de la visita cambia
@@ -129,9 +173,16 @@ async function procesarActualizacionVehiculo(visita, matricula, tipoVehiculoId, 
   // Crear o actualizar el vehículo
   let vehiculo = await Vehiculo.findByPk(matricula);
   if (!vehiculo) {
-    vehiculo = await Vehiculo.create({ matricula, tipoVehiculoId, codigoParqueadero });
+    vehiculo = await Vehiculo.create({
+      matricula,
+      tipoVehiculoId,
+      codigoParqueadero,
+    });
   } else {
-    if (vehiculo.codigoParqueadero && vehiculo.codigoParqueadero !== codigoParqueadero) {
+    if (
+      vehiculo.codigoParqueadero &&
+      vehiculo.codigoParqueadero !== codigoParqueadero
+    ) {
       await Parqueadero.update(
         { estadoId: ESTADO_PARQUEADERO.DISPONIBLE },
         { where: { codigoParqueadero: vehiculo.codigoParqueadero } },
@@ -149,7 +200,6 @@ async function procesarActualizacionVehiculo(visita, matricula, tipoVehiculoId, 
 
   return vehiculo.matricula;
 }
-
 
 export const crearVisita = async (req, res) => {
   try {
@@ -170,11 +220,14 @@ export const crearVisita = async (req, res) => {
     const fechaIngreso = parseFechaIngreso(fechaHoraIngreso, fechaActual);
 
     if (!fechaIngreso.isValid()) {
-      return res.status(400).json({ error: "La fecha de ingreso no es válida" });
+      return res
+        .status(400)
+        .json({ error: "La fecha de ingreso no es válida" });
     }
     if (fechaIngreso.isBefore(fechaActual.subtract(2, "hour"))) {
       return res.status(400).json({
-        error: "La fecha y hora de ingreso no puede ser anterior a 2 horas de la actual",
+        error:
+          "La fecha y hora de ingreso no puede ser anterior a 2 horas de la actual",
       });
     }
     if (fechaIngreso.year() > 2100) {
@@ -185,9 +238,15 @@ export const crearVisita = async (req, res) => {
 
     // Crear o actualizar visitante
     let visitante = await Visitante.findByPk(numeroDocumento);
-    const camposVisitante = buildVisitanteData(nombreVisitante, tipoDocumentoId);
+    const camposVisitante = buildVisitanteData(
+      nombreVisitante,
+      tipoDocumentoId,
+    );
     if (!visitante) {
-      visitante = await Visitante.create({ numeroDocumento, ...camposVisitante });
+      visitante = await Visitante.create({
+        numeroDocumento,
+        ...camposVisitante,
+      });
     } else if (Object.keys(camposVisitante).length > 0) {
       await visitante.update(camposVisitante);
     }
@@ -224,7 +283,12 @@ export const crearVisita = async (req, res) => {
     });
 
     const usuarioActual = req.user?.username || "desconocido";
-    await registrarAuditoria(usuarioActual, "visitas", "INSERT", visita.idVisita);
+    await registrarAuditoria(
+      usuarioActual,
+      "visitas",
+      "INSERT",
+      visita.idVisita,
+    );
 
     if (parqueadero && vehiculoMatricula) {
       await parqueadero.update({ estadoId: ESTADO_PARQUEADERO.OCUPADO });
@@ -368,16 +432,22 @@ export const actualizarVisita = async (req, res) => {
 
     const visita = await Visita.findByPk(idVisita);
     if (!visita) {
-      return res.status(404).json({ error: "Visita no encontrada", status: 404 });
+      return res
+        .status(404)
+        .json({ error: "Visita no encontrada", status: 404 });
     }
 
     const updateData = {};
 
     // Validar fecha
     if (fechaHoraIngreso) {
-      const fechaIngreso = dayjs(fechaHoraIngreso, "YYYY-MM-DD HH:mm", true).tz(TIMEZONE_COLOMBIA);
+      const fechaIngreso = dayjs(fechaHoraIngreso, "YYYY-MM-DD HH:mm", true).tz(
+        TIMEZONE_COLOMBIA,
+      );
       if (!fechaIngreso.isValid()) {
-        return res.status(400).json({ error: "La fecha de ingreso no es válida" });
+        return res
+          .status(400)
+          .json({ error: "La fecha de ingreso no es válida" });
       }
       if (fechaIngreso.year() > 2100) {
         return res.status(400).json({
@@ -392,11 +462,17 @@ export const actualizarVisita = async (req, res) => {
     if (observaciones !== undefined) updateData.observaciones = observaciones;
 
     // Actualizar visitante
-    const camposVisitante = buildVisitanteData(nombreVisitante, tipoDocumentoId);
+    const camposVisitante = buildVisitanteData(
+      nombreVisitante,
+      tipoDocumentoId,
+    );
     if (numeroDocumento && numeroDocumento !== visita.numeroDocumento) {
       let visitante = await Visitante.findByPk(numeroDocumento);
       if (!visitante) {
-        visitante = await Visitante.create({ numeroDocumento, ...camposVisitante });
+        visitante = await Visitante.create({
+          numeroDocumento,
+          ...camposVisitante,
+        });
       } else if (Object.keys(camposVisitante).length > 0) {
         await visitante.update(camposVisitante);
       }
@@ -407,7 +483,11 @@ export const actualizarVisita = async (req, res) => {
     }
 
     // Actualizar vehículo
-    if (matricula !== undefined || tipoVehiculoId !== undefined || codigoParqueadero !== undefined) {
+    if (
+      matricula !== undefined ||
+      tipoVehiculoId !== undefined ||
+      codigoParqueadero !== undefined
+    ) {
       updateData.vehiculoMatricula = await procesarActualizacionVehiculo(
         visita,
         matricula,
@@ -428,7 +508,9 @@ export const actualizarVisita = async (req, res) => {
       body: visita,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message, message: "Error al actualizar la visita" });
+    res
+      .status(500)
+      .json({ error: error.message, message: "Error al actualizar la visita" });
   }
 };
 

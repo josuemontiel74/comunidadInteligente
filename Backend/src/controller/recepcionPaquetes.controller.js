@@ -6,7 +6,11 @@ import Apartamento from "../models/apartamentos.model.js";
 import { sequelize } from "../config/connect.db.js";
 import { registrarAuditoria } from "../services/auditorias.service.js";
 import { registrarFallo } from "../services/logger.service.js";
-import { ESTADO_PAQUETE, USUARIO_DESCONOCIDO, AÑO_MAXIMO } from "../utils/constantes.js";
+import {
+  ESTADO_PAQUETE,
+  USUARIO_DESCONOCIDO,
+  AÑO_MAXIMO,
+} from "../utils/constantes.js";
 
 /** Columnas que se copian directamente de req.body si están presentes */
 const CAMPOS_OPCIONALES_PAQUETE = [
@@ -22,11 +26,15 @@ const atributosBaseInforme = () => [
   [fn("YEAR", col("fechaRecepcion")), "anio"],
   [fn("COUNT", col("idPaquete")), "recibidos"],
   [
-    literal(`SUM(CASE WHEN estadoId = ${ESTADO_PAQUETE.RECIBIDO} THEN 1 ELSE 0 END)`),
+    literal(
+      `SUM(CASE WHEN estadoId = ${ESTADO_PAQUETE.RECIBIDO} THEN 1 ELSE 0 END)`,
+    ),
     "pendientes",
   ],
   [
-    literal(`SUM(CASE WHEN estadoId = ${ESTADO_PAQUETE.ENTREGADO} THEN 1 ELSE 0 END)`),
+    literal(
+      `SUM(CASE WHEN estadoId = ${ESTADO_PAQUETE.ENTREGADO} THEN 1 ELSE 0 END)`,
+    ),
     "entregados",
   ],
 ];
@@ -222,7 +230,8 @@ export const actualizarRecepcionPaquete = async (req, res) => {
 
     // Agregar campos opcionales presentes en el body
     for (const campo of CAMPOS_OPCIONALES_PAQUETE) {
-      if (req.body[campo] !== undefined) datosActualizacion[campo] = req.body[campo];
+      if (req.body[campo] !== undefined)
+        datosActualizacion[campo] = req.body[campo];
     }
 
     const [updated] = await RecepcionPaquetes.update(datosActualizacion, {
@@ -384,7 +393,10 @@ export const informePaqueteria = async (req, res) => {
             [fn("MONTH", col("fechaRecepcion")), "mes"],
           ],
           ...queryConfig,
-          group: [fn("YEAR", col("fechaRecepcion")), fn("MONTH", col("fechaRecepcion"))],
+          group: [
+            fn("YEAR", col("fechaRecepcion")),
+            fn("MONTH", col("fechaRecepcion")),
+          ],
           order: [
             [fn("YEAR", col("fechaRecepcion")), "ASC"],
             [fn("MONTH", col("fechaRecepcion")), "ASC"],
@@ -397,7 +409,10 @@ export const informePaqueteria = async (req, res) => {
           attributes: [
             ...atributosBaseInforme(),
             [fn("MONTH", col("fechaRecepcion")), "mes"],
-            [literal(`FLOOR((DAYOFMONTH(fechaRecepcion) - 1) / 7) + 1`), "semana"],
+            [
+              literal(`FLOOR((DAYOFMONTH(fechaRecepcion) - 1) / 7) + 1`),
+              "semana",
+            ],
           ],
           ...queryConfig,
           group: [

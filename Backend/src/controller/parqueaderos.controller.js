@@ -21,10 +21,15 @@ const MSG_VISITA_ACTIVA =
  * @returns {Promise<VisitaModel|null>}
  */
 async function buscarVisitaActivaEnParqueadero(codigoParqueadero) {
-  const vehiculo = await VehiculoModel.findOne({ where: { codigoParqueadero } });
+  const vehiculo = await VehiculoModel.findOne({
+    where: { codigoParqueadero },
+  });
   if (!vehiculo) return null;
   return VisitaModel.findOne({
-    where: { vehiculoMatricula: vehiculo.matricula, estadoId: ESTADO_VISITA.ACTIVA },
+    where: {
+      vehiculoMatricula: vehiculo.matricula,
+      estadoId: ESTADO_VISITA.ACTIVA,
+    },
   });
 }
 
@@ -190,7 +195,9 @@ export const actualizarParqueadero = async (req, res) => {
 
       // Bloquear asignación manual a "Ocupado"
       if (Number(estadoId) === ESTADO_PARQUEADERO.OCUPADO) {
-        return res.status(400).json({ message: MSG_NO_OCUPADO_MANUAL, status: 400 });
+        return res
+          .status(400)
+          .json({ message: MSG_NO_OCUPADO_MANUAL, status: 400 });
       }
 
       // Si estaba ocupado y se quiere liberar, verificar que no haya visita activa
@@ -198,7 +205,8 @@ export const actualizarParqueadero = async (req, res) => {
         Number(parqueadero.estadoId) === ESTADO_PARQUEADERO.OCUPADO &&
         ESTADOS_LIBERAR.includes(Number(estadoId))
       ) {
-        const visitaActiva = await buscarVisitaActivaEnParqueadero(codigoParqueadero);
+        const visitaActiva =
+          await buscarVisitaActivaEnParqueadero(codigoParqueadero);
         if (visitaActiva) {
           return res.status(400).json({
             message: MSG_VISITA_ACTIVA,
@@ -296,7 +304,9 @@ export const cambiarEstadoParqueadero = async (req, res) => {
 
     // No se puede poner a Ocupado manualmente
     if (Number(estadoId) === ESTADO_PARQUEADERO.OCUPADO) {
-      return res.status(400).json({ message: MSG_NO_OCUPADO_MANUAL, status: 400 });
+      return res
+        .status(400)
+        .json({ message: MSG_NO_OCUPADO_MANUAL, status: 400 });
     }
 
     // Si estaba ocupado y se quiere liberar, verificar que no haya visita activa
@@ -304,7 +314,8 @@ export const cambiarEstadoParqueadero = async (req, res) => {
       Number(parqueadero.estadoId) === ESTADO_PARQUEADERO.OCUPADO &&
       ESTADOS_LIBERAR.includes(Number(estadoId))
     ) {
-      const visitaActiva = await buscarVisitaActivaEnParqueadero(codigoParqueadero);
+      const visitaActiva =
+        await buscarVisitaActivaEnParqueadero(codigoParqueadero);
       if (visitaActiva) {
         return res.status(400).json({
           message: MSG_VISITA_ACTIVA,

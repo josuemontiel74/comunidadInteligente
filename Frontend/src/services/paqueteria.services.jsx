@@ -1,4 +1,4 @@
-const BASE = "http://localhost:3001/api";
+import { API_BASE as BASE } from "./api.config.js";
 
 export async function obtenerPaquetes(token) {
   return fetch(`${BASE}/recepcion-paquetes`, { method: "GET", headers: { Authorization: `Bearer ${token}` } });

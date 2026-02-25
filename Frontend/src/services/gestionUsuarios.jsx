@@ -1,4 +1,4 @@
-const BASE = "http://localhost:3001/api";
+import { API_BASE as BASE } from "./api.config.js";
 
 export const obtenerUsuarios = async (token) => {
   const res = await fetch(`${BASE}/usuario`, {

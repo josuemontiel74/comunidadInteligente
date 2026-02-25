@@ -329,19 +329,32 @@ function Paqueteria() {
 
   // ── Helpers de respuesta CRUD ──
   const manejarSesionExpiradaPaq = () => {
-    Swal.fire({ icon: "warning", title: "Sesión expirada", timer: 2000, showConfirmButton: false });
+    Swal.fire({
+      icon: "warning",
+      title: "Sesión expirada",
+      timer: 2000,
+      showConfirmButton: false,
+    });
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigator("/");
   };
 
-  const handleRespuestaPaquete = async (response, { tituloOk, errorPrefix, onOk }) => {
+  const handleRespuestaPaquete = async (
+    response,
+    { tituloOk, errorPrefix, onOk },
+  ) => {
     if (response.status === 401 || response.status === 403) {
       manejarSesionExpiradaPaq();
       return;
     }
     if (response.ok) {
-      Swal.fire({ icon: "success", title: tituloOk, timer: 2500, showConfirmButton: false });
+      Swal.fire({
+        icon: "success",
+        title: tituloOk,
+        timer: 2500,
+        showConfirmButton: false,
+      });
       await onOk();
     } else {
       const errText = await response.text();

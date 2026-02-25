@@ -1,0 +1,13 @@
+node_modules/
+
+# Variables de entorno — nunca versionar archivos con credenciales reales
+.env
+.env.local
+.env.production
+
+# Backups de base de datos — contienen hashes de contraseñas, no versionar
+backups/
+
+# Logs
+*.log
+logs/

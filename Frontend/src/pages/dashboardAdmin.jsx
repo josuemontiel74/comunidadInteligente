@@ -8,6 +8,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { obtenerResumenDashboard } from "../services/dashboard.services.jsx";
 import { logoutUsuario } from "../services/gestionUsuarios.jsx";
+import { API_BASE } from "../services/api.config.js";
 import DescargaAppMovil from "./DescargaAppMovil.jsx";
 import ModoOscuro from "./ModoOscuro.jsx";
 import WhatsAppModal from "./WhatsAppModal.jsx";
@@ -107,7 +108,7 @@ function Dashboard() {
         navigator("/");
       }
     } else {
-      fetch("http://localhost:3001/api/usuario", {
+      fetch(`${API_BASE}/usuario`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
