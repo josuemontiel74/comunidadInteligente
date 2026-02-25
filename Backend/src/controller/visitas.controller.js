@@ -44,7 +44,7 @@ async function liberarParqueaderoDeVehiculo(matricula) {
 
 /**
  * Procesa la asignación de vehículo al crear una visita.
- * @returns {{ vehiculoMatricula: string, parqueadero: object }}
+ * @returns {Promise<{ vehiculoMatricula: string, parqueadero: object }>}
  */
 async function procesarVehiculoNuevo(
   matricula,
@@ -118,7 +118,7 @@ function parseFechaIngreso(fechaHoraIngreso, fechaActual) {
 
 /**
  * Procesa el cambio de vehículo al actualizar una visita.
- * @returns {string|null} vehiculoMatricula resultante
+ * @returns {Promise<string|null>} vehiculoMatricula resultante
  */
 async function procesarActualizacionVehiculo(
   visita,
@@ -415,6 +415,49 @@ export const obtenerVisitaPorId = async (req, res) => {
   }
 };
 
+/**
+ * Valida y formatea la fecha de ingreso.
+ * @param {string} fechaHoraIngreso
+ * @returns {{ error: string }|{ formatted: string }} error o valor formateado
+ */
+function validarFechaIngreso(fechaHoraIngreso) {
+  const fechaIngreso = dayjs(fechaHoraIngreso, "YYYY-MM-DD HH:mm", true).tz(
+    TIMEZONE_COLOMBIA,
+  );
+  if (!fechaIngreso.isValid()) {
+    return { error: "La fecha de ingreso no es válida" };
+  }
+  if (fechaIngreso.year() > 2100) {
+    return { error: "El año de la fecha de ingreso no puede ser mayor a 2100" };
+  }
+  return { formatted: fechaIngreso.format("YYYY-MM-DD HH:mm") };
+}
+
+/**
+ * Actualiza o crea el visitante asociado a una visita.
+ * @returns {Promise<string|undefined>} nuevo numeroDocumento si cambió
+ */
+async function actualizarVisitanteAsociado(
+  visita,
+  numeroDocumento,
+  camposVisitante,
+) {
+  if (numeroDocumento && numeroDocumento !== visita.numeroDocumento) {
+    const visitante = await Visitante.findByPk(numeroDocumento);
+    if (!visitante) {
+      await Visitante.create({ numeroDocumento, ...camposVisitante });
+    } else if (Object.keys(camposVisitante).length > 0) {
+      await visitante.update(camposVisitante);
+    }
+    return numeroDocumento;
+  }
+  if (Object.keys(camposVisitante).length > 0) {
+    const visitanteActual = await Visitante.findByPk(visita.numeroDocumento);
+    if (visitanteActual) await visitanteActual.update(camposVisitante);
+  }
+  return undefined;
+}
+
 export const actualizarVisita = async (req, res) => {
   try {
     const { idVisita } = req.params;
@@ -442,20 +485,11 @@ export const actualizarVisita = async (req, res) => {
 
     // Validar fecha
     if (fechaHoraIngreso) {
-      const fechaIngreso = dayjs(fechaHoraIngreso, "YYYY-MM-DD HH:mm", true).tz(
-        TIMEZONE_COLOMBIA,
-      );
-      if (!fechaIngreso.isValid()) {
-        return res
-          .status(400)
-          .json({ error: "La fecha de ingreso no es válida" });
+      const resultado = validarFechaIngreso(fechaHoraIngreso);
+      if (resultado.error) {
+        return res.status(400).json({ error: resultado.error });
       }
-      if (fechaIngreso.year() > 2100) {
-        return res.status(400).json({
-          error: "El año de la fecha de ingreso no puede ser mayor a 2100",
-        });
-      }
-      updateData.fechaHoraIngreso = fechaIngreso.format("YYYY-MM-DD HH:mm");
+      updateData.fechaHoraIngreso = resultado.formatted;
     }
 
     if (apartamentoId !== undefined) updateData.apartamentoId = apartamentoId;
@@ -467,21 +501,12 @@ export const actualizarVisita = async (req, res) => {
       nombreVisitante,
       tipoDocumentoId,
     );
-    if (numeroDocumento && numeroDocumento !== visita.numeroDocumento) {
-      const visitante = await Visitante.findByPk(numeroDocumento);
-      if (!visitante) {
-        await Visitante.create({
-          numeroDocumento,
-          ...camposVisitante,
-        });
-      } else if (Object.keys(camposVisitante).length > 0) {
-        await visitante.update(camposVisitante);
-      }
-      updateData.numeroDocumento = numeroDocumento;
-    } else if (Object.keys(camposVisitante).length > 0) {
-      const visitanteActual = await Visitante.findByPk(visita.numeroDocumento);
-      if (visitanteActual) await visitanteActual.update(camposVisitante);
-    }
+    const nuevoDoc = await actualizarVisitanteAsociado(
+      visita,
+      numeroDocumento,
+      camposVisitante,
+    );
+    if (nuevoDoc) updateData.numeroDocumento = nuevoDoc;
 
     // Actualizar vehículo
     if (

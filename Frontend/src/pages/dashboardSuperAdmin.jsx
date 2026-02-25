@@ -26,6 +26,36 @@ const getUserProfilePhoto = (key) => {
   }
 };
 
+/** Calcula porcentaje como string. Retorna "0" si total es 0 */
+const calcPctStr = (val, total) =>
+  total > 0 ? ((val / total) * 100).toFixed(0) : "0";
+
+/** Construye la lista de módulos del dashboard según permisos */
+function buildModulos(showAreasComunes, showUserManagement) {
+  const base = [
+    { icon: "bi-box-seam-fill", title: "Gestión de Paquetería", color: "#3b82f6", to: "/Paqueteria" },
+    { icon: "bi-people-fill", title: "Gestión de Visitas", color: "#22c55e", to: "/visitas" },
+    { icon: "bi-p-circle-fill", title: "Parqueaderos", color: "#ef4444", to: "/parqueaderos" },
+  ];
+  if (showAreasComunes) {
+    base.push({ icon: "bi-building", title: "Áreas Comunes", color: "#f97316", to: "/AreasComunes" });
+  }
+  if (showUserManagement) {
+    base.push({ icon: "bi-shield-lock-fill", title: "Gestión de Usuarios", color: "#a855f7", to: "/GestionUsuario" });
+  }
+  base.push(
+    { icon: "bi-house-door-fill", title: "Gestión de Residentes", color: "#14b8a6", to: "/Residentes" },
+    { icon: "bi-file-earmark-bar-graph-fill", title: "Reportes", color: "#6366f1", to: "/Reportes" },
+  );
+  if (showUserManagement) {
+    base.push(
+      { icon: "bi-journal-text", title: "Auditorías", color: "#4f46e5", to: "/Auditorias" },
+      { icon: "bi-bug-fill", title: "Log de Errores", color: "#b91c1c", to: "/LogErrores" },
+    );
+  }
+  return base;
+}
+
 function Dashboard() {
   const navigator = useNavigate();
   const chartRef = useRef(null);
@@ -441,81 +471,11 @@ function Dashboard() {
   }
 
   const totalPaquetes = paquetesEntregados + paquetesPendientes;
-  const porcentajeEntregados =
-    totalPaquetes > 0
-      ? ((paquetesEntregados / totalPaquetes) * 100).toFixed(0)
-      : 0;
+  const porcentajeEntregados = calcPctStr(paquetesEntregados, totalPaquetes);
   const totalParqueos = parqueosCarros + parqueosMotos + parqueosLibres;
 
   // Definición de módulos (como en Flutter)
-  const modulos = [
-    {
-      icon: "bi-box-seam-fill",
-      title: "Gestión de Paquetería",
-      color: "#3b82f6",
-      to: "/Paqueteria",
-    },
-    {
-      icon: "bi-people-fill",
-      title: "Gestión de Visitas",
-      color: "#22c55e",
-      to: "/visitas",
-    },
-    {
-      icon: "bi-p-circle-fill",
-      title: "Parqueaderos",
-      color: "#ef4444",
-      to: "/parqueaderos",
-    },
-    ...(showAreasComunes
-      ? [
-          {
-            icon: "bi-building",
-            title: "Áreas Comunes",
-            color: "#f97316",
-            to: "/AreasComunes",
-          },
-        ]
-      : []),
-    ...(showUserManagement
-      ? [
-          {
-            icon: "bi-shield-lock-fill",
-            title: "Gestión de Usuarios",
-            color: "#a855f7",
-            to: "/GestionUsuario",
-          },
-        ]
-      : []),
-    {
-      icon: "bi-house-door-fill",
-      title: "Gestión de Residentes",
-      color: "#14b8a6",
-      to: "/Residentes",
-    },
-    {
-      icon: "bi-file-earmark-bar-graph-fill",
-      title: "Reportes",
-      color: "#6366f1",
-      to: "/Reportes",
-    },
-    ...(showUserManagement
-      ? [
-          {
-            icon: "bi-journal-text",
-            title: "Auditorías",
-            color: "#4f46e5",
-            to: "/Auditorias",
-          },
-          {
-            icon: "bi-bug-fill",
-            title: "Log de Errores",
-            color: "#b91c1c",
-            to: "/LogErrores",
-          },
-        ]
-      : []),
-  ];
+  const modulos = buildModulos(showAreasComunes, showUserManagement);
 
   return (
     <div className={`sa-dashboard${saliendo ? " sa-saliendo" : ""}`}>
@@ -866,11 +826,7 @@ function Dashboard() {
                   ></span>
                   <span className="sa-legend-label">Carros</span>
                   <span className="sa-legend-value">
-                    {parqueosCarros} (
-                    {totalParqueos > 0
-                      ? ((parqueosCarros / totalParqueos) * 100).toFixed(0)
-                      : 0}
-                    %)
+                    {parqueosCarros} ({calcPctStr(parqueosCarros, totalParqueos)}%)
                   </span>
                 </div>
                 <div className="sa-legend-item">
@@ -880,11 +836,7 @@ function Dashboard() {
                   ></span>
                   <span className="sa-legend-label">Motos</span>
                   <span className="sa-legend-value">
-                    {parqueosMotos} (
-                    {totalParqueos > 0
-                      ? ((parqueosMotos / totalParqueos) * 100).toFixed(0)
-                      : 0}
-                    %)
+                    {parqueosMotos} ({calcPctStr(parqueosMotos, totalParqueos)}%)
                   </span>
                 </div>
                 <div className="sa-legend-item">
@@ -894,11 +846,7 @@ function Dashboard() {
                   ></span>
                   <span className="sa-legend-label">Libres</span>
                   <span className="sa-legend-value">
-                    {parqueosLibres} (
-                    {totalParqueos > 0
-                      ? ((parqueosLibres / totalParqueos) * 100).toFixed(0)
-                      : 0}
-                    %)
+                    {parqueosLibres} ({calcPctStr(parqueosLibres, totalParqueos)}%)
                   </span>
                 </div>
               </div>

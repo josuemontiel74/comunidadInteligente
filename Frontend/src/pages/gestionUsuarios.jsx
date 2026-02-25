@@ -104,12 +104,7 @@ function traducirObjeto(obj) {
   return partes.length ? partes.join(" ") : JSON.stringify(obj);
 }
 
-function validarFormularioGU(fd) {
-  if (!fd.tipoDocumentoId)
-    return { titulo: "Error", msg: "Seleccione un tipo de documento." };
-  if (!fd.numeroDocumento?.trim())
-    return { titulo: "Error", msg: "Ingrese el número de documento." };
-  if (!fd.rolesId) return { titulo: "Error", msg: "Seleccione un rol." };
+function validarNombresGU(fd) {
   const errPN = validarNombre(fd.primerNombre);
   if (errPN)
     return { titulo: "Nombre inválido", msg: `Primer Nombre: ${errPN}` };
@@ -126,13 +121,10 @@ function validarFormularioGU(fd) {
     if (errSA)
       return { titulo: "Apellido inválido", msg: `Segundo Apellido: ${errSA}` };
   }
-  const tipoDocNombreGU = TIPO_DOC_MAP[parseInt(fd.tipoDocumentoId)] || "";
-  const errDocGU = validarDocumento(
-    fd.numeroDocumento,
-    fd.tipoDocumentoId,
-    tipoDocNombreGU,
-  );
-  if (errDocGU) return { titulo: "Documento inválido", msg: errDocGU };
+  return null;
+}
+
+function validarContactoGU(fd) {
   if (fd.telefono) {
     const errTelGU = validarTelefono(fd.telefono);
     if (errTelGU) return { titulo: "Teléfono inválido", msg: errTelGU };
@@ -142,6 +134,27 @@ function validarFormularioGU(fd) {
     if (errEmailGU) return { titulo: "Correo inválido", msg: errEmailGU };
   }
   return null;
+}
+
+function validarFormularioGU(fd) {
+  if (!fd.tipoDocumentoId)
+    return { titulo: "Error", msg: "Seleccione un tipo de documento." };
+  if (!fd.numeroDocumento?.trim())
+    return { titulo: "Error", msg: "Ingrese el número de documento." };
+  if (!fd.rolesId) return { titulo: "Error", msg: "Seleccione un rol." };
+
+  const errNombres = validarNombresGU(fd);
+  if (errNombres) return errNombres;
+
+  const tipoDocNombreGU = TIPO_DOC_MAP[parseInt(fd.tipoDocumentoId)] || "";
+  const errDocGU = validarDocumento(
+    fd.numeroDocumento,
+    fd.tipoDocumentoId,
+    tipoDocNombreGU,
+  );
+  if (errDocGU) return { titulo: "Documento inválido", msg: errDocGU };
+
+  return validarContactoGU(fd);
 }
 
 const traducirMensajeBackend = (errData) => {
@@ -557,7 +570,7 @@ function GestionUsuarios() {
         html: `<b>${existente.primerNombre} ${existente.primerApellido}</b> ya se encuentra <b>activo</b> con ese número de documento.<br/><br/>Si necesita modificar su información, puede editarlo desde la tabla.`,
         confirmButtonText: "Entendido",
       });
-      return true;
+      return;
     }
     const result = await Swal.fire({
       icon: "info",
@@ -584,7 +597,6 @@ function GestionUsuarios() {
         Swal.fire("Error", "No se pudo reactivar el usuario.", "error");
       }
     }
-    return true;
   };
 
   const manejar409GU = async (dataRes, token) => {
@@ -637,6 +649,60 @@ function GestionUsuarios() {
     resetForm();
   };
 
+  /** Parsea respuesta fetch como JSON o texto */
+  const parseJsonOrText = async (res) => {
+    const ct = res.headers.get("content-type");
+    return ct && ct.includes("application/json")
+      ? await res.json()
+      : await res.text();
+  };
+
+  /** Maneja errores HTTP comunes de registro/edición */
+  const manejarErrorHttpGU = async (status, data, token) => {
+    if (status === 400) {
+      Swal.fire({
+        icon: "warning",
+        title: "Error de validacion",
+        text: traducirMensajeBackend(data),
+      });
+      return;
+    }
+    if (status === 409) {
+      await manejar409GU(data, token);
+      return;
+    }
+    if (status >= 500) {
+      Swal.fire({
+        icon: "error",
+        title: "Error de servidor",
+        text: "Error en el servidor. Comuniquese con el area de sistemas.",
+      });
+      return;
+    }
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "No se pudo completar la operación.",
+    });
+  };
+
+  /** Guarda foto local y la sincroniza al backend */
+  const guardarFotoGU = async (photo, docKey, username, token) => {
+    if (!photo) return;
+    const photoKey = docKey || username || "";
+    if (photoKey) {
+      savePhoto(photoKey, photo);
+      setUserPhotos(getPhotos());
+    }
+    if (username && token) {
+      try {
+        await actualizarFotoPerfil(username, photo, token);
+      } catch {
+        /* foto no sincronizada */
+      }
+    }
+  };
+
   const handleRegistrar = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
@@ -655,8 +721,10 @@ function GestionUsuarios() {
         const existente = usuarios.find(
           (u) => u.numeroDocumento?.toLowerCase() === doc,
         );
-        if (existente && (await manejarDocDuplicadoFE(existente, token)))
+        if (existente) {
+          await manejarDocDuplicadoFE(existente, token);
           return;
+        }
       }
       const datos = {
         password: formData.password,
@@ -672,56 +740,17 @@ function GestionUsuarios() {
         correoElectronico: formData.correoElectronico,
       };
       const res = await registrarUsuario(datos, token);
-      const contentType = res.headers.get("content-type");
-      const dataRes =
-        contentType && contentType.includes("application/json")
-          ? await res.json()
-          : await res.text();
+      const dataRes = await parseJsonOrText(res);
       if (!res.ok) {
-        if (res.status === 400) {
-          Swal.fire({
-            icon: "warning",
-            title: "Error de validacion",
-            text: traducirMensajeBackend(dataRes),
-          });
-          return;
-        }
-        if (res.status === 409) {
-          await manejar409GU(dataRes, token);
-          return;
-        }
-        if (res.status >= 500) {
-          Swal.fire({
-            icon: "error",
-            title: "Error de servidor",
-            text: "Error en el servidor. Comuniquese con el area de sistemas.",
-          });
-          return;
-        }
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "No se pudo crear el usuario.",
-        });
+        await manejarErrorHttpGU(res.status, dataRes, token);
         return;
       }
-      /* Guardar foto si se seleccionó una */
-      if (formPhoto) {
-        const photoKey =
-          formData.numeroDocumento || dataRes.usuario?.username || "";
-        const usernameCreado = dataRes.usuario?.username || "";
-        if (photoKey) {
-          savePhoto(photoKey, formPhoto);
-          setUserPhotos(getPhotos());
-        }
-        if (usernameCreado && token) {
-          try {
-            await actualizarFotoPerfil(usernameCreado, formPhoto, token);
-          } catch (_) {
-            /* foto no sincronizada */
-          }
-        }
-      }
+      await guardarFotoGU(
+        formPhoto,
+        formData.numeroDocumento,
+        dataRes.usuario?.username || "",
+        token,
+      );
       Swal.fire({
         icon: "success",
         title: "Registrado correctamente",
@@ -799,6 +828,30 @@ function GestionUsuarios() {
     }
   };
 
+  /** Construye payload de edición filtrando campos vacíos */
+  const buildPayloadEditar = (fd, username) => {
+    const INT_FIELDS = ["rolesId", "tipoDocumentoId"];
+    const campos = {
+      username,
+      password: fd.password,
+      numeroDocumento: fd.numeroDocumento,
+      primerNombre: fd.primerNombre,
+      segundoNombre: fd.segundoNombre,
+      primerApellido: fd.primerApellido,
+      segundoApellido: fd.segundoApellido,
+      telefono: fd.telefono,
+      correoElectronico: fd.correoElectronico,
+      rolesId: fd.rolesId,
+      tipoDocumentoId: fd.tipoDocumentoId,
+    };
+    const payload = {};
+    for (const [key, val] of Object.entries(campos)) {
+      if (!val) continue;
+      payload[key] = INT_FIELDS.includes(key) ? parseInt(val) : val;
+    }
+    return payload;
+  };
+
   /* Editar */
   const handleEditar = async (e) => {
     e.preventDefault();
@@ -816,69 +869,19 @@ function GestionUsuarios() {
     }
     setSubmitting(true);
     try {
-      const payload = {};
-      if (targetUsername) payload.username = targetUsername;
-      if (formData.password) payload.password = formData.password;
-      if (formData.rolesId) payload.rolesId = parseInt(formData.rolesId);
-      if (formData.numeroDocumento)
-        payload.numeroDocumento = formData.numeroDocumento;
-      if (formData.tipoDocumentoId)
-        payload.tipoDocumentoId = parseInt(formData.tipoDocumentoId);
-      if (formData.primerNombre) payload.primerNombre = formData.primerNombre;
-      if (formData.segundoNombre)
-        payload.segundoNombre = formData.segundoNombre;
-      if (formData.primerApellido)
-        payload.primerApellido = formData.primerApellido;
-      if (formData.segundoApellido)
-        payload.segundoApellido = formData.segundoApellido;
-      if (formData.telefono) payload.telefono = formData.telefono;
-      if (formData.correoElectronico)
-        payload.correoElectronico = formData.correoElectronico;
+      const payload = buildPayloadEditar(formData, targetUsername);
       const res = await editarUsuario(targetUsername, payload, token);
-      const contentType = res.headers.get("content-type");
-      const data =
-        contentType && contentType.includes("application/json")
-          ? await res.json()
-          : await res.text();
+      const data = await parseJsonOrText(res);
       if (!res.ok) {
-        if (res.status === 400) {
-          Swal.fire({
-            icon: "warning",
-            title: "Error de validacion",
-            text: traducirMensajeBackend(data),
-          });
-          return;
-        }
-        if (res.status >= 500) {
-          Swal.fire({
-            icon: "error",
-            title: "Error de servidor",
-            text: "Error en el servidor.",
-          });
-          return;
-        }
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "No se pudo actualizar el usuario.",
-        });
+        await manejarErrorHttpGU(res.status, data, token);
         return;
       }
-      /* Guardar foto si se seleccionó una */
-      if (formPhoto) {
-        const photoKey = formData.numeroDocumento || targetUsername || "";
-        if (photoKey) {
-          savePhoto(photoKey, formPhoto);
-          setUserPhotos(getPhotos());
-        }
-        if (targetUsername && token) {
-          try {
-            await actualizarFotoPerfil(targetUsername, formPhoto, token);
-          } catch (err) {
-            // No se pudo sincronizar foto
-          }
-        }
-      }
+      await guardarFotoGU(
+        formPhoto,
+        formData.numeroDocumento,
+        targetUsername,
+        token,
+      );
       Swal.fire({
         icon: "success",
         title: "Actualizado correctamente",

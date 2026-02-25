@@ -87,6 +87,20 @@ const normalizarFechaHora = (fechaHoraString) => {
   }
 };
 
+/** Resuelve la ruta del dashboard según el rol */
+const getDashboardRoute = (rol) => {
+  if (rol === 1) return "/Superadmin";
+  if (rol === 2) return "/admin";
+  return "/Vigilante";
+};
+
+/** Resuelve el título del menú según el rol */
+const getMenuTitle = (rol) => {
+  if (rol === 1) return "Menú Super Admin";
+  if (rol === 2) return "Menú Admin";
+  return "Menú Vigilante";
+};
+
 /** Convierte una fecha ISO UTC a datetime-local en hora Colombia (UTC-5) */
 function parsearFechaHoraColombia(fechaRaw) {
   try {
@@ -519,19 +533,6 @@ function Paqueteria() {
     });
   };
 
-  // ── Dashboard según rol ──
-  const getDashboardRoute = () => {
-    if (rolesId === 1) return "/Superadmin";
-    if (rolesId === 2) return "/admin";
-    return "/Vigilante";
-  };
-
-  const getMenuTitle = () => {
-    if (rolesId === 1) return "Menú Super Admin";
-    if (rolesId === 2) return "Menú Admin";
-    return "Menú Vigilante";
-  };
-
   const cerrarSesion = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
@@ -577,7 +578,7 @@ function Paqueteria() {
           <div className="paq-drawer-avatar">
             <i className="bi bi-box-seam-fill"></i>
           </div>
-          <h4 className="paq-drawer-title">{getMenuTitle()}</h4>
+          <h4 className="paq-drawer-title">{getMenuTitle(rolesId)}</h4>
           <span className="paq-drawer-user">
             {usuario?.username || usuario?.nombre || "Usuario"}
           </span>
@@ -588,7 +589,7 @@ function Paqueteria() {
             <h6 className="paq-menu-section-title">Navegación</h6>
             <Link
               className="paq-menu-item"
-              to={getDashboardRoute()}
+              to={getDashboardRoute(rolesId)}
               onClick={() => setMenuOpen(false)}
             >
               <i className="bi bi-speedometer2"></i>

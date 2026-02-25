@@ -103,6 +103,18 @@ function buildTicketHtml({
 </body></html>`;
 }
 
+// ── Mapeos de rol (fuera del componente para reducir complejidad) ──
+const ROL_LABEL = { 1: "SuperAdmin", 2: "Admin" };
+const ROL_DASHBOARD = { 1: "/Superadmin", 2: "/Admin" };
+const mapRolLabel = (id) => ROL_LABEL[id] || "Vigilante";
+const mapDashboardPath = (id) => ROL_DASHBOARD[id] || "/Vigilante";
+
+/** Resuelve el texto del botón submit del formulario de reserva */
+function obtenerLabelSubmitReserva(isLoading, isEditing) {
+  if (isLoading) return isEditing ? "Guardando..." : "Registrando...";
+  return isEditing ? "Guardar Cambios" : "Registrar Reserva";
+}
+
 /* ═══════════════════════════════════════════════════════════
    ÁREAS COMUNES — Gestión de Reservas
    Tema naranja · Layout responsivo (tabla desktop / cards móvil)
@@ -185,10 +197,8 @@ function AreasComunes() {
 
   const rolesId = obtenerRolDelToken();
   const nombreUsuario = obtenerUsuarioDelToken();
-  const rolUsuario =
-    rolesId === 1 ? "SuperAdmin" : rolesId === 2 ? "Admin" : "Vigilante";
-  const dashboardPath =
-    rolesId === 1 ? "/Superadmin" : rolesId === 2 ? "/Admin" : "/Vigilante";
+  const rolUsuario = mapRolLabel(rolesId);
+  const dashboardPath = mapDashboardPath(rolesId);
 
   // ─── Estado UI ───
   const [menuOpen, setMenuOpen] = useState(false);
@@ -1661,13 +1671,7 @@ function AreasComunes() {
                   className="ac-form-submit"
                   disabled={loading}
                 >
-                  {loading
-                    ? editIndex !== null
-                      ? "Guardando..."
-                      : "Registrando..."
-                    : editIndex !== null
-                      ? "Guardar Cambios"
-                      : "Registrar Reserva"}
+                  {obtenerLabelSubmitReserva(loading, editIndex !== null)}
                 </button>
               </form>
             </div>

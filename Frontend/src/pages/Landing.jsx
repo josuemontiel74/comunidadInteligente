@@ -99,19 +99,19 @@ export default function Landing() {
 
   // Animación de entrada para las cards de features
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const idx = parseInt(entry.target.dataset.idx, 10);
-            setVisibleCards((prev) =>
-              prev.includes(idx) ? prev : [...prev, idx],
-            );
-          }
-        });
-      },
-      { threshold: 0.15 },
-    );
+    const handleIntersect = (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const idx = parseInt(entry.target.dataset.idx, 10);
+        setVisibleCards((prev) =>
+          prev.includes(idx) ? prev : [...prev, idx],
+        );
+      }
+    };
+
+    const observer = new IntersectionObserver(handleIntersect, {
+      threshold: 0.15,
+    });
     document
       .querySelectorAll(".ld-feature-card")
       .forEach((el) => observer.observe(el));

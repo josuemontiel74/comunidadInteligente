@@ -178,6 +178,74 @@ function createPdfHelpers(pdf, ctx, { m, ph, pw, colLabel, colValue }) {
   return { checkPage, sectionTitle, subTitle, stat, progressBar, divider };
 }
 
+// ── Mapeos de rol (fuera del componente para menor complejidad cognitiva) ──
+const RPT_MENU_TITLE = { 1: "Men\u00fa Super Admin", 2: "Men\u00fa Admin" };
+const RPT_DASH_PATH  = { 1: "/Superadmin", 2: "/Admin" };
+const mapMenuTitle = (id) => RPT_MENU_TITLE[id] || "Men\u00fa Vigilante";
+const mapDashPath  = (id) => RPT_DASH_PATH[id]  || "/Vigilante";
+
+/** Obtiene rolesId del token de forma segura */
+function obtenerRolDesdeToken(t) {
+  if (!t) return null;
+  try {
+    return JSON.parse(atob(t.split(".")[1])).rolesId;
+  } catch {
+    return null;
+  }
+}
+
+/** Extrae y pre-procesa los datos de todos los reportes para el render */
+function extraerDatosReportes({ rptParqueaderos, rptVisitas, rptPaquetes, rptReservas, rptOcupacion, rptNinos, rptPoblacion }) {
+  const capacidadP = rptParqueaderos?.capacidad || [];
+  const resumenPeriodo = rptParqueaderos?.resumenPeriodo || {};
+  const diaPico = rptParqueaderos?.diaPico || null;
+
+  let totalCuposCarros = 0, totalCuposMotos = 0;
+  for (const r of capacidadP) {
+    const nom = (r.nombreVehiculo || "").toLowerCase();
+    if (nom === "carro") totalCuposCarros = toInt(r.totalCupos);
+    if (nom === "moto") totalCuposMotos = toInt(r.totalCupos);
+  }
+  const totalCupos = totalCuposCarros + totalCuposMotos;
+
+  const vehiculosEnPeriodo = toInt(resumenPeriodo.totalVehiculos);
+  const carrosEnPeriodo = toInt(resumenPeriodo.carros);
+  const motosEnPeriodo = toInt(resumenPeriodo.motos);
+
+  const totalVisitas = toInt(rptVisitas?.totalVisitas);
+  const diaConMasVisitas = rptVisitas?.diaConMasVisitas;
+  const porVehiculo = rptVisitas?.porVehiculo || [];
+
+  const totalPaquetes = toInt(rptPaquetes?.totalPaquetes);
+  const paqEntregados = toInt(rptPaquetes?.entregados);
+  const paqPendientes = toInt(rptPaquetes?.pendientes);
+
+  const totalReservas = toInt(rptReservas?.totalReservas);
+  const reservasPorArea = rptReservas?.porArea || [];
+  const reservasPorEstado = rptReservas?.porEstado || [];
+  const promedioAsistentes = rptReservas?.promedioAsistentes || 0;
+  const diaConMasReservas = rptReservas?.diaConMasReservas;
+
+  const picoOcupacion = (rptParqueaderos?.picoOcupacion || []).slice(0, 8);
+  const maxPico = picoOcupacion.length > 0
+    ? Math.max(...picoOcupacion.map((h) => toInt(h.cantidadVisitas)))
+    : 1;
+
+  const oc = rptOcupacion || {};
+  const ninosData = rptNinos || {};
+  const poblData = rptPoblacion || {};
+
+  return {
+    capacidadP, resumenPeriodo, diaPico,
+    totalCuposCarros, totalCuposMotos, totalCupos,
+    vehiculosEnPeriodo, carrosEnPeriodo, motosEnPeriodo,
+    totalVisitas, diaConMasVisitas, porVehiculo,
+    totalPaquetes, paqEntregados, paqPendientes,
+    totalReservas, reservasPorArea, reservasPorEstado, promedioAsistentes, diaConMasReservas,
+    picoOcupacion, maxPico, oc, ninosData, poblData,
+  };
+}
+
 // ============================================================================
 // COMPONENTE PRINCIPAL
 // ============================================================================
@@ -191,14 +259,7 @@ function Reportes() {
   const [dataLoading, setDataLoading] = useState(false);
 
   const token = localStorage.getItem("token");
-  const obtenerRol = (t) => {
-    try {
-      return JSON.parse(atob(t.split(".")[1])).rolesId;
-    } catch {
-      return null;
-    }
-  };
-  const rolesId = token ? obtenerRol(token) : null;
+  const rolesId = obtenerRolDesdeToken(token);
   const showUserManagement = rolesId === 1;
   const showAreasComunes = rolesId !== 3;
 
@@ -814,48 +875,16 @@ function Reportes() {
   );
 
   // ============================================================================
-  // RENDER - DATOS EXTRAÍDOS
+  // RENDER - DATOS EXTRAÍDOS (delegados a función externa)
   // ============================================================================
-  const capacidadP = rptParqueaderos?.capacidad || [];
-  const resumenPeriodo = rptParqueaderos?.resumenPeriodo || {};
-  const diaPico = rptParqueaderos?.diaPico || null;
-
-  let totalCuposCarros = 0,
-    totalCuposMotos = 0;
-  capacidadP.forEach((r) => {
-    const nom = (r.nombreVehiculo || "").toLowerCase();
-    if (nom === "carro") totalCuposCarros = toInt(r.totalCupos);
-    if (nom === "moto") totalCuposMotos = toInt(r.totalCupos);
-  });
-  const totalCupos = totalCuposCarros + totalCuposMotos;
-
-  const vehiculosEnPeriodo = toInt(resumenPeriodo.totalVehiculos);
-  const carrosEnPeriodo = toInt(resumenPeriodo.carros);
-  const motosEnPeriodo = toInt(resumenPeriodo.motos);
-
-  const totalVisitas = toInt(rptVisitas?.totalVisitas);
-  const diaConMasVisitas = rptVisitas?.diaConMasVisitas;
-  const porVehiculo = rptVisitas?.porVehiculo || [];
-
-  const totalPaquetes = toInt(rptPaquetes?.totalPaquetes);
-  const paqEntregados = toInt(rptPaquetes?.entregados);
-  const paqPendientes = toInt(rptPaquetes?.pendientes);
-
-  const totalReservas = toInt(rptReservas?.totalReservas);
-  const reservasPorArea = rptReservas?.porArea || [];
-  const reservasPorEstado = rptReservas?.porEstado || [];
-  const promedioAsistentes = rptReservas?.promedioAsistentes || 0;
-  const diaConMasReservas = rptReservas?.diaConMasReservas;
-
-  const picoOcupacion = (rptParqueaderos?.picoOcupacion || []).slice(0, 8);
-  const maxPico =
-    picoOcupacion.length > 0
-      ? Math.max(...picoOcupacion.map((h) => toInt(h.cantidadVisitas)))
-      : 1;
-
-  const oc = rptOcupacion || {};
-  const ninosData = rptNinos || {};
-  const poblData = rptPoblacion || {};
+  const {
+    diaPico, totalCuposCarros, totalCuposMotos, totalCupos,
+    vehiculosEnPeriodo, carrosEnPeriodo, motosEnPeriodo,
+    totalVisitas, diaConMasVisitas, porVehiculo,
+    totalPaquetes, paqEntregados, paqPendientes,
+    totalReservas, reservasPorArea, reservasPorEstado, promedioAsistentes, diaConMasReservas,
+    picoOcupacion, maxPico, oc, ninosData, poblData,
+  } = extraerDatosReportes({ rptParqueaderos, rptVisitas, rptPaquetes, rptReservas, rptOcupacion, rptNinos, rptPoblacion });
 
   // ============================================================================
   // LOADING & AUTH GUARD
@@ -889,11 +918,7 @@ function Reportes() {
             <i className="bi bi-shield-lock-fill"></i>
           </div>
           <h4 className="rpt-drawer-title">
-            {rolesId === 1
-              ? "Menú Super Admin"
-              : rolesId === 2
-                ? "Menú Admin"
-                : "Menú Vigilante"}
+            {mapMenuTitle(rolesId)}
           </h4>
           <span className="rpt-drawer-user">
             {usuario?.username || "Usuario"}
@@ -905,13 +930,7 @@ function Reportes() {
             <h6 className="rpt-menu-section-title">Navegación</h6>
             <Link
               className="rpt-menu-item"
-              to={
-                rolesId === 1
-                  ? "/Superadmin"
-                  : rolesId === 2
-                    ? "/Admin"
-                    : "/Vigilante"
-              }
+              to={mapDashPath(rolesId)}
               onClick={() => setMenuOpen(false)}
             >
               <i className="bi bi-speedometer2"></i>

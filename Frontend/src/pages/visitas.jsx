@@ -14,6 +14,75 @@ import {
 import { logoutUsuario } from "../services/gestionUsuarios.jsx";
 import { obtenerParqueaderos } from "../services/parqueadero.services.jsx";
 
+/** Valida los campos del formulario de visita. Retorna string de error o null */
+function validarFormularioVisita(fd) {
+  if (!fd.numeroDocumento || fd.numeroDocumento.length < 8)
+    return "El documento debe tener al menos 8 caracteres";
+  const errNom = validarNombreCompleto(fd.nombreVisitante);
+  if (errNom) return errNom;
+  if (!fd.tipoDocumentoId) return "Selecciona un tipo de documento";
+  if (!fd.apartamentoId) return "Selecciona un apartamento";
+  if (!fd.fechaHoraIngreso) return "Ingresa la fecha y hora de ingreso";
+  return null;
+}
+
+/** Valida los campos de vehículo cuando el visitante viene en vehículo */
+function validarVehiculoVisita(fd) {
+  if (fd.vieneEnVehiculo !== "SI") return null;
+  if (!fd.matricula) return "Ingresa la matrícula del vehículo";
+  const placaLimpia = fd.matricula.trim().toUpperCase();
+  const placaRegex = /^[A-Z]{3}[0-9]{2,3}[A-Z]?$/;
+  if (!placaRegex.test(placaLimpia))
+    return "La matrícula debe seguir el formato colombiano: ABC123 (carro) o ABC12D / ABC12 (moto). Sin caracteres especiales.";
+  if (!fd.tipoVehiculoId) return "Selecciona el tipo de vehículo";
+  if (!fd.codigoParqueadero) return "Selecciona un parqueadero";
+  return null;
+}
+
+/** Resuelve la fecha del evento para el recibo (ingreso o salida) */
+function resolverFechaEvento(v, esIngreso) {
+  const campo = esIngreso ? v.fechaHoraIngreso : v.fechaHoraSalida;
+  return campo ? new Date(campo).toLocaleString("es-CO") : "-";
+}
+
+/** Genera la sección HTML del vehículo para el recibo */
+function generarSeccionVehiculo(v) {
+  if (!v.matricula) return "";
+  const parqueaderoHtml = v.codigoParqueadero
+    ? `<div class="row"><span class="l">Parqueadero:</span><span class="v">${v.codigoParqueadero}</span></div>`
+    : "";
+  return `<hr/><div class="sec">Veh&iacute;culo</div><div class="row"><span class="l">Tipo:</span><span class="v">${v.nombreVehiculo || "Veh&iacute;culo"}</span></div><div class="row"><span class="l">Matr&iacute;cula:</span><span class="v">${v.matricula}</span></div>${parqueaderoHtml}`;
+}
+
+/** Filtra visitas según criterios de búsqueda activos */
+function filtrarVisitas(
+  visitas,
+  { searchTerm, filtroTorre, filtroApartamento, filtroEstado },
+  obtenerEstadoReal,
+) {
+  return visitas.filter((v) => {
+    const cumpleBusqueda =
+      !searchTerm ||
+      (v.nombreVisitante || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (v.numeroDocumento || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (v.matricula || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (v.numeroApartamento || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+    const letraTorre = (v.nombreTorre || "").replace(/^Torre\s*/i, "");
+    const cumpleTorre = !filtroTorre || letraTorre === filtroTorre;
+    const cumpleApartamento =
+      !filtroApartamento || (v.numeroApartamento || "") === filtroApartamento;
+    const estado = obtenerEstadoReal(v.estadoVisita);
+    const cumpleEstado = filtroEstado === "todas" || estado === filtroEstado;
+    return cumpleBusqueda && cumpleTorre && cumpleApartamento && cumpleEstado;
+  });
+}
+
 function Visitas() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -209,14 +278,12 @@ function Visitas() {
     const ahora = new Date();
     const fechaImpresion = `${ahora.getDate().toString().padStart(2, "0")}/${(ahora.getMonth() + 1).toString().padStart(2, "0")}/${ahora.getFullYear()} ${ahora.getHours().toString().padStart(2, "0")}:${ahora.getMinutes().toString().padStart(2, "0")}`;
     const esIngreso = tipo === "INGRESO";
-    const fechaEvento = esIngreso
-      ? v.fechaHoraIngreso
-        ? new Date(v.fechaHoraIngreso).toLocaleString("es-CO")
-        : "-"
-      : v.fechaHoraSalida
-        ? new Date(v.fechaHoraSalida).toLocaleString("es-CO")
-        : "-";
+    const fechaEvento = resolverFechaEvento(v, esIngreso);
     const id = v.idVisita || v.id || "---";
+    const seccionIngresoExtra =
+      !esIngreso && v.fechaHoraIngreso
+        ? `<div class="row"><span class="l">Ingreso:</span><span class="v">${new Date(v.fechaHoraIngreso).toLocaleString("es-CO")}</span></div>`
+        : "";
     const html = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Comprobante Visita #${id}</title>
 <style>
@@ -257,8 +324,8 @@ function Visitas() {
   <hr/>
   <div class="sec">${esIngreso ? "Hora de Ingreso" : "Hora de Salida"}</div>
   <div class="row"><span class="l">${esIngreso ? "Ingreso:" : "Salida:"}</span><span class="v">${fechaEvento}</span></div>
-  ${!esIngreso && v.fechaHoraIngreso ? `<div class="row"><span class="l">Ingreso:</span><span class="v">${new Date(v.fechaHoraIngreso).toLocaleString("es-CO")}</span></div>` : ""}
-  ${v.matricula ? `<hr/><div class="sec">Veh&iacute;culo</div><div class="row"><span class="l">Tipo:</span><span class="v">${v.nombreVehiculo || "Veh&iacute;culo"}</span></div><div class="row"><span class="l">Matr&iacute;cula:</span><span class="v">${v.matricula}</span></div>${v.codigoParqueadero ? `<div class="row"><span class="l">Parqueadero:</span><span class="v">${v.codigoParqueadero}</span></div>` : ""}` : ""}
+  ${seccionIngresoExtra}
+  ${generarSeccionVehiculo(v)}
   <hr/>
   <div class="aviso">
     &#9888; ESTE COMPROBANTE NO DEBE SER DESECHADO<br/>
@@ -393,31 +460,11 @@ function Visitas() {
   };
 
   // ── Filtros ──
-  const visitasFiltradas = visitas.filter((v) => {
-    const cumpleBusqueda =
-      !searchTerm ||
-      (v.nombreVisitante || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      (v.numeroDocumento || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      (v.matricula || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (v.numeroApartamento || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-
-    const letraTorre = (v.nombreTorre || "").replace(/^Torre\s*/i, "");
-    const cumpleTorre = !filtroTorre || letraTorre === filtroTorre;
-
-    const cumpleApartamento =
-      !filtroApartamento || (v.numeroApartamento || "") === filtroApartamento;
-
-    const estado = obtenerEstadoReal(v.estadoVisita);
-    const cumpleEstado = filtroEstado === "todas" || estado === filtroEstado;
-
-    return cumpleBusqueda && cumpleTorre && cumpleApartamento && cumpleEstado;
-  });
+  const visitasFiltradas = filtrarVisitas(
+    visitas,
+    { searchTerm, filtroTorre, filtroApartamento, filtroEstado },
+    obtenerEstadoReal,
+  );
 
   // Apartamentos disponibles para el filtro según torre seleccionada
   const apartamentosFiltro = filtroTorre
@@ -538,57 +585,15 @@ function Visitas() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    // Validaciones
-    if (!formData.numeroDocumento || formData.numeroDocumento.length < 8) {
-      Swal.fire(
-        "Error",
-        "El documento debe tener al menos 8 caracteres",
-        "error",
-      );
+    const errForm = validarFormularioVisita(formData);
+    if (errForm) {
+      Swal.fire("Error", errForm, "error");
       return;
     }
-    // Validar nombre del visitante: solo letras, sin números ni caracteres aleatorios
-    const errNomVis = validarNombreCompleto(formData.nombreVisitante);
-    if (errNomVis) {
-      Swal.fire("Nombre inválido", errNomVis, "error");
+    const errVeh = validarVehiculoVisita(formData);
+    if (errVeh) {
+      Swal.fire("Error", errVeh, "error");
       return;
-    }
-    if (!formData.tipoDocumentoId) {
-      Swal.fire("Error", "Selecciona un tipo de documento", "error");
-      return;
-    }
-    if (!formData.apartamentoId) {
-      Swal.fire("Error", "Selecciona un apartamento", "error");
-      return;
-    }
-    if (!formData.fechaHoraIngreso) {
-      Swal.fire("Error", "Ingresa la fecha y hora de ingreso", "error");
-      return;
-    }
-
-    if (formData.vieneEnVehiculo === "SI") {
-      if (!formData.matricula) {
-        Swal.fire("Error", "Ingresa la matrícula del vehículo", "error");
-        return;
-      }
-      const placaLimpia = formData.matricula.trim().toUpperCase();
-      const placaRegex = /^[A-Z]{3}[0-9]{2,3}[A-Z]?$/;
-      if (!placaRegex.test(placaLimpia)) {
-        Swal.fire(
-          "Matrícula inválida",
-          "La matrícula debe seguir el formato colombiano: ABC123 (carro) o ABC12D / ABC12 (moto). Sin caracteres especiales.",
-          "error",
-        );
-        return;
-      }
-      if (!formData.tipoVehiculoId) {
-        Swal.fire("Error", "Selecciona el tipo de vehículo", "error");
-        return;
-      }
-      if (!formData.codigoParqueadero) {
-        Swal.fire("Error", "Selecciona un parqueadero", "error");
-        return;
-      }
     }
 
     setGuardando(true);

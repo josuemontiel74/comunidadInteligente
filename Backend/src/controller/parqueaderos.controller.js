@@ -134,6 +134,72 @@ export const mostraParqueaderosporId = async (req, res) => {
   }
 };
 
+/**
+ * Valida y aplica un nuevo código de parqueadero.
+ * @returns {Promise<object|null>} objeto de error o null si OK
+ */
+async function validarNuevoCodigo(parqueadero, nuevoCodigo, codigoActual) {
+  if (!nuevoCodigo || nuevoCodigo === codigoActual) return null;
+  const existente = await ParqueaderoModel.findOne({
+    where: { codigoParqueadero: nuevoCodigo },
+  });
+  if (existente) {
+    return {
+      message: "El nuevo código de parqueadero ya existe",
+      status: 409,
+    };
+  }
+  parqueadero.codigoParqueadero = nuevoCodigo;
+  return null;
+}
+
+/**
+ * Valida y aplica el tipo de vehículo.
+ * @returns {Promise<object|null>} objeto de error o null si OK
+ */
+async function validarTipoVehiculo(parqueadero, tipoVehiculoId) {
+  if (!tipoVehiculoId) return null;
+  const tipoVehiculo = await TipoVehiculoModel.findOne({
+    where: { idTipoVehiculo: tipoVehiculoId },
+  });
+  if (!tipoVehiculo) {
+    return { message: "Tipo de vehículo no encontrado", status: 404 };
+  }
+  parqueadero.tipoVehiculoId = tipoVehiculoId;
+  return null;
+}
+
+/**
+ * Valida y aplica el cambio de estado del parqueadero.
+ * @returns {Promise<object|null>} objeto de error o null si OK
+ */
+async function validarCambioEstado(parqueadero, estadoId, codigoParqueadero) {
+  if (!estadoId) return null;
+  const estado = await EstadoModel.findOne({ where: { idEstado: estadoId } });
+  if (!estado) {
+    return { message: "Estado no encontrado", status: 404 };
+  }
+  if (Number(estadoId) === ESTADO_PARQUEADERO.OCUPADO) {
+    return { message: MSG_NO_OCUPADO_MANUAL, status: 400 };
+  }
+  if (
+    Number(parqueadero.estadoId) === ESTADO_PARQUEADERO.OCUPADO &&
+    ESTADOS_LIBERAR.has(Number(estadoId))
+  ) {
+    const visitaActiva =
+      await buscarVisitaActivaEnParqueadero(codigoParqueadero);
+    if (visitaActiva) {
+      return {
+        message: MSG_VISITA_ACTIVA,
+        status: 400,
+        visitaActiva: visitaActiva.idVisita,
+      };
+    }
+  }
+  parqueadero.estadoId = estadoId;
+  return null;
+}
+
 export const actualizarParqueadero = async (req, res) => {
   const { codigoParqueadero } = req.params;
   const { nuevoCodigoParqueadero, tipoVehiculoId, estadoId } = req.body;
@@ -150,74 +216,22 @@ export const actualizarParqueadero = async (req, res) => {
       });
     }
 
-    if (
-      nuevoCodigoParqueadero &&
-      nuevoCodigoParqueadero !== codigoParqueadero
-    ) {
-      const existente = await ParqueaderoModel.findOne({
-        where: { codigoParqueadero: nuevoCodigoParqueadero },
-      });
-      if (existente) {
-        return res.status(409).json({
-          message: "El nuevo código de parqueadero ya existe",
-          status: 409,
-        });
-      }
-      parqueadero.codigoParqueadero = nuevoCodigoParqueadero;
-    }
+    const errCodigo = await validarNuevoCodigo(
+      parqueadero,
+      nuevoCodigoParqueadero,
+      codigoParqueadero,
+    );
+    if (errCodigo) return res.status(errCodigo.status).json(errCodigo);
 
-    if (tipoVehiculoId) {
-      const tipoVehiculo = await TipoVehiculoModel.findOne({
-        where: { idTipoVehiculo: tipoVehiculoId },
-      });
+    const errTipo = await validarTipoVehiculo(parqueadero, tipoVehiculoId);
+    if (errTipo) return res.status(errTipo.status).json(errTipo);
 
-      if (!tipoVehiculo) {
-        return res.status(404).json({
-          message: "Tipo de vehículo no encontrado",
-          status: 404,
-        });
-      }
-
-      parqueadero.tipoVehiculoId = tipoVehiculoId;
-    }
-
-    if (estadoId) {
-      const estado = await EstadoModel.findOne({
-        where: { idEstado: estadoId },
-      });
-
-      if (!estado) {
-        return res.status(404).json({
-          message: "Estado no encontrado",
-          status: 404,
-        });
-      }
-
-      // Bloquear asignación manual a "Ocupado"
-      if (Number(estadoId) === ESTADO_PARQUEADERO.OCUPADO) {
-        return res
-          .status(400)
-          .json({ message: MSG_NO_OCUPADO_MANUAL, status: 400 });
-      }
-
-      // Si estaba ocupado y se quiere liberar, verificar que no haya visita activa
-      if (
-        Number(parqueadero.estadoId) === ESTADO_PARQUEADERO.OCUPADO &&
-        ESTADOS_LIBERAR.has(Number(estadoId))
-      ) {
-        const visitaActiva =
-          await buscarVisitaActivaEnParqueadero(codigoParqueadero);
-        if (visitaActiva) {
-          return res.status(400).json({
-            message: MSG_VISITA_ACTIVA,
-            status: 400,
-            visitaActiva: visitaActiva.idVisita,
-          });
-        }
-      }
-
-      parqueadero.estadoId = estadoId;
-    }
+    const errEstado = await validarCambioEstado(
+      parqueadero,
+      estadoId,
+      codigoParqueadero,
+    );
+    if (errEstado) return res.status(errEstado.status).json(errEstado);
 
     await parqueadero.save();
 

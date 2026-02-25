@@ -20,7 +20,7 @@ export default class TiposVehiculo extends Model {
         modelName: "tiposVehiculo",
         tableName: "tiposVehiculo",
         timestamps: false,
-      }
+      },
     );
   }
 }

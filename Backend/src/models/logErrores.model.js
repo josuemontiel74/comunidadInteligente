@@ -40,7 +40,7 @@ class LogErrores extends Model {
         modelName: "logErrores",
         tableName: "logErrores",
         timestamps: false,
-      }
+      },
     );
     return LogErrores;
   }
