@@ -174,7 +174,7 @@ function validarNombreResidente(nombre, label) {
       titulo: "Campo obligatorio",
       msg: `El ${label} es requerido para registrar al residente.`,
     };
-  if (/[0-9]/.test(nombre))
+  if (/\d/.test(nombre))
     return {
       titulo: `${label.charAt(0).toUpperCase() + label.slice(1)} inválido`,
       msg: `El ${label} no puede contener números.`,
@@ -200,13 +200,13 @@ function validarDocumentoResidente(fd, editIndex) {
       titulo: "Documento inválido",
       msg: "El número de documento solo puede contener letras, números o guiones. No se permiten caracteres especiales.",
     };
-  if (!/[0-9]/.test(doc))
+  if (!/\d/.test(doc))
     return {
       titulo: "Documento inválido",
       msg: "El número de documento no puede estar compuesto únicamente por letras. Debe incluir al menos un dígito.",
     };
   const letras = (doc.match(/[a-zA-Z]/g) || []).length;
-  const digitos = (doc.match(/[0-9]/g) || []).length;
+  const digitos = (doc.match(/\d/g) || []).length;
   const tiposMixtos = ["CE", "PP", "PEP", "PPT"];
   if (tiposMixtos.includes(fd.tipoDocumento) && letras > digitos)
     return {
@@ -229,7 +229,10 @@ function validarDocumentoResidente(fd, editIndex) {
 function validarDatosResidente(fd, editIndex) {
   const errNombre = validarNombreResidente(fd.primerNombre, "primer nombre");
   if (errNombre) return errNombre;
-  const errApellido = validarNombreResidente(fd.primerApellido, "primer apellido");
+  const errApellido = validarNombreResidente(
+    fd.primerApellido,
+    "primer apellido",
+  );
   if (errApellido) return errApellido;
   if (!fd.apto)
     return {
@@ -241,7 +244,7 @@ function validarDatosResidente(fd, editIndex) {
       titulo: "Campo obligatorio",
       msg: "La fecha de inicio es obligatoria.",
     };
-  if (fd.telefono && !/^[0-9]{7,15}$/.test(fd.telefono))
+  if (fd.telefono && !/^\d{7,15}$/.test(fd.telefono))
     return {
       titulo: "Teléfono inválido",
       msg: "El teléfono debe contener solo dígitos y tener entre 7 y 15 cifras.",
@@ -270,11 +273,9 @@ function filtrarYOrdenarResidentes(
   });
   if (filtroEstado !== "todos")
     arr = arr.filter(
-      (r) =>
-        r.estado === (filtroEstado === "activo" ? "Activo" : "Finalizado"),
+      (r) => r.estado === (filtroEstado === "activo" ? "Activo" : "Finalizado"),
     );
-  if (filtroTorre !== "todos")
-    arr = arr.filter((r) => r.torre === filtroTorre);
+  if (filtroTorre !== "todos") arr = arr.filter((r) => r.torre === filtroTorre);
   if (filtroTipoOcupacion !== "todos")
     arr = arr.filter(
       (r) => r.tipoOcupacion?.toLowerCase() === filtroTipoOcupacion,
@@ -428,7 +429,7 @@ function Residentes() {
     try {
       const token = obtenerToken();
       const res = await obtenerTodosApartamentos(token);
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error("Error cargando apartamentos");
       const data = await res.json();
       const lista = data.body || data;
       const aptos = lista
@@ -489,6 +490,7 @@ function Residentes() {
 
   // Stats
   const totalCount = residentes.length;
+  const mostrarTabla = !vistaCuadricula;
   const activosCount = residentes.filter((r) => r.estado === "Activo").length;
   const finalizadosCount = residentes.filter(
     (r) => r.estado === "Finalizado",
@@ -527,7 +529,7 @@ function Residentes() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === "telefono") {
-      const soloNumeros = value.replace(/[^0-9]/g, "");
+      const soloNumeros = value.replaceAll(/[^\d]/g, "");
       setFormData((f) => ({ ...f, [name]: soloNumeros }));
       return;
     }
@@ -661,14 +663,14 @@ function Residentes() {
 
     const token = obtenerToken();
     try {
-      const apartamentoId = parseInt(formData.apto);
-      if (isNaN(apartamentoId) || apartamentoId <= 0)
+      const apartamentoId = Number.parseInt(formData.apto, 10);
+      if (Number.isNaN(apartamentoId) || apartamentoId <= 0)
         return Swal.fire("Error", "Apartamento inválido", "error");
 
       const ocupanteData = {
         apartamentosId: apartamentoId,
         tipoOcupacion: formData.tipoOcupacion.toLowerCase(),
-        personasACargo: parseInt(formData.personasACargo) || 0,
+        personasACargo: Number.parseInt(formData.personasACargo, 10) || 0,
         fechaInicio: formData.fechaInicio,
         fechaFin: null,
         tipoDocumentoId: mapTipoDocumentoId(formData.tipoDocumento),
@@ -820,13 +822,9 @@ function Residentes() {
       <div className="res-dashboard">
         <div className="res-main">
           <div className="res-loading">
-            <div
-              className="spinner-border"
-              role="status"
-              style={{ color: "#14b8a6" }}
-            >
+            <output className="spinner-border" style={{ color: "#14b8a6" }}>
               <span className="visually-hidden">Cargando...</span>
-            </div>
+            </output>
             <p className="mt-3 fw-semibold" style={{ color: "#14b8a6" }}>
               Cargando residentes...
             </p>
@@ -839,13 +837,13 @@ function Residentes() {
   return (
     <div className="res-dashboard">
       {/* OVERLAY */}
-      <div
+      <button
+        type="button"
         className={`res-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
         onKeyDown={(e) => {
           if (e.key === "Escape") setMenuOpen(false);
         }}
-        role="button"
         tabIndex={0}
         aria-label="Cerrar menú"
       />
@@ -1070,7 +1068,7 @@ function Residentes() {
             </button>
             <div className="res-view-toggle">
               <button
-                className={`res-view-btn ${!vistaCuadricula ? "active" : ""}`}
+                className={`res-view-btn ${vistaCuadricula ? "" : "active"}`}
                 onClick={() => setVistaCuadricula(false)}
                 title="Vista tabla"
               >
@@ -1153,7 +1151,7 @@ function Residentes() {
               <i className="bi bi-people d-block"></i>
               <p>No se encontraron residentes</p>
             </div>
-          ) : !vistaCuadricula ? (
+          ) : mostrarTabla ? (
             <>
               <div className="res-table-wrapper">
                 <table className="res-table">
@@ -1349,19 +1347,18 @@ function Residentes() {
       {modalAbierto && (
         <div
           className="res-modal-overlay"
-          onClick={cerrarModal}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) cerrarModal();
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") cerrarModal();
           }}
-          role="button"
+          role="dialog"
+          aria-modal="true"
           tabIndex={0}
           aria-label="Cerrar"
         >
-          <div
-            className="res-modal"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+          <div className="res-modal">
             <div className="res-modal-header">
               <h3>
                 <i
@@ -1385,8 +1382,9 @@ function Residentes() {
                 </p>
                 <div className="res-form-row triple">
                   <div className="res-form-group">
-                    <label>Torre *</label>
+                    <label htmlFor="res-torreId">Torre *</label>
                     <select
+                      id="res-torreId"
                       name="torreId"
                       value={formData.torreId}
                       onChange={(e) => {
@@ -1403,8 +1401,9 @@ function Residentes() {
                     </select>
                   </div>
                   <div className="res-form-group">
-                    <label>Apartamento *</label>
+                    <label htmlFor="res-apto">Apartamento *</label>
                     <select
+                      id="res-apto"
                       name="apto"
                       value={formData.apto}
                       onChange={handleChange}
@@ -1419,8 +1418,9 @@ function Residentes() {
                     </select>
                   </div>
                   <div className="res-form-group">
-                    <label>Tipo Ocupación *</label>
+                    <label htmlFor="res-tipoOcupacion">Tipo Ocupación *</label>
                     <select
+                      id="res-tipoOcupacion"
                       name="tipoOcupacion"
                       value={formData.tipoOcupacion}
                       onChange={handleChange}
@@ -1433,8 +1433,9 @@ function Residentes() {
                 </div>
                 <div className="res-form-row">
                   <div className="res-form-group">
-                    <label>Fecha de Inicio *</label>
+                    <label htmlFor="res-fechaInicio">Fecha de Inicio *</label>
                     <input
+                      id="res-fechaInicio"
                       type="date"
                       name="fechaInicio"
                       value={formData.fechaInicio}
@@ -1443,8 +1444,11 @@ function Residentes() {
                     />
                   </div>
                   <div className="res-form-group">
-                    <label>¿Cuántas personas vivirán con usted?</label>
+                    <label htmlFor="res-personasACargo">
+                      ¿Cuántas personas vivirán con usted?
+                    </label>
                     <input
+                      id="res-personasACargo"
                       type="number"
                       name="personasACargo"
                       value={formData.personasACargo}
@@ -1461,8 +1465,9 @@ function Residentes() {
                 </p>
                 <div className="res-form-row triple">
                   <div className="res-form-group">
-                    <label>Tipo Documento *</label>
+                    <label htmlFor="res-tipoDocumento">Tipo Documento *</label>
                     <select
+                      id="res-tipoDocumento"
                       name="tipoDocumento"
                       value={formData.tipoDocumento}
                       onChange={handleChange}
@@ -1479,8 +1484,11 @@ function Residentes() {
                     className="res-form-group"
                     style={{ gridColumn: "span 2" }}
                   >
-                    <label>Número de Documento *</label>
+                    <label htmlFor="res-numeroDocumento">
+                      Número de Documento *
+                    </label>
                     <input
+                      id="res-numeroDocumento"
                       type="text"
                       name="numeroDocumento"
                       value={formData.numeroDocumento}
@@ -1492,8 +1500,9 @@ function Residentes() {
                 </div>
                 <div className="res-form-row">
                   <div className="res-form-group">
-                    <label>Primer Nombre *</label>
+                    <label htmlFor="res-primerNombre">Primer Nombre *</label>
                     <input
+                      id="res-primerNombre"
                       type="text"
                       name="primerNombre"
                       value={formData.primerNombre}
@@ -1502,8 +1511,9 @@ function Residentes() {
                     />
                   </div>
                   <div className="res-form-group">
-                    <label>Segundo Nombre</label>
+                    <label htmlFor="res-segundoNombre">Segundo Nombre</label>
                     <input
+                      id="res-segundoNombre"
                       type="text"
                       name="segundoNombre"
                       value={formData.segundoNombre}
@@ -1513,8 +1523,11 @@ function Residentes() {
                 </div>
                 <div className="res-form-row">
                   <div className="res-form-group">
-                    <label>Primer Apellido *</label>
+                    <label htmlFor="res-primerApellido">
+                      Primer Apellido *
+                    </label>
                     <input
+                      id="res-primerApellido"
                       type="text"
                       name="primerApellido"
                       value={formData.primerApellido}
@@ -1523,8 +1536,11 @@ function Residentes() {
                     />
                   </div>
                   <div className="res-form-group">
-                    <label>Segundo Apellido</label>
+                    <label htmlFor="res-segundoApellido">
+                      Segundo Apellido
+                    </label>
                     <input
+                      id="res-segundoApellido"
                       type="text"
                       name="segundoApellido"
                       value={formData.segundoApellido}
@@ -1539,8 +1555,9 @@ function Residentes() {
                 </p>
                 <div className="res-form-row">
                   <div className="res-form-group">
-                    <label>Correo Electrónico</label>
+                    <label htmlFor="res-correo">Correo Electrónico</label>
                     <input
+                      id="res-correo"
                       type="email"
                       name="correo"
                       value={formData.correo}
@@ -1548,12 +1565,13 @@ function Residentes() {
                     />
                   </div>
                   <div className="res-form-group">
-                    <label>Teléfono</label>
+                    <label htmlFor="res-telefono">Teléfono</label>
                     <input
+                      id="res-telefono"
                       type="tel"
                       name="telefono"
                       inputMode="numeric"
-                      pattern="[0-9]*"
+                      pattern="\d*"
                       maxLength={15}
                       placeholder="Ej: 3001234567"
                       value={formData.telefono}
@@ -1648,19 +1666,18 @@ function Residentes() {
       {modalTorres && (
         <div
           className="res-modal-overlay res-torres-overlay"
-          onClick={() => setModalTorres(false)}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setModalTorres(false);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") setModalTorres(false);
           }}
-          role="button"
+          role="dialog"
+          aria-modal="true"
           tabIndex={0}
           aria-label="Cerrar"
         >
-          <div
-            className="res-modal res-torres-modal"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+          <div className="res-modal res-torres-modal">
             <div className="res-modal-header">
               {torreSeleccionada !== null ? (
                 <>
@@ -1726,7 +1743,8 @@ function Residentes() {
                         ),
                     ).length;
                     return (
-                      <div
+                      <button
+                        type="button"
                         key={tid}
                         className="res-torre-card"
                         onClick={() => setTorreSeleccionada(tid)}
@@ -1734,7 +1752,6 @@ function Residentes() {
                           if (e.key === "Enter" || e.key === " ")
                             setTorreSeleccionada(tid);
                         }}
-                        role="button"
                         tabIndex={0}
                         title={`Ver apartamentos Torre ${letra}`}
                       >
@@ -1754,7 +1771,7 @@ function Residentes() {
                             libre{aptosLibres !== 1 ? "s" : ""}
                           </p>
                         )}
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -1887,26 +1904,24 @@ function Residentes() {
       {showModalDetalles && residenteSeleccionado && (
         <div
           className="res-modal-overlay"
-          onClick={() => setShowModalDetalles(false)}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowModalDetalles(false);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") setShowModalDetalles(false);
           }}
-          role="button"
+          role="dialog"
+          aria-modal="true"
           tabIndex={0}
           aria-label="Cerrar"
         >
-          <div
-            className="res-modal"
-            style={{ maxWidth: 800 }}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+          <div className="res-modal" style={{ maxWidth: 800 }}>
             <div className="res-modal-header">
               <h3>
                 <i
                   className="bi bi-person-badge"
                   style={{ fontSize: "22px" }}
-                ></i>
+                ></i>{" "}
                 Detalles del Residente
               </h3>
               <button
