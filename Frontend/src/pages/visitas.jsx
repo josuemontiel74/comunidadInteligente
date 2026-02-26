@@ -1427,7 +1427,8 @@ function Visitas() {
 
       {/* ══════════ MODAL CREAR / EDITAR ══════════ */}
       {(modalCrear || modalEditar) && (
-        <dialog open
+        <dialog
+          open
           className="vis-modal-overlay"
           onClick={(e) => {
             if (e.target !== e.currentTarget) return;
@@ -1454,9 +1455,7 @@ function Visitas() {
                   className={`bi ${modalConfig.headerIcon}`}
                   style={{ color: "#4CAF50", fontSize: "22px" }}
                 ></i>
-                <h5>
-                  {modalConfig.headerTitle}
-                </h5>
+                <h5>{modalConfig.headerTitle}</h5>
               </div>
               <button
                 className="vis-modal-close"
@@ -1851,7 +1850,8 @@ function Visitas() {
 
       {/* ══════════ MODAL DETALLE ══════════ */}
       {modalDetalle && (
-        <dialog open
+        <dialog
+          open
           className="vis-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setModalDetalle(null);

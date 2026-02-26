@@ -1395,7 +1395,8 @@ function AreasComunes() {
 
       {/* ══════════ MODAL — REGISTRAR / EDITAR ══════════ */}
       {modalAbierto && (
-        <dialog open
+        <dialog
+          open
           className="ac-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) cerrarModal();
@@ -1732,7 +1733,8 @@ function AreasComunes() {
 
       {/* ══════════ MODAL — DETALLES ══════════ */}
       {showModalDetalles && registroSeleccionado && (
-        <dialog open
+        <dialog
+          open
           className="ac-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowModalDetalles(false);
@@ -1854,7 +1856,8 @@ function AreasComunes() {
 
       {/* ══════════ MODAL — CALENDARIO ══════════ */}
       {showCalendario && (
-        <dialog open
+        <dialog
+          open
           className="ac-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowCalendario(false);
@@ -1991,7 +1994,8 @@ function AreasComunes() {
 
       {/* ══════════ MODAL GESTIONAR ÁREAS (SuperAdmin) ══════════ */}
       {showModalAreas && rolesId === 1 && (
-        <dialog open
+        <dialog
+          open
           className="ac-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowModalAreas(false);

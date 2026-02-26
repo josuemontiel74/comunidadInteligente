@@ -1139,7 +1139,8 @@ function Paqueteria() {
 
       {/* ====== MODAL CREAR PAQUETE ====== */}
       {modalCrear && (
-        <dialog open
+        <dialog
+          open
           className="paq-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setModalCrear(false);
@@ -1345,7 +1346,8 @@ function Paqueteria() {
 
       {/* ====== MODAL EDITAR PAQUETE ====== */}
       {modalEditar && paqueteEditar && (
-        <dialog open
+        <dialog
+          open
           className="paq-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -1563,7 +1565,8 @@ function Paqueteria() {
 
       {/* ====== MODAL DETALLES ====== */}
       {modalDetalle && (
-        <dialog open
+        <dialog
+          open
           className="paq-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setModalDetalle(null);

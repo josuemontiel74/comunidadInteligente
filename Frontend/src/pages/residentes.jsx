@@ -1005,7 +1005,8 @@ function Residentes() {
           <button
             className="res-header-btn"
             onClick={() => {
-              const destino = { 1: "/Superadmin", 2: "/Admin" }[rolesId] || "/Vigilante";
+              const destino =
+                { 1: "/Superadmin", 2: "/Admin" }[rolesId] || "/Vigilante";
               navegacion(destino);
             }}
             title="Volver al inicio"

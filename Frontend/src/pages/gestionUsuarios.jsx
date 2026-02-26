@@ -1723,7 +1723,8 @@ function GestionUsuarios() {
 
       {/* MODAL REGISTRAR */}
       {showModalRegistrar && (
-        <dialog open
+        <dialog
+          open
           className="gu-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowModalRegistrar(false);
@@ -2015,7 +2016,8 @@ function GestionUsuarios() {
 
       {/* MODAL EDITAR */}
       {showModalEditar && (
-        <dialog open
+        <dialog
+          open
           className="gu-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -2312,7 +2314,8 @@ function GestionUsuarios() {
 
       {/* MODAL DETALLES */}
       {showModalDetalle && detalleUsuario && (
-        <dialog open
+        <dialog
+          open
           className="gu-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowModalDetalle(false);
