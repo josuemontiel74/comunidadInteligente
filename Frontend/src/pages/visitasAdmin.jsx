@@ -178,17 +178,17 @@ function VisitasAdmin() {
         </div>
       </div>
 
-      <section class="container mt-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h3 class="fw-bold text-success">Historial de Visitas</h3>
+      <section className="container mt-4">
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h3 className="fw-bold text-success">Historial de Visitas</h3>
 
-          <div class="d-flex gap-2">
-            <button class="btn btn-success" id="btnRegistrarVisita">
+          <div className="d-flex gap-2">
+            <button className="btn btn-success" id="btnRegistrarVisita">
               Registrar Nueva Visita
             </button>
             <button
               type="button"
-              class="btn btn-outline-primary"
+              className="btn btn-outline-primary"
               id="btnMostrarParqueaderos"
             >
               Mostrar Parqueaderos
@@ -196,9 +196,12 @@ function VisitasAdmin() {
           </div>
         </div>
 
-        <div class="table-responsive">
-          <table id="tablaVisitas" class="table table-bordered table-striped">
-            <thead class="table-success">
+        <div className="table-responsive">
+          <table
+            id="tablaVisitas"
+            className="table table-bordered table-striped"
+          >
+            <thead className="table-success">
               <tr>
                 <th>Nombre</th>
                 <th>Documento</th>
@@ -218,13 +221,15 @@ function VisitasAdmin() {
                 <td>2025-07-10 14:02</td>
                 <td>2025-07-10 15:18</td>
                 <td>
-                  <i class="bi bi-car-front-fill text-primary fs-5"></i>
+                  <i className="bi bi-car-front-fill text-primary fs-5"></i>
                 </td>
                 <td>
-                  <span class="badge bg-secondary">Finalizada</span>
+                  <span className="badge bg-secondary">Finalizada</span>
                 </td>
                 <td>
-                  <button class="btn btn-sm btn-outline-warning">Editar</button>
+                  <button className="btn btn-sm btn-outline-warning">
+                    Editar
+                  </button>
                 </td>
               </tr>
               <tr>
@@ -286,14 +291,16 @@ function VisitasAdmin() {
                   />
                 </td>
                 <td>
-                  <span class="badge bg-warning text-dark">En proceso</span>
+                  <span className="badge bg-warning text-dark">En proceso</span>
                 </td>
                 <td>
-                  <button class="btn btn-sm btn-outline-warning">Editar</button>
-                  <button class="btn btn-sm btn-outline-danger">
+                  <button className="btn btn-sm btn-outline-warning">
+                    Editar
+                  </button>
+                  <button className="btn btn-sm btn-outline-danger">
                     Finalizar
                   </button>
-                  <button class="btn btn-sm btn-outline-danger btn-eliminar">
+                  <button className="btn btn-sm btn-outline-danger btn-eliminar">
                     Eliminar
                   </button>
                 </td>

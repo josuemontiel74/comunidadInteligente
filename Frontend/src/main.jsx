@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -16,8 +17,7 @@ if (localStorage.getItem("ci_modo_oscuro") === "1") {
 
 // Silenciar el error de ResizeObserver (no afecta funcionalidad)
 window.addEventListener("error", (e) => {
-  if (e.message && e.message.includes("ResizeObserver"))
-    e.stopImmediatePropagation();
+  if (e.message?.includes("ResizeObserver")) e.stopImmediatePropagation();
 });
 
 class ErrorBoundary extends React.Component {
@@ -42,6 +42,10 @@ class ErrorBoundary extends React.Component {
     return this.props.children;
   }
 }
+
+ErrorBoundary.propTypes = {
+  children: PropTypes.node.isRequired,
+};
 
 createRoot(document.getElementById("root")).render(
   <ErrorBoundary>

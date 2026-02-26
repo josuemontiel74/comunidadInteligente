@@ -48,7 +48,7 @@ function Login() {
 
     try {
       const data = await loginService(username, password);
-      if (!data || !data.usuario || !data.token) {
+      if (!data?.usuario || !data?.token) {
         const nuevos = intentos + 1;
         setIntentos(nuevos);
         setFeedback("error");

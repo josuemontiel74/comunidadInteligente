@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import PropTypes from "prop-types";
 import "../Styles/errorPages.css";
 import logo from "../../img/logo.png";
 
@@ -127,3 +128,7 @@ export default function ErrorPage({ code = 404 }) {
     </div>
   );
 }
+
+ErrorPage.propTypes = {
+  code: PropTypes.number,
+};
