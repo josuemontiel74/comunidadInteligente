@@ -39,7 +39,7 @@
   top: 0;
   width: 310px;
   height: 100vh;
-  background: linear-gradient(180deg, #15803d, #16a34a, #22c55e);
+  background: linear-gradient(180deg, #0f4a28, #166534, #15803d);
   color: white;
   z-index: 1000;
   display: flex;
@@ -165,7 +165,7 @@
 
 /* Header / AppBar */
 .vis-header {
-  background: linear-gradient(135deg, #388e3c, #4caf50);
+  background: linear-gradient(135deg, #1b5e20, #2e7d32);
   color: white;
   display: flex;
   align-items: center;
@@ -300,7 +300,7 @@
 }
 
 .vis-btn-registrar {
-  background: #4caf50;
+  background: #2e7d32;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -315,7 +315,7 @@
   transition: background 0.2s;
 }
 .vis-btn-registrar:hover {
-  background: #388e3c;
+  background: #1b5e20;
 }
 
 .vis-filter-search {
@@ -328,7 +328,7 @@
   left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  color: #4caf50;
+  color: #2e7d32;
   font-size: 16px;
 }
 .vis-filter-input {
@@ -414,7 +414,7 @@
   justify-content: center;
   padding: 60px 24px;
   text-align: center;
-  color: #6b7280;
+  color: #5f6b77;
 }
 .vis-error-icon {
   font-size: 60px;
@@ -494,7 +494,7 @@
 }
 .vis-badge-activa {
   background: #c8e6c9;
-  color: #388e3c;
+  color: #1b5e20;
 }
 .vis-badge-finalizada {
   background: #e0e0e0;

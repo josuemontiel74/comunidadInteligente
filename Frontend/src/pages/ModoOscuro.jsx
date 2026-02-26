@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import PropTypes from "prop-types";
 import "../Styles/ModoOscuro.css";
 
 const DARK_KEY = "ci_modo_oscuro";
@@ -47,3 +48,7 @@ export default function ModoOscuro({ btnClass = "" }) {
     </button>
   );
 }
+
+ModoOscuro.propTypes = {
+  btnClass: PropTypes.string,
+};

@@ -14,6 +14,75 @@ import {
 import { logoutUsuario } from "../services/gestionUsuarios.jsx";
 import { obtenerParqueaderos } from "../services/parqueadero.services.jsx";
 
+/** Valida los campos del formulario de visita. Retorna string de error o null */
+function validarFormularioVisita(fd) {
+  if (!fd.numeroDocumento || fd.numeroDocumento.length < 8)
+    return "El documento debe tener al menos 8 caracteres";
+  const errNom = validarNombreCompleto(fd.nombreVisitante);
+  if (errNom) return errNom;
+  if (!fd.tipoDocumentoId) return "Selecciona un tipo de documento";
+  if (!fd.apartamentoId) return "Selecciona un apartamento";
+  if (!fd.fechaHoraIngreso) return "Ingresa la fecha y hora de ingreso";
+  return null;
+}
+
+/** Valida los campos de vehículo cuando el visitante viene en vehículo */
+function validarVehiculoVisita(fd) {
+  if (fd.vieneEnVehiculo !== "SI") return null;
+  if (!fd.matricula) return "Ingresa la matrícula del vehículo";
+  const placaLimpia = fd.matricula.trim().toUpperCase();
+  const placaRegex = /^[A-Z]{3}\d{2,3}[A-Z]?$/;
+  if (!placaRegex.test(placaLimpia))
+    return "La matrícula debe seguir el formato colombiano: ABC123 (carro) o ABC12D / ABC12 (moto). Sin caracteres especiales.";
+  if (!fd.tipoVehiculoId) return "Selecciona el tipo de vehículo";
+  if (!fd.codigoParqueadero) return "Selecciona un parqueadero";
+  return null;
+}
+
+/** Resuelve la fecha del evento para el recibo (ingreso o salida) */
+function resolverFechaEvento(v, esIngreso) {
+  const campo = esIngreso ? v.fechaHoraIngreso : v.fechaHoraSalida;
+  return campo ? new Date(campo).toLocaleString("es-CO") : "-";
+}
+
+/** Genera la sección HTML del vehículo para el recibo */
+function generarSeccionVehiculo(v) {
+  if (!v.matricula) return "";
+  const parqueaderoHtml = v.codigoParqueadero
+    ? `<div class="row"><span class="l">Parqueadero:</span><span class="v">${v.codigoParqueadero}</span></div>`
+    : "";
+  return `<hr/><div class="sec">Veh&iacute;culo</div><div class="row"><span class="l">Tipo:</span><span class="v">${v.nombreVehiculo || "Veh&iacute;culo"}</span></div><div class="row"><span class="l">Matr&iacute;cula:</span><span class="v">${v.matricula}</span></div>${parqueaderoHtml}`;
+}
+
+/** Filtra visitas según criterios de búsqueda activos */
+function filtrarVisitas(
+  visitas,
+  { searchTerm, filtroTorre, filtroApartamento, filtroEstado },
+  obtenerEstadoReal,
+) {
+  return visitas.filter((v) => {
+    const cumpleBusqueda =
+      !searchTerm ||
+      (v.nombreVisitante || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (v.numeroDocumento || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (v.matricula || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (v.numeroApartamento || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+    const letraTorre = (v.nombreTorre || "").replace(/^Torre\s*/i, "");
+    const cumpleTorre = !filtroTorre || letraTorre === filtroTorre;
+    const cumpleApartamento =
+      !filtroApartamento || (v.numeroApartamento || "") === filtroApartamento;
+    const estado = obtenerEstadoReal(v.estadoVisita);
+    const cumpleEstado = filtroEstado === "todas" || estado === filtroEstado;
+    return cumpleBusqueda && cumpleTorre && cumpleApartamento && cumpleEstado;
+  });
+}
+
 function Visitas() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -209,14 +278,12 @@ function Visitas() {
     const ahora = new Date();
     const fechaImpresion = `${ahora.getDate().toString().padStart(2, "0")}/${(ahora.getMonth() + 1).toString().padStart(2, "0")}/${ahora.getFullYear()} ${ahora.getHours().toString().padStart(2, "0")}:${ahora.getMinutes().toString().padStart(2, "0")}`;
     const esIngreso = tipo === "INGRESO";
-    const fechaEvento = esIngreso
-      ? v.fechaHoraIngreso
-        ? new Date(v.fechaHoraIngreso).toLocaleString("es-CO")
-        : "-"
-      : v.fechaHoraSalida
-        ? new Date(v.fechaHoraSalida).toLocaleString("es-CO")
-        : "-";
+    const fechaEvento = resolverFechaEvento(v, esIngreso);
     const id = v.idVisita || v.id || "---";
+    const seccionIngresoExtra =
+      !esIngreso && v.fechaHoraIngreso
+        ? `<div class="row"><span class="l">Ingreso:</span><span class="v">${new Date(v.fechaHoraIngreso).toLocaleString("es-CO")}</span></div>`
+        : "";
     const html = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Comprobante Visita #${id}</title>
 <style>
@@ -257,8 +324,8 @@ function Visitas() {
   <hr/>
   <div class="sec">${esIngreso ? "Hora de Ingreso" : "Hora de Salida"}</div>
   <div class="row"><span class="l">${esIngreso ? "Ingreso:" : "Salida:"}</span><span class="v">${fechaEvento}</span></div>
-  ${!esIngreso && v.fechaHoraIngreso ? `<div class="row"><span class="l">Ingreso:</span><span class="v">${new Date(v.fechaHoraIngreso).toLocaleString("es-CO")}</span></div>` : ""}
-  ${v.matricula ? `<hr/><div class="sec">Veh&iacute;culo</div><div class="row"><span class="l">Tipo:</span><span class="v">${v.nombreVehiculo || "Veh&iacute;culo"}</span></div><div class="row"><span class="l">Matr&iacute;cula:</span><span class="v">${v.matricula}</span></div>${v.codigoParqueadero ? `<div class="row"><span class="l">Parqueadero:</span><span class="v">${v.codigoParqueadero}</span></div>` : ""}` : ""}
+  ${seccionIngresoExtra}
+  ${generarSeccionVehiculo(v)}
   <hr/>
   <div class="aviso">
     &#9888; ESTE COMPROBANTE NO DEBE SER DESECHADO<br/>
@@ -273,8 +340,11 @@ function Visitas() {
     Documento v&aacute;lido solo para la fecha indicada.
   </div>
 </body></html>`;
-    const ventana = window.open("", "_blank", "width=320,height=650");
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const ventana = window.open(url, "_blank", "width=320,height=650");
     if (!ventana) {
+      URL.revokeObjectURL(url);
       Swal.fire(
         "Bloqueado",
         "El navegador bloqueó la ventana emergente. Permite las ventanas emergentes e intenta de nuevo.",
@@ -282,9 +352,10 @@ function Visitas() {
       );
       return;
     }
-    ventana.document.write(html);
-    ventana.document.close();
-    ventana.onload = () => setTimeout(() => ventana.print(), 300);
+    ventana.onload = () => {
+      URL.revokeObjectURL(url);
+      setTimeout(() => ventana.print(), 300);
+    };
   };
 
   // ── Restaurar estado del formulario desde parqueaderos ──
@@ -326,13 +397,15 @@ function Visitas() {
     try {
       const res = await obtenerParqueaderos(token);
       const data = await res.json();
-      const lista = Array.isArray(data) ? data : data.body ? data.body : [];
+      const lista = Array.isArray(data) ? data : data.body || [];
       // Filtrar: estadoId === 4 (disponible)
       const disponibles = lista.filter((p) => p.estadoId === 4);
       // Marcar como disabled los que no coinciden con el tipo
       const conMarca = disponibles.map((p) => ({
         ...p,
-        disabled: tipoVehiculo && p.tipoVehiculoId !== parseInt(tipoVehiculo),
+        disabled:
+          tipoVehiculo &&
+          p.tipoVehiculoId !== Number.parseInt(tipoVehiculo, 10),
       }));
       setParqueaderosDisponibles(conMarca);
     } catch (err) {
@@ -364,7 +437,7 @@ function Visitas() {
     if (!fechaStr) return "";
     try {
       const fecha = new Date(fechaStr);
-      if (isNaN(fecha.getTime())) return "";
+      if (Number.isNaN(fecha.getTime())) return "";
       const colombiaOffset = -5 * 60;
       const utcMs = fecha.getTime() + fecha.getTimezoneOffset() * 60000;
       const colombiaDate = new Date(utcMs + colombiaOffset * 60000);
@@ -393,31 +466,11 @@ function Visitas() {
   };
 
   // ── Filtros ──
-  const visitasFiltradas = visitas.filter((v) => {
-    const cumpleBusqueda =
-      !searchTerm ||
-      (v.nombreVisitante || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      (v.numeroDocumento || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      (v.matricula || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (v.numeroApartamento || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-
-    const letraTorre = (v.nombreTorre || "").replace(/^Torre\s*/i, "");
-    const cumpleTorre = !filtroTorre || letraTorre === filtroTorre;
-
-    const cumpleApartamento =
-      !filtroApartamento || (v.numeroApartamento || "") === filtroApartamento;
-
-    const estado = obtenerEstadoReal(v.estadoVisita);
-    const cumpleEstado = filtroEstado === "todas" || estado === filtroEstado;
-
-    return cumpleBusqueda && cumpleTorre && cumpleApartamento && cumpleEstado;
-  });
+  const visitasFiltradas = filtrarVisitas(
+    visitas,
+    { searchTerm, filtroTorre, filtroApartamento, filtroEstado },
+    obtenerEstadoReal,
+  );
 
   // Apartamentos disponibles para el filtro según torre seleccionada
   const apartamentosFiltro = filtroTorre
@@ -510,7 +563,7 @@ function Visitas() {
   const abrirModalEditar = (v) => {
     // Resolver torreId desde nombreTorre
     const letraTorre = (v.nombreTorre || "").replace(/^Torre\s*/i, "");
-    const torreIndex = letraTorre.charCodeAt(0) - 64; // A=1, B=2...
+    const torreIndex = letraTorre.codePointAt(0) - 64; // A=1, B=2...
 
     setVisitaEditando(v);
     setFormData({
@@ -538,57 +591,15 @@ function Visitas() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    // Validaciones
-    if (!formData.numeroDocumento || formData.numeroDocumento.length < 8) {
-      Swal.fire(
-        "Error",
-        "El documento debe tener al menos 8 caracteres",
-        "error",
-      );
+    const errForm = validarFormularioVisita(formData);
+    if (errForm) {
+      Swal.fire("Error", errForm, "error");
       return;
     }
-    // Validar nombre del visitante: solo letras, sin números ni caracteres aleatorios
-    const errNomVis = validarNombreCompleto(formData.nombreVisitante);
-    if (errNomVis) {
-      Swal.fire("Nombre inválido", errNomVis, "error");
+    const errVeh = validarVehiculoVisita(formData);
+    if (errVeh) {
+      Swal.fire("Error", errVeh, "error");
       return;
-    }
-    if (!formData.tipoDocumentoId) {
-      Swal.fire("Error", "Selecciona un tipo de documento", "error");
-      return;
-    }
-    if (!formData.apartamentoId) {
-      Swal.fire("Error", "Selecciona un apartamento", "error");
-      return;
-    }
-    if (!formData.fechaHoraIngreso) {
-      Swal.fire("Error", "Ingresa la fecha y hora de ingreso", "error");
-      return;
-    }
-
-    if (formData.vieneEnVehiculo === "SI") {
-      if (!formData.matricula) {
-        Swal.fire("Error", "Ingresa la matrícula del vehículo", "error");
-        return;
-      }
-      const placaLimpia = formData.matricula.trim().toUpperCase();
-      const placaRegex = /^[A-Z]{3}[0-9]{2,3}[A-Z]?$/;
-      if (!placaRegex.test(placaLimpia)) {
-        Swal.fire(
-          "Matrícula inválida",
-          "La matrícula debe seguir el formato colombiano: ABC123 (carro) o ABC12D / ABC12 (moto). Sin caracteres especiales.",
-          "error",
-        );
-        return;
-      }
-      if (!formData.tipoVehiculoId) {
-        Swal.fire("Error", "Selecciona el tipo de vehículo", "error");
-        return;
-      }
-      if (!formData.codigoParqueadero) {
-        Swal.fire("Error", "Selecciona un parqueadero", "error");
-        return;
-      }
     }
 
     setGuardando(true);
@@ -596,15 +607,18 @@ function Visitas() {
       const visitaData = {
         numeroDocumento: formData.numeroDocumento.trim(),
         nombreVisitante: formData.nombreVisitante.trim(),
-        tipoDocumentoId: parseInt(formData.tipoDocumentoId),
-        apartamentoId: parseInt(formData.apartamentoId),
+        tipoDocumentoId: Number.parseInt(formData.tipoDocumentoId, 10),
+        apartamentoId: Number.parseInt(formData.apartamentoId, 10),
         fechaHoraIngreso: formData.fechaHoraIngreso.replace("T", " "),
         observaciones: formData.observaciones.trim() || "-",
       };
 
       if (formData.vieneEnVehiculo === "SI") {
         visitaData.matricula = formData.matricula.trim().toUpperCase();
-        visitaData.tipoVehiculoId = parseInt(formData.tipoVehiculoId);
+        visitaData.tipoVehiculoId = Number.parseInt(
+          formData.tipoVehiculoId,
+          10,
+        );
         visitaData.codigoParqueadero = formData.codigoParqueadero;
       } else {
         visitaData.matricula = null;
@@ -624,10 +638,9 @@ function Visitas() {
       }
 
       const contentType = res.headers.get("content-type");
-      const data =
-        contentType && contentType.includes("application/json")
-          ? await res.json()
-          : await res.text();
+      const data = contentType?.includes("application/json")
+        ? await res.json()
+        : await res.text();
 
       if (!res.ok) {
         if (data?.codigo === "VISITA_DUPLICADA") {
@@ -733,7 +746,7 @@ function Visitas() {
     navigate("/parqueaderos", {
       replace: true,
       state: {
-        tipoVehiculoId: parseInt(formData.tipoVehiculoId) || null,
+        tipoVehiculoId: Number.parseInt(formData.tipoVehiculoId, 10) || null,
         fromVisitas: true,
         formState: { ...formData },
         editMode: modalEditar,
@@ -774,13 +787,9 @@ function Visitas() {
   if (loading && visitas.length === 0) {
     return (
       <div className="vis-loading-screen">
-        <div
-          className="spinner-border"
-          role="status"
-          style={{ color: "#4CAF50" }}
-        >
+        <output className="spinner-border" style={{ color: "#4CAF50" }}>
           <span className="visually-hidden">Cargando...</span>
-        </div>
+        </output>
         <p className="mt-3 fw-semibold" style={{ color: "#4CAF50" }}>
           Cargando visitas...
         </p>
@@ -792,13 +801,13 @@ function Visitas() {
   return (
     <div className="vis-dashboard">
       {/* ====== OVERLAY + DRAWER ====== */}
-      <div
+      <button
+        type="button"
         className={`vis-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
         onKeyDown={(e) => {
           if (e.key === "Escape") setMenuOpen(false);
         }}
-        role="button"
         tabIndex={0}
         aria-label="Cerrar menú"
       />
@@ -818,13 +827,7 @@ function Visitas() {
             <h6 className="vis-menu-section-title">Navegación</h6>
             <Link
               className="vis-menu-item"
-              to={
-                rolesId === 1
-                  ? "/Superadmin"
-                  : rolesId === 2
-                    ? "/Admin"
-                    : "/Vigilante"
-              }
+              to={{ 1: "/Superadmin", 2: "/Admin" }[rolesId] || "/Vigilante"}
               onClick={() => setMenuOpen(false)}
             >
               <i className="bi bi-speedometer2"></i>
@@ -933,8 +936,7 @@ function Visitas() {
 
         <div className="vis-drawer-footer">
           <button className="vis-logout-btn" onClick={cerrarSesion}>
-            <i className="bi bi-box-arrow-right"></i>
-            Cerrar Sesión
+            <i className="bi bi-box-arrow-right"></i> Cerrar Sesión
           </button>
         </div>
       </aside>
@@ -1041,8 +1043,7 @@ function Visitas() {
             <div className="vis-toolbar">
               <div className="vis-toolbar-top">
                 <button className="vis-btn-registrar" onClick={abrirModalCrear}>
-                  <i className="bi bi-plus-circle"></i>
-                  Registrar Visita
+                  <i className="bi bi-plus-circle"></i> Registrar Visita
                 </button>
                 <div className="vis-filter-search">
                   <i className="bi bi-search vis-filter-search-icon"></i>
@@ -1077,7 +1078,10 @@ function Visitas() {
                   >
                     <option value="">Todas las Torres</option>
                     {Array.from({ length: 10 }, (_, i) => (
-                      <option key={i} value={String.fromCharCode(65 + i)}>
+                      <option
+                        key={String.fromCharCode(65 + i)}
+                        value={String.fromCharCode(65 + i)}
+                      >
                         Torre {String.fromCharCode(65 + i)}
                       </option>
                     ))}
@@ -1109,11 +1113,13 @@ function Visitas() {
                     className={`vis-chip ${filtroEstado === est ? "active" : ""}`}
                     onClick={() => setFiltroEstado(est)}
                   >
-                    {est === "todas"
-                      ? "Todas"
-                      : est === "activa"
-                        ? "Activas"
-                        : "Finalizadas"}
+                    {
+                      {
+                        todas: "Todas",
+                        activa: "Activas",
+                        finalizada: "Finalizadas",
+                      }[est]
+                    }
                   </button>
                 ))}
                 {hayFiltrosActivos && (
@@ -1121,8 +1127,7 @@ function Visitas() {
                     className="vis-chip vis-chip-clear"
                     onClick={limpiarFiltros}
                   >
-                    <i className="bi bi-x-circle me-1"></i>
-                    Limpiar filtros
+                    <i className="bi bi-x-circle me-1"></i> Limpiar filtros
                   </button>
                 )}
               </div>
@@ -1168,11 +1173,9 @@ function Visitas() {
                           <td>
                             {v.matricula ? (
                               <span>
-                                {v.nombreVehiculo === "Moto" ? (
-                                  <i className="bi bi-scooter text-success me-1"></i>
-                                ) : (
-                                  <i className="bi bi-car-front text-success me-1"></i>
-                                )}
+                                <i
+                                  className={`bi ${v.nombreVehiculo === "Moto" ? "bi-scooter" : "bi-car-front"} text-success me-1`}
+                                ></i>
                                 {v.matricula}
                               </span>
                             ) : (
@@ -1413,7 +1416,8 @@ function Visitas() {
       {(modalCrear || modalEditar) && (
         <div
           className="vis-modal-overlay"
-          onClick={() => {
+          onClick={(e) => {
+            if (e.target !== e.currentTarget) return;
             setModalCrear(false);
             setModalEditar(false);
             setVisitaEditando(null);
@@ -1427,15 +1431,12 @@ function Visitas() {
               resetForm();
             }
           }}
-          role="button"
+          role="dialog"
+          aria-modal="true"
           tabIndex={0}
           aria-label="Cerrar"
         >
-          <div
-            className="vis-modal"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+          <div className="vis-modal">
             <div className="vis-modal-header">
               <div className="vis-modal-header-left">
                 <i
@@ -1464,10 +1465,14 @@ function Visitas() {
                 {/* Tipo Documento + Nro Documento */}
                 <div className="vis-form-row">
                   <div className="vis-form-group">
-                    <label className="vis-form-label">
+                    <label
+                      htmlFor="vis-tipoDocumentoId"
+                      className="vis-form-label"
+                    >
                       Tipo Documento <span className="required">*</span>
                     </label>
                     <select
+                      id="vis-tipoDocumentoId"
                       className="vis-form-control"
                       value={formData.tipoDocumentoId}
                       onChange={(e) =>
@@ -1484,10 +1489,14 @@ function Visitas() {
                     </select>
                   </div>
                   <div className="vis-form-group">
-                    <label className="vis-form-label">
+                    <label
+                      htmlFor="vis-numeroDocumento"
+                      className="vis-form-label"
+                    >
                       N° Documento <span className="required">*</span>
                     </label>
                     <input
+                      id="vis-numeroDocumento"
                       type="text"
                       className="vis-form-control"
                       value={formData.numeroDocumento}
@@ -1503,10 +1512,14 @@ function Visitas() {
 
                 {/* Nombre */}
                 <div className="vis-form-group">
-                  <label className="vis-form-label">
+                  <label
+                    htmlFor="vis-nombreVisitante"
+                    className="vis-form-label"
+                  >
                     Nombre Visitante <span className="required">*</span>
                   </label>
                   <input
+                    id="vis-nombreVisitante"
                     type="text"
                     className="vis-form-control"
                     value={formData.nombreVisitante}
@@ -1528,10 +1541,11 @@ function Visitas() {
                 {/* Torre + Apartamento */}
                 <div className="vis-form-row">
                   <div className="vis-form-group">
-                    <label className="vis-form-label">
+                    <label htmlFor="vis-torreId" className="vis-form-label">
                       Torre <span className="required">*</span>
                     </label>
                     <select
+                      id="vis-torreId"
                       className="vis-form-control"
                       value={formData.torreId}
                       onChange={(e) => handleChange("torreId", e.target.value)}
@@ -1539,17 +1553,24 @@ function Visitas() {
                     >
                       <option value="">Selecciona torre</option>
                       {Array.from({ length: 10 }, (_, i) => (
-                        <option key={i + 1} value={i + 1}>
+                        <option
+                          key={`torre-${String.fromCharCode(65 + i)}`}
+                          value={i + 1}
+                        >
                           Torre {String.fromCharCode(65 + i)}
                         </option>
                       ))}
                     </select>
                   </div>
                   <div className="vis-form-group">
-                    <label className="vis-form-label">
+                    <label
+                      htmlFor="vis-apartamentoId"
+                      className="vis-form-label"
+                    >
                       Apartamento <span className="required">*</span>
                     </label>
                     <select
+                      id="vis-apartamentoId"
                       className="vis-form-control"
                       value={formData.apartamentoId}
                       onChange={(e) =>
@@ -1560,7 +1581,10 @@ function Visitas() {
                     >
                       <option value="">Selecciona apartamento</option>
                       {apartamentos
-                        .filter((a) => a.torreId === parseInt(formData.torreId))
+                        .filter(
+                          (a) =>
+                            a.torreId === Number.parseInt(formData.torreId, 10),
+                        )
                         .map((a) => (
                           <option key={a.id} value={a.id}>
                             {a.numero}
@@ -1572,10 +1596,14 @@ function Visitas() {
 
                 {/* Fecha hora ingreso */}
                 <div className="vis-form-group">
-                  <label className="vis-form-label">
+                  <label
+                    htmlFor="vis-fechaHoraIngreso"
+                    className="vis-form-label"
+                  >
                     Fecha y Hora de Ingreso <span className="required">*</span>
                   </label>
                   <input
+                    id="vis-fechaHoraIngreso"
                     type="datetime-local"
                     className="vis-form-control"
                     value={formData.fechaHoraIngreso}
@@ -1588,10 +1616,14 @@ function Visitas() {
 
                 {/* ¿Viene en vehículo? */}
                 <div className="vis-form-group">
-                  <label className="vis-form-label">
+                  <label
+                    htmlFor="vis-vieneEnVehiculo"
+                    className="vis-form-label"
+                  >
                     ¿Viene en vehículo? <span className="required">*</span>
                   </label>
                   <select
+                    id="vis-vieneEnVehiculo"
                     className="vis-form-control"
                     value={formData.vieneEnVehiculo}
                     onChange={(e) =>
@@ -1607,15 +1639,15 @@ function Visitas() {
                 {formData.vieneEnVehiculo === "SI" && (
                   <div className="vis-vehicle-section">
                     <div className="vis-vehicle-title">
-                      <i className="bi bi-car-front"></i>
-                      Datos del Vehículo
+                      <i className="bi bi-car-front"></i> Datos del Vehículo
                     </div>
 
                     <div className="vis-form-group">
-                      <label className="vis-form-label">
+                      <label htmlFor="vis-matricula" className="vis-form-label">
                         Matrícula <span className="required">*</span>
                       </label>
                       <input
+                        id="vis-matricula"
                         type="text"
                         className="vis-form-control"
                         value={formData.matricula}
@@ -1631,10 +1663,14 @@ function Visitas() {
                     </div>
 
                     <div className="vis-form-group">
-                      <label className="vis-form-label">
+                      <label
+                        htmlFor="vis-tipoVehiculoId"
+                        className="vis-form-label"
+                      >
                         Tipo de Vehículo <span className="required">*</span>
                       </label>
                       <select
+                        id="vis-tipoVehiculoId"
                         className="vis-form-control"
                         value={formData.tipoVehiculoId}
                         onChange={(e) =>
@@ -1651,99 +1687,110 @@ function Visitas() {
                     {/* Parqueadero */}
                     {formData.tipoVehiculoId && (
                       <div className="vis-form-group">
-                        <label className="vis-form-label">
+                        <label
+                          htmlFor="vis-parqueadero"
+                          className="vis-form-label"
+                        >
                           Parqueadero <span className="required">*</span>
                         </label>
-                        {formData.codigoParqueadero ? (
-                          <div className="vis-parking-selected">
-                            <div>
-                              <div
-                                style={{
-                                  fontSize: "11px",
-                                  color: "#6b7280",
-                                  textTransform: "uppercase",
-                                }}
-                              >
-                                Parqueadero seleccionado
-                              </div>
-                              <div className="vis-parking-code">
-                                {formData.codigoParqueadero}
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              className="vis-parking-change"
-                              onClick={irASeleccionarParqueadero}
-                            >
-                              Cambiar
-                            </button>
-                          </div>
-                        ) : parqueaderosDisponibles.length > 0 ? (
-                          <div style={{ display: "flex", gap: "8px" }}>
-                            <select
-                              className="vis-form-control"
-                              value={formData.codigoParqueadero}
-                              onChange={(e) => {
-                                const sel = e.target.value;
-                                const found = parqueaderosDisponibles.find(
-                                  (p) => p.codigoParqueadero === sel,
-                                );
-                                if (found && found.disabled) {
-                                  Swal.fire(
-                                    "Tipo inválido",
-                                    "Este espacio no coincide con el tipo de vehículo.",
-                                    "error",
-                                  );
-                                  return;
-                                }
-                                handleChange("codigoParqueadero", sel);
-                              }}
-                              required
-                              style={{ flex: 1 }}
-                            >
-                              <option value="">
-                                Selecciona un parqueadero
-                              </option>
-                              {parqueaderosDisponibles.map((p) => (
-                                <option
-                                  key={p.codigoParqueadero}
-                                  value={p.codigoParqueadero}
-                                  disabled={p.disabled}
+                        {(() => {
+                          if (formData.codigoParqueadero) {
+                            return (
+                              <div className="vis-parking-selected">
+                                <div>
+                                  <div
+                                    style={{
+                                      fontSize: "11px",
+                                      color: "#6b7280",
+                                      textTransform: "uppercase",
+                                    }}
+                                  >
+                                    Parqueadero seleccionado
+                                  </div>
+                                  <div className="vis-parking-code">
+                                    {formData.codigoParqueadero}
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="vis-parking-change"
+                                  onClick={irASeleccionarParqueadero}
                                 >
-                                  {p.codigoParqueadero}
-                                  {p.disabled ? " (no compatible)" : ""}
-                                </option>
-                              ))}
-                            </select>
-                            <button
-                              type="button"
-                              className="vis-parking-change"
-                              onClick={irASeleccionarParqueadero}
-                              style={{ whiteSpace: "nowrap" }}
-                            >
-                              Ver mapa
-                            </button>
-                          </div>
-                        ) : (
-                          <div
-                            style={{
-                              background: "#fff7ed",
-                              border: "1px solid #fed7aa",
-                              borderRadius: "10px",
-                              padding: "12px",
-                              fontSize: "13px",
-                              color: "#c2410c",
-                            }}
-                          >
-                            <strong>No hay parqueaderos disponibles</strong>
-                            <br />
-                            Para{" "}
-                            {formData.tipoVehiculoId === "1"
+                                  Cambiar
+                                </button>
+                              </div>
+                            );
+                          }
+                          if (parqueaderosDisponibles.length > 0) {
+                            return (
+                              <div style={{ display: "flex", gap: "8px" }}>
+                                <select
+                                  className="vis-form-control"
+                                  value={formData.codigoParqueadero}
+                                  onChange={(e) => {
+                                    const sel = e.target.value;
+                                    const found = parqueaderosDisponibles.find(
+                                      (p) => p.codigoParqueadero === sel,
+                                    );
+                                    if (found?.disabled) {
+                                      Swal.fire(
+                                        "Tipo inválido",
+                                        "Este espacio no coincide con el tipo de vehículo.",
+                                        "error",
+                                      );
+                                      return;
+                                    }
+                                    handleChange("codigoParqueadero", sel);
+                                  }}
+                                  required
+                                  style={{ flex: 1 }}
+                                >
+                                  <option value="">
+                                    Selecciona un parqueadero
+                                  </option>
+                                  {parqueaderosDisponibles.map((p) => (
+                                    <option
+                                      key={p.codigoParqueadero}
+                                      value={p.codigoParqueadero}
+                                      disabled={p.disabled}
+                                    >
+                                      {p.codigoParqueadero}
+                                      {p.disabled ? " (no compatible)" : ""}
+                                    </option>
+                                  ))}
+                                </select>
+                                <button
+                                  type="button"
+                                  className="vis-parking-change"
+                                  onClick={irASeleccionarParqueadero}
+                                  style={{ whiteSpace: "nowrap" }}
+                                >
+                                  Ver mapa
+                                </button>
+                              </div>
+                            );
+                          }
+                          const tipoLabel =
+                            formData.tipoVehiculoId === "1"
                               ? "carros"
-                              : "motos"}
-                            .
-                          </div>
-                        )}
+                              : "motos";
+                          return (
+                            <div
+                              style={{
+                                background: "#fff7ed",
+                                border: "1px solid #fed7aa",
+                                borderRadius: "10px",
+                                padding: "12px",
+                                fontSize: "13px",
+                                color: "#c2410c",
+                              }}
+                            >
+                              <strong>No hay parqueaderos disponibles</strong>
+                              <br />
+                              Para {tipoLabel}.
+                            </div>
+                          );
+                        })()}
                       </div>
                     )}
                   </div>
@@ -1751,8 +1798,11 @@ function Visitas() {
 
                 {/* Observaciones */}
                 <div className="vis-form-group">
-                  <label className="vis-form-label">Observaciones</label>
+                  <label htmlFor="vis-observaciones" className="vis-form-label">
+                    Observaciones
+                  </label>
                   <textarea
+                    id="vis-observaciones"
                     className="vis-form-control vis-form-textarea"
                     value={formData.observaciones}
                     onChange={(e) =>
@@ -1772,19 +1822,24 @@ function Visitas() {
                 >
                   {guardando ? (
                     <>
-                      <span
-                        className="spinner-border spinner-border-sm"
-                        role="status"
-                      ></span>
+                      <output className="spinner-border spinner-border-sm"></output>{" "}
                       Guardando...
                     </>
                   ) : (
-                    <>
-                      <i
-                        className={`bi ${modalEditar ? "bi-pencil-square" : "bi-check-circle"}`}
-                      ></i>
-                      {modalEditar ? "Actualizar Visita" : "Registrar Visita"}
-                    </>
+                    (() => {
+                      const submitIcon = modalEditar
+                        ? "bi-pencil-square"
+                        : "bi-check-circle";
+                      const submitText = modalEditar
+                        ? "Actualizar Visita"
+                        : "Registrar Visita";
+                      return (
+                        <>
+                          <i className={`bi ${submitIcon}`}></i>
+                          {submitText}
+                        </>
+                      );
+                    })()
                   )}
                 </button>
               </div>
@@ -1797,19 +1852,18 @@ function Visitas() {
       {modalDetalle && (
         <div
           className="vis-modal-overlay"
-          onClick={() => setModalDetalle(null)}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setModalDetalle(null);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") setModalDetalle(null);
           }}
-          role="button"
+          role="dialog"
+          aria-modal="true"
           tabIndex={0}
           aria-label="Cerrar"
         >
-          <div
-            className="vis-modal"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+          <div className="vis-modal">
             <div className="vis-modal-header">
               <div className="vis-modal-header-left">
                 <i

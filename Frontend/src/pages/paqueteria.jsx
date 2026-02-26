@@ -22,15 +22,15 @@ const TORRES = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 
 const getApartamentosPorTorre = (torre) => {
   if (!torre) return [];
-  const idx = torre.charCodeAt(0) - 65;
+  const idx = torre.codePointAt(0) - 65;
   if (torre === "J") return [1001, 1002, 1003, 1004, 1005];
   const base = (idx + 1) * 100;
   return [base + 1, base + 2, base + 3, base + 4, base + 5];
 };
 
 const obtenerApartamentoId = (torre, apartamento) => {
-  const letraIndex = torre.charCodeAt(0) - 65;
-  const num = parseInt(apartamento);
+  const letraIndex = torre.codePointAt(0) - 65;
+  const num = Number.parseInt(apartamento);
   let pos;
   if (num >= 1001 && num <= 1005) pos = num - 1000;
   else {
@@ -75,7 +75,7 @@ const formatearHora = (fechaStr) => {
 const normalizarFechaHora = (fechaHoraString) => {
   try {
     const fecha = new Date(fechaHoraString);
-    if (isNaN(fecha.getTime())) return fechaHoraString.replace("T", " ");
+    if (Number.isNaN(fecha.getTime())) return fechaHoraString.replace("T", " ");
     const yyyy = fecha.getFullYear();
     const mm = String(fecha.getMonth() + 1).padStart(2, "0");
     const dd = String(fecha.getDate()).padStart(2, "0");
@@ -85,6 +85,20 @@ const normalizarFechaHora = (fechaHoraString) => {
   } catch {
     return fechaHoraString.replace("T", " ");
   }
+};
+
+/** Resuelve la ruta del dashboard según el rol */
+const getDashboardRoute = (rol) => {
+  if (rol === 1) return "/Superadmin";
+  if (rol === 2) return "/admin";
+  return "/Vigilante";
+};
+
+/** Resuelve el título del menú según el rol */
+const getMenuTitle = (rol) => {
+  if (rol === 1) return "Menú Super Admin";
+  if (rol === 2) return "Menú Admin";
+  return "Menú Vigilante";
 };
 
 /** Convierte una fecha ISO UTC a datetime-local en hora Colombia (UTC-5) */
@@ -519,19 +533,6 @@ function Paqueteria() {
     });
   };
 
-  // ── Dashboard según rol ──
-  const getDashboardRoute = () => {
-    if (rolesId === 1) return "/Superadmin";
-    if (rolesId === 2) return "/admin";
-    return "/Vigilante";
-  };
-
-  const getMenuTitle = () => {
-    if (rolesId === 1) return "Menú Super Admin";
-    if (rolesId === 2) return "Menú Admin";
-    return "Menú Vigilante";
-  };
-
   const cerrarSesion = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
@@ -545,13 +546,9 @@ function Paqueteria() {
   if (loading && paquetes.length === 0) {
     return (
       <div className="paq-loading-screen">
-        <div
-          className="spinner-border"
-          role="status"
-          style={{ color: "#3b82f6" }}
-        >
+        <output className="spinner-border" style={{ color: "#3b82f6" }}>
           <span className="visually-hidden">Cargando...</span>
-        </div>
+        </output>
         <p className="mt-3 fw-semibold" style={{ color: "#3b82f6" }}>
           Cargando paquetes...
         </p>
@@ -562,13 +559,13 @@ function Paqueteria() {
   return (
     <div className="paq-dashboard">
       {/* ====== OVERLAY & DRAWER ====== */}
-      <div
+      <button
+        type="button"
         className={`paq-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
         onKeyDown={(e) => {
           if (e.key === "Escape") setMenuOpen(false);
         }}
-        role="button"
         tabIndex={0}
         aria-label="Cerrar menú"
       />
@@ -577,7 +574,7 @@ function Paqueteria() {
           <div className="paq-drawer-avatar">
             <i className="bi bi-box-seam-fill"></i>
           </div>
-          <h4 className="paq-drawer-title">{getMenuTitle()}</h4>
+          <h4 className="paq-drawer-title">{getMenuTitle(rolesId)}</h4>
           <span className="paq-drawer-user">
             {usuario?.username || usuario?.nombre || "Usuario"}
           </span>
@@ -588,7 +585,7 @@ function Paqueteria() {
             <h6 className="paq-menu-section-title">Navegación</h6>
             <Link
               className="paq-menu-item"
-              to={getDashboardRoute()}
+              to={getDashboardRoute(rolesId)}
               onClick={() => setMenuOpen(false)}
             >
               <i className="bi bi-speedometer2"></i>
@@ -693,8 +690,7 @@ function Paqueteria() {
 
         <div className="paq-drawer-footer">
           <button className="paq-logout-btn" onClick={cerrarSesion}>
-            <i className="bi bi-box-arrow-right"></i>
-            Cerrar Sesión
+            <i className="bi bi-box-arrow-right"></i> Cerrar Sesión
           </button>
         </div>
       </aside>
@@ -920,11 +916,11 @@ function Paqueteria() {
                     </tr>
                   </thead>
                   <tbody>
-                    {paquetesPaginados.map((p, idx) => {
+                    {paquetesPaginados.map((p) => {
                       const esRecibido =
                         (p.nombreEstado || "").toLowerCase() === "recibido";
                       return (
-                        <tr key={p.idPaquete || idx} className="paq-table-row">
+                        <tr key={p.idPaquete} className="paq-table-row">
                           <td>{p.nombreDestinatario || "N/A"}</td>
                           <td>{p.nombreTorre || "N/A"}</td>
                           <td>{p.numeroApartamento || "N/A"}</td>
@@ -977,11 +973,11 @@ function Paqueteria() {
             {/* ── Cards (móvil <800px) ── */}
             {paquetesFiltrados.length > 0 && (
               <div className="paq-cards-container">
-                {paquetesPaginados.map((p, idx) => {
+                {paquetesPaginados.map((p) => {
                   const esRecibido =
                     (p.nombreEstado || "").toLowerCase() === "recibido";
                   return (
-                    <div key={p.idPaquete || idx} className="paq-card">
+                    <div key={p.idPaquete} className="paq-card">
                       <div className="paq-card-header">
                         <span className="paq-card-name">
                           {p.nombreDestinatario || "N/A"}
@@ -1145,19 +1141,18 @@ function Paqueteria() {
       {modalCrear && (
         <div
           className="paq-modal-overlay"
-          onClick={() => setModalCrear(false)}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setModalCrear(false);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") setModalCrear(false);
           }}
-          role="button"
+          role="dialog"
+          aria-modal="true"
           tabIndex={0}
           aria-label="Cerrar"
         >
-          <div
-            className="paq-modal"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+          <div className="paq-modal">
             <div className="paq-modal-header">
               <div className="paq-modal-header-left">
                 <i
@@ -1176,10 +1171,14 @@ function Paqueteria() {
             <div className="paq-modal-body">
               <form onSubmit={handleSubmitCrear}>
                 <div className="paq-form-group">
-                  <label className="paq-form-label">
+                  <label
+                    htmlFor="paq-crear-residente"
+                    className="paq-form-label"
+                  >
                     Nombre del Residente <span className="required">*</span>
                   </label>
                   <input
+                    id="paq-crear-residente"
                     type="text"
                     className="paq-form-control"
                     value={formCrear.residente}
@@ -1193,10 +1192,11 @@ function Paqueteria() {
 
                 <div className="paq-form-row">
                   <div className="paq-form-group">
-                    <label className="paq-form-label">
+                    <label htmlFor="paq-crear-torre" className="paq-form-label">
                       Torre <span className="required">*</span>
                     </label>
                     <select
+                      id="paq-crear-torre"
                       className="paq-form-control"
                       value={formCrear.torre}
                       onChange={(e) =>
@@ -1217,10 +1217,14 @@ function Paqueteria() {
                     </select>
                   </div>
                   <div className="paq-form-group">
-                    <label className="paq-form-label">
+                    <label
+                      htmlFor="paq-crear-apartamento"
+                      className="paq-form-label"
+                    >
                       Apartamento <span className="required">*</span>
                     </label>
                     <select
+                      id="paq-crear-apartamento"
                       className="paq-form-control"
                       value={formCrear.apartamento}
                       onChange={(e) =>
@@ -1248,6 +1252,7 @@ function Paqueteria() {
                     Transportadora <span className="required">*</span>
                   </label>
                   <input
+                    id="paq-crear-transportadora"
                     type="text"
                     list="transportadoras-list-crear"
                     className="paq-form-control"
@@ -1269,11 +1274,15 @@ function Paqueteria() {
                 </div>
 
                 <div className="paq-form-group">
-                  <label className="paq-form-label">
+                  <label
+                    htmlFor="paq-crear-fechaRecepcion"
+                    className="paq-form-label"
+                  >
                     Fecha y Hora de Recepción{" "}
                     <span className="required">*</span>
                   </label>
                   <input
+                    id="paq-crear-fechaRecepcion"
                     type="datetime-local"
                     className="paq-form-control"
                     value={formCrear.fechaHoraRecepcion}
@@ -1288,8 +1297,14 @@ function Paqueteria() {
                 </div>
 
                 <div className="paq-form-group">
-                  <label className="paq-form-label">Observaciones</label>
+                  <label
+                    htmlFor="paq-crear-observaciones"
+                    className="paq-form-label"
+                  >
+                    Observaciones
+                  </label>
                   <textarea
+                    id="paq-crear-observaciones"
                     className="paq-form-control paq-form-textarea"
                     value={formCrear.observaciones}
                     onChange={(e) =>
@@ -1331,9 +1346,11 @@ function Paqueteria() {
       {modalEditar && paqueteEditar && (
         <div
           className="paq-modal-overlay"
-          onClick={() => {
-            setModalEditar(false);
-            setPaqueteEditar(null);
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setModalEditar(false);
+              setPaqueteEditar(null);
+            }
           }}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
@@ -1341,15 +1358,12 @@ function Paqueteria() {
               setPaqueteEditar(null);
             }
           }}
-          role="button"
+          role="dialog"
+          aria-modal="true"
           tabIndex={0}
           aria-label="Cerrar"
         >
-          <div
-            className="paq-modal"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+          <div className="paq-modal">
             <div className="paq-modal-header">
               <div className="paq-modal-header-left">
                 <i
@@ -1371,10 +1385,14 @@ function Paqueteria() {
             <div className="paq-modal-body">
               <form onSubmit={handleSubmitEditar}>
                 <div className="paq-form-group">
-                  <label className="paq-form-label">
+                  <label
+                    htmlFor="paq-editar-residente"
+                    className="paq-form-label"
+                  >
                     Nombre del Residente <span className="required">*</span>
                   </label>
                   <input
+                    id="paq-editar-residente"
                     type="text"
                     className="paq-form-control"
                     value={formEditar.residente}
@@ -1390,10 +1408,14 @@ function Paqueteria() {
 
                 <div className="paq-form-row">
                   <div className="paq-form-group">
-                    <label className="paq-form-label">
+                    <label
+                      htmlFor="paq-editar-torre"
+                      className="paq-form-label"
+                    >
                       Torre <span className="required">*</span>
                     </label>
                     <select
+                      id="paq-editar-torre"
                       className="paq-form-control"
                       value={formEditar.torre}
                       onChange={(e) =>
@@ -1414,10 +1436,14 @@ function Paqueteria() {
                     </select>
                   </div>
                   <div className="paq-form-group">
-                    <label className="paq-form-label">
+                    <label
+                      htmlFor="paq-editar-apartamento"
+                      className="paq-form-label"
+                    >
                       Apartamento <span className="required">*</span>
                     </label>
                     <select
+                      id="paq-editar-apartamento"
                       className="paq-form-control"
                       value={formEditar.apartamento}
                       onChange={(e) =>
@@ -1441,10 +1467,14 @@ function Paqueteria() {
                 </div>
 
                 <div className="paq-form-group">
-                  <label className="paq-form-label">
+                  <label
+                    htmlFor="paq-editar-transportadora"
+                    className="paq-form-label"
+                  >
                     Transportadora <span className="required">*</span>
                   </label>
                   <input
+                    id="paq-editar-transportadora"
                     type="text"
                     list="transportadoras-list-editar"
                     className="paq-form-control"
@@ -1465,11 +1495,15 @@ function Paqueteria() {
                 </div>
 
                 <div className="paq-form-group">
-                  <label className="paq-form-label">
+                  <label
+                    htmlFor="paq-editar-fechaRecepcion"
+                    className="paq-form-label"
+                  >
                     Fecha y Hora de Recepción{" "}
                     <span className="required">*</span>
                   </label>
                   <input
+                    id="paq-editar-fechaRecepcion"
                     type="datetime-local"
                     className="paq-form-control"
                     value={formEditar.fechaHoraRecepcion}
@@ -1484,8 +1518,14 @@ function Paqueteria() {
                 </div>
 
                 <div className="paq-form-group">
-                  <label className="paq-form-label">Observaciones</label>
+                  <label
+                    htmlFor="paq-editar-observaciones"
+                    className="paq-form-label"
+                  >
+                    Observaciones
+                  </label>
                   <textarea
+                    id="paq-editar-observaciones"
                     className="paq-form-control paq-form-textarea"
                     value={formEditar.observaciones}
                     onChange={(e) =>
@@ -1526,20 +1566,18 @@ function Paqueteria() {
       {modalDetalle && (
         <div
           className="paq-modal-overlay"
-          onClick={() => setModalDetalle(null)}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setModalDetalle(null);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") setModalDetalle(null);
           }}
-          role="button"
+          role="dialog"
+          aria-modal="true"
           tabIndex={0}
           aria-label="Cerrar"
         >
-          <div
-            className="paq-modal"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-            style={{ maxWidth: "480px" }}
-          >
+          <div className="paq-modal" style={{ maxWidth: "480px" }}>
             <div className="paq-modal-header">
               <div className="paq-modal-header-left">
                 <i

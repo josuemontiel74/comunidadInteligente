@@ -39,7 +39,7 @@
   top: 0;
   width: 310px;
   height: 100vh;
-  background: linear-gradient(180deg, #1e40af, #2563eb, #3b82f6);
+  background: linear-gradient(180deg, #1e40af, #1d4ed8, #2563eb);
   color: white;
   z-index: 1000;
   display: flex;
@@ -173,7 +173,7 @@
 
 /* Header / AppBar */
 .paq-header {
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
   color: white;
   display: flex;
   align-items: center;
@@ -357,7 +357,7 @@
   justify-content: center;
   padding: 32px 24px;
   text-align: center;
-  color: #6b7280;
+  color: #5f6b77;
 }
 .paq-error-icon {
   font-size: 60px;

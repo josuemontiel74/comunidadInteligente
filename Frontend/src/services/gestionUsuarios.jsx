@@ -108,8 +108,8 @@ export const logoutUsuario = async (token) => {
         "Content-Type": "application/json",
       },
     });
-  } catch {
-    // Silencioso: no bloquear el logout local si falla
+  } catch (error) {
+    console.warn("Error en logout remoto:", error);
   }
 };
 

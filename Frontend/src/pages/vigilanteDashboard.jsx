@@ -288,13 +288,9 @@ function Dashboard() {
   if (loading) {
     return (
       <div className="vi-loading-screen">
-        <div
-          className="spinner-border"
-          role="status"
-          style={{ color: "#3b82f6" }}
-        >
+        <output className="spinner-border" style={{ color: "#3b82f6" }}>
           <span className="visually-hidden">Cargando...</span>
-        </div>
+        </output>
         <p className="mt-3 fw-semibold" style={{ color: "#3b82f6" }}>
           Verificando sesión...
         </p>
@@ -333,13 +329,13 @@ function Dashboard() {
   return (
     <div className={`vi-dashboard${saliendo ? " vi-saliendo" : ""}`}>
       {/* ====== OFFCANVAS MENU ====== */}
-      <div
+      <button
+        type="button"
         className={`vi-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
         onKeyDown={(e) => {
           if (e.key === "Escape") setMenuOpen(false);
         }}
-        role="button"
         tabIndex={0}
         aria-label="Cerrar menú"
       />
@@ -542,7 +538,7 @@ function Dashboard() {
           {modulos.map((mod, idx) => (
             <Link
               to={mod.to}
-              key={idx}
+              key={mod.to}
               className="vi-module-card"
               style={{
                 background: `linear-gradient(135deg, ${mod.color}cc, ${mod.color})`,

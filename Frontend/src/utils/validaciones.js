@@ -39,9 +39,9 @@ const REGEX_SOLO_LETRAS = /^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/;
  * - Bloquea "qwerty", "asdfgh", secuencias aleatorias.
  */
 const tieneSentido = (str) => {
-  const letras = str.replace(/[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]/g, "");
+  const letras = str.replaceAll(/[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]/g, "");
   if (letras.length < 2) return false;
-  const vocales = (letras.match(/[aeiouáéíóúüAEIOUÁÉÍÓÚÜ]/gi) || []).length;
+  const vocales = (letras.match(/[aeiouáéíóúü]/gi) || []).length;
   return vocales / letras.length >= 0.15;
 };
 
@@ -135,7 +135,7 @@ export const validarEmail = (str) => {
  */
 export const validarDocumento = (str, tipoId, tipoNombre = "") => {
   const s = (str || "").trim();
-  const id = parseInt(tipoId, 10);
+  const id = Number.parseInt(tipoId, 10);
   const etiqueta = tipoNombre || `tipo ${tipoId}`;
 
   if (!s) return "El número de documento es obligatorio.";
@@ -196,7 +196,7 @@ export const validarTransportadora = (str) => {
   if (s.length < 2) return "El nombre de la transportadora es demasiado corto.";
 
   // Verificar que si tiene letras, estas tengan sentido
-  const soloLetras = s.replace(/[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]/g, "");
+  const soloLetras = s.replaceAll(/[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]/g, "");
   if (soloLetras.length > 2 && !tieneSentido(s))
     return "El nombre de la transportadora no parece válido. Evite escribir letras al azar.";
 

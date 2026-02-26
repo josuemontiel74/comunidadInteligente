@@ -282,10 +282,7 @@ function Parqueaderos() {
             cargarParqueaderos();
           } else {
             // Manejo específico: visita activa
-            if (
-              data.visitaActiva ||
-              (data.message && data.message.includes("visita activa"))
-            ) {
+            if (data.visitaActiva || data.message?.includes("visita activa")) {
               Swal.fire({
                 icon: "warning",
                 title: "Parqueadero con visita activa",
@@ -326,13 +323,9 @@ function Parqueaderos() {
   if (loading && parqueaderos.length === 0) {
     return (
       <div className="parq-loading-screen">
-        <div
-          className="spinner-border"
-          role="status"
-          style={{ color: "#ef5350" }}
-        >
+        <output className="spinner-border" style={{ color: "#ef5350" }}>
           <span className="visually-hidden">Cargando...</span>
-        </div>
+        </output>
         <p className="mt-3 fw-semibold" style={{ color: "#ef5350" }}>
           Cargando parqueaderos...
         </p>
@@ -344,13 +337,13 @@ function Parqueaderos() {
   return (
     <div className="parq-dashboard">
       {/* ====== OVERLAY + DRAWER ====== */}
-      <div
+      <button
+        type="button"
         className={`parq-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
         onKeyDown={(e) => {
           if (e.key === "Escape") setMenuOpen(false);
         }}
-        role="button"
         tabIndex={0}
         aria-label="Cerrar menú"
       />
@@ -377,11 +370,7 @@ function Parqueaderos() {
                 <Link
                   className="parq-menu-item"
                   to={
-                    rolesId === 1
-                      ? "/Superadmin"
-                      : rolesId === 2
-                        ? "/Admin"
-                        : "/Vigilante"
+                    { 1: "/Superadmin", 2: "/Admin" }[rolesId] || "/Vigilante"
                   }
                   onClick={() => setMenuOpen(false)}
                 >
@@ -492,8 +481,7 @@ function Parqueaderos() {
         {!modoSeleccion && (
           <div className="parq-drawer-footer">
             <button className="parq-logout-btn" onClick={cerrarSesion}>
-              <i className="bi bi-box-arrow-right"></i>
-              Cerrar Sesión
+              <i className="bi bi-box-arrow-right"></i> Cerrar Sesión
             </button>
           </div>
         )}
@@ -591,8 +579,8 @@ function Parqueaderos() {
             {/* Banner modo selección */}
             {modoSeleccion && (
               <div className="parq-selection-banner">
-                <i className="bi bi-info-circle me-2"></i>
-                Selecciona un parqueadero disponible para asignarlo a la visita.
+                <i className="bi bi-info-circle me-2"></i> Selecciona un
+                parqueadero disponible para asignarlo a la visita.
                 <button
                   className="parq-selection-banner-btn"
                   onClick={() => {
@@ -683,13 +671,14 @@ function Parqueaderos() {
                           className={`parq-chip ${filtroEstado === est ? "active" : ""}`}
                           onClick={() => setFiltroEstado(est)}
                         >
-                          {est === "todos"
-                            ? "Todos"
-                            : est === "disponibles"
-                              ? "Disponibles"
-                              : est === "ocupados"
-                                ? "Ocupados"
-                                : "No disponible"}
+                          {
+                            {
+                              todos: "Todos",
+                              disponibles: "Disponibles",
+                              ocupados: "Ocupados",
+                              noDisponible: "No disponible",
+                            }[est]
+                          }
                         </button>
                       ),
                     )}
@@ -710,8 +699,8 @@ function Parqueaderos() {
                       className={`parq-chip parq-chip-tipo ${filtroTipo === "carros" ? "active" : ""}`}
                       onClick={() => setFiltroTipo("carros")}
                     >
-                      <i className="bi bi-car-front me-1"></i>
-                      Carros ({totalCarros})
+                      <i className="bi bi-car-front me-1"></i> Carros (
+                      {totalCarros})
                     </button>
                     <button
                       className={`parq-chip parq-chip-tipo ${filtroTipo === "motos" ? "active" : ""}`}
@@ -727,7 +716,7 @@ function Parqueaderos() {
                         style={{ verticalAlign: "-2px" }}
                       >
                         <path d="M4 18a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0-2a1 1 0 1 0 0-2 1 1 0 0 0 0 2m16 2a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0-2a1 1 0 1 0 0-2 1 1 0 0 0 0 2M15.4 5H11v2h3.6l1.4 1.4-3.4 3.6H8.6L5.4 9H2v2h2.6l3.4 3.4V17a3 3 0 0 0 6 0v-2.6L17.4 11h2l-4-6zM13 17a2 2 0 0 1-4 0v-1.6l1.6-1.4H13v3z" />
-                      </svg>
+                      </svg>{" "}
                       Motos ({totalMotos})
                     </button>
                   </div>
@@ -738,8 +727,7 @@ function Parqueaderos() {
                     className="parq-chip parq-chip-clear"
                     onClick={limpiarFiltros}
                   >
-                    <i className="bi bi-x-circle me-1"></i>
-                    Limpiar
+                    <i className="bi bi-x-circle me-1"></i> Limpiar
                   </button>
                 )}
               </div>
@@ -774,26 +762,33 @@ function Parqueaderos() {
                 {parqueaderosPaginados.map((p) => {
                   const disponible = p.estadoId === 4;
                   const esMoto = p.tipoVehiculoId === 2;
-                  const esNoDisponible = p.estadoId === 18;
-                  const estadoClase = disponible
-                    ? "disponible"
-                    : esNoDisponible
-                      ? "no-disponible"
-                      : "ocupado";
-                  const estadoTexto = disponible
-                    ? "Disponible"
-                    : esNoDisponible
-                      ? "No disponible"
-                      : "Ocupado";
-                  const badgeClase = disponible
-                    ? "parq-badge-disponible"
-                    : esNoDisponible
-                      ? "parq-badge-no-disponible"
-                      : "parq-badge-ocupado";
+                  const estadoConfig = {
+                    4: {
+                      clase: "disponible",
+                      texto: "Disponible",
+                      badge: "parq-badge-disponible",
+                    },
+                    18: {
+                      clase: "no-disponible",
+                      texto: "No disponible",
+                      badge: "parq-badge-no-disponible",
+                    },
+                  };
+                  const defecto = {
+                    clase: "ocupado",
+                    texto: "Ocupado",
+                    badge: "parq-badge-ocupado",
+                  };
+                  const {
+                    clase: estadoClase,
+                    texto: estadoTexto,
+                    badge: badgeClase,
+                  } = estadoConfig[p.estadoId] || defecto;
                   return (
                     <div
                       key={p.id}
                       className={`parq-card ${estadoClase} ${modoSeleccion && disponible ? "seleccionable" : ""}`}
+                      role="button"
                       onClick={() => {
                         if (disponible && modoSeleccion) {
                           seleccionarParqueadero(p.codigoParqueadero);
@@ -808,7 +803,6 @@ function Parqueaderos() {
                           seleccionarParqueadero(p.codigoParqueadero);
                         }
                       }}
-                      role="button"
                       tabIndex={modoSeleccion && disponible ? 0 : -1}
                     >
                       <div className="parq-card-header">
@@ -891,12 +885,15 @@ function Parqueaderos() {
                     acc.push(num);
                     return acc;
                   }, [])
-                  .map((item, idx) =>
-                    item === "..." ? (
-                      <span key={`dots-${idx}`} className="parq-page-dots">
-                        ...
-                      </span>
-                    ) : (
+                  .map((item, idx) => {
+                    if (item === "...") {
+                      return (
+                        <span key={`dots-${idx}`} className="parq-page-dots">
+                          ...
+                        </span>
+                      );
+                    }
+                    return (
                       <button
                         key={item}
                         className={`parq-page-btn ${paginaActual === item ? "active" : ""}`}
@@ -904,8 +901,8 @@ function Parqueaderos() {
                       >
                         {item}
                       </button>
-                    ),
-                  )}
+                    );
+                  })}
 
                 <button
                   className="parq-page-btn"

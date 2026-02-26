@@ -213,13 +213,9 @@ function Auditorias() {
   if (loading && auditorias.length === 0) {
     return (
       <div className="aud-loading-screen">
-        <div
-          className="spinner-border"
-          role="status"
-          style={{ color: "#4f46e5" }}
-        >
+        <output className="spinner-border" style={{ color: "#4f46e5" }}>
           <span className="visually-hidden">Cargando...</span>
-        </div>
+        </output>
         <p className="mt-3 fw-semibold" style={{ color: "#4f46e5" }}>
           Cargando auditorías...
         </p>
@@ -230,13 +226,13 @@ function Auditorias() {
   return (
     <div className="aud-dashboard">
       {/* ====== OFFCANVAS MENU ====== */}
-      <div
+      <button
+        type="button"
         className={`aud-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
         onKeyDown={(e) => {
           if (e.key === "Escape") setMenuOpen(false);
         }}
-        role="button"
         tabIndex={0}
         aria-label="Cerrar menú"
       />
@@ -344,8 +340,7 @@ function Auditorias() {
 
         <div className="aud-drawer-footer">
           <button className="aud-logout-btn" onClick={cerrarSesion}>
-            <i className="bi bi-box-arrow-right"></i>
-            Cerrar Sesión
+            <i className="bi bi-box-arrow-right"></i> Cerrar Sesión
           </button>
         </div>
       </aside>
@@ -484,15 +479,16 @@ function Auditorias() {
                     </tr>
                   </thead>
                   <tbody>
-                    {auditoriasPaginadas.map((a, idx) => (
+                    {auditoriasPaginadas.map((a) => (
                       <tr
-                        key={a.idAuditoria || idx}
+                        key={a.idAuditoria}
                         onClick={() => mostrarDetalle(a)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") mostrarDetalle(a);
                         }}
                         className="aud-table-row"
                         tabIndex={0}
+                        role="button"
                       >
                         <td>{formatearFecha(a.fechaHoraAuditoria)}</td>
                         <td>{a.username || "N/A"}</td>
@@ -522,15 +518,14 @@ function Auditorias() {
             {/* Cards (móvil) */}
             {auditoriasFiltradas.length > 0 && (
               <div className="aud-cards-container">
-                {auditoriasPaginadas.map((a, idx) => (
-                  <div
-                    key={a.idAuditoria || idx}
+                {auditoriasPaginadas.map((a) => (
+                  <button
+                    key={a.idAuditoria}
                     className="aud-card"
                     onClick={() => mostrarDetalle(a)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") mostrarDetalle(a);
                     }}
-                    role="button"
                     tabIndex={0}
                   >
                     <div className="aud-card-top">
@@ -580,7 +575,7 @@ function Auditorias() {
                         </span>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -669,19 +664,18 @@ function Auditorias() {
       {detalleAuditoria && (
         <div
           className="aud-modal-overlay"
-          onClick={() => setDetalleAuditoria(null)}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDetalleAuditoria(null);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") setDetalleAuditoria(null);
           }}
-          role="button"
+          role="dialog"
+          aria-modal="true"
           tabIndex={0}
           aria-label="Cerrar"
         >
-          <div
-            className="aud-modal"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+          <div className="aud-modal">
             <div className="aud-modal-header">
               <i
                 className="bi bi-info-circle"

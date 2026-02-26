@@ -187,22 +187,32 @@ body {
 /* Reglas para exportación a PDF */
 /* La clase .no-print se mantiene visible en pantalla y solo se oculta
    dentro de @media print más abajo. No aplicar display:none globalmente. */
-.no-print { }
-
-/* Forzar logo centrado en impresión */
-.logo-img {
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
+.no-print {
+  /* visible on screen, hidden on print */
 }
 
 @media print {
   /* Ocultar elementos no imprimibles */
-  .no-print { display: none !important; }
+  .no-print {
+    display: none !important;
+  }
   /* Ocultar sidebar si no fue ocultado por JS */
-  #menuTrabajador { display: none !important; }
+  #menuTrabajador {
+    display: none !important;
+  }
   /* Ajustar contenedor principal para ocupar todo el ancho */
-  .main-content { width: 100% !important; max-width: 100% !important; }
+  .main-content {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
   /* Garantizar que los charts se muestren correctamente */
-  .card { page-break-inside: avoid; }
+  .card {
+    page-break-inside: avoid;
+  }
+  /* Forzar logo centrado en impresión */
+  .logo-img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
 }

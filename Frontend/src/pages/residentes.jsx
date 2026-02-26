@@ -168,37 +168,72 @@ function normalizarOcupante(o) {
   };
 }
 
+function validarNombreResidente(nombre, label) {
+  if (!nombre.trim())
+    return {
+      titulo: "Campo obligatorio",
+      msg: `El ${label} es requerido para registrar al residente.`,
+    };
+  if (/\d/.test(nombre))
+    return {
+      titulo: `${label.charAt(0).toUpperCase() + label.slice(1)} inválido`,
+      msg: `El ${label} no puede contener números.`,
+    };
+  if (/^(.)\1+$/.test(nombre.trim()))
+    return {
+      titulo: `${label.charAt(0).toUpperCase() + label.slice(1)} inválido`,
+      msg: `"${nombre.trim()}" no es válido. No puede estar formado por el mismo carácter repetido.`,
+    };
+  return null;
+}
+
+function validarDocumentoResidente(fd, editIndex) {
+  if (editIndex === null && !fd.numeroDocumento.trim())
+    return {
+      titulo: "Campo obligatorio",
+      msg: "El número de documento es obligatorio para crear un nuevo residente.",
+    };
+  if (!fd.numeroDocumento.trim()) return null;
+  const doc = fd.numeroDocumento.trim();
+  if (!/^[a-zA-Z0-9-]+$/.test(doc))
+    return {
+      titulo: "Documento inválido",
+      msg: "El número de documento solo puede contener letras, números o guiones. No se permiten caracteres especiales.",
+    };
+  if (!/\d/.test(doc))
+    return {
+      titulo: "Documento inválido",
+      msg: "El número de documento no puede estar compuesto únicamente por letras. Debe incluir al menos un dígito.",
+    };
+  const letras = (doc.match(/[a-zA-Z]/g) || []).length;
+  const digitos = (doc.match(/\d/g) || []).length;
+  const tiposMixtos = ["CE", "PP", "PEP", "PPT"];
+  if (tiposMixtos.includes(fd.tipoDocumento) && letras > digitos)
+    return {
+      titulo: "Documento inválido",
+      msg: `El ${fd.tipoDocumento} tiene más letras (${letras}) que dígitos (${digitos}). Los documentos deben ser principalmente numéricos.`,
+    };
+  if (fd.tipoDocumento === "CC" && !/^\d+$/.test(doc))
+    return {
+      titulo: "Documento inválido",
+      msg: "La Cédula de Ciudadanía (CC) debe contener solo dígitos, sin letras ni guiones.",
+    };
+  if (fd.tipoDocumento === "CC" && (doc.length < 5 || doc.length > 10))
+    return {
+      titulo: "Documento inválido",
+      msg: "La CC debe tener entre 5 y 10 dígitos.",
+    };
+  return null;
+}
+
 function validarDatosResidente(fd, editIndex) {
-  if (!fd.primerNombre.trim())
-    return {
-      titulo: "Campo obligatorio",
-      msg: "El primer nombre es requerido para registrar al residente.",
-    };
-  if (/[0-9]/.test(fd.primerNombre))
-    return {
-      titulo: "Nombre inválido",
-      msg: "El primer nombre no puede contener números.",
-    };
-  if (/^(.)\1+$/.test(fd.primerNombre.trim()))
-    return {
-      titulo: "Nombre inválido",
-      msg: `"${fd.primerNombre.trim()}" no es un nombre válido. No puede estar formado por el mismo carácter repetido.`,
-    };
-  if (!fd.primerApellido.trim())
-    return {
-      titulo: "Campo obligatorio",
-      msg: "El primer apellido es requerido para registrar al residente.",
-    };
-  if (/[0-9]/.test(fd.primerApellido))
-    return {
-      titulo: "Apellido inválido",
-      msg: "El primer apellido no puede contener números.",
-    };
-  if (/^(.)\1+$/.test(fd.primerApellido.trim()))
-    return {
-      titulo: "Apellido inválido",
-      msg: `"${fd.primerApellido.trim()}" no es un apellido válido. No puede estar formado por el mismo carácter repetido.`,
-    };
+  const errNombre = validarNombreResidente(fd.primerNombre, "primer nombre");
+  if (errNombre) return errNombre;
+  const errApellido = validarNombreResidente(
+    fd.primerApellido,
+    "primer apellido",
+  );
+  if (errApellido) return errApellido;
   if (!fd.apto)
     return {
       titulo: "Campo obligatorio",
@@ -209,7 +244,7 @@ function validarDatosResidente(fd, editIndex) {
       titulo: "Campo obligatorio",
       msg: "La fecha de inicio es obligatoria.",
     };
-  if (fd.telefono && !/^[0-9]{7,15}$/.test(fd.telefono))
+  if (fd.telefono && !/^\d{7,15}$/.test(fd.telefono))
     return {
       titulo: "Teléfono inválido",
       msg: "El teléfono debe contener solo dígitos y tener entre 7 y 15 cifras.",
@@ -219,43 +254,44 @@ function validarDatosResidente(fd, editIndex) {
       titulo: "Teléfono inválido",
       msg: `El teléfono "${fd.telefono}" no es válido porque todos sus dígitos son iguales. Ingrese un número real.`,
     };
-  if (editIndex === null && !fd.numeroDocumento.trim())
-    return {
-      titulo: "Campo obligatorio",
-      msg: "El número de documento es obligatorio para crear un nuevo residente.",
-    };
-  if (fd.numeroDocumento.trim()) {
-    const doc = fd.numeroDocumento.trim();
-    if (!/^[a-zA-Z0-9-]+$/.test(doc))
-      return {
-        titulo: "Documento inválido",
-        msg: "El número de documento solo puede contener letras, números o guiones. No se permiten caracteres especiales.",
-      };
-    if (!/[0-9]/.test(doc))
-      return {
-        titulo: "Documento inválido",
-        msg: "El número de documento no puede estar compuesto únicamente por letras. Debe incluir al menos un dígito.",
-      };
-    const letras = (doc.match(/[a-zA-Z]/g) || []).length;
-    const digitos = (doc.match(/[0-9]/g) || []).length;
-    const tiposMixtos = ["CE", "PP", "PEP", "PPT"];
-    if (tiposMixtos.includes(fd.tipoDocumento) && letras > digitos)
-      return {
-        titulo: "Documento inválido",
-        msg: `El ${fd.tipoDocumento} tiene más letras (${letras}) que dígitos (${digitos}). Los documentos deben ser principalmente numéricos.`,
-      };
-    if (fd.tipoDocumento === "CC" && !/^\d+$/.test(doc))
-      return {
-        titulo: "Documento inválido",
-        msg: "La Cédula de Ciudadanía (CC) debe contener solo dígitos, sin letras ni guiones.",
-      };
-    if (fd.tipoDocumento === "CC" && (doc.length < 5 || doc.length > 10))
-      return {
-        titulo: "Documento inválido",
-        msg: "La CC debe tener entre 5 y 10 dígitos.",
-      };
+  return validarDocumentoResidente(fd, editIndex);
+}
+
+/** Filtra, ordena y devuelve los residentes según los criterios activos */
+function filtrarYOrdenarResidentes(
+  residentes,
+  { filtroEstado, filtroTorre, filtroTipoOcupacion, busqueda, ordenFecha },
+) {
+  let arr = [...residentes];
+  arr.sort((a, b) => {
+    const estadoA = a.estado === "Activo" ? -1 : 1;
+    const estadoB = b.estado === "Activo" ? -1 : 1;
+    if (estadoA !== estadoB) return estadoA - estadoB;
+    const fechaA = new Date(a.fechaInicio || 0).getTime();
+    const fechaB = new Date(b.fechaInicio || 0).getTime();
+    return ordenFecha === "recientes" ? fechaB - fechaA : fechaA - fechaB;
+  });
+  if (filtroEstado !== "todos")
+    arr = arr.filter(
+      (r) => r.estado === (filtroEstado === "activo" ? "Activo" : "Finalizado"),
+    );
+  if (filtroTorre !== "todos") arr = arr.filter((r) => r.torre === filtroTorre);
+  if (filtroTipoOcupacion !== "todos")
+    arr = arr.filter(
+      (r) => r.tipoOcupacion?.toLowerCase() === filtroTipoOcupacion,
+    );
+  if (busqueda.trim()) {
+    const q = busqueda.toLowerCase();
+    arr = arr.filter(
+      (r) =>
+        r.nombreCompleto.toLowerCase().includes(q) ||
+        r.numeroDocumento?.toLowerCase().includes(q) ||
+        r.correo?.toLowerCase().includes(q) ||
+        r.telefono?.toLowerCase().includes(q) ||
+        `${r.torre}-${r.apartamentosId}`.toLowerCase().includes(q),
+    );
   }
-  return null;
+  return arr;
 }
 
 /* =========================================================
@@ -393,7 +429,7 @@ function Residentes() {
     try {
       const token = obtenerToken();
       const res = await obtenerTodosApartamentos(token);
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error("Error cargando apartamentos");
       const data = await res.json();
       const lista = data.body || data;
       const aptos = lista
@@ -436,41 +472,13 @@ function Residentes() {
   };
 
   /* ---- filtro & paginacion ---- */
-  const residentesFiltrados = (() => {
-    let arr = [...residentes];
-    // ordenar: activos primero, luego por fecha
-    arr.sort((a, b) => {
-      const estadoA = a.estado === "Activo" ? -1 : 1;
-      const estadoB = b.estado === "Activo" ? -1 : 1;
-      if (estadoA !== estadoB) return estadoA - estadoB;
-      const fechaA = new Date(a.fechaInicio || 0).getTime();
-      const fechaB = new Date(b.fechaInicio || 0).getTime();
-      return ordenFecha === "recientes" ? fechaB - fechaA : fechaA - fechaB;
-    });
-    if (filtroEstado !== "todos")
-      arr = arr.filter(
-        (r) =>
-          r.estado === (filtroEstado === "activo" ? "Activo" : "Finalizado"),
-      );
-    if (filtroTorre !== "todos")
-      arr = arr.filter((r) => r.torre === filtroTorre);
-    if (filtroTipoOcupacion !== "todos")
-      arr = arr.filter(
-        (r) => r.tipoOcupacion?.toLowerCase() === filtroTipoOcupacion,
-      );
-    if (busqueda.trim()) {
-      const q = busqueda.toLowerCase();
-      arr = arr.filter(
-        (r) =>
-          r.nombreCompleto.toLowerCase().includes(q) ||
-          r.numeroDocumento?.toLowerCase().includes(q) ||
-          r.correo?.toLowerCase().includes(q) ||
-          r.telefono?.toLowerCase().includes(q) ||
-          `${r.torre}-${r.apartamentosId}`.toLowerCase().includes(q),
-      );
-    }
-    return arr;
-  })();
+  const residentesFiltrados = filtrarYOrdenarResidentes(residentes, {
+    filtroEstado,
+    filtroTorre,
+    filtroTipoOcupacion,
+    busqueda,
+    ordenFecha,
+  });
 
   const totalPaginas = Math.ceil(
     residentesFiltrados.length / elementosPorPagina,
@@ -482,6 +490,7 @@ function Residentes() {
 
   // Stats
   const totalCount = residentes.length;
+  const mostrarTabla = !vistaCuadricula;
   const activosCount = residentes.filter((r) => r.estado === "Activo").length;
   const finalizadosCount = residentes.filter(
     (r) => r.estado === "Finalizado",
@@ -520,7 +529,7 @@ function Residentes() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === "telefono") {
-      const soloNumeros = value.replace(/[^0-9]/g, "");
+      const soloNumeros = value.replaceAll(/[^\d]/g, "");
       setFormData((f) => ({ ...f, [name]: soloNumeros }));
       return;
     }
@@ -578,6 +587,71 @@ function Residentes() {
     return false; // finalizado → se puede re-registrar
   };
 
+  /** Parsea respuesta fetch como JSON o texto */
+  const parseResponseRes = async (res) => {
+    const ct = res.headers.get("content-type") || "";
+    return ct.includes("json") ? await res.json() : await res.text();
+  };
+
+  /** Verifica si la respuesta es 401 y redirige */
+  const esTokenExpirado = (res) => {
+    if (res?.status !== 401) return false;
+    Swal.fire("No autorizado", "Token expirado", "warning").then(() => {
+      localStorage.removeItem("token");
+      navegacion("/");
+    });
+    return true;
+  };
+
+  /** Ejecuta la actualización de un ocupante existente */
+  const ejecutarActualizacion = async (idOcupante, datos, token) => {
+    const confirm = await Swal.fire({
+      title: "¿Guardar cambios?",
+      icon: "question",
+      iconColor: "#0d9488",
+      showCancelButton: true,
+      confirmButtonText: "Guardar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#0d9488",
+    });
+    if (!confirm.isConfirmed) return false;
+
+    const res = await actualizarOcupante(idOcupante, datos, token);
+    if (esTokenExpirado(res)) return false;
+    if (!res.ok) {
+      const errData = await parseResponseRes(res);
+      Swal.fire("Error", traducirMensajeBackend(errData), "warning");
+      return false;
+    }
+    Swal.fire({
+      icon: "success",
+      title: "Actualizado correctamente",
+      timer: 2500,
+      showConfirmButton: false,
+      iconColor: "#0d9488",
+    });
+    return true;
+  };
+
+  /** Ejecuta la creación de un nuevo ocupante */
+  const ejecutarCreacion = async (datos, token) => {
+    const res = await crearOcupante(datos, token);
+    if (esTokenExpirado(res)) return false;
+    const dataCreate = await parseResponseRes(res);
+    if (!res.ok) {
+      Swal.fire("Error", traducirMensajeBackend(dataCreate), "warning");
+      return false;
+    }
+    Swal.fire({
+      icon: "success",
+      title: "Registrado correctamente",
+      timer: 2500,
+      showConfirmButton: false,
+      iconColor: "#0d9488",
+    });
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -589,14 +663,14 @@ function Residentes() {
 
     const token = obtenerToken();
     try {
-      const apartamentoId = parseInt(formData.apto);
-      if (isNaN(apartamentoId) || apartamentoId <= 0)
+      const apartamentoId = Number.parseInt(formData.apto, 10);
+      if (Number.isNaN(apartamentoId) || apartamentoId <= 0)
         return Swal.fire("Error", "Apartamento inválido", "error");
 
       const ocupanteData = {
         apartamentosId: apartamentoId,
         tipoOcupacion: formData.tipoOcupacion.toLowerCase(),
-        personasACargo: parseInt(formData.personasACargo) || 0,
+        personasACargo: Number.parseInt(formData.personasACargo, 10) || 0,
         fechaInicio: formData.fechaInicio,
         fechaFin: null,
         tipoDocumentoId: mapTipoDocumentoId(formData.tipoDocumento),
@@ -617,68 +691,15 @@ function Residentes() {
       if (formData.numeroDocumento?.trim())
         ocupanteData.numeroDocumento = formData.numeroDocumento.trim();
 
-      if (editIndex !== null) {
-        const confirm = await Swal.fire({
-          title: "¿Guardar cambios?",
-          icon: "question",
-          iconColor: "#0d9488",
-          showCancelButton: true,
-          confirmButtonText: "Guardar",
-          cancelButtonText: "Cancelar",
-          confirmButtonColor: "#0d9488",
-        });
-        if (!confirm.isConfirmed) return;
+      const ok =
+        editIndex !== null
+          ? await ejecutarActualizacion(editIndex, ocupanteData, token)
+          : await ejecutarCreacion(ocupanteData, token);
 
-        const res = await actualizarOcupante(editIndex, ocupanteData, token);
-        if (res?.status === 401) {
-          Swal.fire("No autorizado", "Token expirado", "warning").then(() => {
-            localStorage.removeItem("token");
-            navegacion("/");
-          });
-          return;
-        }
-        if (!res.ok) {
-          const ct = res.headers.get("content-type") || "";
-          const errData = ct.includes("json")
-            ? await res.json()
-            : await res.text();
-          Swal.fire("Error", traducirMensajeBackend(errData), "warning");
-          return;
-        }
-        Swal.fire({
-          icon: "success",
-          title: "Actualizado correctamente",
-          timer: 2500,
-          showConfirmButton: false,
-          iconColor: "#0d9488",
-        });
-      } else {
-        const res = await crearOcupante(ocupanteData, token);
-        if (res?.status === 401) {
-          Swal.fire("No autorizado", "Token expirado", "warning").then(() => {
-            localStorage.removeItem("token");
-            navegacion("/");
-          });
-          return;
-        }
-        const ct = res.headers.get("content-type") || "";
-        const dataCreate = ct.includes("json")
-          ? await res.json()
-          : await res.text();
-        if (!res.ok) {
-          Swal.fire("Error", traducirMensajeBackend(dataCreate), "warning");
-          return;
-        }
-        Swal.fire({
-          icon: "success",
-          title: "Registrado correctamente",
-          timer: 2500,
-          showConfirmButton: false,
-          iconColor: "#0d9488",
-        });
+      if (ok) {
+        await cargarResidentes();
+        cerrarModal();
       }
-      await cargarResidentes();
-      cerrarModal();
     } catch {
       Swal.fire("Error", "Error de conexión. Intente de nuevo.", "error");
     }
@@ -801,13 +822,9 @@ function Residentes() {
       <div className="res-dashboard">
         <div className="res-main">
           <div className="res-loading">
-            <div
-              className="spinner-border"
-              role="status"
-              style={{ color: "#14b8a6" }}
-            >
+            <output className="spinner-border" style={{ color: "#14b8a6" }}>
               <span className="visually-hidden">Cargando...</span>
-            </div>
+            </output>
             <p className="mt-3 fw-semibold" style={{ color: "#14b8a6" }}>
               Cargando residentes...
             </p>
@@ -820,13 +837,13 @@ function Residentes() {
   return (
     <div className="res-dashboard">
       {/* OVERLAY */}
-      <div
+      <button
+        type="button"
         className={`res-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
         onKeyDown={(e) => {
           if (e.key === "Escape") setMenuOpen(false);
         }}
-        role="button"
         tabIndex={0}
         aria-label="Cerrar menú"
       />
@@ -1051,7 +1068,7 @@ function Residentes() {
             </button>
             <div className="res-view-toggle">
               <button
-                className={`res-view-btn ${!vistaCuadricula ? "active" : ""}`}
+                className={`res-view-btn ${vistaCuadricula ? "" : "active"}`}
                 onClick={() => setVistaCuadricula(false)}
                 title="Vista tabla"
               >
@@ -1134,7 +1151,7 @@ function Residentes() {
               <i className="bi bi-people d-block"></i>
               <p>No se encontraron residentes</p>
             </div>
-          ) : !vistaCuadricula ? (
+          ) : mostrarTabla ? (
             <>
               <div className="res-table-wrapper">
                 <table className="res-table">
@@ -1330,19 +1347,18 @@ function Residentes() {
       {modalAbierto && (
         <div
           className="res-modal-overlay"
-          onClick={cerrarModal}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) cerrarModal();
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") cerrarModal();
           }}
-          role="button"
+          role="dialog"
+          aria-modal="true"
           tabIndex={0}
           aria-label="Cerrar"
         >
-          <div
-            className="res-modal"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+          <div className="res-modal">
             <div className="res-modal-header">
               <h3>
                 <i
@@ -1366,8 +1382,9 @@ function Residentes() {
                 </p>
                 <div className="res-form-row triple">
                   <div className="res-form-group">
-                    <label>Torre *</label>
+                    <label htmlFor="res-torreId">Torre *</label>
                     <select
+                      id="res-torreId"
                       name="torreId"
                       value={formData.torreId}
                       onChange={(e) => {
@@ -1384,8 +1401,9 @@ function Residentes() {
                     </select>
                   </div>
                   <div className="res-form-group">
-                    <label>Apartamento *</label>
+                    <label htmlFor="res-apto">Apartamento *</label>
                     <select
+                      id="res-apto"
                       name="apto"
                       value={formData.apto}
                       onChange={handleChange}
@@ -1400,8 +1418,9 @@ function Residentes() {
                     </select>
                   </div>
                   <div className="res-form-group">
-                    <label>Tipo Ocupación *</label>
+                    <label htmlFor="res-tipoOcupacion">Tipo Ocupación *</label>
                     <select
+                      id="res-tipoOcupacion"
                       name="tipoOcupacion"
                       value={formData.tipoOcupacion}
                       onChange={handleChange}
@@ -1414,8 +1433,9 @@ function Residentes() {
                 </div>
                 <div className="res-form-row">
                   <div className="res-form-group">
-                    <label>Fecha de Inicio *</label>
+                    <label htmlFor="res-fechaInicio">Fecha de Inicio *</label>
                     <input
+                      id="res-fechaInicio"
                       type="date"
                       name="fechaInicio"
                       value={formData.fechaInicio}
@@ -1424,8 +1444,11 @@ function Residentes() {
                     />
                   </div>
                   <div className="res-form-group">
-                    <label>¿Cuántas personas vivirán con usted?</label>
+                    <label htmlFor="res-personasACargo">
+                      ¿Cuántas personas vivirán con usted?
+                    </label>
                     <input
+                      id="res-personasACargo"
                       type="number"
                       name="personasACargo"
                       value={formData.personasACargo}
@@ -1442,8 +1465,9 @@ function Residentes() {
                 </p>
                 <div className="res-form-row triple">
                   <div className="res-form-group">
-                    <label>Tipo Documento *</label>
+                    <label htmlFor="res-tipoDocumento">Tipo Documento *</label>
                     <select
+                      id="res-tipoDocumento"
                       name="tipoDocumento"
                       value={formData.tipoDocumento}
                       onChange={handleChange}
@@ -1460,8 +1484,11 @@ function Residentes() {
                     className="res-form-group"
                     style={{ gridColumn: "span 2" }}
                   >
-                    <label>Número de Documento *</label>
+                    <label htmlFor="res-numeroDocumento">
+                      Número de Documento *
+                    </label>
                     <input
+                      id="res-numeroDocumento"
                       type="text"
                       name="numeroDocumento"
                       value={formData.numeroDocumento}
@@ -1473,8 +1500,9 @@ function Residentes() {
                 </div>
                 <div className="res-form-row">
                   <div className="res-form-group">
-                    <label>Primer Nombre *</label>
+                    <label htmlFor="res-primerNombre">Primer Nombre *</label>
                     <input
+                      id="res-primerNombre"
                       type="text"
                       name="primerNombre"
                       value={formData.primerNombre}
@@ -1483,8 +1511,9 @@ function Residentes() {
                     />
                   </div>
                   <div className="res-form-group">
-                    <label>Segundo Nombre</label>
+                    <label htmlFor="res-segundoNombre">Segundo Nombre</label>
                     <input
+                      id="res-segundoNombre"
                       type="text"
                       name="segundoNombre"
                       value={formData.segundoNombre}
@@ -1494,8 +1523,11 @@ function Residentes() {
                 </div>
                 <div className="res-form-row">
                   <div className="res-form-group">
-                    <label>Primer Apellido *</label>
+                    <label htmlFor="res-primerApellido">
+                      Primer Apellido *
+                    </label>
                     <input
+                      id="res-primerApellido"
                       type="text"
                       name="primerApellido"
                       value={formData.primerApellido}
@@ -1504,8 +1536,11 @@ function Residentes() {
                     />
                   </div>
                   <div className="res-form-group">
-                    <label>Segundo Apellido</label>
+                    <label htmlFor="res-segundoApellido">
+                      Segundo Apellido
+                    </label>
                     <input
+                      id="res-segundoApellido"
                       type="text"
                       name="segundoApellido"
                       value={formData.segundoApellido}
@@ -1520,8 +1555,9 @@ function Residentes() {
                 </p>
                 <div className="res-form-row">
                   <div className="res-form-group">
-                    <label>Correo Electrónico</label>
+                    <label htmlFor="res-correo">Correo Electrónico</label>
                     <input
+                      id="res-correo"
                       type="email"
                       name="correo"
                       value={formData.correo}
@@ -1529,12 +1565,13 @@ function Residentes() {
                     />
                   </div>
                   <div className="res-form-group">
-                    <label>Teléfono</label>
+                    <label htmlFor="res-telefono">Teléfono</label>
                     <input
+                      id="res-telefono"
                       type="tel"
                       name="telefono"
                       inputMode="numeric"
-                      pattern="[0-9]*"
+                      pattern="\d*"
                       maxLength={15}
                       placeholder="Ej: 3001234567"
                       value={formData.telefono}
@@ -1629,19 +1666,18 @@ function Residentes() {
       {modalTorres && (
         <div
           className="res-modal-overlay res-torres-overlay"
-          onClick={() => setModalTorres(false)}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setModalTorres(false);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") setModalTorres(false);
           }}
-          role="button"
+          role="dialog"
+          aria-modal="true"
           tabIndex={0}
           aria-label="Cerrar"
         >
-          <div
-            className="res-modal res-torres-modal"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+          <div className="res-modal res-torres-modal">
             <div className="res-modal-header">
               {torreSeleccionada !== null ? (
                 <>
@@ -1707,7 +1743,8 @@ function Residentes() {
                         ),
                     ).length;
                     return (
-                      <div
+                      <button
+                        type="button"
                         key={tid}
                         className="res-torre-card"
                         onClick={() => setTorreSeleccionada(tid)}
@@ -1715,7 +1752,6 @@ function Residentes() {
                           if (e.key === "Enter" || e.key === " ")
                             setTorreSeleccionada(tid);
                         }}
-                        role="button"
                         tabIndex={0}
                         title={`Ver apartamentos Torre ${letra}`}
                       >
@@ -1735,7 +1771,7 @@ function Residentes() {
                             libre{aptosLibres !== 1 ? "s" : ""}
                           </p>
                         )}
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -1868,26 +1904,24 @@ function Residentes() {
       {showModalDetalles && residenteSeleccionado && (
         <div
           className="res-modal-overlay"
-          onClick={() => setShowModalDetalles(false)}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowModalDetalles(false);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") setShowModalDetalles(false);
           }}
-          role="button"
+          role="dialog"
+          aria-modal="true"
           tabIndex={0}
           aria-label="Cerrar"
         >
-          <div
-            className="res-modal"
-            style={{ maxWidth: 800 }}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+          <div className="res-modal" style={{ maxWidth: 800 }}>
             <div className="res-modal-header">
               <h3>
                 <i
                   className="bi bi-person-badge"
                   style={{ fontSize: "22px" }}
-                ></i>
+                ></i>{" "}
                 Detalles del Residente
               </h3>
               <button

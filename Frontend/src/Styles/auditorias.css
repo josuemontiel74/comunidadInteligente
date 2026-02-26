@@ -39,7 +39,7 @@
   top: 0;
   width: 310px;
   height: 100vh;
-  background: linear-gradient(180deg, #3730a3, #4f46e5, #6366f1);
+  background: linear-gradient(180deg, #3730a3, #4338ca, #5b5ee6);
   color: white;
   z-index: 1000;
   display: flex;
@@ -165,7 +165,7 @@
 
 /* Header / AppBar */
 .aud-header {
-  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  background: linear-gradient(135deg, #4338ca, #4f46e5);
   color: white;
   display: flex;
   align-items: center;

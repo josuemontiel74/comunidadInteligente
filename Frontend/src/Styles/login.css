@@ -59,7 +59,7 @@
   height: 42px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(30, 60, 30, 0.75);
   color: #fff;
   font-size: 18px;
   display: flex;
@@ -71,7 +71,7 @@
   transition: all 0.2s;
 }
 .lgn-dark-btn:hover {
-  background: rgba(255, 255, 255, 0.32);
+  background: rgba(30, 60, 30, 0.85);
   border-color: rgba(255, 255, 255, 0.6);
 }
 
@@ -197,7 +197,7 @@
   border: 1px solid #fecaca;
 }
 [data-modo="oscuro"] .lgn-feedback--err {
-  background: rgba(153, 27, 27, 0.25);
+  background: #3d1515;
   color: #fca5a5;
   border-color: rgba(252, 165, 165, 0.3);
 }
@@ -292,7 +292,7 @@
   margin-top: 4px;
   border-radius: 12px;
   border: none;
-  background: linear-gradient(135deg, #3d8647 0%, #52a85a 100%);
+  background: linear-gradient(135deg, #2d6a35 0%, #387642 100%);
   color: #fff;
   font-size: 15px;
   font-weight: 700;

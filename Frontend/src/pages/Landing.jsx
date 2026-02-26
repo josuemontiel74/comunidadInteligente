@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import "../Styles/Landing.css";
 import logo from "../../img/logo.png";
@@ -49,6 +50,11 @@ function StatItem({ value, label }) {
   );
 }
 
+StatItem.propTypes = {
+  value: PropTypes.string.isRequired,
+  label: PropTypes.string.isRequired,
+};
+
 function FeatureCard({ feature: f, index: i, visible }) {
   return (
     <div
@@ -67,6 +73,17 @@ function FeatureCard({ feature: f, index: i, visible }) {
     </div>
   );
 }
+
+FeatureCard.propTypes = {
+  feature: PropTypes.shape({
+    icon: PropTypes.string.isRequired,
+    color: PropTypes.string.isRequired,
+    title: PropTypes.string.isRequired,
+    desc: PropTypes.string.isRequired,
+  }).isRequired,
+  index: PropTypes.number.isRequired,
+  visible: PropTypes.bool.isRequired,
+};
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -99,19 +116,17 @@ export default function Landing() {
 
   // Animación de entrada para las cards de features
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const idx = parseInt(entry.target.dataset.idx, 10);
-            setVisibleCards((prev) =>
-              prev.includes(idx) ? prev : [...prev, idx],
-            );
-          }
-        });
-      },
-      { threshold: 0.15 },
-    );
+    const handleIntersect = (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const idx = Number.parseInt(entry.target.dataset.idx, 10);
+        setVisibleCards((prev) => (prev.includes(idx) ? prev : [...prev, idx]));
+      }
+    };
+
+    const observer = new IntersectionObserver(handleIntersect, {
+      threshold: 0.15,
+    });
     document
       .querySelectorAll(".ld-feature-card")
       .forEach((el) => observer.observe(el));
@@ -245,8 +260,7 @@ export default function Landing() {
             <div className="ld-about-img-card">
               <div className="ld-about-img-inner" />
               <div className="ld-about-img-badge">
-                <i className="bi bi-award-fill" />
-                Azahar · Ciudad Verde
+                <i className="bi bi-award-fill" /> Azahar · Ciudad Verde
               </div>
             </div>
             {/* Ubicación con enlace a Google Maps */}

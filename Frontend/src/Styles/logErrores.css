@@ -253,7 +253,7 @@
   background: var(--le-surface);
   border-radius: 14px;
   padding: 14px 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -385,7 +385,7 @@
 .le-btn-limpiar {
   padding: 8px 14px;
   background: rgba(239, 68, 68, 0.1);
-  color: #f87171;
+  color: #dc2626;
   border: 1.5px solid rgba(239, 68, 68, 0.3);
   border-radius: 10px;
   font-size: 13px;
@@ -464,7 +464,7 @@
   margin: 14px;
   background: var(--le-surface);
   border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   overflow-x: auto;
   border: 1px solid var(--le-border);
 }
@@ -507,19 +507,19 @@
   letter-spacing: 0.5px;
 }
 .le-badge-error {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.35);
 }
 .le-badge-warn {
-  background: rgba(249, 115, 22, 0.15);
-  color: #fb923c;
-  border: 1px solid rgba(249, 115, 22, 0.3);
+  background: rgba(249, 115, 22, 0.12);
+  color: #c2410c;
+  border: 1px solid rgba(249, 115, 22, 0.35);
 }
 .le-badge-info {
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+  border: 1px solid rgba(59, 130, 246, 0.35);
 }
 .le-badge-debug {
   background: var(--le-surface3);
@@ -541,7 +541,7 @@
 .le-btn-ver {
   padding: 4px 10px;
   background: rgba(239, 68, 68, 0.1);
-  color: #f87171;
+  color: #dc2626;
   border: 1px solid rgba(239, 68, 68, 0.3);
   border-radius: 8px;
   font-size: 12px;
@@ -588,7 +588,7 @@
 }
 .le-card-icon {
   font-size: 15px;
-  color: #f87171;
+  color: #dc2626;
   margin-top: 2px;
   flex-shrink: 0;
 }
@@ -846,65 +846,33 @@
   background: linear-gradient(180deg, #290000, #591414, #821414) !important;
 }
 
-/* ── STAT CARDS: sombra suave en modo claro ── */
-.le-stat-card {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
+/* ── STAT CARDS / TABLA: sombra en modo oscuro ── */
 [data-modo="oscuro"] .le-stat-card {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-}
-
-/* ── TABLA: sombra suave en modo claro ── */
-.le-table-container {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 [data-modo="oscuro"] .le-table-container {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 
-/* ── ICONOS / BOTONES EN ROJO: legibles en modo claro ── */
-.le-card-icon {
-  color: #dc2626;
-}
+/* ── ICONOS / BOTONES EN ROJO: modo oscuro ── */
 [data-modo="oscuro"] .le-card-icon {
   color: #f87171;
 }
-.le-btn-ver {
-  color: #dc2626;
-}
 [data-modo="oscuro"] .le-btn-ver {
   color: #f87171;
-}
-.le-btn-limpiar {
-  color: #dc2626;
 }
 [data-modo="oscuro"] .le-btn-limpiar {
   color: #f87171;
 }
 
-/* ── BADGE ERROR: texto visible en modo claro ── */
-.le-badge-error {
-  background: rgba(239, 68, 68, 0.12);
-  color: #dc2626;
-  border: 1px solid rgba(239, 68, 68, 0.35);
-}
+/* ── BADGES: modo oscuro ── */
 [data-modo="oscuro"] .le-badge-error {
   background: rgba(239, 68, 68, 0.15);
   color: #f87171;
 }
-.le-badge-warn {
-  background: rgba(249, 115, 22, 0.12);
-  color: #c2410c;
-  border: 1px solid rgba(249, 115, 22, 0.35);
-}
 [data-modo="oscuro"] .le-badge-warn {
   background: rgba(249, 115, 22, 0.15);
   color: #fb923c;
-}
-.le-badge-info {
-  background: rgba(59, 130, 246, 0.12);
-  color: #1d4ed8;
-  border: 1px solid rgba(59, 130, 246, 0.35);
 }
 [data-modo="oscuro"] .le-badge-info {
   background: rgba(59, 130, 246, 0.15);

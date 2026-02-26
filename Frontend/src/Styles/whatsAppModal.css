@@ -10,7 +10,7 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: #25d366;
+  background: #15803d;
   color: #fff;
   border: none;
   font-size: 26px;
@@ -127,12 +127,12 @@
 .wa-modal-x:hover {
   background: #fee2e2;
   border-color: #fca5a5;
-  color: #dc2626;
+  color: #b91c1c;
 }
 [data-modo="oscuro"] .wa-modal-x {
   background: #334155;
   border-color: #475569;
-  color: #94a3b8;
+  color: #b0c0d0;
 }
 
 /* Icono grande */
@@ -140,7 +140,7 @@
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #1db954, #25d366);
+  background: linear-gradient(135deg, #0e6b30, #16854a);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -185,7 +185,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  background: linear-gradient(135deg, #1db954, #25d366);
+  background: linear-gradient(135deg, #0e6b30, #16854a);
   color: #fff;
   padding: 13px 28px;
   border-radius: 14px;

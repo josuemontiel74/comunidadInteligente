@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "../Styles/registro.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
@@ -35,8 +35,9 @@ export default function Registro() {
         <form onSubmit={handleSubmit}>
           {/* Tipo Documento */}
           <div className="form-group">
-            <label>Tipo Documento</label>
+            <label htmlFor="reg-tipoDocumento">Tipo Documento</label>
             <select
+              id="reg-tipoDocumento"
               name="tipoDocumento"
               value={formData.tipoDocumento}
               onChange={handleChange}
@@ -52,8 +53,9 @@ export default function Registro() {
 
           {/* Usuario */}
           <div className="form-group">
-            <label>Nombre de Usuario</label>
+            <label htmlFor="reg-usuario">Nombre de Usuario</label>
             <input
+              id="reg-usuario"
               type="text"
               name="usuario"
               placeholder="Ingrese su usuario"
@@ -65,8 +67,9 @@ export default function Registro() {
 
           {/* Contraseña */}
           <div className="form-group">
-            <label>Contraseña</label>
+            <label htmlFor="reg-password">Contraseña</label>
             <input
+              id="reg-password"
               type="password"
               name="password"
               placeholder="Ingrese su contraseña"
@@ -78,8 +81,9 @@ export default function Registro() {
 
           {/* Rol */}
           <div className="form-group">
-            <label>Rol</label>
+            <label htmlFor="reg-rol">Rol</label>
             <select
+              id="reg-rol"
               name="rol"
               value={formData.rol}
               onChange={handleChange}

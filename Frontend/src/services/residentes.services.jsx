@@ -170,15 +170,24 @@ export default {
   finalizarOcupante,
 };
 
+/** Devuelve el valor si es un string no vacío, o `null` */
+const emptyToNull = (val) => (val && val.trim() !== "" ? val : null);
+
+/** Resuelve el correo: en edición omite si vacío; en creación usa placeholder */
+const resolverCorreo = (correo, isEdit) => {
+  if (correo && correo.trim() !== "") return correo;
+  return isEdit ? undefined : "noemail@example.com";
+};
+
 // Función para preparar datos del ocupante
 export const prepararDatosOcupante = (
   formData,
   apartamentos,
   isEdit = false,
 ) => {
-  const apartamentoId = parseInt(formData.apto);
+  const apartamentoId = Number.parseInt(formData.apto, 10);
 
-  if (isNaN(apartamentoId) || apartamentoId <= 0) {
+  if (Number.isNaN(apartamentoId) || apartamentoId <= 0) {
     throw new Error("ID de apartamento inválido");
   }
 
@@ -195,32 +204,16 @@ export const prepararDatosOcupante = (
   const ocupanteData = {
     apartamentosId: apartamentoId,
     tipoOcupacion: formData.tipoOcupacion.toLowerCase(),
-    personasACargo: parseInt(formData.personasACargo) || 0,
+    personasACargo: Number.parseInt(formData.personasACargo, 10) || 0,
     fechaInicio: formData.fechaInicio,
-    fechaFin:
-      formData.fechaFin && formData.fechaFin.trim() !== ""
-        ? formData.fechaFin
-        : null,
+    fechaFin: emptyToNull(formData.fechaFin),
     tipoDocumentoId: mapTipoDocumentoId(formData.tipoDocumento),
     primerNombre: formData.primerNombre,
-    segundoNombre:
-      formData.segundoNombre && formData.segundoNombre.trim() !== ""
-        ? formData.segundoNombre
-        : null,
+    segundoNombre: emptyToNull(formData.segundoNombre),
     primerApellido: formData.primerApellido,
-    segundoApellido:
-      formData.segundoApellido && formData.segundoApellido.trim() !== ""
-        ? formData.segundoApellido
-        : null,
+    segundoApellido: emptyToNull(formData.segundoApellido),
     telefono: formData.telefono || "0000000000",
-    // Si es edición y no se proporcionó correo, omitimos el campo para no enviar el placeholder
-    correoElectronico: isEdit
-      ? formData.correo && formData.correo.trim() !== ""
-        ? formData.correo
-        : undefined
-      : formData.correo && formData.correo.trim() !== ""
-        ? formData.correo
-        : "noemail@example.com",
+    correoElectronico: resolverCorreo(formData.correo, isEdit),
   };
 
   // Solo agregar numeroDocumento si no es edición

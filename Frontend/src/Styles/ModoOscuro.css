@@ -517,7 +517,7 @@
 }
 [data-modo="oscuro"] .page-item.disabled .page-link {
   background-color: #1e293b !important;
-  color: #475569 !important;
+  color: #64748b !important;
 }
 
 /* ── SCROLLBAR en modo oscuro ────────────────────────────────── */
@@ -870,12 +870,14 @@
 /* ── RESIDENTES – toggle lista/cuadrícula ────────────────────── */
 [data-modo="oscuro"] .res-view-toggle {
   background: #263248 !important;
+  border: 1px solid #334155 !important;
 }
 [data-modo="oscuro"] .res-view-btn {
+  background: transparent !important;
   color: #94a3b8 !important;
 }
 [data-modo="oscuro"] .res-view-btn:hover {
-  background: rgba(20, 184, 166, 0.12) !important;
+  background: rgba(45, 212, 191, 0.1) !important;
   color: #2dd4bf !important;
 }
 
@@ -910,7 +912,7 @@
 }
 [data-modo="oscuro"] .res-card-condition.inactive {
   background: #334155 !important;
-  color: #94a3b8 !important;
+  color: #a1aebb !important;
 }
 /* Residentes – tabla */
 [data-modo="oscuro"] .res-table-wrapper {
@@ -1017,21 +1019,9 @@
   color: #818cf8 !important;
 }
 
-/* ── RESIDENTES – toggle lista/cuadrícula (aspecto completo) ─── */
-[data-modo="oscuro"] .res-view-toggle {
-  background: #263248 !important;
-  border: 1px solid #334155 !important;
-}
-[data-modo="oscuro"] .res-view-btn {
-  background: transparent !important;
-  color: #94a3b8 !important;
-}
-[data-modo="oscuro"] .res-view-btn:hover {
-  background: rgba(45, 212, 191, 0.1) !important;
-  color: #2dd4bf !important;
-}
+/* ── RESIDENTES – toggle lista/cuadrícula (botón activo) ─── */
 [data-modo="oscuro"] .res-view-btn.active {
-  background: linear-gradient(135deg, #0d9488, #14b8a6) !important;
+  background: linear-gradient(135deg, #0a7a70, #0d9488) !important;
   color: white !important;
   box-shadow: 0 2px 8px rgba(13, 148, 136, 0.4) !important;
 }

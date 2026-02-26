@@ -33,7 +33,7 @@ export default class AreaComun extends Model {
         modelName: "areaComun",
         tableName: "areaComun",
         timestamps: false,
-      }
+      },
     );
   }
 }
