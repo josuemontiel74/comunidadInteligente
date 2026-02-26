@@ -95,7 +95,7 @@
   margin-bottom: 4px;
 }
 .sp-menu-item:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: #1e4d35;
   color: white;
   text-decoration: none;
 }
@@ -120,7 +120,7 @@
 .sp-logout-btn {
   width: 100%;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.15);
+  background: #1e4d35;
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: white;
   border-radius: 10px;

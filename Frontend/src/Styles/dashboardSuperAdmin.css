@@ -62,7 +62,7 @@ body {
   right: -340px;
   width: 320px;
   height: 100vh;
-  background: linear-gradient(180deg, #166534, #16a34a, #22c55e);
+  background: linear-gradient(180deg, #0f4a28, #166534, #15803d);
   color: white;
   z-index: 1050;
   display: flex;
@@ -347,6 +347,7 @@ body {
   padding: 30px 20px 10px;
   width: 100%;
   box-sizing: border-box;
+  animation: sa-fadeInUp 0.45s ease both;
 }
 .sa-welcome-title {
   font-size: 32px;
@@ -375,6 +376,7 @@ body {
   padding: 30px 24px;
   box-sizing: border-box;
   width: 100%;
+  animation: sa-fadeInUp 0.45s 0.08s ease both;
 }
 
 .sa-module-card {
@@ -441,6 +443,7 @@ body {
   padding: 20px 24px 40px;
   box-sizing: border-box;
   width: 100%;
+  animation: sa-fadeInUp 0.45s 0.16s ease both;
 }
 .sa-stats-title {
   text-align: center;
@@ -832,17 +835,6 @@ body {
     opacity: 0;
     transform: scale(0.97);
   }
-}
-
-/* Entrada escalonada del contenido */
-.sa-welcome {
-  animation: sa-fadeInUp 0.45s ease both;
-}
-.sa-modules-grid {
-  animation: sa-fadeInUp 0.45s 0.08s ease both;
-}
-.sa-stats-section {
-  animation: sa-fadeInUp 0.45s 0.16s ease both;
 }
 
 /* Press effect en tarjetas de módulo */

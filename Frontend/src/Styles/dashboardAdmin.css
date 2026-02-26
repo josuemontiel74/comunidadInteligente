@@ -56,7 +56,7 @@ body {
   right: -340px;
   width: 320px;
   height: 100vh;
-  background: linear-gradient(180deg, #92400e, #d97706, #f59e0b);
+  background: linear-gradient(180deg, #78350f, #92400e, #a3580e);
   color: white;
   z-index: 1050;
   display: flex;
@@ -324,6 +324,7 @@ body {
   padding: 30px 20px 10px;
   width: 100%;
   box-sizing: border-box;
+  animation: adm-fadeInUp 0.45s ease both;
 }
 .adm-welcome-title {
   font-size: 32px;
@@ -350,6 +351,7 @@ body {
   padding: 30px 24px;
   box-sizing: border-box;
   width: 100%;
+  animation: adm-fadeInUp 0.45s 0.08s ease both;
 }
 .adm-module-card {
   width: 180px;
@@ -412,6 +414,7 @@ body {
   padding: 20px 24px 40px;
   box-sizing: border-box;
   width: 100%;
+  animation: adm-fadeInUp 0.45s 0.16s ease both;
 }
 .adm-stats-title {
   text-align: center;
@@ -720,17 +723,6 @@ body {
     opacity: 0;
     transform: scale(0.97);
   }
-}
-
-/* Entrada escalonada del contenido */
-.adm-welcome {
-  animation: adm-fadeInUp 0.45s ease both;
-}
-.adm-modules-grid {
-  animation: adm-fadeInUp 0.45s 0.08s ease both;
-}
-.adm-stats-section {
-  animation: adm-fadeInUp 0.45s 0.16s ease both;
 }
 
 /* Press effect en tarjetas de módulo */

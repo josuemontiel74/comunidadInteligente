@@ -30,6 +30,10 @@
   --rpt-drawer-section-title: rgba(46, 16, 101, 0.5);
   --rpt-drawer-item: rgba(46, 16, 101, 0.82);
   --rpt-drawer-sep: rgba(0, 0, 0, 0.1);
+  /* Layout */
+  min-height: 100vh;
+  background-color: var(--rpt-bg);
+  position: relative;
 }
 /* Modo oscuro */
 [data-modo="oscuro"] .rpt-dashboard {
@@ -60,11 +64,6 @@
 }
 
 /* ===================== LAYOUT ===================== */
-.rpt-dashboard {
-  min-height: 100vh;
-  background-color: var(--rpt-bg);
-  position: relative;
-}
 
 .rpt-overlay {
   position: fixed;
@@ -187,7 +186,7 @@
   padding: 12px;
   border-radius: 10px;
   border: 1px solid rgba(139, 92, 246, 0.4);
-  background: rgba(139, 92, 246, 0.15);
+  background: #2a1560;
   color: #c4b5fd;
   font-weight: 700;
   font-size: 14px;
@@ -199,7 +198,7 @@
   transition: all 0.2s;
 }
 .rpt-logout-btn:hover {
-  background: rgba(139, 92, 246, 0.28);
+  background: #3b1f8a;
   color: white;
 }
 
@@ -330,7 +329,7 @@
   box-shadow: 0 0 0 3px var(--rpt-accent-glow);
 }
 .rpt-filter-bar .btn-actualizar {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
   color: white;
   border: none;
   border-radius: 8px;
@@ -348,7 +347,7 @@
   box-shadow: 0 4px 16px rgba(124, 58, 237, 0.45);
 }
 .rpt-filter-bar .btn-pdf {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
   color: white;
   border: none;
   border-radius: 8px;
@@ -837,12 +836,7 @@
 .rpt-info-alert.warning {
   background: rgba(245, 158, 11, 0.1);
   border: 1px solid rgba(245, 158, 11, 0.3);
-  color: #fcd34d;
-}
-.rpt-info-alert.warning i {
-  color: #fbbf24;
-  font-size: 18px;
-  margin-top: 2px;
+  color: #92400e;
 }
 .rpt-info-alert.warning i {
   color: #fbbf24;
