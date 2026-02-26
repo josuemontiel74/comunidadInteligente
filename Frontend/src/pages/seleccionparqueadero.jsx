@@ -123,7 +123,7 @@ function SeleccioneParqueadero() {
         const data = await res.json();
         setParqueaderos(data.body);
         setLoading(false);
-      } catch (err) {
+      } catch {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         navegacion("/");
@@ -174,7 +174,7 @@ function SeleccioneParqueadero() {
         timer: 3500,
         showConfirmButton: false,
       });
-    } catch (error) {
+    } catch {
       Swal.fire({
         icon: "error",
         title: "Lo siento",
@@ -269,7 +269,7 @@ function SeleccioneParqueadero() {
   };
 
   const [slotSeleccionado, setSlotSeleccionado] = useState(null);
-  const [, setEstadoSeleccionado] = useState(null);
+  const [estadoSeleccionado, setEstadoSeleccionado] = useState(null);
   const [tipoVehiculoSeleccionado, setTipoVehiculoSeleccionado] =
     useState(null);
   const [menuAbierto, setMenuAbierto] = useState(false);
@@ -278,8 +278,8 @@ function SeleccioneParqueadero() {
     const el = document.getElementById(id);
     if (!el) return;
     try {
-      if (window.bootstrap?.Modal) {
-        const instance = new window.bootstrap.Modal(el);
+      if (globalThis.bootstrap?.Modal) {
+        const instance = new globalThis.bootstrap.Modal(el);
         instance.show();
       } else {
         el.classList.add("show");
@@ -299,11 +299,11 @@ function SeleccioneParqueadero() {
     const el = document.getElementById(id);
     if (!el) return;
     try {
-      if (window.bootstrap?.Modal) {
-        const inst = window.bootstrap.Modal.getInstance(el);
+      if (globalThis.bootstrap?.Modal) {
+        const inst = globalThis.bootstrap.Modal.getInstance(el);
         if (inst) inst.hide();
         else {
-          const tmp = new window.bootstrap.Modal(el);
+          const tmp = new globalThis.bootstrap.Modal(el);
           tmp.hide();
         }
       } else {

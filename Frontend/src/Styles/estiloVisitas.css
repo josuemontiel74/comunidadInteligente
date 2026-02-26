@@ -110,7 +110,6 @@
 }
 .vis-menu-item:hover {
   background: rgba(255, 255, 255, 0.15);
-  color: white;
   text-decoration: none;
 }
 .vis-menu-item.active {
@@ -140,7 +139,7 @@
   padding: 12px;
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  color: white;
+  color: inherit;
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
@@ -1124,7 +1123,7 @@
 }
 [data-modo="oscuro"] .vis-parking-change:hover {
   background: #4caf50 !important;
-  color: #fff !important;
+  color: #14310a !important;
 }
 
 /* Modal detalles */
@@ -1132,7 +1131,7 @@
   border-bottom-color: #334155 !important;
 }
 [data-modo="oscuro"] .vis-detalle-icon {
-  background: rgba(76, 175, 80, 0.15) !important;
+  background: #134014 !important;
   color: #4ade80 !important;
 }
 [data-modo="oscuro"] .vis-detalle-label {

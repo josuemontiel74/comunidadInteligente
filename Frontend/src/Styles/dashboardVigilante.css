@@ -133,7 +133,6 @@ body {
 }
 .vi-menu-item:hover {
   background: rgba(255, 255, 255, 0.15);
-  color: white;
   text-decoration: none;
 }
 .vi-menu-item i {
@@ -141,7 +140,7 @@ body {
   color: white;
 }
 .vi-menu-item:hover i {
-  color: white;
+  color: inherit;
 }
 .vi-menu-item span {
   flex: 1;
@@ -163,7 +162,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.15);
-  color: white;
+  color: inherit;
   font-weight: 600;
   font-size: 15px;
   display: flex;

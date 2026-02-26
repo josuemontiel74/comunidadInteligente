@@ -295,6 +295,64 @@ function filtrarYOrdenarResidentes(
 }
 
 /* =========================================================
+   COMPONENTE PAGINACION
+   ========================================================= */
+function PaginacionResidentes({ totalPaginas, paginaActual, setPaginaActual, totalResidentes }) {
+  if (totalPaginas <= 1) return null;
+  const paginas = [];
+  const maxVis = 5;
+  let ini = Math.max(1, paginaActual - Math.floor(maxVis / 2));
+  let fin = Math.min(totalPaginas, ini + maxVis - 1);
+  if (fin - ini < maxVis - 1) ini = Math.max(1, fin - maxVis + 1);
+  for (let i = ini; i <= fin; i++) paginas.push(i);
+
+  return (
+    <div className="res-pagination">
+      <button
+        className="res-page-btn"
+        disabled={paginaActual === 1}
+        onClick={() => setPaginaActual(1)}
+      >
+        <i className="bi bi-chevron-double-left"></i>
+      </button>
+      <button
+        className="res-page-btn"
+        disabled={paginaActual === 1}
+        onClick={() => setPaginaActual(paginaActual - 1)}
+      >
+        <i className="bi bi-chevron-left"></i>
+      </button>
+      {paginas.map((p) => (
+        <button
+          key={p}
+          className={`res-page-btn ${paginaActual === p ? "active" : ""}`}
+          onClick={() => setPaginaActual(p)}
+        >
+          {p}
+        </button>
+      ))}
+      <button
+        className="res-page-btn"
+        disabled={paginaActual === totalPaginas}
+        onClick={() => setPaginaActual(paginaActual + 1)}
+      >
+        <i className="bi bi-chevron-right"></i>
+      </button>
+      <button
+        className="res-page-btn"
+        disabled={paginaActual === totalPaginas}
+        onClick={() => setPaginaActual(totalPaginas)}
+      >
+        <i className="bi bi-chevron-double-right"></i>
+      </button>
+      <span className="res-page-info">
+        {totalResidentes} residentes
+      </span>
+    </div>
+  );
+}
+
+/* =========================================================
    COMPONENTE PRINCIPAL
    ========================================================= */
 function Residentes() {
@@ -692,9 +750,9 @@ function Residentes() {
         ocupanteData.numeroDocumento = formData.numeroDocumento.trim();
 
       const ok =
-        editIndex !== null
-          ? await ejecutarActualizacion(editIndex, ocupanteData, token)
-          : await ejecutarCreacion(ocupanteData, token);
+        editIndex === null
+          ? await ejecutarCreacion(ocupanteData, token)
+          : await ejecutarActualizacion(editIndex, ocupanteData, token);
 
       if (ok) {
         await cargarResidentes();
@@ -758,62 +816,6 @@ function Residentes() {
     }
   };
 
-  /* ---- render Paginacion ---- */
-  const Paginacion = () => {
-    if (totalPaginas <= 1) return null;
-    const paginas = [];
-    const maxVis = 5;
-    let ini = Math.max(1, paginaActual - Math.floor(maxVis / 2));
-    let fin = Math.min(totalPaginas, ini + maxVis - 1);
-    if (fin - ini < maxVis - 1) ini = Math.max(1, fin - maxVis + 1);
-    for (let i = ini; i <= fin; i++) paginas.push(i);
-
-    return (
-      <div className="res-pagination">
-        <button
-          className="res-page-btn"
-          disabled={paginaActual === 1}
-          onClick={() => setPaginaActual(1)}
-        >
-          <i className="bi bi-chevron-double-left"></i>
-        </button>
-        <button
-          className="res-page-btn"
-          disabled={paginaActual === 1}
-          onClick={() => setPaginaActual(paginaActual - 1)}
-        >
-          <i className="bi bi-chevron-left"></i>
-        </button>
-        {paginas.map((p) => (
-          <button
-            key={p}
-            className={`res-page-btn ${paginaActual === p ? "active" : ""}`}
-            onClick={() => setPaginaActual(p)}
-          >
-            {p}
-          </button>
-        ))}
-        <button
-          className="res-page-btn"
-          disabled={paginaActual === totalPaginas}
-          onClick={() => setPaginaActual(paginaActual + 1)}
-        >
-          <i className="bi bi-chevron-right"></i>
-        </button>
-        <button
-          className="res-page-btn"
-          disabled={paginaActual === totalPaginas}
-          onClick={() => setPaginaActual(totalPaginas)}
-        >
-          <i className="bi bi-chevron-double-right"></i>
-        </button>
-        <span className="res-page-info">
-          {residentesFiltrados.length} residentes
-        </span>
-      </div>
-    );
-  };
-
   /* ===========================================================
      RENDER
      =========================================================== */
@@ -870,13 +872,7 @@ function Residentes() {
             <h6 className="res-menu-section-title">Navegación</h6>
             <Link
               className="res-menu-item"
-              to={
-                rolesId === 1
-                  ? "/Superadmin"
-                  : rolesId === 2
-                    ? "/Admin"
-                    : "/VigilanteDashboard"
-              }
+              to={{ 1: "/Superadmin", 2: "/Admin" }[rolesId] ?? "/VigilanteDashboard"}
               onClick={() => setMenuOpen(false)}
             >
               <i className="bi bi-speedometer2"></i>
@@ -1146,12 +1142,13 @@ function Residentes() {
           </div>
 
           {/* CONTENIDO */}
-          {residentesFiltrados.length === 0 ? (
+          {residentesFiltrados.length === 0 && (
             <div className="res-empty">
               <i className="bi bi-people d-block"></i>
               <p>No se encontraron residentes</p>
             </div>
-          ) : mostrarTabla ? (
+          )}
+          {residentesFiltrados.length > 0 && mostrarTabla && (
             <>
               <div className="res-table-wrapper">
                 <table className="res-table">
@@ -1243,9 +1240,15 @@ function Residentes() {
                   </tbody>
                 </table>
               </div>
-              <Paginacion />
+              <PaginacionResidentes
+                totalPaginas={totalPaginas}
+                paginaActual={paginaActual}
+                setPaginaActual={setPaginaActual}
+                totalResidentes={residentesFiltrados.length}
+              />
             </>
-          ) : (
+          )}
+          {residentesFiltrados.length > 0 && !mostrarTabla && (
             <>
               <div className="res-grid">
                 {residentesPaginados.map((r) => (
@@ -1337,7 +1340,12 @@ function Residentes() {
                   </div>
                 ))}
               </div>
-              <Paginacion />
+              <PaginacionResidentes
+                totalPaginas={totalPaginas}
+                paginaActual={paginaActual}
+                setPaginaActual={setPaginaActual}
+                totalResidentes={residentesFiltrados.length}
+              />
             </>
           )}
         </div>
@@ -1362,12 +1370,12 @@ function Residentes() {
             <div className="res-modal-header">
               <h3>
                 <i
-                  className={`bi ${editIndex !== null ? "bi-pencil-square" : "bi-person-plus-fill"}`}
+                  className={`bi ${editIndex === null ? "bi-person-plus-fill" : "bi-pencil-square"}`}
                   style={{ fontSize: "22px" }}
                 ></i>
-                {editIndex !== null
-                  ? "Editar Residente"
-                  : "Registrar Residente"}
+                {editIndex === null
+                  ? "Registrar Residente"
+                  : "Editar Residente"}
               </h3>
               <button className="res-modal-close" onClick={cerrarModal}>
                 <i className="bi bi-x-lg"></i>
@@ -1395,7 +1403,7 @@ function Residentes() {
                     >
                       {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                         <option key={n} value={n}>
-                          Torre {String.fromCharCode(64 + n)}
+                          Torre {String.fromCodePoint(64 + n)}
                         </option>
                       ))}
                     </select>
@@ -1654,7 +1662,7 @@ function Residentes() {
                   Cancelar
                 </button>
                 <button type="submit" className="res-btn-submit">
-                  {editIndex !== null ? "Actualizar" : "Registrar"}
+                  {editIndex === null ? "Registrar" : "Actualizar"}
                 </button>
               </div>
             </form>
@@ -1679,7 +1687,11 @@ function Residentes() {
         >
           <div className="res-modal res-torres-modal">
             <div className="res-modal-header">
-              {torreSeleccionada !== null ? (
+              {torreSeleccionada === null ? (
+                <h3>
+                  <i className="bi bi-buildings"></i> Mapa de Torres
+                </h3>
+              ) : (
                 <>
                   <button
                     className="res-torres-back"
@@ -1697,10 +1709,6 @@ function Residentes() {
                     {" — Apartamentos"}
                   </h3>
                 </>
-              ) : (
-                <h3>
-                  <i className="bi bi-buildings"></i> Mapa de Torres
-                </h3>
               )}
               <button
                 className="res-modal-close"
@@ -1758,17 +1766,17 @@ function Residentes() {
                         <div className="res-torre-letter">{letra}</div>
                         <p className="res-torre-info">
                           <i className="bi bi-door-open"></i> {totalAptos} apto
-                          {totalAptos !== 1 ? "s" : ""}
+                          {totalAptos === 1 ? "" : "s"}
                         </p>
                         <p className="res-torre-info">
                           <i className="bi bi-people"></i> {resEnTorre.length}{" "}
                           residente
-                          {resEnTorre.length !== 1 ? "s" : ""}
+                          {resEnTorre.length === 1 ? "" : "s"}
                         </p>
                         {aptosLibres > 0 && (
                           <p className="res-torre-libre-count">
                             <i className="bi bi-check-circle"></i> {aptosLibres}{" "}
-                            libre{aptosLibres !== 1 ? "s" : ""}
+                            libre{aptosLibres === 1 ? "" : "s"}
                           </p>
                         )}
                       </button>

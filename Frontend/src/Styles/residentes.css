@@ -110,7 +110,6 @@
 }
 .res-menu-item:hover {
   background: #1a5d52;
-  color: white;
   text-decoration: none;
 }
 .res-menu-item.active {
@@ -136,7 +135,7 @@
   padding: 12px;
   background: #1a5d52;
   border: 1px solid rgba(255, 255, 255, 0.3);
-  color: white;
+  color: inherit;
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;

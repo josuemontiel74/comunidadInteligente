@@ -253,7 +253,7 @@ function Visitas() {
       } else {
         setVisitas([]);
       }
-    } catch (err) {
+    } catch {
       setError("Error al cargar las visitas.");
     } finally {
       setLoading(false);
@@ -386,7 +386,7 @@ function Visitas() {
       }
 
       // Limpiar el state para evitar re-apertura
-      window.history.replaceState({}, document.title);
+      globalThis.history.replaceState({}, document.title);
     }
   }, [location.state]);
 
@@ -408,7 +408,7 @@ function Visitas() {
           p.tipoVehiculoId !== Number.parseInt(tipoVehiculo, 10),
       }));
       setParqueaderosDisponibles(conMarca);
-    } catch (err) {
+    } catch {
       setParqueaderosDisponibles([]);
     }
   }, []);
@@ -678,7 +678,7 @@ function Visitas() {
       setVisitaEditando(null);
       resetForm();
       await cargarVisitas();
-    } catch (err) {
+    } catch {
       Swal.fire({
         icon: "error",
         title: "Lo siento",
@@ -719,7 +719,7 @@ function Visitas() {
             timer: 3000,
             showConfirmButton: false,
           });
-        } catch (err) {
+        } catch {
           Swal.fire({
             icon: "error",
             title: "Lo siento",
@@ -1079,10 +1079,10 @@ function Visitas() {
                     <option value="">Todas las Torres</option>
                     {Array.from({ length: 10 }, (_, i) => (
                       <option
-                        key={String.fromCharCode(65 + i)}
-                        value={String.fromCharCode(65 + i)}
+                        key={String.fromCodePoint(65 + i)}
+                        value={String.fromCodePoint(65 + i)}
                       >
-                        Torre {String.fromCharCode(65 + i)}
+                        Torre {String.fromCodePoint(65 + i)}
                       </option>
                     ))}
                   </select>
@@ -1554,10 +1554,10 @@ function Visitas() {
                       <option value="">Selecciona torre</option>
                       {Array.from({ length: 10 }, (_, i) => (
                         <option
-                          key={`torre-${String.fromCharCode(65 + i)}`}
+                          key={`torre-${String.fromCodePoint(65 + i)}`}
                           value={i + 1}
                         >
-                          Torre {String.fromCharCode(65 + i)}
+                          Torre {String.fromCodePoint(65 + i)}
                         </option>
                       ))}
                     </select>

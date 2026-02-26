@@ -147,7 +147,6 @@ body {
 }
 .sa-menu-item:hover {
   background: rgba(255, 255, 255, 0.15);
-  color: white;
   text-decoration: none;
 }
 .sa-menu-item i:first-child {
@@ -176,7 +175,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 15px;
   background: rgba(255, 255, 255, 0.15);
-  color: white;
+  color: inherit;
   font-size: 17px;
   font-weight: 600;
   cursor: pointer;
