@@ -61,15 +61,14 @@ export default function DescargaAppMovil({ btnClass = "" }) {
 
       {/* ── Modal ──────────────────────────────────────────────── */}
       {modalAbierto && (
-        <div
+        <dialog
+          open
           className="dap-overlay"
           onClick={(e) => e.target === e.currentTarget && cerrar()}
           onKeyDown={(e) => {
             if (e.key === "Escape") cerrar();
           }}
-          role="dialog"
           aria-modal="true"
-          tabIndex={0}
           aria-label="Cerrar"
         >
           <div className="dap-modal">
@@ -123,7 +122,7 @@ export default function DescargaAppMovil({ btnClass = "" }) {
               No mostrar este mensaje de nuevo
             </label>
           </div>
-        </div>
+        </dialog>
       )}
     </>
   );

@@ -1395,7 +1395,8 @@ function AreasComunes() {
 
       {/* ══════════ MODAL — REGISTRAR / EDITAR ══════════ */}
       {modalAbierto && (
-        <div
+        <dialog
+          open
           className="ac-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) cerrarModal();
@@ -1403,9 +1404,7 @@ function AreasComunes() {
           onKeyDown={(e) => {
             if (e.key === "Escape") cerrarModal();
           }}
-          role="dialog"
           aria-modal="true"
-          tabIndex={0}
           aria-label="Cerrar"
         >
           <div className="ac-modal">
@@ -1729,12 +1728,13 @@ function AreasComunes() {
               </form>
             </div>
           </div>
-        </div>
+        </dialog>
       )}
 
       {/* ══════════ MODAL — DETALLES ══════════ */}
       {showModalDetalles && registroSeleccionado && (
-        <div
+        <dialog
+          open
           className="ac-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowModalDetalles(false);
@@ -1742,9 +1742,7 @@ function AreasComunes() {
           onKeyDown={(e) => {
             if (e.key === "Escape") setShowModalDetalles(false);
           }}
-          role="dialog"
           aria-modal="true"
-          tabIndex={0}
           aria-label="Cerrar"
         >
           <div className="ac-modal">
@@ -1853,12 +1851,13 @@ function AreasComunes() {
               </button>
             </div>
           </div>
-        </div>
+        </dialog>
       )}
 
       {/* ══════════ MODAL — CALENDARIO ══════════ */}
       {showCalendario && (
-        <div
+        <dialog
+          open
           className="ac-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowCalendario(false);
@@ -1866,9 +1865,7 @@ function AreasComunes() {
           onKeyDown={(e) => {
             if (e.key === "Escape") setShowCalendario(false);
           }}
-          role="dialog"
           aria-modal="true"
-          tabIndex={0}
           aria-label="Cerrar"
         >
           <div className="ac-modal ac-calendar-modal">
@@ -1992,12 +1989,13 @@ function AreasComunes() {
               )}
             </div>
           </div>
-        </div>
+        </dialog>
       )}
 
       {/* ══════════ MODAL GESTIONAR ÁREAS (SuperAdmin) ══════════ */}
       {showModalAreas && rolesId === 1 && (
-        <div
+        <dialog
+          open
           className="ac-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowModalAreas(false);
@@ -2005,9 +2003,7 @@ function AreasComunes() {
           onKeyDown={(e) => {
             if (e.key === "Escape") setShowModalAreas(false);
           }}
-          role="dialog"
           aria-modal="true"
-          tabIndex={0}
           aria-label="Cerrar"
         >
           <div className="ac-modal ac-modal-areas">
@@ -2072,7 +2068,7 @@ function AreasComunes() {
               </div>
             </div>
           </div>
-        </div>
+        </dialog>
       )}
     </div>
   );

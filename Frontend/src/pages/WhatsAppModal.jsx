@@ -24,7 +24,8 @@ export default function WhatsAppModal() {
 
       {/* Modal */}
       {open && (
-        <div
+        <dialog
+          open
           className="wa-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setOpen(false);
@@ -32,9 +33,7 @@ export default function WhatsAppModal() {
           onKeyDown={(e) => {
             if (e.key === "Escape") setOpen(false);
           }}
-          role="dialog"
           aria-modal="true"
-          tabIndex={-1}
         >
           <div className="wa-modal">
             {/* Cierre */}
@@ -76,7 +75,7 @@ export default function WhatsAppModal() {
               personal autorizado
             </p>
           </div>
-        </div>
+        </dialog>
       )}
     </>
   );

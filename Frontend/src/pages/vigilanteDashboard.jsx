@@ -413,8 +413,7 @@ function Dashboard() {
 
         <div className="vi-drawer-footer">
           <button className="vi-logout-btn" onClick={cerrarSesion}>
-            <i className="bi bi-box-arrow-right"></i>
-            {" "}Cerrar Sesión
+            <i className="bi bi-box-arrow-right"></i> Cerrar Sesión
           </button>
         </div>
       </aside>

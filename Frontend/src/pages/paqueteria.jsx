@@ -1139,7 +1139,8 @@ function Paqueteria() {
 
       {/* ====== MODAL CREAR PAQUETE ====== */}
       {modalCrear && (
-        <div
+        <dialog
+          open
           className="paq-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setModalCrear(false);
@@ -1147,9 +1148,7 @@ function Paqueteria() {
           onKeyDown={(e) => {
             if (e.key === "Escape") setModalCrear(false);
           }}
-          role="dialog"
           aria-modal="true"
-          tabIndex={0}
           aria-label="Cerrar"
         >
           <div className="paq-modal">
@@ -1248,7 +1247,10 @@ function Paqueteria() {
                 </div>
 
                 <div className="paq-form-group">
-                  <label htmlFor="paq-crear-transportadora" className="paq-form-label">
+                  <label
+                    htmlFor="paq-crear-transportadora"
+                    className="paq-form-label"
+                  >
                     Transportadora <span className="required">*</span>
                   </label>
                   <input
@@ -1339,12 +1341,13 @@ function Paqueteria() {
               </form>
             </div>
           </div>
-        </div>
+        </dialog>
       )}
 
       {/* ====== MODAL EDITAR PAQUETE ====== */}
       {modalEditar && paqueteEditar && (
-        <div
+        <dialog
+          open
           className="paq-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -1358,9 +1361,7 @@ function Paqueteria() {
               setPaqueteEditar(null);
             }
           }}
-          role="dialog"
           aria-modal="true"
-          tabIndex={0}
           aria-label="Cerrar"
         >
           <div className="paq-modal">
@@ -1559,12 +1560,13 @@ function Paqueteria() {
               </form>
             </div>
           </div>
-        </div>
+        </dialog>
       )}
 
       {/* ====== MODAL DETALLES ====== */}
       {modalDetalle && (
-        <div
+        <dialog
+          open
           className="paq-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setModalDetalle(null);
@@ -1572,9 +1574,7 @@ function Paqueteria() {
           onKeyDown={(e) => {
             if (e.key === "Escape") setModalDetalle(null);
           }}
-          role="dialog"
           aria-modal="true"
-          tabIndex={0}
           aria-label="Cerrar"
         >
           <div className="paq-modal" style={{ maxWidth: "480px" }}>
@@ -1703,7 +1703,7 @@ function Paqueteria() {
               </button>
             </div>
           </div>
-        </div>
+        </dialog>
       )}
     </div>
   );
