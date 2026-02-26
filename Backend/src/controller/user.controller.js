@@ -1,3 +1,4 @@
+import { randomInt } from "crypto";
 import { Op } from "sequelize";
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
@@ -32,7 +33,7 @@ export const crearUsuario = async (req, res) => {
       where: { username: crearUser },
     });
     if (buscarUsername) {
-      crearUser = `${crearUser}${Math.floor(Math.random() * 99999)}`;
+      crearUser = `${crearUser}${randomInt(99999)}`;
     }
 
     const hashedPassword = await bcrypt.hash(dataUser.password, 10);

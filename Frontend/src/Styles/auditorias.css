@@ -110,7 +110,6 @@
 }
 .aud-menu-item:hover {
   background: rgba(255, 255, 255, 0.15);
-  color: white;
   text-decoration: none;
 }
 .aud-menu-item.active {
@@ -140,7 +139,7 @@
   padding: 12px;
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  color: white;
+  color: inherit;
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
@@ -182,7 +181,7 @@
 .aud-header-btn {
   background: rgba(255, 255, 255, 0.15);
   border: none;
-  color: white;
+  color: inherit;
   width: 40px;
   height: 40px;
   border-radius: 10px;

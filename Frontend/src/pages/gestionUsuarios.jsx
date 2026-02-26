@@ -146,7 +146,7 @@ function validarFormularioGU(fd) {
   const errNombres = validarNombresGU(fd);
   if (errNombres) return errNombres;
 
-  const tipoDocNombreGU = TIPO_DOC_MAP[parseInt(fd.tipoDocumentoId)] || "";
+  const tipoDocNombreGU = TIPO_DOC_MAP[Number.parseInt(fd.tipoDocumentoId)] || "";
   const errDocGU = validarDocumento(
     fd.numeroDocumento,
     fd.tipoDocumentoId,
@@ -389,7 +389,7 @@ function GestionUsuarios() {
           (filtroEstado === "activo" && u.estadoId === 1) ||
           (filtroEstado === "inactivo" && u.estadoId === 2);
         const coincideRol =
-          filtroRol === "todos" || u.rolesId === parseInt(filtroRol);
+          filtroRol === "todos" || u.rolesId === Number.parseInt(filtroRol);
         const coincideEnLinea = !soloEnLinea || !!usuariosEnLinea[u.username];
         return (
           coincideBusqueda && coincideEstado && coincideRol && coincideEnLinea
@@ -728,10 +728,10 @@ function GestionUsuarios() {
       }
       const datos = {
         password: formData.password,
-        rolesId: parseInt(formData.rolesId),
+        rolesId: Number.parseInt(formData.rolesId),
         estadoId: 1,
         numeroDocumento: formData.numeroDocumento,
-        tipoDocumentoId: parseInt(formData.tipoDocumentoId),
+        tipoDocumentoId: Number.parseInt(formData.tipoDocumentoId),
         primerNombre: formData.primerNombre,
         segundoNombre: formData.segundoNombre,
         primerApellido: formData.primerApellido,
@@ -847,7 +847,7 @@ function GestionUsuarios() {
     const payload = {};
     for (const [key, val] of Object.entries(campos)) {
       if (!val) continue;
-      payload[key] = INT_FIELDS.includes(key) ? parseInt(val) : val;
+      payload[key] = INT_FIELDS.includes(key) ? Number.parseInt(val) : val;
     }
     return payload;
   };
@@ -1803,8 +1803,9 @@ function GestionUsuarios() {
                   </h6>
                   <div className="gu-form-grid">
                     <div className="gu-form-group">
-                      <label className="gu-form-label">Tipo Documento *</label>
+                      <label htmlFor="gu-c-tipoDoc" className="gu-form-label">Tipo Documento *</label>
                       <select
+                        id="gu-c-tipoDoc"
                         className="gu-form-control"
                         value={formData.tipoDocumentoId}
                         onChange={(e) =>
@@ -1824,10 +1825,11 @@ function GestionUsuarios() {
                       </select>
                     </div>
                     <div className="gu-form-group">
-                      <label className="gu-form-label">
+                      <label htmlFor="gu-c-numDoc" className="gu-form-label">
                         Numero Documento *
                       </label>
                       <input
+                        id="gu-c-numDoc"
                         type="number"
                         className="gu-form-control"
                         value={formData.numeroDocumento}
@@ -1838,8 +1840,9 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label className="gu-form-label">Primer Nombre *</label>
+                      <label htmlFor="gu-c-primerNombre" className="gu-form-label">Primer Nombre *</label>
                       <input
+                        id="gu-c-primerNombre"
                         type="text"
                         className="gu-form-control"
                         value={formData.primerNombre}
@@ -1850,8 +1853,9 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label className="gu-form-label">Segundo Nombre</label>
+                      <label htmlFor="gu-c-segundoNombre" className="gu-form-label">Segundo Nombre</label>
                       <input
+                        id="gu-c-segundoNombre"
                         type="text"
                         className="gu-form-control"
                         value={formData.segundoNombre}
@@ -1861,8 +1865,9 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label className="gu-form-label">Primer Apellido *</label>
+                      <label htmlFor="gu-c-primerApellido" className="gu-form-label">Primer Apellido *</label>
                       <input
+                        id="gu-c-primerApellido"
                         type="text"
                         className="gu-form-control"
                         value={formData.primerApellido}
@@ -1873,8 +1878,9 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label className="gu-form-label">Segundo Apellido</label>
+                      <label htmlFor="gu-c-segundoApellido" className="gu-form-label">Segundo Apellido</label>
                       <input
+                        id="gu-c-segundoApellido"
                         type="text"
                         className="gu-form-control"
                         value={formData.segundoApellido}
@@ -1884,8 +1890,9 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label className="gu-form-label">Telefono</label>
+                      <label htmlFor="gu-c-telefono" className="gu-form-label">Telefono</label>
                       <input
+                        id="gu-c-telefono"
                         type="number"
                         className="gu-form-control"
                         value={formData.telefono}
@@ -1895,10 +1902,11 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label className="gu-form-label">
+                      <label htmlFor="gu-c-correo" className="gu-form-label">
                         Correo Electronico
                       </label>
                       <input
+                        id="gu-c-correo"
                         type="email"
                         className="gu-form-control"
                         value={formData.correoElectronico}
@@ -1915,8 +1923,9 @@ function GestionUsuarios() {
                   </h6>
                   <div className="gu-form-grid">
                     <div className="gu-form-group">
-                      <label className="gu-form-label">Contrasena *</label>
+                      <label htmlFor="gu-c-password" className="gu-form-label">Contrasena *</label>
                       <input
+                        id="gu-c-password"
                         type="password"
                         className="gu-form-control"
                         value={formData.password}
@@ -1929,8 +1938,9 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label className="gu-form-label">Rol *</label>
+                      <label htmlFor="gu-c-rol" className="gu-form-label">Rol *</label>
                       <select
+                        id="gu-c-rol"
                         className="gu-form-control"
                         value={formData.rolesId}
                         onChange={(e) => updateField("rolesId", e.target.value)}
@@ -2068,8 +2078,9 @@ function GestionUsuarios() {
                   </h6>
                   <div className="gu-form-grid">
                     <div className="gu-form-group">
-                      <label className="gu-form-label">Tipo Documento</label>
+                      <label htmlFor="gu-e-tipoDoc" className="gu-form-label">Tipo Documento</label>
                       <select
+                        id="gu-e-tipoDoc"
                         className="gu-form-control"
                         value={formData.tipoDocumentoId}
                         onChange={(e) =>
@@ -2089,8 +2100,9 @@ function GestionUsuarios() {
                       </select>
                     </div>
                     <div className="gu-form-group">
-                      <label className="gu-form-label">Numero Documento</label>
+                      <label htmlFor="gu-e-numDoc" className="gu-form-label">Numero Documento</label>
                       <input
+                        id="gu-e-numDoc"
                         type="text"
                         className="gu-form-control"
                         value={formData.numeroDocumento}
@@ -2098,8 +2110,9 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label className="gu-form-label">Primer Nombre *</label>
+                      <label htmlFor="gu-e-primerNombre" className="gu-form-label">Primer Nombre *</label>
                       <input
+                        id="gu-e-primerNombre"
                         type="text"
                         className="gu-form-control"
                         value={formData.primerNombre}
@@ -2110,8 +2123,9 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label className="gu-form-label">Segundo Nombre</label>
+                      <label htmlFor="gu-e-segundoNombre" className="gu-form-label">Segundo Nombre</label>
                       <input
+                        id="gu-e-segundoNombre"
                         type="text"
                         className="gu-form-control"
                         value={formData.segundoNombre}
@@ -2121,8 +2135,9 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label className="gu-form-label">Primer Apellido *</label>
+                      <label htmlFor="gu-e-primerApellido" className="gu-form-label">Primer Apellido *</label>
                       <input
+                        id="gu-e-primerApellido"
                         type="text"
                         className="gu-form-control"
                         value={formData.primerApellido}
@@ -2133,8 +2148,9 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label className="gu-form-label">Segundo Apellido</label>
+                      <label htmlFor="gu-e-segundoApellido" className="gu-form-label">Segundo Apellido</label>
                       <input
+                        id="gu-e-segundoApellido"
                         type="text"
                         className="gu-form-control"
                         value={formData.segundoApellido}
@@ -2144,8 +2160,9 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label className="gu-form-label">Telefono</label>
+                      <label htmlFor="gu-e-telefono" className="gu-form-label">Telefono</label>
                       <input
+                        id="gu-e-telefono"
                         type="text"
                         className="gu-form-control"
                         value={formData.telefono}
@@ -2155,10 +2172,11 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label className="gu-form-label">
+                      <label htmlFor="gu-e-correo" className="gu-form-label">
                         Correo Electronico
                       </label>
                       <input
+                        id="gu-e-correo"
                         type="email"
                         className="gu-form-control"
                         value={formData.correoElectronico}
@@ -2175,8 +2193,9 @@ function GestionUsuarios() {
                   </h6>
                   <div className="gu-form-grid">
                     <div className="gu-form-group">
-                      <label className="gu-form-label">Username</label>
+                      <label htmlFor="gu-e-username" className="gu-form-label">Username</label>
                       <input
+                        id="gu-e-username"
                         type="text"
                         className="gu-form-control"
                         value={formData.username}
@@ -2184,8 +2203,9 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label className="gu-form-label">Nueva Contrasena</label>
+                      <label htmlFor="gu-e-password" className="gu-form-label">Nueva Contrasena</label>
                       <input
+                        id="gu-e-password"
                         type="password"
                         className="gu-form-control"
                         value={formData.password}
@@ -2196,8 +2216,9 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label className="gu-form-label">Rol</label>
+                      <label htmlFor="gu-e-rol" className="gu-form-label">Rol</label>
                       <select
+                        id="gu-e-rol"
                         className="gu-form-control"
                         value={formData.rolesId}
                         onChange={(e) => updateField("rolesId", e.target.value)}

@@ -151,7 +151,6 @@
 .le-menu-item:hover,
 .le-menu-item.active {
   background: rgba(255, 255, 255, 0.18);
-  color: white;
 }
 .le-menu-arrow {
   margin-left: auto;
@@ -167,7 +166,7 @@
   width: 100%;
   padding: 11px;
   background: rgba(255, 255, 255, 0.12);
-  color: white;
+  color: inherit;
   border: 1px solid rgba(239, 68, 68, 0.4);
   border-radius: 10px;
   font-size: 14px;

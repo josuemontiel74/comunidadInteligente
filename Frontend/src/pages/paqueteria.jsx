@@ -1248,7 +1248,7 @@ function Paqueteria() {
                 </div>
 
                 <div className="paq-form-group">
-                  <label className="paq-form-label">
+                  <label htmlFor="paq-crear-transportadora" className="paq-form-label">
                     Transportadora <span className="required">*</span>
                   </label>
                   <input

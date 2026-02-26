@@ -16,7 +16,7 @@ if (localStorage.getItem("ci_modo_oscuro") === "1") {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Silenciar el error de ResizeObserver (no afecta funcionalidad)
-window.addEventListener("error", (e) => {
+globalThis.addEventListener("error", (e) => {
   if (e.message?.includes("ResizeObserver")) e.stopImmediatePropagation();
 });
 

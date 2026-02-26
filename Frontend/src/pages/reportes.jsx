@@ -1091,7 +1091,7 @@ function Reportes() {
         <div className="rpt-drawer-footer">
           <button className="rpt-logout-btn" onClick={cerrarSesion}>
             <i className="bi bi-box-arrow-right"></i>
-            Cerrar Sesión
+            {" "}Cerrar Sesión
           </button>
         </div>
       </aside>
@@ -1143,20 +1143,22 @@ function Reportes() {
         <div className="rpt-filter-bar">
           <div className="filter-row">
             <div className="filter-group">
-              <label>
+              <label htmlFor="rpt-fecha-inicio">
                 <i className="bi bi-calendar-event me-1"></i>Desde
               </label>
               <input
+                id="rpt-fecha-inicio"
                 type="date"
                 value={fechaInicio}
                 onChange={(e) => setFechaInicio(e.target.value)}
               />
             </div>
             <div className="filter-group">
-              <label>
+              <label htmlFor="rpt-fecha-fin">
                 <i className="bi bi-calendar-check me-1"></i>Hasta
               </label>
               <input
+                id="rpt-fecha-fin"
                 type="date"
                 value={fechaFin}
                 onChange={(e) => setFechaFin(e.target.value)}
@@ -1176,7 +1178,7 @@ function Reportes() {
               disabled={dataLoading}
             >
               <i className="bi bi-filetype-pdf"></i>
-              Exportar PDF
+              {" "}Exportar PDF
             </button>
           </div>
         </div>
@@ -1994,13 +1996,7 @@ function Reportes() {
                                         className="rpt-badge"
                                         style={{
                                           background:
-                                            i === 0
-                                              ? "#ca8a04"
-                                              : i === 1
-                                                ? "#94a3b8"
-                                                : i === 2
-                                                  ? "#b45309"
-                                                  : "#e2e8f0",
+                                            ["#ca8a04", "#94a3b8", "#b45309"][i] ?? "#e2e8f0",
                                           color: i < 3 ? "#fff" : "#475569",
                                         }}
                                       >
@@ -2082,14 +2078,11 @@ function Reportes() {
                                   diasNum === null || diasNum === undefined
                                     ? "Nunca inició sesión"
                                     : `${diasNum} días`;
-                                const color =
-                                  diasNum === null ||
-                                  diasNum === undefined ||
-                                  diasNum > 30
-                                    ? "#ef4444"
-                                    : diasNum > 7
-                                      ? "#f97316"
-                                      : "#22c55e";
+                                const color = (() => {
+                                  if (diasNum === null || diasNum === undefined || diasNum > 30) return "#ef4444";
+                                  if (diasNum > 7) return "#f97316";
+                                  return "#22c55e";
+                                })();
                                 const ultimaAct = u.ultimaActividad
                                   ? new Date(
                                       u.ultimaActividad,

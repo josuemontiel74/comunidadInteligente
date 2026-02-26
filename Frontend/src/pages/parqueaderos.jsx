@@ -124,7 +124,7 @@ function Parqueaderos() {
       } else {
         setParqueaderos([]);
       }
-    } catch (err) {
+    } catch {
       setError("Error al cargar los parqueaderos.");
     } finally {
       setLoading(false);
@@ -280,25 +280,23 @@ function Parqueaderos() {
               showConfirmButton: false,
             });
             cargarParqueaderos();
-          } else {
+          } else if (data.visitaActiva || data.message?.includes("visita activa")) {
             // Manejo específico: visita activa
-            if (data.visitaActiva || data.message?.includes("visita activa")) {
-              Swal.fire({
-                icon: "warning",
-                title: "Parqueadero con visita activa",
-                html: `<p>No se puede cambiar el estado de <strong>${p.codigoParqueadero}</strong> porque tiene una visita en curso.</p><p>Primero debe <strong>finalizar la visita</strong> en el módulo de <strong>Visitas</strong>.</p>`,
-                confirmButtonText: "Entendido",
-                confirmButtonColor: "#7c3aed",
-              });
-            } else {
-              Swal.fire({
-                icon: "error",
-                title: "Error",
-                text: data.message || "No se pudo cambiar el estado",
-              });
-            }
+            Swal.fire({
+              icon: "warning",
+              title: "Parqueadero con visita activa",
+              html: `<p>No se puede cambiar el estado de <strong>${p.codigoParqueadero}</strong> porque tiene una visita en curso.</p><p>Primero debe <strong>finalizar la visita</strong> en el módulo de <strong>Visitas</strong>.</p>`,
+              confirmButtonText: "Entendido",
+              confirmButtonColor: "#7c3aed",
+            });
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "Error",
+              text: data.message || "No se pudo cambiar el estado",
+            });
           }
-        } catch (err) {
+        } catch {
           Swal.fire({
             icon: "error",
             title: "Error",
@@ -581,6 +579,7 @@ function Parqueaderos() {
               <div className="parq-selection-banner">
                 <i className="bi bi-info-circle me-2"></i> Selecciona un
                 parqueadero disponible para asignarlo a la visita.
+                {" "}
                 <button
                   className="parq-selection-banner-btn"
                   onClick={() => {
@@ -880,15 +879,15 @@ function Parqueaderos() {
                   )
                   .reduce((acc, num, idx, arr) => {
                     if (idx > 0 && num - arr[idx - 1] > 1) {
-                      acc.push("...");
+                      acc.push(`dots-${arr[idx - 1]}`);
                     }
                     acc.push(num);
                     return acc;
                   }, [])
-                  .map((item, idx) => {
-                    if (item === "...") {
+                  .map((item) => {
+                    if (typeof item === "string") {
                       return (
-                        <span key={`dots-${idx}`} className="parq-page-dots">
+                        <span key={item} className="parq-page-dots">
                           ...
                         </span>
                       );

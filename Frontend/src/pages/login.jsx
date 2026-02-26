@@ -169,10 +169,11 @@ function Login() {
         {/* Formulario */}
         <form onSubmit={handleSubmit} className="lgn-form">
           <div className="lgn-field">
-            <label className="lgn-label">
+            <label htmlFor="login-username" className="lgn-label">
               <i className="bi bi-person-fill" /> Usuario
             </label>
             <input
+              id="login-username"
               type="text"
               className="lgn-input"
               placeholder="Ingresa tu usuario"
@@ -182,10 +183,11 @@ function Login() {
             />
           </div>
           <div className="lgn-field">
-            <label className="lgn-label">
+            <label htmlFor="login-password" className="lgn-label">
               <i className="bi bi-lock-fill" /> Contraseña
             </label>
             <input
+              id="login-password"
               type="password"
               className="lgn-input"
               placeholder="••••••••"
