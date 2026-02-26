@@ -22,8 +22,8 @@ const models = initModels(sequelize);
 
 try {
   await sequelize.authenticate();
-} catch {
-  // Error de conexión silenciado — el servidor puede arrancar sin BD y reintentar
+} catch (error) {
+  console.error("Error de conexión con la base de datos:", error);
 }
 
 // exporta ambos: sequelize y models

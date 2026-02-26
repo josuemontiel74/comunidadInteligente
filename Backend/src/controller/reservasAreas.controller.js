@@ -75,8 +75,8 @@ const actualizarEstadosReservas = async () => {
         await reserva.update({ estadoId: nuevoEstado });
       }
     }
-  } catch {
-    // Error silenciado intencionalmente: no debe interrumpir el flujo principal
+  } catch (error) {
+    console.warn("Error actualizando estados de reservas:", error);
   }
 };
 
