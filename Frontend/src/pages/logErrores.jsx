@@ -266,13 +266,9 @@ function LogErrores() {
   if (loading && registros.length === 0) {
     return (
       <div className="le-loading-screen">
-        <div
-          className="spinner-border"
-          role="status"
-          style={{ color: "#ef4444" }}
-        >
+        <output className="spinner-border" style={{ color: "#ef4444" }}>
           <span className="visually-hidden">Cargando...</span>
-        </div>
+        </output>
         <p className="mt-3 fw-semibold" style={{ color: "#ef4444" }}>
           Cargando log de errores...
         </p>
@@ -283,13 +279,13 @@ function LogErrores() {
   return (
     <div className="le-dashboard">
       {/* OVERLAY */}
-      <div
+      <button
+        type="button"
         className={`le-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
         onKeyDown={(e) => {
           if (e.key === "Escape") setMenuOpen(false);
         }}
-        role="button"
         tabIndex={0}
         aria-label="Cerrar menú"
       />
@@ -786,19 +782,18 @@ function LogErrores() {
       {detalleRegistro && (
         <div
           className="le-modal-overlay"
-          onClick={() => setDetalleRegistro(null)}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDetalleRegistro(null);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") setDetalleRegistro(null);
           }}
-          role="button"
+          role="dialog"
+          aria-modal="true"
           tabIndex={0}
           aria-label="Cerrar"
         >
-          <div
-            className="le-modal"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+          <div className="le-modal">
             <div className="le-modal-header">
               <i
                 className="bi bi-bug-fill"

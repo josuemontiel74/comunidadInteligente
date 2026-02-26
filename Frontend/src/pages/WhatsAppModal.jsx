@@ -26,7 +26,9 @@ export default function WhatsAppModal() {
       {open && (
         <div
           className="wa-overlay"
-          onClick={() => setOpen(false)}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setOpen(false);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") setOpen(false);
           }}
@@ -34,11 +36,7 @@ export default function WhatsAppModal() {
           aria-modal="true"
           tabIndex={-1}
         >
-          <div
-            className="wa-modal"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+          <div className="wa-modal">
             {/* Cierre */}
             <button
               className="wa-modal-x"
@@ -70,13 +68,12 @@ export default function WhatsAppModal() {
               className="wa-join-btn"
               onClick={() => setOpen(false)}
             >
-              <i className="bi bi-whatsapp"></i>
-              Unirse al grupo
+              <i className="bi bi-whatsapp"></i> Unirse al grupo
             </a>
 
             <p className="wa-modal-note">
-              <i className="bi bi-shield-check"></i>
-              Enlace oficial · Solo para personal autorizado
+              <i className="bi bi-shield-check"></i> Enlace oficial · Solo para
+              personal autorizado
             </p>
           </div>
         </div>

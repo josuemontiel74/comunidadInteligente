@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import PropTypes from "prop-types";
 import "../Styles/DescargaAppMovil.css";
 
 // ─── Ruta del APK (coloca aquí el nombre del archivo cuando lo tengas) ────────
@@ -43,7 +44,7 @@ export default function DescargaAppMovil({ btnClass = "" }) {
     a.download = "ComunidadInteligente.apk";
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
+    a.remove();
   };
 
   return (
@@ -66,7 +67,8 @@ export default function DescargaAppMovil({ btnClass = "" }) {
           onKeyDown={(e) => {
             if (e.key === "Escape") cerrar();
           }}
-          role="button"
+          role="dialog"
+          aria-modal="true"
           tabIndex={0}
           aria-label="Cerrar"
         >
@@ -109,8 +111,7 @@ export default function DescargaAppMovil({ btnClass = "" }) {
             </ul>
 
             <button className="dap-btn-download" onClick={descargar}>
-              <i className="bi bi-download"></i>
-              Descargar APK (Android)
+              <i className="bi bi-download"></i> Descargar APK (Android)
             </button>
 
             <label className="dap-no-mostrar">
@@ -118,7 +119,7 @@ export default function DescargaAppMovil({ btnClass = "" }) {
                 type="checkbox"
                 checked={noMostrarMas}
                 onChange={(e) => setNoMostrarMas(e.target.checked)}
-              />
+              />{" "}
               No mostrar este mensaje de nuevo
             </label>
           </div>
@@ -127,3 +128,7 @@ export default function DescargaAppMovil({ btnClass = "" }) {
     </>
   );
 }
+
+DescargaAppMovil.propTypes = {
+  btnClass: PropTypes.string,
+};
