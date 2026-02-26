@@ -349,8 +349,8 @@ function GestionUsuarios() {
       try {
         const mapa = await obtenerUsuariosEnLinea(token);
         setUsuariosEnLinea(mapa);
-      } catch {
-        // Silenciar errores de polling
+      } catch (error) {
+        console.warn("Error en polling de usuarios en línea:", error);
       }
     };
 
@@ -478,7 +478,7 @@ function GestionUsuarios() {
             token,
           );
         } catch (err) {
-          // No se pudo sincronizar foto
+          console.error("No se pudo sincronizar foto:", err);
         }
       }
       setPhotoTarget(null);
@@ -512,7 +512,7 @@ function GestionUsuarios() {
       try {
         await actualizarFotoPerfil(user.username, null, token);
       } catch (err) {
-        // No se pudo eliminar foto
+        console.error("No se pudo eliminar foto:", err);
       }
     }
     Swal.fire({
@@ -606,7 +606,7 @@ function GestionUsuarios() {
       dataRes?.verificaciones ||
       null;
     const backendMsg = dataRes?.message || dataRes?.mensaje || "";
-    if (verif && verif.numeroDocumento) {
+    if (verif?.numeroDocumento) {
       const result = await Swal.fire({
         title: "Usuario existente",
         html:
@@ -652,7 +652,7 @@ function GestionUsuarios() {
   /** Parsea respuesta fetch como JSON o texto */
   const parseJsonOrText = async (res) => {
     const ct = res.headers.get("content-type");
-    return ct && ct.includes("application/json")
+    return ct?.includes("application/json")
       ? await res.json()
       : await res.text();
   };
@@ -697,8 +697,8 @@ function GestionUsuarios() {
     if (username && token) {
       try {
         await actualizarFotoPerfil(username, photo, token);
-      } catch {
-        /* foto no sincronizada */
+      } catch (error) {
+        console.warn("Foto no sincronizada:", error);
       }
     }
   };
@@ -927,10 +927,9 @@ function GestionUsuarios() {
       const res = await finalizarUsuarioService(username, token);
       if (!res.ok) {
         const ct = res.headers.get("content-type");
-        const ed =
-          ct && ct.includes("application/json")
-            ? await res.json()
-            : await res.text();
+        const ed = ct?.includes("application/json")
+          ? await res.json()
+          : await res.text();
         Swal.fire({
           icon: "error",
           title: "Error",
@@ -998,8 +997,8 @@ function GestionUsuarios() {
         const p = await obtenerPersonaPorDocumento(user.numeroDocumento, token);
         detalle = { ...detalle, ...p };
       }
-    } catch {
-      /* persona sin ficha: se muestra con datos base */
+    } catch (error) {
+      console.warn("Persona sin ficha:", error);
     }
     setDetalleUsuario(detalle);
     setShowModalDetalle(true);
@@ -1019,13 +1018,9 @@ function GestionUsuarios() {
   if (loading && usuarios.length === 0) {
     return (
       <div className="gu-loading-screen">
-        <div
-          className="spinner-border"
-          role="status"
-          style={{ color: "#7b1fa2" }}
-        >
+        <output className="spinner-border" style={{ color: "#7b1fa2" }}>
           <span className="visually-hidden">Cargando...</span>
-        </div>
+        </output>
         <p className="mt-3 fw-semibold" style={{ color: "#7b1fa2" }}>
           Cargando usuarios...
         </p>
@@ -1052,13 +1047,13 @@ function GestionUsuarios() {
         onChange={handleModalPhotoSelect}
       />
 
-      <div
+      <button
+        type="button"
         className={`gu-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
         onKeyDown={(e) => {
           if (e.key === "Escape") setMenuOpen(false);
         }}
-        role="button"
         tabIndex={0}
         aria-label="Cerrar menú"
       />
@@ -1298,7 +1293,7 @@ function GestionUsuarios() {
             </button>
             <div className="gu-view-toggle">
               <button
-                className={`gu-view-btn ${!vistaGrid ? "active" : ""}`}
+                className={`gu-view-btn ${vistaGrid ? "" : "active"}`}
                 onClick={() => setVistaGrid(false)}
                 title="Vista lista"
               >
@@ -1729,19 +1724,18 @@ function GestionUsuarios() {
       {showModalRegistrar && (
         <div
           className="gu-modal-overlay"
-          onClick={() => setShowModalRegistrar(false)}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowModalRegistrar(false);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") setShowModalRegistrar(false);
           }}
-          role="button"
+          role="dialog"
+          aria-modal="true"
           tabIndex={0}
           aria-label="Cerrar"
         >
-          <div
-            className="gu-modal"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+          <div className="gu-modal">
             <div className="gu-modal-header">
               <h5>
                 <i className="bi bi-person-plus me-2"></i>Registrar Usuario
@@ -1966,7 +1960,7 @@ function GestionUsuarios() {
                 >
                   {submitting ? (
                     <>
-                      <span className="spinner-border spinner-border-sm me-2"></span>
+                      <span className="spinner-border spinner-border-sm me-2"></span>{" "}
                       Registrando...
                     </>
                   ) : (
@@ -1986,9 +1980,11 @@ function GestionUsuarios() {
       {showModalEditar && (
         <div
           className="gu-modal-overlay"
-          onClick={() => {
-            setShowModalEditar(false);
-            resetForm();
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowModalEditar(false);
+              resetForm();
+            }
           }}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
@@ -1996,15 +1992,12 @@ function GestionUsuarios() {
               resetForm();
             }
           }}
-          role="button"
+          role="dialog"
+          aria-modal="true"
           tabIndex={0}
           aria-label="Cerrar"
         >
-          <div
-            className="gu-modal"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+          <div className="gu-modal">
             <div className="gu-modal-header">
               <h5>
                 <i className="bi bi-pencil-square me-2"></i>Editar Usuario
@@ -2224,7 +2217,7 @@ function GestionUsuarios() {
                 >
                   {submitting ? (
                     <>
-                      <span className="spinner-border spinner-border-sm me-2"></span>
+                      <span className="spinner-border spinner-border-sm me-2"></span>{" "}
                       Guardando...
                     </>
                   ) : (
@@ -2243,13 +2236,18 @@ function GestionUsuarios() {
       {showModalDetalle && detalleUsuario && (
         <div
           className="gu-modal-overlay"
-          onClick={() => setShowModalDetalle(false)}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowModalDetalle(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setShowModalDetalle(false);
+          }}
+          role="dialog"
+          aria-modal="true"
+          tabIndex={0}
+          aria-label="Cerrar"
         >
-          <div
-            className="gu-modal"
-            style={{ maxWidth: "600px" }}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="gu-modal" style={{ maxWidth: "600px" }}>
             <div className="gu-modal-header">
               <h5>
                 <i className="bi bi-person-lines-fill me-2"></i>Detalles del

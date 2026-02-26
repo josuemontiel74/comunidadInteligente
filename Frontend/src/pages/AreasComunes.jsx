@@ -314,7 +314,7 @@ function AreasComunes() {
           idApartamento: a.IdApartamento || a.idApartamento,
         }));
         setApartamentos(lista);
-      } else throw new Error();
+      } else throw new Error("Error en la respuesta del servidor");
     } catch {
       setApartamentos([]);
     }
@@ -339,8 +339,8 @@ function AreasComunes() {
           return;
         }
       }
-    } catch {
-      /* fallback */
+    } catch (error) {
+      console.error("Error cargando áreas comunes:", error);
     }
     // Fallback
     setAreasComunes([
@@ -375,8 +375,8 @@ function AreasComunes() {
         const d = await resp.json();
         setCalendarData(d.body || d.mostrarCalendario || d.reservas || []);
       }
-    } catch {
-      /* fallback calendario */
+    } catch (error) {
+      console.error("Error cargando calendario:", error);
     }
   }, [token]);
 
@@ -522,8 +522,8 @@ function AreasComunes() {
     try {
       setLoading(true);
       const reservaData = {
-        apartamentoId: parseInt(reserva.apartamentoId),
-        areaComunId: parseInt(reserva.areaComunId),
+        apartamentoId: Number.parseInt(reserva.apartamentoId),
+        areaComunId: Number.parseInt(reserva.areaComunId),
         fechaReserva: reserva.fechaReserva,
         horaInicio: reserva.horaInicio + ":00",
         horaFin: reserva.horaFin + ":00",
@@ -532,7 +532,7 @@ function AreasComunes() {
         invitadosExternos: !!reserva.invitadosExternos,
         aceptaReglamento: !!reserva.aceptaReglamento,
         documentoSolicitante: reserva.documentoSolicitante,
-        tipoDocumentoId: parseInt(reserva.tipoDocumentoId),
+        tipoDocumentoId: Number.parseInt(reserva.tipoDocumentoId),
         nombreSolicitante: reserva.nombreSolicitante,
         telefonoSolicitante: reserva.telefonoSolicitante,
         correoSolicitante: reserva.correoSolicitante,
@@ -559,8 +559,8 @@ function AreasComunes() {
         try {
           const errData = await response.json();
           msg = errData?.message || errData?.mensaje || errData?.error || msg;
-        } catch {
-          /* usar default */
+        } catch (error) {
+          console.warn("Error parseando respuesta de error:", error);
         }
         Swal.fire({ icon: "error", title: "Conflicto", text: msg });
       } else {
@@ -568,8 +568,8 @@ function AreasComunes() {
         try {
           const errData = await response.json();
           msg = errData?.message || errData?.mensaje || errData?.error || msg;
-        } catch {
-          /* usar default */
+        } catch (error) {
+          console.warn("Error parseando respuesta de error:", error);
         }
         Swal.fire({ icon: "error", title: "Error", text: msg });
       }
@@ -856,9 +856,9 @@ function AreasComunes() {
   const normalizeTime = (t) => {
     if (!t) return "";
     const parts = t.split(":");
-    const hh = parseInt(parts[0], 10);
+    const hh = Number.parseInt(parts[0], 10);
     const mm = parts[1] || "00";
-    if (isNaN(hh)) return t;
+    if (Number.isNaN(hh)) return t;
     const ampm = hh >= 12 ? "PM" : "AM";
     const h12 = hh % 12 === 0 ? 12 : hh % 12;
     return `${h12}:${String(mm).padStart(2, "0")} ${ampm}`;
@@ -899,8 +899,11 @@ function AreasComunes() {
       fechaImpresion,
     });
 
-    const ventana = window.open("", "_blank", "width=320,height=600");
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const ventana = window.open(url, "_blank", "width=320,height=600");
     if (!ventana) {
+      URL.revokeObjectURL(url);
       Swal.fire(
         "Error",
         "El navegador bloqueó la ventana emergente. Permite las ventanas emergentes e intenta de nuevo.",
@@ -908,9 +911,8 @@ function AreasComunes() {
       );
       return;
     }
-    ventana.document.write(html);
-    ventana.document.close();
     ventana.onload = () => {
+      URL.revokeObjectURL(url);
       setTimeout(() => {
         ventana.print();
       }, 300);
@@ -940,7 +942,7 @@ function AreasComunes() {
   if (loading && reservas.length === 0) {
     return (
       <div className="ac-loading-screen">
-        <div className="spinner-border text-warning" role="status" />
+        <output className="spinner-border text-warning" />
         <p className="mt-3 text-muted">Cargando reservas...</p>
       </div>
     );
@@ -949,13 +951,13 @@ function AreasComunes() {
   return (
     <div className="ac-dashboard">
       {/* ── Overlay ── */}
-      <div
+      <button
+        type="button"
         className={`ac-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
         onKeyDown={(e) => {
           if (e.key === "Escape") setMenuOpen(false);
         }}
-        role="button"
         tabIndex={0}
         aria-label="Cerrar menú"
       />
@@ -1082,8 +1084,7 @@ function AreasComunes() {
 
         <div className="ac-drawer-footer">
           <button className="ac-logout-btn" onClick={cerrarSesion}>
-            <i className="bi bi-box-arrow-right" />
-            Cerrar Sesión
+            <i className="bi bi-box-arrow-right" /> Cerrar Sesión
           </button>
         </div>
       </aside>
@@ -1150,20 +1151,18 @@ function AreasComunes() {
               onClick={() => abrirModal()}
               disabled={loading}
             >
-              <i className="bi bi-plus-circle" />
+              <i className="bi bi-plus-circle" />{" "}
               {loading ? "Cargando..." : "Registrar Nueva Reserva"}
             </button>
             <button className="ac-btn-calendario" onClick={abrirCalendario}>
-              <i className="bi bi-calendar3" />
-              Calendario
+              <i className="bi bi-calendar3" /> Calendario
             </button>
             {rolesId === 1 && (
               <button
                 className="ac-btn-gestionar-areas"
                 onClick={() => setShowModalAreas(true)}
               >
-                <i className="bi bi-toggles" />
-                Gestionar Áreas
+                <i className="bi bi-toggles" /> Gestionar Áreas
               </button>
             )}
           </div>
@@ -1370,9 +1369,9 @@ function AreasComunes() {
               >
                 <i className="bi bi-chevron-left" />
               </button>
-              {[...Array(totalPaginas)].map((_, i) => (
+              {Array.from({ length: totalPaginas }).map((_, i) => (
                 <button
-                  key={i}
+                  key={`page-${i + 1}`}
                   className={`ac-page-btn ${paginaActual === i + 1 ? "active" : ""}`}
                   onClick={() => setPaginaActual(i + 1)}
                 >
@@ -1398,19 +1397,18 @@ function AreasComunes() {
       {modalAbierto && (
         <div
           className="ac-modal-overlay"
-          onClick={cerrarModal}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) cerrarModal();
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") cerrarModal();
           }}
-          role="button"
+          role="dialog"
+          aria-modal="true"
           tabIndex={0}
           aria-label="Cerrar"
         >
-          <div
-            className="ac-modal"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+          <div className="ac-modal">
             <div className="ac-modal-header">
               <h5>
                 {editIndex !== null ? "Editar Reserva" : "Registrar Reserva"}
@@ -1424,13 +1422,19 @@ function AreasComunes() {
                 {/* Sección Solicitante */}
                 <div className="ac-form-section">
                   <div className="ac-form-section-title">
-                    <i className="bi bi-person-fill me-2" />
-                    Datos del Solicitante
+                    <i className="bi bi-person-fill me-2" /> Datos del
+                    Solicitante
                   </div>
                   <div className="ac-form-grid">
                     <div className="ac-form-group">
-                      <label className="ac-form-label">Tipo Documento *</label>
+                      <label
+                        className="ac-form-label"
+                        htmlFor="tipoDocumentoId"
+                      >
+                        Tipo Documento *
+                      </label>
                       <select
+                        id="tipoDocumentoId"
                         name="tipoDocumentoId"
                         className="ac-form-control"
                         value={reserva.tipoDocumentoId}
@@ -1449,9 +1453,15 @@ function AreasComunes() {
                       </select>
                     </div>
                     <div className="ac-form-group">
-                      <label className="ac-form-label">Nro. Documento *</label>
+                      <label
+                        className="ac-form-label"
+                        htmlFor="documentoSolicitante"
+                      >
+                        Nro. Documento *
+                      </label>
                       <input
                         type="text"
+                        id="documentoSolicitante"
                         name="documentoSolicitante"
                         className="ac-form-control"
                         value={reserva.documentoSolicitante}
@@ -1460,9 +1470,15 @@ function AreasComunes() {
                       />
                     </div>
                     <div className="ac-form-group full-width">
-                      <label className="ac-form-label">Nombre Completo *</label>
+                      <label
+                        className="ac-form-label"
+                        htmlFor="nombreSolicitante"
+                      >
+                        Nombre Completo *
+                      </label>
                       <input
                         type="text"
+                        id="nombreSolicitante"
                         name="nombreSolicitante"
                         className="ac-form-control"
                         value={reserva.nombreSolicitante}
@@ -1472,9 +1488,15 @@ function AreasComunes() {
                       />
                     </div>
                     <div className="ac-form-group">
-                      <label className="ac-form-label">Teléfono *</label>
+                      <label
+                        className="ac-form-label"
+                        htmlFor="telefonoSolicitante"
+                      >
+                        Teléfono *
+                      </label>
                       <input
                         type="text"
+                        id="telefonoSolicitante"
                         name="telefonoSolicitante"
                         className="ac-form-control"
                         value={reserva.telefonoSolicitante}
@@ -1483,9 +1505,15 @@ function AreasComunes() {
                       />
                     </div>
                     <div className="ac-form-group">
-                      <label className="ac-form-label">Correo *</label>
+                      <label
+                        className="ac-form-label"
+                        htmlFor="correoSolicitante"
+                      >
+                        Correo *
+                      </label>
                       <input
                         type="email"
+                        id="correoSolicitante"
                         name="correoSolicitante"
                         className="ac-form-control"
                         value={reserva.correoSolicitante}
@@ -1499,13 +1527,16 @@ function AreasComunes() {
                 {/* Sección Reserva */}
                 <div className="ac-form-section">
                   <div className="ac-form-section-title">
-                    <i className="bi bi-calendar2-event me-2" />
-                    Datos de la Reserva
+                    <i className="bi bi-calendar2-event me-2" /> Datos de la
+                    Reserva
                   </div>
                   <div className="ac-form-grid">
                     <div className="ac-form-group">
-                      <label className="ac-form-label">Torre *</label>
+                      <label className="ac-form-label" htmlFor="torre">
+                        Torre *
+                      </label>
                       <select
+                        id="torre"
                         name="torre"
                         className="ac-form-control"
                         value={reserva.torre}
@@ -1521,8 +1552,11 @@ function AreasComunes() {
                       </select>
                     </div>
                     <div className="ac-form-group">
-                      <label className="ac-form-label">Apartamento *</label>
+                      <label className="ac-form-label" htmlFor="apartamentoId">
+                        Apartamento *
+                      </label>
                       <select
+                        id="apartamentoId"
                         name="apartamentoId"
                         className="ac-form-control"
                         value={reserva.apartamentoId}
@@ -1543,8 +1577,11 @@ function AreasComunes() {
                       </select>
                     </div>
                     <div className="ac-form-group full-width">
-                      <label className="ac-form-label">Área Común *</label>
+                      <label className="ac-form-label" htmlFor="areaComunId">
+                        Área Común *
+                      </label>
                       <select
+                        id="areaComunId"
                         name="areaComunId"
                         className="ac-form-control"
                         value={reserva.areaComunId}
@@ -1562,9 +1599,12 @@ function AreasComunes() {
                       </select>
                     </div>
                     <div className="ac-form-group">
-                      <label className="ac-form-label">Fecha Reserva *</label>
+                      <label className="ac-form-label" htmlFor="fechaReserva">
+                        Fecha Reserva *
+                      </label>
                       <input
                         type="date"
+                        id="fechaReserva"
                         name="fechaReserva"
                         className="ac-form-control"
                         value={reserva.fechaReserva}
@@ -1575,9 +1615,12 @@ function AreasComunes() {
                     </div>
                     <div className="ac-form-group" />
                     <div className="ac-form-group">
-                      <label className="ac-form-label">Hora Inicio *</label>
+                      <label className="ac-form-label" htmlFor="horaInicio">
+                        Hora Inicio *
+                      </label>
                       <input
                         type="time"
+                        id="horaInicio"
                         name="horaInicio"
                         className="ac-form-control"
                         value={reserva.horaInicio}
@@ -1586,9 +1629,12 @@ function AreasComunes() {
                       />
                     </div>
                     <div className="ac-form-group">
-                      <label className="ac-form-label">Hora Fin *</label>
+                      <label className="ac-form-label" htmlFor="horaFin">
+                        Hora Fin *
+                      </label>
                       <input
                         type="time"
+                        id="horaFin"
                         name="horaFin"
                         className="ac-form-control"
                         value={reserva.horaFin}
@@ -1597,9 +1643,15 @@ function AreasComunes() {
                       />
                     </div>
                     <div className="ac-form-group">
-                      <label className="ac-form-label">Asistentes *</label>
+                      <label
+                        className="ac-form-label"
+                        htmlFor="cantidadAsistentes"
+                      >
+                        Asistentes *
+                      </label>
                       <input
                         type="number"
+                        id="cantidadAsistentes"
                         name="cantidadAsistentes"
                         className="ac-form-control"
                         value={reserva.cantidadAsistentes}
@@ -1609,7 +1661,7 @@ function AreasComunes() {
                       />
                     </div>
                     <div className="ac-form-group">
-                      <label className="ac-form-label">&nbsp;</label>
+                      <span className="ac-form-label">&nbsp;</span>
                       <label
                         style={{
                           display: "flex",
@@ -1624,15 +1676,16 @@ function AreasComunes() {
                           name="invitadosExternos"
                           checked={reserva.invitadosExternos}
                           onChange={handleChange}
-                        />
+                        />{" "}
                         Invitados externos
                       </label>
                     </div>
                     <div className="ac-form-group full-width">
-                      <label className="ac-form-label">
+                      <label className="ac-form-label" htmlFor="motivoReserva">
                         Motivo de la Reserva *
                       </label>
                       <textarea
+                        id="motivoReserva"
                         name="motivoReserva"
                         className="ac-form-control"
                         value={reserva.motivoReserva}
@@ -1659,7 +1712,7 @@ function AreasComunes() {
                           checked={reserva.aceptaReglamento}
                           onChange={handleChange}
                           required
-                        />
+                        />{" "}
                         Acepto el reglamento de uso *
                       </label>
                     </div>
@@ -1683,19 +1736,18 @@ function AreasComunes() {
       {showModalDetalles && registroSeleccionado && (
         <div
           className="ac-modal-overlay"
-          onClick={() => setShowModalDetalles(false)}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowModalDetalles(false);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") setShowModalDetalles(false);
           }}
-          role="button"
+          role="dialog"
+          aria-modal="true"
           tabIndex={0}
           aria-label="Cerrar"
         >
-          <div
-            className="ac-modal"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+          <div className="ac-modal">
             <div className="ac-modal-header">
               <h5>Detalles de la Reserva</h5>
               <button
@@ -1808,19 +1860,18 @@ function AreasComunes() {
       {showCalendario && (
         <div
           className="ac-modal-overlay"
-          onClick={() => setShowCalendario(false)}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowCalendario(false);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") setShowCalendario(false);
           }}
-          role="button"
+          role="dialog"
+          aria-modal="true"
           tabIndex={0}
           aria-label="Cerrar"
         >
-          <div
-            className="ac-modal ac-calendar-modal"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+          <div className="ac-modal ac-calendar-modal">
             <div className="ac-modal-header">
               <h5>Calendario de Reservas</h5>
               <button
@@ -1877,7 +1928,8 @@ function AreasComunes() {
                   if (tieneReservas && !past) cls += " has-reservas";
 
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={cell.day}
                       className={cls}
                       onClick={() => !past && setSelectedDay(cell.day)}
@@ -1885,14 +1937,13 @@ function AreasComunes() {
                         if ((e.key === "Enter" || e.key === " ") && !past)
                           setSelectedDay(cell.day);
                       }}
-                      role="button"
                       tabIndex={past ? -1 : 0}
                     >
                       {cell.day}
                       {tieneReservas && !past && (
                         <div className="ac-calendar-day-dot" />
                       )}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -1908,8 +1959,11 @@ function AreasComunes() {
                       No hay reservas este día
                     </p>
                   ) : (
-                    reservasDelDia(selectedDay).map((r, i) => (
-                      <div key={i} className="ac-calendar-reserva-card">
+                    reservasDelDia(selectedDay).map((r) => (
+                      <div
+                        key={r.idReservas}
+                        className="ac-calendar-reserva-card"
+                      >
                         <div className="ac-calendar-reserva-icon">
                           <i className="bi bi-calendar2-event" />
                         </div>
@@ -1945,23 +1999,21 @@ function AreasComunes() {
       {showModalAreas && rolesId === 1 && (
         <div
           className="ac-modal-overlay"
-          onClick={() => setShowModalAreas(false)}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowModalAreas(false);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") setShowModalAreas(false);
           }}
-          role="button"
+          role="dialog"
+          aria-modal="true"
           tabIndex={0}
           aria-label="Cerrar"
         >
-          <div
-            className="ac-modal ac-modal-areas"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+          <div className="ac-modal ac-modal-areas">
             <div className="ac-modal-header">
               <h2>
-                <i className="bi bi-toggles me-2" />
-                Gestionar Áreas Comunes
+                <i className="bi bi-toggles me-2" /> Gestionar Áreas Comunes
               </h2>
               <button
                 className="ac-modal-close"
@@ -1972,9 +2024,9 @@ function AreasComunes() {
             </div>
             <div className="ac-modal-body" style={{ padding: "20px" }}>
               <p className="ac-areas-desc">
-                <i className="bi bi-info-circle me-1" />
-                Active o desactive las áreas comunes. Las áreas inhabilitadas no
-                aparecerán en el formulario de reservas.
+                <i className="bi bi-info-circle me-1" /> Active o desactive las
+                áreas comunes. Las áreas inhabilitadas no aparecerán en el
+                formulario de reservas.
               </p>
               <div className="ac-areas-list">
                 {areasComunes.map((area) => {

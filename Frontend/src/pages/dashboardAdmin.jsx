@@ -237,7 +237,7 @@ function Dashboard() {
         ],
       });
     } catch (err) {
-      // Error creando gráfico de parqueaderos
+      console.error("Error creando gráfico de parqueaderos:", err);
     }
 
     return () => {
@@ -314,7 +314,7 @@ function Dashboard() {
         },
       });
     } catch (err) {
-      // Error creando gráfico de paquetes
+      console.error("Error creando gráfico de paquetes:", err);
     }
 
     return () => {
@@ -384,7 +384,7 @@ function Dashboard() {
         },
       });
     } catch (err) {
-      // Error creando gráfico de visitas
+      console.error("Error creando gráfico de visitas:", err);
     }
 
     return () => {
@@ -410,13 +410,9 @@ function Dashboard() {
   if (loading) {
     return (
       <div className="adm-loading-screen">
-        <div
-          className="spinner-border"
-          role="status"
-          style={{ color: "#eab308" }}
-        >
+        <output className="spinner-border" style={{ color: "#eab308" }}>
           <span className="visually-hidden">Cargando...</span>
-        </div>
+        </output>
         <p className="mt-3 fw-semibold" style={{ color: "#eab308" }}>
           Verificando sesión...
         </p>
@@ -474,13 +470,13 @@ function Dashboard() {
   return (
     <div className={`adm-dashboard${saliendo ? " adm-saliendo" : ""}`}>
       {/* ====== OFFCANVAS MENU ====== */}
-      <div
+      <button
+        type="button"
         className={`adm-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
         onKeyDown={(e) => {
           if (e.key === "Escape") setMenuOpen(false);
         }}
-        role="button"
         tabIndex={0}
         aria-label="Cerrar menú"
       />
@@ -585,8 +581,7 @@ function Dashboard() {
 
         <div className="adm-drawer-footer">
           <button className="adm-logout-btn" onClick={cerrarSesion}>
-            <i className="bi bi-box-arrow-right"></i>
-            Cerrar Sesión
+            <i className="bi bi-box-arrow-right"></i> Cerrar Sesión
           </button>
         </div>
       </aside>
@@ -710,7 +705,7 @@ function Dashboard() {
           {modulos.map((mod, idx) => (
             <Link
               to={mod.to}
-              key={idx}
+              key={mod.to}
               className="adm-module-card"
               style={{
                 background: `linear-gradient(135deg, ${mod.color}cc, ${mod.color})`,

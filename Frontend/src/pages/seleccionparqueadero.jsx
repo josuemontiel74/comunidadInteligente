@@ -95,7 +95,7 @@ function SeleccioneParqueadero() {
   const showAreasComunes = rolesId !== 3;
   const showUserManagement = rolesId === 1;
   const dashboardRuta =
-    rolesId === 1 ? "/Superadmin" : rolesId === 2 ? "/Admin" : "/Vigilante";
+    { 1: "/Superadmin", 2: "/Admin" }[rolesId] || "/Vigilante";
 
   const [parqueaderos, setParqueaderos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -146,10 +146,7 @@ function SeleccioneParqueadero() {
 
       if (!res.ok) {
         // Si el backend dice que hay visita activa
-        if (
-          data.visitaActiva ||
-          (data.message && data.message.includes("visita activa"))
-        ) {
+        if (data.visitaActiva || data.message?.includes("visita activa")) {
           Swal.fire({
             icon: "warning",
             title: "Parqueadero con visita activa",
@@ -197,7 +194,7 @@ function SeleccioneParqueadero() {
       // tipoVehiculoSeleccionado es el del parqueadero
 
       // Validar que coincidan
-      if (parseInt(tipoVehiculoId) !== tipoVehiculoSeleccionado) {
+      if (Number.parseInt(tipoVehiculoId, 10) !== tipoVehiculoSeleccionado) {
         const tipoVehiculoNombre = tipoVehiculoId === 1 ? "Carro" : "Moto";
         const tipoEspacioNombre =
           tipoVehiculoSeleccionado === 1 ? "Carro" : "Moto";
@@ -229,7 +226,7 @@ function SeleccioneParqueadero() {
 
       // Si el tipo coincide, devolver el código seleccionado a la página de visitas
       const tipoVehiculoNombre =
-        parseInt(tipoVehiculoId) === 1 ? "Carro" : "Moto";
+        Number.parseInt(tipoVehiculoId, 10) === 1 ? "Carro" : "Moto";
       Swal.fire({
         icon: "success",
         title: "Validado correctamente",
@@ -240,7 +237,7 @@ function SeleccioneParqueadero() {
         navegacion("/visitas", {
           state: {
             codigoParqueaderoSeleccionado: codigoParqueadero,
-            tipoVehiculoId: parseInt(tipoVehiculoId),
+            tipoVehiculoId: Number.parseInt(tipoVehiculoId, 10),
             fromParqueaderos: true,
             abrirModal: true,
             formState: location.state?.formState,
@@ -269,11 +266,10 @@ function SeleccioneParqueadero() {
     }
 
     // No hacemos la asignación aquí: la asignación real debe ocurrir cuando la visita se guarda
-    return;
   };
 
   const [slotSeleccionado, setSlotSeleccionado] = useState(null);
-  const [_estadoSeleccionado, setEstadoSeleccionado] = useState(null);
+  const [, setEstadoSeleccionado] = useState(null);
   const [tipoVehiculoSeleccionado, setTipoVehiculoSeleccionado] =
     useState(null);
   const [menuAbierto, setMenuAbierto] = useState(false);
@@ -282,7 +278,7 @@ function SeleccioneParqueadero() {
     const el = document.getElementById(id);
     if (!el) return;
     try {
-      if (window.bootstrap && window.bootstrap.Modal) {
+      if (window.bootstrap?.Modal) {
         const instance = new window.bootstrap.Modal(el);
         instance.show();
       } else {
@@ -295,7 +291,7 @@ function SeleccioneParqueadero() {
         document.body.appendChild(backdrop);
       }
     } catch (e) {
-      // No se pudo abrir modal via Bootstrap
+      console.error("No se pudo abrir modal via Bootstrap:", e);
     }
   };
 
@@ -303,7 +299,7 @@ function SeleccioneParqueadero() {
     const el = document.getElementById(id);
     if (!el) return;
     try {
-      if (window.bootstrap && window.bootstrap.Modal) {
+      if (window.bootstrap?.Modal) {
         const inst = window.bootstrap.Modal.getInstance(el);
         if (inst) inst.hide();
         else {
@@ -318,7 +314,7 @@ function SeleccioneParqueadero() {
         backdrops.forEach((b) => b.remove());
       }
     } catch (e) {
-      // No se pudo cerrar modal via Bootstrap
+      console.error("No se pudo cerrar modal via Bootstrap:", e);
     }
   };
 
@@ -340,7 +336,7 @@ function SeleccioneParqueadero() {
       await asignarEspacio(slotSeleccionado, tipoVehiculoSeleccionado);
       closeBootstrapModal("modalAsignar");
     } catch (error) {
-      // Error al asignar espacio
+      console.error("Error al asignar espacio:", error);
     }
   };
 
@@ -350,7 +346,7 @@ function SeleccioneParqueadero() {
       await liberarEspacio(slotSeleccionado);
       closeBootstrapModal("modalLiberar");
     } catch (error) {
-      // Error liberando espacio
+      console.error("Error liberando espacio:", error);
     }
   };
 
@@ -368,7 +364,8 @@ function SeleccioneParqueadero() {
     // si no, usamos el filtro que el usuario eligió (filtroTipo).
     const effectiveTipo = tipoVehiculoId ? String(tipoVehiculoId) : filtroTipo;
     const coincideTipo =
-      effectiveTipo === "todos" || p.tipoVehiculoId === parseInt(effectiveTipo);
+      effectiveTipo === "todos" ||
+      p.tipoVehiculoId === Number.parseInt(effectiveTipo, 10);
 
     return coincideBusqueda && coincideEstado && coincideTipo;
   });
@@ -381,13 +378,13 @@ function SeleccioneParqueadero() {
   return (
     <div className="sp-dashboard">
       {/* Overlay */}
-      <div
+      <button
+        type="button"
         className={`sp-overlay ${menuAbierto ? "active" : ""}`}
         onClick={() => setMenuAbierto(false)}
         onKeyDown={(e) => {
           if (e.key === "Escape") setMenuAbierto(false);
         }}
-        role="button"
         tabIndex={0}
         aria-label="Cerrar menú"
       />
@@ -587,7 +584,7 @@ function SeleccioneParqueadero() {
                     <i
                       className="bi bi-circle-fill me-1"
                       style={{ fontSize: "0.5rem" }}
-                    ></i>
+                    ></i>{" "}
                     Carro Libre
                   </span>
                 </div>
@@ -600,7 +597,7 @@ function SeleccioneParqueadero() {
                     <i
                       className="bi bi-circle-fill me-1"
                       style={{ fontSize: "0.5rem" }}
-                    ></i>
+                    ></i>{" "}
                     Moto Libre
                   </span>
                 </div>
@@ -610,7 +607,7 @@ function SeleccioneParqueadero() {
                     <i
                       className="bi bi-circle-fill me-1"
                       style={{ fontSize: "0.5rem" }}
-                    ></i>
+                    ></i>{" "}
                     Carro Ocupado
                   </span>
                 </div>
@@ -623,7 +620,7 @@ function SeleccioneParqueadero() {
                     <i
                       className="bi bi-circle-fill me-1"
                       style={{ fontSize: "0.5rem" }}
-                    ></i>
+                    ></i>{" "}
                     Moto Ocupada
                   </span>
                 </div>
@@ -676,16 +673,17 @@ function SeleccioneParqueadero() {
           {/* Tarjetas de parqueaderos mejoradas */}
           {loading ? (
             <div className="text-center py-5">
-              <div className="spinner-border text-success" role="status">
+              <output className="spinner-border text-success">
                 <span className="visually-hidden">Cargando...</span>
-              </div>
+              </output>
               <p className="mt-3 text-muted">Cargando espacios...</p>
             </div>
           ) : (
             <div className="row row-cols-2 row-cols-md-3 row-cols-lg-5 row-cols-xl-6 g-3">
               {parqueaderosFiltrados.map((p) => (
                 <div key={p.codigoParqueadero} className="col">
-                  <div
+                  <button
+                    type="button"
                     className={`card h-100 border-0 shadow-sm parking-card ${
                       p.estadoId === 4 ? "card-libre" : "card-ocupado"
                     }`}
@@ -694,7 +692,6 @@ function SeleccioneParqueadero() {
                       if (e.key === "Enter" || e.key === " ")
                         handleCardClick(p);
                     }}
-                    role="button"
                     tabIndex={0}
                     style={{
                       cursor: "pointer",
@@ -746,7 +743,7 @@ function SeleccioneParqueadero() {
                         {p.estadoId === 4 ? "DISPONIBLE" : "OCUPADO"}
                       </span>
                     </div>
-                  </div>
+                  </button>
                 </div>
               ))}
             </div>

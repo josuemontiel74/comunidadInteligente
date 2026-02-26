@@ -33,24 +33,69 @@ const calcPctStr = (val, total) =>
 /** Construye la lista de módulos del dashboard según permisos */
 function buildModulos(showAreasComunes, showUserManagement) {
   const base = [
-    { icon: "bi-box-seam-fill", title: "Gestión de Paquetería", color: "#3b82f6", to: "/Paqueteria" },
-    { icon: "bi-people-fill", title: "Gestión de Visitas", color: "#22c55e", to: "/visitas" },
-    { icon: "bi-p-circle-fill", title: "Parqueaderos", color: "#ef4444", to: "/parqueaderos" },
+    {
+      icon: "bi-box-seam-fill",
+      title: "Gestión de Paquetería",
+      color: "#3b82f6",
+      to: "/Paqueteria",
+    },
+    {
+      icon: "bi-people-fill",
+      title: "Gestión de Visitas",
+      color: "#22c55e",
+      to: "/visitas",
+    },
+    {
+      icon: "bi-p-circle-fill",
+      title: "Parqueaderos",
+      color: "#ef4444",
+      to: "/parqueaderos",
+    },
   ];
   if (showAreasComunes) {
-    base.push({ icon: "bi-building", title: "Áreas Comunes", color: "#f97316", to: "/AreasComunes" });
+    base.push({
+      icon: "bi-building",
+      title: "Áreas Comunes",
+      color: "#f97316",
+      to: "/AreasComunes",
+    });
   }
   if (showUserManagement) {
-    base.push({ icon: "bi-shield-lock-fill", title: "Gestión de Usuarios", color: "#a855f7", to: "/GestionUsuario" });
+    base.push({
+      icon: "bi-shield-lock-fill",
+      title: "Gestión de Usuarios",
+      color: "#a855f7",
+      to: "/GestionUsuario",
+    });
   }
   base.push(
-    { icon: "bi-house-door-fill", title: "Gestión de Residentes", color: "#14b8a6", to: "/Residentes" },
-    { icon: "bi-file-earmark-bar-graph-fill", title: "Reportes", color: "#6366f1", to: "/Reportes" },
+    {
+      icon: "bi-house-door-fill",
+      title: "Gestión de Residentes",
+      color: "#14b8a6",
+      to: "/Residentes",
+    },
+    {
+      icon: "bi-file-earmark-bar-graph-fill",
+      title: "Reportes",
+      color: "#6366f1",
+      to: "/Reportes",
+    },
   );
   if (showUserManagement) {
     base.push(
-      { icon: "bi-journal-text", title: "Auditorías", color: "#4f46e5", to: "/Auditorias" },
-      { icon: "bi-bug-fill", title: "Log de Errores", color: "#b91c1c", to: "/LogErrores" },
+      {
+        icon: "bi-journal-text",
+        title: "Auditorías",
+        color: "#4f46e5",
+        to: "/Auditorias",
+      },
+      {
+        icon: "bi-bug-fill",
+        title: "Log de Errores",
+        color: "#b91c1c",
+        to: "/LogErrores",
+      },
     );
   }
   return base;
@@ -218,11 +263,11 @@ function Dashboard() {
         const nombres = Object.keys(enLineaData);
         setUsuariosEnLinea(nombres);
         setTotalEnLinea(nombres.length);
-      } catch {
-        /* fallo al obtener usuarios en linea */
+      } catch (error) {
+        console.warn("Error obteniendo usuarios en línea:", error);
       }
-    } catch {
-      /* error de red ignorado, el dashboard muestra 0s */
+    } catch (error) {
+      console.warn("Error de red en dashboard:", error);
     } finally {
       setDataLoading(false);
     }
@@ -462,9 +507,9 @@ function Dashboard() {
   if (loading) {
     return (
       <div className="sa-loading-screen">
-        <div className="spinner-border text-success" role="status">
+        <output className="spinner-border text-success">
           <span className="visually-hidden">Cargando...</span>
-        </div>
+        </output>
         <p className="mt-3 text-success fw-semibold">Verificando sesión...</p>
       </div>
     );
@@ -480,9 +525,11 @@ function Dashboard() {
   return (
     <div className={`sa-dashboard${saliendo ? " sa-saliendo" : ""}`}>
       {/* ====== OFFCANVAS MENU (hamburguesa como Flutter) ====== */}
-      <div
+      <button
+        type="button"
         className={`sa-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
+        aria-label="Cerrar menú"
       />
       <aside className={`sa-drawer ${menuOpen ? "open" : ""}`}>
         <div className="sa-drawer-header">
@@ -618,8 +665,7 @@ function Dashboard() {
 
         <div className="sa-drawer-footer">
           <button className="sa-logout-btn" onClick={cerrarSesion}>
-            <i className="bi bi-box-arrow-right"></i>
-            Cerrar Sesión
+            <i className="bi bi-box-arrow-right"></i> Cerrar Sesión
           </button>
         </div>
       </aside>
@@ -744,7 +790,7 @@ function Dashboard() {
           {modulos.map((mod, idx) => (
             <Link
               to={mod.to}
-              key={idx}
+              key={mod.to}
               className="sa-module-card"
               style={{
                 background: `linear-gradient(135deg, ${mod.color}cc, ${mod.color})`,
@@ -826,7 +872,8 @@ function Dashboard() {
                   ></span>
                   <span className="sa-legend-label">Carros</span>
                   <span className="sa-legend-value">
-                    {parqueosCarros} ({calcPctStr(parqueosCarros, totalParqueos)}%)
+                    {parqueosCarros} (
+                    {calcPctStr(parqueosCarros, totalParqueos)}%)
                   </span>
                 </div>
                 <div className="sa-legend-item">
@@ -836,7 +883,8 @@ function Dashboard() {
                   ></span>
                   <span className="sa-legend-label">Motos</span>
                   <span className="sa-legend-value">
-                    {parqueosMotos} ({calcPctStr(parqueosMotos, totalParqueos)}%)
+                    {parqueosMotos} ({calcPctStr(parqueosMotos, totalParqueos)}
+                    %)
                   </span>
                 </div>
                 <div className="sa-legend-item">
@@ -846,7 +894,8 @@ function Dashboard() {
                   ></span>
                   <span className="sa-legend-label">Libres</span>
                   <span className="sa-legend-value">
-                    {parqueosLibres} ({calcPctStr(parqueosLibres, totalParqueos)}%)
+                    {parqueosLibres} (
+                    {calcPctStr(parqueosLibres, totalParqueos)}%)
                   </span>
                 </div>
               </div>

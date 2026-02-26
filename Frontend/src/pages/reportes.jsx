@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import PropTypes from "prop-types";
 import Swal from "sweetalert2";
 import { Link, useNavigate } from "react-router-dom";
 import Chart from "chart.js/auto";
@@ -21,8 +22,8 @@ import "../Styles/reportes.css";
 // ============================================================================
 const toInt = (v) => {
   if (v === null || v === undefined) return 0;
-  const n = parseInt(v, 10);
-  return isNaN(n) ? 0 : n;
+  const n = Number.parseInt(v, 10);
+  return Number.isNaN(n) ? 0 : n;
 };
 
 const calcPct = (val, total) =>
@@ -53,10 +54,10 @@ const formatFechaDisplay = (str) => {
         "Nov",
         "Dic",
       ];
-      return `${p[2]} ${meses[parseInt(p[1])]} ${p[0]}`;
+      return `${p[2]} ${meses[Number.parseInt(p[1], 10)]} ${p[0]}`;
     }
-  } catch {
-    /* ignore */
+  } catch (error) {
+    console.warn("Error formateando fecha:", error);
   }
   return str;
 };
@@ -64,9 +65,9 @@ const formatFechaDisplay = (str) => {
 const hexToRgb = (hex) => {
   const h = hex.replace("#", "");
   return [
-    parseInt(h.substring(0, 2), 16),
-    parseInt(h.substring(2, 4), 16),
-    parseInt(h.substring(4, 6), 16),
+    Number.parseInt(h.substring(0, 2), 16),
+    Number.parseInt(h.substring(2, 4), 16),
+    Number.parseInt(h.substring(4, 6), 16),
   ];
 };
 
@@ -180,9 +181,9 @@ function createPdfHelpers(pdf, ctx, { m, ph, pw, colLabel, colValue }) {
 
 // ── Mapeos de rol (fuera del componente para menor complejidad cognitiva) ──
 const RPT_MENU_TITLE = { 1: "Men\u00fa Super Admin", 2: "Men\u00fa Admin" };
-const RPT_DASH_PATH  = { 1: "/Superadmin", 2: "/Admin" };
+const RPT_DASH_PATH = { 1: "/Superadmin", 2: "/Admin" };
 const mapMenuTitle = (id) => RPT_MENU_TITLE[id] || "Men\u00fa Vigilante";
-const mapDashPath  = (id) => RPT_DASH_PATH[id]  || "/Vigilante";
+const mapDashPath = (id) => RPT_DASH_PATH[id] || "/Vigilante";
 
 /** Obtiene rolesId del token de forma segura */
 function obtenerRolDesdeToken(t) {
@@ -195,12 +196,21 @@ function obtenerRolDesdeToken(t) {
 }
 
 /** Extrae y pre-procesa los datos de todos los reportes para el render */
-function extraerDatosReportes({ rptParqueaderos, rptVisitas, rptPaquetes, rptReservas, rptOcupacion, rptNinos, rptPoblacion }) {
+function extraerDatosReportes({
+  rptParqueaderos,
+  rptVisitas,
+  rptPaquetes,
+  rptReservas,
+  rptOcupacion,
+  rptNinos,
+  rptPoblacion,
+}) {
   const capacidadP = rptParqueaderos?.capacidad || [];
   const resumenPeriodo = rptParqueaderos?.resumenPeriodo || {};
   const diaPico = rptParqueaderos?.diaPico || null;
 
-  let totalCuposCarros = 0, totalCuposMotos = 0;
+  let totalCuposCarros = 0,
+    totalCuposMotos = 0;
   for (const r of capacidadP) {
     const nom = (r.nombreVehiculo || "").toLowerCase();
     if (nom === "carro") totalCuposCarros = toInt(r.totalCupos);
@@ -227,24 +237,116 @@ function extraerDatosReportes({ rptParqueaderos, rptVisitas, rptPaquetes, rptRes
   const diaConMasReservas = rptReservas?.diaConMasReservas;
 
   const picoOcupacion = (rptParqueaderos?.picoOcupacion || []).slice(0, 8);
-  const maxPico = picoOcupacion.length > 0
-    ? Math.max(...picoOcupacion.map((h) => toInt(h.cantidadVisitas)))
-    : 1;
+  const maxPico =
+    picoOcupacion.length > 0
+      ? Math.max(...picoOcupacion.map((h) => toInt(h.cantidadVisitas)))
+      : 1;
 
   const oc = rptOcupacion || {};
   const ninosData = rptNinos || {};
   const poblData = rptPoblacion || {};
 
   return {
-    capacidadP, resumenPeriodo, diaPico,
-    totalCuposCarros, totalCuposMotos, totalCupos,
-    vehiculosEnPeriodo, carrosEnPeriodo, motosEnPeriodo,
-    totalVisitas, diaConMasVisitas, porVehiculo,
-    totalPaquetes, paqEntregados, paqPendientes,
-    totalReservas, reservasPorArea, reservasPorEstado, promedioAsistentes, diaConMasReservas,
-    picoOcupacion, maxPico, oc, ninosData, poblData,
+    capacidadP,
+    resumenPeriodo,
+    diaPico,
+    totalCuposCarros,
+    totalCuposMotos,
+    totalCupos,
+    vehiculosEnPeriodo,
+    carrosEnPeriodo,
+    motosEnPeriodo,
+    totalVisitas,
+    diaConMasVisitas,
+    porVehiculo,
+    totalPaquetes,
+    paqEntregados,
+    paqPendientes,
+    totalReservas,
+    reservasPorArea,
+    reservasPorEstado,
+    promedioAsistentes,
+    diaConMasReservas,
+    picoOcupacion,
+    maxPico,
+    oc,
+    ninosData,
+    poblData,
   };
 }
+
+// ============================================================================
+// RENDER HELPERS
+// ============================================================================
+const StatRow = ({ icon, label, value, color }) => (
+  <div className="rpt-stat-row">
+    <div className="stat-icon" style={{ background: `${color}15`, color }}>
+      <i
+        className={
+          icon.startsWith("fa-") ? `fa-solid ${icon}` : `bi bi-${icon}`
+        }
+      ></i>
+    </div>
+    <span className="stat-label">{label}</span>
+    <span className="stat-value" style={{ color }}>
+      {value}
+    </span>
+  </div>
+);
+
+StatRow.propTypes = {
+  icon: PropTypes.string.isRequired,
+  label: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  color: PropTypes.string.isRequired,
+};
+
+const ProgressBar = ({ label, value, total, color }) => {
+  const pct = total > 0 ? (value / total) * 100 : 0;
+  return (
+    <div className="rpt-progress">
+      <div className="progress-header">
+        <span className="progress-label">{label}</span>
+        <span className="progress-pct">{pct.toFixed(1)}%</span>
+      </div>
+      <div className="progress-track">
+        <div
+          className="progress-fill"
+          style={{ width: `${pct}%`, background: color }}
+        ></div>
+      </div>
+    </div>
+  );
+};
+
+ProgressBar.propTypes = {
+  label: PropTypes.string.isRequired,
+  value: PropTypes.number.isRequired,
+  total: PropTypes.number.isRequired,
+  color: PropTypes.string.isRequired,
+};
+
+const CircularStat = ({ icon, label, value, color }) => (
+  <div className="rpt-circular-stat">
+    <div
+      className="circle-icon"
+      style={{ background: `${color}15`, color, borderColor: color }}
+    >
+      <i className={`bi bi-${icon}`}></i>
+    </div>
+    <div className="circle-value" style={{ color }}>
+      {value}
+    </div>
+    <div className="circle-label">{label}</div>
+  </div>
+);
+
+CircularStat.propTypes = {
+  icon: PropTypes.string.isRequired,
+  label: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  color: PropTypes.string.isRequired,
+};
 
 // ============================================================================
 // COMPONENTE PRINCIPAL
@@ -328,8 +430,8 @@ function Reportes() {
     if (u) {
       try {
         setUsuario(JSON.parse(u));
-      } catch {
-        /* ignore */
+      } catch (error) {
+        console.warn("Error parseando usuario:", error);
       }
     }
     setLoading(false);
@@ -366,7 +468,7 @@ function Reportes() {
       setRptPoblacion(pobl);
       setRptUsuarios(usrs);
     } catch (err) {
-      // Error cargando reportes
+      console.error("Error cargando reportes:", err);
     }
     setDataLoading(false);
   }, [fechaInicio, fechaFin, showUserManagement]);
@@ -823,68 +925,41 @@ function Reportes() {
   };
 
   // ============================================================================
-  // RENDER HELPERS
-  // ============================================================================
-  const StatRow = ({ icon, label, value, color }) => (
-    <div className="rpt-stat-row">
-      <div className="stat-icon" style={{ background: `${color}15`, color }}>
-        <i
-          className={
-            icon.startsWith("fa-") ? `fa-solid ${icon}` : `bi bi-${icon}`
-          }
-        ></i>
-      </div>
-      <span className="stat-label">{label}</span>
-      <span className="stat-value" style={{ color }}>
-        {value}
-      </span>
-    </div>
-  );
-
-  const ProgressBar = ({ label, value, total, color }) => {
-    const pct = total > 0 ? (value / total) * 100 : 0;
-    return (
-      <div className="rpt-progress">
-        <div className="progress-header">
-          <span className="progress-label">{label}</span>
-          <span className="progress-pct">{pct.toFixed(1)}%</span>
-        </div>
-        <div className="progress-track">
-          <div
-            className="progress-fill"
-            style={{ width: `${pct}%`, background: color }}
-          ></div>
-        </div>
-      </div>
-    );
-  };
-
-  const CircularStat = ({ icon, label, value, color }) => (
-    <div className="rpt-circular-stat">
-      <div
-        className="circle-icon"
-        style={{ background: `${color}15`, color, borderColor: color }}
-      >
-        <i className={`bi bi-${icon}`}></i>
-      </div>
-      <div className="circle-value" style={{ color }}>
-        {value}
-      </div>
-      <div className="circle-label">{label}</div>
-    </div>
-  );
-
-  // ============================================================================
   // RENDER - DATOS EXTRAÍDOS (delegados a función externa)
   // ============================================================================
   const {
-    diaPico, totalCuposCarros, totalCuposMotos, totalCupos,
-    vehiculosEnPeriodo, carrosEnPeriodo, motosEnPeriodo,
-    totalVisitas, diaConMasVisitas, porVehiculo,
-    totalPaquetes, paqEntregados, paqPendientes,
-    totalReservas, reservasPorArea, reservasPorEstado, promedioAsistentes, diaConMasReservas,
-    picoOcupacion, maxPico, oc, ninosData, poblData,
-  } = extraerDatosReportes({ rptParqueaderos, rptVisitas, rptPaquetes, rptReservas, rptOcupacion, rptNinos, rptPoblacion });
+    diaPico,
+    totalCuposCarros,
+    totalCuposMotos,
+    totalCupos,
+    vehiculosEnPeriodo,
+    carrosEnPeriodo,
+    motosEnPeriodo,
+    totalVisitas,
+    diaConMasVisitas,
+    porVehiculo,
+    totalPaquetes,
+    paqEntregados,
+    paqPendientes,
+    totalReservas,
+    reservasPorArea,
+    reservasPorEstado,
+    promedioAsistentes,
+    diaConMasReservas,
+    picoOcupacion,
+    maxPico,
+    oc,
+    ninosData,
+    poblData,
+  } = extraerDatosReportes({
+    rptParqueaderos,
+    rptVisitas,
+    rptPaquetes,
+    rptReservas,
+    rptOcupacion,
+    rptNinos,
+    rptPoblacion,
+  });
 
   // ============================================================================
   // LOADING & AUTH GUARD
@@ -906,9 +981,11 @@ function Reportes() {
   return (
     <div className="rpt-dashboard">
       {/* ===================== OVERLAY ===================== */}
-      <div
+      <button
+        type="button"
         className={`rpt-overlay ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(false)}
+        aria-label="Cerrar menú"
       />
 
       {/* ===================== DRAWER ===================== */}
@@ -917,9 +994,7 @@ function Reportes() {
           <div className="rpt-drawer-avatar">
             <i className="bi bi-shield-lock-fill"></i>
           </div>
-          <h4 className="rpt-drawer-title">
-            {mapMenuTitle(rolesId)}
-          </h4>
+          <h4 className="rpt-drawer-title">{mapMenuTitle(rolesId)}</h4>
           <span className="rpt-drawer-user">
             {usuario?.username || "Usuario"}
           </span>
@@ -1230,7 +1305,7 @@ function Reportes() {
                       const motos = toInt(h.motos);
                       const pct = cant / maxPico;
                       return (
-                        <div key={i} className="rpt-hbar-row">
+                        <div key={h.hora} className="rpt-hbar-row">
                           <span className="rpt-hbar-label">
                             {String(hora).padStart(2, "0")}:00
                           </span>
@@ -1282,7 +1357,7 @@ function Reportes() {
                   />
                   {porVehiculo.map((v, i) => (
                     <StatRow
-                      key={i}
+                      key={v.tipo}
                       icon={
                         v.tipo.includes("Con") ? "car-front" : "person-walking"
                       }
@@ -1437,7 +1512,7 @@ function Reportes() {
                         else if (nombre.toLowerCase().includes("pendiente"))
                           color = "#f97316";
                         return (
-                          <div key={i} className="rpt-estado-row">
+                          <div key={nombre} className="rpt-estado-row">
                             <div
                               className="rpt-estado-dot"
                               style={{ background: color }}
@@ -1462,9 +1537,9 @@ function Reportes() {
                   {reservasPorArea.length > 0 && (
                     <>
                       <h6 className="fw-bold mt-3 mb-2">Por Área Común:</h6>
-                      {reservasPorArea.slice(0, 5).map((area, i) => (
+                      {reservasPorArea.slice(0, 5).map((area) => (
                         <ProgressBar
-                          key={i}
+                          key={area.nombreArea}
                           label={area.nombreArea || "N/A"}
                           value={toInt(area.cantidad)}
                           total={totalReservas}
@@ -1551,7 +1626,7 @@ function Reportes() {
                           </thead>
                           <tbody>
                             {(oc.detallePorTorre || []).map((t, i) => (
-                              <tr key={i}>
+                              <tr key={t.nombreTorre}>
                                 <td className="fw-semibold">{t.nombreTorre}</td>
                                 <td>{toInt(t.totalApartamentos)}</td>
                                 <td>{toInt(t.apartamentosOcupados)}</td>
@@ -1617,7 +1692,7 @@ function Reportes() {
                         </thead>
                         <tbody>
                           {(ninosData.detalleApartamentos || []).map((a, i) => (
-                            <tr key={i}>
+                            <tr key={`${a.nombreTorre}-${a.numeroApartamento}`}>
                               <td>{a.nombreTorre || "-"}</td>
                               <td>{a.numeroApartamento || "-"}</td>
                               <td>
@@ -1716,7 +1791,9 @@ function Reportes() {
                                   .toLowerCase()
                                   .includes("adulto");
                                 return (
-                                  <tr key={i}>
+                                  <tr
+                                    key={`${p.nombreTorre}-${p.numeroApartamento}`}
+                                  >
                                     <td>{p.nombreTorre || "-"}</td>
                                     <td>{p.numeroApartamento || "-"}</td>
                                     <td>
@@ -1911,7 +1988,7 @@ function Reportes() {
                                     })
                                   : "Sin registros";
                                 return (
-                                  <tr key={i}>
+                                  <tr key={u.username}>
                                     <td>
                                       <span
                                         className="rpt-badge"
@@ -2030,7 +2107,7 @@ function Reportes() {
                                   : "#f97316";
                                 const estadoLabel = u.nombreEstado || "—";
                                 return (
-                                  <tr key={i}>
+                                  <tr key={u.username}>
                                     <td className="fw-semibold">
                                       <i
                                         className="bi bi-person-circle me-1"
@@ -2121,7 +2198,10 @@ function Reportes() {
                             "#059669",
                           ];
                           return mods.map((mod, i) => (
-                            <div key={i} className="rpt-hbar-row">
+                            <div
+                              key={mod.nombre || mod.tabla}
+                              className="rpt-hbar-row"
+                            >
                               <span
                                 className="rpt-hbar-label"
                                 style={{
