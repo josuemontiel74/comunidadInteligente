@@ -8,9 +8,9 @@ import "../Styles/estiloCalendario.css";
 
 export default function CalendarioReservas() {
   const navigate = useNavigate();
-  const [mesActual, _setMesActual] = useState(new Date());
+  const [mesActual] = useState(new Date());
   const [reservas, setReservas] = useState([]);
-  const [diaSeleccionado, _setDiaSeleccionado] = useState(null);
+  const [diaSeleccionado] = useState(null);
   const [loading, setLoading] = useState(true);
   const [menuAbierto, setMenuAbierto] = useState(false);
 
@@ -70,8 +70,8 @@ export default function CalendarioReservas() {
 
   const showAreasComunes = rolesId !== 3;
   const showUserManagement = rolesId === 1;
-  const dashboardRuta =
-    rolesId === 1 ? "/Superadmin" : rolesId === 2 ? "/Admin" : "/Vigilante";
+  const dashboardRutas = { 1: "/Superadmin", 2: "/Admin" };
+  const dashboardRuta = dashboardRutas[rolesId] || "/Vigilante";
 
   const cerrarSesión = (e) => {
     e.preventDefault();
@@ -319,9 +319,12 @@ export default function CalendarioReservas() {
 
   const formatearHora = (hora) => {
     const [h, m] = hora.split(":");
-    const hour = parseInt(h);
+    const hour = Number.parseInt(h);
     const ampm = hour >= 12 ? "PM" : "AM";
-    const hour12 = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+    let hour12;
+    if (hour > 12) hour12 = hour - 12;
+    else if (hour === 0) hour12 = 12;
+    else hour12 = hour;
     return `${hour12}:${m} ${ampm}`;
   };
 
@@ -413,9 +416,11 @@ export default function CalendarioReservas() {
   return (
     <div className="cal-dashboard">
       {/* Overlay */}
-      <div
+      <button
+        type="button"
         className={`cal-overlay ${menuAbierto ? "active" : ""}`}
         onClick={() => setMenuAbierto(false)}
+        aria-label="Cerrar menú"
       />
 
       {/* Drawer moderno */}
@@ -571,9 +576,9 @@ export default function CalendarioReservas() {
                         fontWeight: 700,
                       }}
                     >
-                      {["L", "M", "M", "J", "V", "S", "D"].map((s, i) => (
-                        <div key={i} style={{ fontSize: 12, color: "#444" }}>
-                          {s}
+                      {["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"].map((s) => (
+                        <div key={s} style={{ fontSize: 12, color: "#444" }}>
+                          {s.charAt(0)}
                         </div>
                       ))}
                     </div>
@@ -632,14 +637,15 @@ export default function CalendarioReservas() {
                           mostrarDetallesDia(new Date(cell.iso));
                         };
                         return (
-                          <div
+                          <button
+                            type="button"
                             key={cell.iso}
                             style={estilo}
                             title={cell.iso}
                             onClick={handleCellClick}
                           >
                             {cell.day}
-                          </div>
+                          </button>
                         );
                       })}
                     </div>
@@ -675,82 +681,78 @@ export default function CalendarioReservas() {
                     </div>
                   ) : (
                     <div className="row g-3">
-                      {obtenerReservasPorDia(diaSeleccionado).map(
-                        (reserva, idx) => (
-                          <div key={idx} className="col-md-6 col-lg-4">
-                            <div
-                              className="card"
-                              style={{
-                                borderLeft: `4px solid ${obtenerColorArea(reserva.areaComunId)}`,
-                              }}
-                            >
-                              <div className="card-body">
-                                <div className="d-flex align-items-start justify-content-between mb-2">
-                                  <h6
-                                    className="mb-0"
-                                    style={{
-                                      color: obtenerColorArea(
-                                        reserva.areaComunId,
-                                      ),
-                                    }}
+                      {obtenerReservasPorDia(diaSeleccionado).map((reserva) => (
+                        <div
+                          key={reserva.idReservas || reserva.id}
+                          className="col-md-6 col-lg-4"
+                        >
+                          <div
+                            className="card"
+                            style={{
+                              borderLeft: `4px solid ${obtenerColorArea(reserva.areaComunId)}`,
+                            }}
+                          >
+                            <div className="card-body">
+                              <div className="d-flex align-items-start justify-content-between mb-2">
+                                <h6
+                                  className="mb-0"
+                                  style={{
+                                    color: obtenerColorArea(
+                                      reserva.areaComunId,
+                                    ),
+                                  }}
+                                >
+                                  <MapPin size={16} className="me-1" />
+                                  {obtenerNombreArea(reserva.areaComunId)}
+                                </h6>
+                                <span className="badge bg-danger">Ocupado</span>
+                              </div>
+
+                              <div className="mt-2">
+                                <Clock size={14} className="me-1 text-muted" />
+                                <strong>
+                                  {formatearHora(reserva.horaInicio)}
+                                </strong>
+                                {" → "}
+                                <strong>
+                                  {formatearHora(reserva.horaFin)}
+                                </strong>
+                              </div>
+
+                              <div className="mt-2 d-flex justify-content-between align-items-center">
+                                <div>
+                                  <small className="text-muted">
+                                    Duración:{" "}
+                                    {(() => {
+                                      const [hi, mi] = reserva.horaInicio
+                                        .split(":")
+                                        .map(Number);
+                                      const [hf, mf] = reserva.horaFin
+                                        .split(":")
+                                        .map(Number);
+                                      const duracion =
+                                        hf * 60 + mf - (hi * 60 + mi);
+                                      const horas = Math.floor(duracion / 60);
+                                      const minutos = duracion % 60;
+                                      return `${horas}h ${minutos}min`;
+                                    })()}
+                                  </small>
+                                </div>
+                                <div>
+                                  <button
+                                    className="btn btn-sm btn-outline-secondary"
+                                    onClick={() =>
+                                      mostrarDetallesReserva(reserva)
+                                    }
                                   >
-                                    <MapPin size={16} className="me-1" />
-                                    {obtenerNombreArea(reserva.areaComunId)}
-                                  </h6>
-                                  <span className="badge bg-danger">
-                                    Ocupado
-                                  </span>
-                                </div>
-
-                                <div className="mt-2">
-                                  <Clock
-                                    size={14}
-                                    className="me-1 text-muted"
-                                  />
-                                  <strong>
-                                    {formatearHora(reserva.horaInicio)}
-                                  </strong>
-                                  {" → "}
-                                  <strong>
-                                    {formatearHora(reserva.horaFin)}
-                                  </strong>
-                                </div>
-
-                                <div className="mt-2 d-flex justify-content-between align-items-center">
-                                  <div>
-                                    <small className="text-muted">
-                                      Duración:{" "}
-                                      {(() => {
-                                        const [hi, mi] = reserva.horaInicio
-                                          .split(":")
-                                          .map(Number);
-                                        const [hf, mf] = reserva.horaFin
-                                          .split(":")
-                                          .map(Number);
-                                        const duracion =
-                                          hf * 60 + mf - (hi * 60 + mi);
-                                        const horas = Math.floor(duracion / 60);
-                                        const minutos = duracion % 60;
-                                        return `${horas}h ${minutos}min`;
-                                      })()}
-                                    </small>
-                                  </div>
-                                  <div>
-                                    <button
-                                      className="btn btn-sm btn-outline-secondary"
-                                      onClick={() =>
-                                        mostrarDetallesReserva(reserva)
-                                      }
-                                    >
-                                      Más info
-                                    </button>
-                                  </div>
+                                    Más info
+                                  </button>
                                 </div>
                               </div>
                             </div>
                           </div>
-                        ),
-                      )}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -774,8 +776,17 @@ export default function CalendarioReservas() {
                           const color = obtenerColorPorDuracion(
                             espacio.duracion,
                           );
+                          let etiquetaDuracion;
+                          if (espacio.duracion >= 6)
+                            etiquetaDuracion = "Disponible";
+                          else if (espacio.duracion < 5)
+                            etiquetaDuracion = "Corto";
+                          else etiquetaDuracion = "Medio";
                           return (
-                            <div key={idx} className="col-md-6 col-lg-4">
+                            <div
+                              key={`${espacio.areaId}-${espacio.horaInicio}`}
+                              className="col-md-6 col-lg-4"
+                            >
                               <div
                                 className="card"
                                 style={{ borderLeft: `4px solid ${color}` }}
@@ -793,11 +804,7 @@ export default function CalendarioReservas() {
                                         color,
                                       }}
                                     >
-                                      {espacio.duracion >= 6
-                                        ? "Disponible"
-                                        : espacio.duracion < 5
-                                          ? "Corto"
-                                          : "Medio"}
+                                      {etiquetaDuracion}
                                     </span>
                                   </div>
 
@@ -864,9 +871,9 @@ export default function CalendarioReservas() {
 
           {loading && (
             <div className="text-center py-5">
-              <div className="spinner-border text-success" role="status">
+              <output className="spinner-border text-success">
                 <span className="visually-hidden">Cargando...</span>
-              </div>
+              </output>
             </div>
           )}
         </div>

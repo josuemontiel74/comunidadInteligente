@@ -1,6 +1,5 @@
-import { Outlet, Navigate } from "react-router-dom";
+import { Outlet, Navigate, useNavigate } from "react-router-dom";
 import { useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 
 // Verificación sincrónica del token – no usa estado para no desmontar hijos
