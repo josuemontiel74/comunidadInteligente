@@ -662,7 +662,8 @@ function Auditorias() {
 
       {/* Modal Detalle (igual que Flutter AlertDialog) */}
       {detalleAuditoria && (
-        <div
+        <dialog
+          open
           className="aud-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setDetalleAuditoria(null);
@@ -670,9 +671,7 @@ function Auditorias() {
           onKeyDown={(e) => {
             if (e.key === "Escape") setDetalleAuditoria(null);
           }}
-          role="dialog"
           aria-modal="true"
-          tabIndex={0}
           aria-label="Cerrar"
         >
           <div className="aud-modal">
@@ -711,7 +710,7 @@ function Auditorias() {
               </button>
             </div>
           </div>
-        </div>
+        </dialog>
       )}
     </div>
   );

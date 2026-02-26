@@ -3,6 +3,7 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import "../Styles/residentes.css";
 
 import React, { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import Swal from "sweetalert2";
 import {
@@ -297,7 +298,12 @@ function filtrarYOrdenarResidentes(
 /* =========================================================
    COMPONENTE PAGINACION
    ========================================================= */
-function PaginacionResidentes({ totalPaginas, paginaActual, setPaginaActual, totalResidentes }) {
+function PaginacionResidentes({
+  totalPaginas,
+  paginaActual,
+  setPaginaActual,
+  totalResidentes,
+}) {
   if (totalPaginas <= 1) return null;
   const paginas = [];
   const maxVis = 5;
@@ -345,12 +351,17 @@ function PaginacionResidentes({ totalPaginas, paginaActual, setPaginaActual, tot
       >
         <i className="bi bi-chevron-double-right"></i>
       </button>
-      <span className="res-page-info">
-        {totalResidentes} residentes
-      </span>
+      <span className="res-page-info">{totalResidentes} residentes</span>
     </div>
   );
 }
+
+PaginacionResidentes.propTypes = {
+  totalPaginas: PropTypes.number.isRequired,
+  paginaActual: PropTypes.number.isRequired,
+  setPaginaActual: PropTypes.func.isRequired,
+  totalResidentes: PropTypes.number.isRequired,
+};
 
 /* =========================================================
    COMPONENTE PRINCIPAL
@@ -836,12 +847,15 @@ function Residentes() {
     );
   }
 
+  const overlayClass = `res-overlay ${menuOpen ? "active" : ""}`;
+  const drawerClass = `res-drawer ${menuOpen ? "open" : ""}`;
+
   return (
     <div className="res-dashboard">
       {/* OVERLAY */}
       <button
         type="button"
-        className={`res-overlay ${menuOpen ? "active" : ""}`}
+        className={overlayClass}
         onClick={() => setMenuOpen(false)}
         onKeyDown={(e) => {
           if (e.key === "Escape") setMenuOpen(false);
@@ -851,7 +865,7 @@ function Residentes() {
       />
 
       {/* DRAWER */}
-      <aside className={`res-drawer ${menuOpen ? "open" : ""}`}>
+      <aside className={drawerClass}>
         <div className="res-drawer-header">
           {getUserProfilePhoto() ? (
             <img
@@ -872,7 +886,10 @@ function Residentes() {
             <h6 className="res-menu-section-title">Navegación</h6>
             <Link
               className="res-menu-item"
-              to={{ 1: "/Superadmin", 2: "/Admin" }[rolesId] ?? "/VigilanteDashboard"}
+              to={
+                { 1: "/Superadmin", 2: "/Admin" }[rolesId] ??
+                "/VigilanteDashboard"
+              }
               onClick={() => setMenuOpen(false)}
             >
               <i className="bi bi-speedometer2"></i>
@@ -987,15 +1004,10 @@ function Residentes() {
         <header className="res-header">
           <button
             className="res-header-btn"
-            onClick={() =>
-              navegacion(
-                rolesId === 1
-                  ? "/Superadmin"
-                  : rolesId === 2
-                    ? "/Admin"
-                    : "/Vigilante",
-              )
-            }
+            onClick={() => {
+              const destino = { 1: "/Superadmin", 2: "/Admin" }[rolesId] || "/Vigilante";
+              navegacion(destino);
+            }}
             title="Volver al inicio"
           >
             <i className="bi bi-arrow-left"></i>
@@ -1353,7 +1365,8 @@ function Residentes() {
 
       {/* ===== MODAL CREAR / EDITAR ===== */}
       {modalAbierto && (
-        <div
+        <dialog
+          open
           className="res-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) cerrarModal();
@@ -1361,9 +1374,7 @@ function Residentes() {
           onKeyDown={(e) => {
             if (e.key === "Escape") cerrarModal();
           }}
-          role="dialog"
           aria-modal="true"
-          tabIndex={0}
           aria-label="Cerrar"
         >
           <div className="res-modal">
@@ -1667,12 +1678,13 @@ function Residentes() {
               </div>
             </form>
           </div>
-        </div>
+        </dialog>
       )}
 
       {/* ===== MODAL TORRES ===== */}
       {modalTorres && (
-        <div
+        <dialog
+          open
           className="res-modal-overlay res-torres-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setModalTorres(false);
@@ -1680,9 +1692,7 @@ function Residentes() {
           onKeyDown={(e) => {
             if (e.key === "Escape") setModalTorres(false);
           }}
-          role="dialog"
           aria-modal="true"
-          tabIndex={0}
           aria-label="Cerrar"
         >
           <div className="res-modal res-torres-modal">
@@ -1905,12 +1915,13 @@ function Residentes() {
               )}
             </div>
           </div>
-        </div>
+        </dialog>
       )}
 
       {/* ===== MODAL DETALLES ===== */}
       {showModalDetalles && residenteSeleccionado && (
-        <div
+        <dialog
+          open
           className="res-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowModalDetalles(false);
@@ -1918,9 +1929,7 @@ function Residentes() {
           onKeyDown={(e) => {
             if (e.key === "Escape") setShowModalDetalles(false);
           }}
-          role="dialog"
           aria-modal="true"
-          tabIndex={0}
           aria-label="Cerrar"
         >
           <div className="res-modal" style={{ maxWidth: 800 }}>
@@ -2085,7 +2094,7 @@ function Residentes() {
               </button>
             </div>
           </div>
-        </div>
+        </dialog>
       )}
     </div>
   );

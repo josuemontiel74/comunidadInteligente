@@ -1090,8 +1090,7 @@ function Reportes() {
 
         <div className="rpt-drawer-footer">
           <button className="rpt-logout-btn" onClick={cerrarSesion}>
-            <i className="bi bi-box-arrow-right"></i>
-            {" "}Cerrar Sesión
+            <i className="bi bi-box-arrow-right"></i> Cerrar Sesión
           </button>
         </div>
       </aside>
@@ -1177,20 +1176,20 @@ function Reportes() {
               onClick={exportarPDF}
               disabled={dataLoading}
             >
-              <i className="bi bi-filetype-pdf"></i>
-              {" "}Exportar PDF
+              <i className="bi bi-filetype-pdf"></i> Exportar PDF
             </button>
           </div>
         </div>
 
         {/* Contenido */}
         <div className="rpt-content">
-          {dataLoading ? (
+          {dataLoading && (
             <div className="rpt-loading" style={{ minHeight: "40vh" }}>
               <div className="rpt-spinner"></div>
               <p style={{ color: "#7c3aed" }}>Cargando reportes...</p>
             </div>
-          ) : (
+          )}
+          {!dataLoading && (
             <>
               {/* ==================== PARQUEADEROS ==================== */}
               <div className="rpt-card">
@@ -1996,7 +1995,9 @@ function Reportes() {
                                         className="rpt-badge"
                                         style={{
                                           background:
-                                            ["#ca8a04", "#94a3b8", "#b45309"][i] ?? "#e2e8f0",
+                                            ["#ca8a04", "#94a3b8", "#b45309"][
+                                              i
+                                            ] ?? "#e2e8f0",
                                           color: i < 3 ? "#fff" : "#475569",
                                         }}
                                       >
@@ -2079,7 +2080,12 @@ function Reportes() {
                                     ? "Nunca inició sesión"
                                     : `${diasNum} días`;
                                 const color = (() => {
-                                  if (diasNum === null || diasNum === undefined || diasNum > 30) return "#ef4444";
+                                  if (
+                                    diasNum === null ||
+                                    diasNum === undefined ||
+                                    diasNum > 30
+                                  )
+                                    return "#ef4444";
                                   if (diasNum > 7) return "#f97316";
                                   return "#22c55e";
                                 })();

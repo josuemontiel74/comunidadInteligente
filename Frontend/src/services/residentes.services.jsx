@@ -8,7 +8,7 @@ export const verificarTokenVencido = (token) => {
     const payload = JSON.parse(atob(token.split(".")[1]));
     const fechaExpiracion = payload.exp * 1000;
     return Date.now() >= fechaExpiracion;
-  } catch (error) {
+  } catch {
     return true;
   }
 };
@@ -21,7 +21,7 @@ export const obtenerUsuarioDelToken = (token) => {
 
     const payload = JSON.parse(atob(token.split(".")[1]));
     return payload.username || "Usuario";
-  } catch (error) {
+  } catch {
     return "Usuario";
   }
 };
@@ -34,7 +34,7 @@ export const obtenerRolDelToken = (token) => {
 
     const payload = JSON.parse(atob(token.split(".")[1]));
     return payload.rolesId || "RolNoDefinido";
-  } catch (error) {
+  } catch {
     return "RolNoDefinido";
   }
 };

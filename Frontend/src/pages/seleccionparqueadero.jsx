@@ -269,7 +269,7 @@ function SeleccioneParqueadero() {
   };
 
   const [slotSeleccionado, setSlotSeleccionado] = useState(null);
-  const [estadoSeleccionado, setEstadoSeleccionado] = useState(null);
+  const [, setEstadoSeleccionado] = useState(null);
   const [tipoVehiculoSeleccionado, setTipoVehiculoSeleccionado] =
     useState(null);
   const [menuAbierto, setMenuAbierto] = useState(false);

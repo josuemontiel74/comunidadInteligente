@@ -780,7 +780,8 @@ function LogErrores() {
 
       {/* MODAL DETALLE */}
       {detalleRegistro && (
-        <div
+        <dialog
+          open
           className="le-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setDetalleRegistro(null);
@@ -788,9 +789,7 @@ function LogErrores() {
           onKeyDown={(e) => {
             if (e.key === "Escape") setDetalleRegistro(null);
           }}
-          role="dialog"
           aria-modal="true"
-          tabIndex={0}
           aria-label="Cerrar"
         >
           <div className="le-modal">
@@ -902,7 +901,7 @@ function LogErrores() {
               </button>
             </div>
           </div>
-        </div>
+        </dialog>
       )}
     </div>
   );

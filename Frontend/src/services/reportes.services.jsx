@@ -13,7 +13,7 @@ export async function obtenerReporteParqueaderos(token, fechaInicio, fechaFin) {
     );
     const data = await res.json();
     return data.success ? data.data : null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -26,7 +26,7 @@ export async function obtenerReporteVisitas(token, fechaInicio, fechaFin) {
     );
     const data = await res.json();
     return data.success ? data.data : null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -39,7 +39,7 @@ export async function obtenerReportePaquetes(token, fechaInicio, fechaFin) {
     );
     const data = await res.json();
     return data.success ? data.data : null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -52,7 +52,7 @@ export async function obtenerReporteReservas(token, fechaInicio, fechaFin) {
     );
     const data = await res.json();
     return data.success ? data.data : null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -64,7 +64,7 @@ export async function obtenerReporteOcupacion(token) {
     });
     const data = await res.json();
     return data.success ? data.data : null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -76,7 +76,7 @@ export async function obtenerReporteNinos(token) {
     });
     const data = await res.json();
     return data.success ? data.data : null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -89,7 +89,7 @@ export async function obtenerReportePoblacionEspecial(token) {
     );
     const data = await res.json();
     return data.success ? data.data : null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -102,7 +102,7 @@ export async function obtenerReporteUsuarios(token, fechaInicio, fechaFin) {
     );
     const data = await res.json();
     return data.success ? data.data : null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }

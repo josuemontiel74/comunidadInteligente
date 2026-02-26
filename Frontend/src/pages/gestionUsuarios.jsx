@@ -146,7 +146,8 @@ function validarFormularioGU(fd) {
   const errNombres = validarNombresGU(fd);
   if (errNombres) return errNombres;
 
-  const tipoDocNombreGU = TIPO_DOC_MAP[Number.parseInt(fd.tipoDocumentoId)] || "";
+  const tipoDocNombreGU =
+    TIPO_DOC_MAP[Number.parseInt(fd.tipoDocumentoId)] || "";
   const errDocGU = validarDocumento(
     fd.numeroDocumento,
     fd.tipoDocumentoId,
@@ -1722,7 +1723,7 @@ function GestionUsuarios() {
 
       {/* MODAL REGISTRAR */}
       {showModalRegistrar && (
-        <div
+        <dialog open
           className="gu-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowModalRegistrar(false);
@@ -1730,9 +1731,7 @@ function GestionUsuarios() {
           onKeyDown={(e) => {
             if (e.key === "Escape") setShowModalRegistrar(false);
           }}
-          role="dialog"
           aria-modal="true"
-          tabIndex={0}
           aria-label="Cerrar"
         >
           <div className="gu-modal">
@@ -1803,7 +1802,9 @@ function GestionUsuarios() {
                   </h6>
                   <div className="gu-form-grid">
                     <div className="gu-form-group">
-                      <label htmlFor="gu-c-tipoDoc" className="gu-form-label">Tipo Documento *</label>
+                      <label htmlFor="gu-c-tipoDoc" className="gu-form-label">
+                        Tipo Documento *
+                      </label>
                       <select
                         id="gu-c-tipoDoc"
                         className="gu-form-control"
@@ -1840,7 +1841,12 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label htmlFor="gu-c-primerNombre" className="gu-form-label">Primer Nombre *</label>
+                      <label
+                        htmlFor="gu-c-primerNombre"
+                        className="gu-form-label"
+                      >
+                        Primer Nombre *
+                      </label>
                       <input
                         id="gu-c-primerNombre"
                         type="text"
@@ -1853,7 +1859,12 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label htmlFor="gu-c-segundoNombre" className="gu-form-label">Segundo Nombre</label>
+                      <label
+                        htmlFor="gu-c-segundoNombre"
+                        className="gu-form-label"
+                      >
+                        Segundo Nombre
+                      </label>
                       <input
                         id="gu-c-segundoNombre"
                         type="text"
@@ -1865,7 +1876,12 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label htmlFor="gu-c-primerApellido" className="gu-form-label">Primer Apellido *</label>
+                      <label
+                        htmlFor="gu-c-primerApellido"
+                        className="gu-form-label"
+                      >
+                        Primer Apellido *
+                      </label>
                       <input
                         id="gu-c-primerApellido"
                         type="text"
@@ -1878,7 +1894,12 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label htmlFor="gu-c-segundoApellido" className="gu-form-label">Segundo Apellido</label>
+                      <label
+                        htmlFor="gu-c-segundoApellido"
+                        className="gu-form-label"
+                      >
+                        Segundo Apellido
+                      </label>
                       <input
                         id="gu-c-segundoApellido"
                         type="text"
@@ -1890,7 +1911,9 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label htmlFor="gu-c-telefono" className="gu-form-label">Telefono</label>
+                      <label htmlFor="gu-c-telefono" className="gu-form-label">
+                        Telefono
+                      </label>
                       <input
                         id="gu-c-telefono"
                         type="number"
@@ -1923,7 +1946,9 @@ function GestionUsuarios() {
                   </h6>
                   <div className="gu-form-grid">
                     <div className="gu-form-group">
-                      <label htmlFor="gu-c-password" className="gu-form-label">Contrasena *</label>
+                      <label htmlFor="gu-c-password" className="gu-form-label">
+                        Contrasena *
+                      </label>
                       <input
                         id="gu-c-password"
                         type="password"
@@ -1938,7 +1963,9 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label htmlFor="gu-c-rol" className="gu-form-label">Rol *</label>
+                      <label htmlFor="gu-c-rol" className="gu-form-label">
+                        Rol *
+                      </label>
                       <select
                         id="gu-c-rol"
                         className="gu-form-control"
@@ -1983,12 +2010,12 @@ function GestionUsuarios() {
               </form>
             </div>
           </div>
-        </div>
+        </dialog>
       )}
 
       {/* MODAL EDITAR */}
       {showModalEditar && (
-        <div
+        <dialog open
           className="gu-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -2002,9 +2029,7 @@ function GestionUsuarios() {
               resetForm();
             }
           }}
-          role="dialog"
           aria-modal="true"
-          tabIndex={0}
           aria-label="Cerrar"
         >
           <div className="gu-modal">
@@ -2078,7 +2103,9 @@ function GestionUsuarios() {
                   </h6>
                   <div className="gu-form-grid">
                     <div className="gu-form-group">
-                      <label htmlFor="gu-e-tipoDoc" className="gu-form-label">Tipo Documento</label>
+                      <label htmlFor="gu-e-tipoDoc" className="gu-form-label">
+                        Tipo Documento
+                      </label>
                       <select
                         id="gu-e-tipoDoc"
                         className="gu-form-control"
@@ -2100,7 +2127,9 @@ function GestionUsuarios() {
                       </select>
                     </div>
                     <div className="gu-form-group">
-                      <label htmlFor="gu-e-numDoc" className="gu-form-label">Numero Documento</label>
+                      <label htmlFor="gu-e-numDoc" className="gu-form-label">
+                        Numero Documento
+                      </label>
                       <input
                         id="gu-e-numDoc"
                         type="text"
@@ -2110,7 +2139,12 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label htmlFor="gu-e-primerNombre" className="gu-form-label">Primer Nombre *</label>
+                      <label
+                        htmlFor="gu-e-primerNombre"
+                        className="gu-form-label"
+                      >
+                        Primer Nombre *
+                      </label>
                       <input
                         id="gu-e-primerNombre"
                         type="text"
@@ -2123,7 +2157,12 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label htmlFor="gu-e-segundoNombre" className="gu-form-label">Segundo Nombre</label>
+                      <label
+                        htmlFor="gu-e-segundoNombre"
+                        className="gu-form-label"
+                      >
+                        Segundo Nombre
+                      </label>
                       <input
                         id="gu-e-segundoNombre"
                         type="text"
@@ -2135,7 +2174,12 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label htmlFor="gu-e-primerApellido" className="gu-form-label">Primer Apellido *</label>
+                      <label
+                        htmlFor="gu-e-primerApellido"
+                        className="gu-form-label"
+                      >
+                        Primer Apellido *
+                      </label>
                       <input
                         id="gu-e-primerApellido"
                         type="text"
@@ -2148,7 +2192,12 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label htmlFor="gu-e-segundoApellido" className="gu-form-label">Segundo Apellido</label>
+                      <label
+                        htmlFor="gu-e-segundoApellido"
+                        className="gu-form-label"
+                      >
+                        Segundo Apellido
+                      </label>
                       <input
                         id="gu-e-segundoApellido"
                         type="text"
@@ -2160,7 +2209,9 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label htmlFor="gu-e-telefono" className="gu-form-label">Telefono</label>
+                      <label htmlFor="gu-e-telefono" className="gu-form-label">
+                        Telefono
+                      </label>
                       <input
                         id="gu-e-telefono"
                         type="text"
@@ -2193,7 +2244,9 @@ function GestionUsuarios() {
                   </h6>
                   <div className="gu-form-grid">
                     <div className="gu-form-group">
-                      <label htmlFor="gu-e-username" className="gu-form-label">Username</label>
+                      <label htmlFor="gu-e-username" className="gu-form-label">
+                        Username
+                      </label>
                       <input
                         id="gu-e-username"
                         type="text"
@@ -2203,7 +2256,9 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label htmlFor="gu-e-password" className="gu-form-label">Nueva Contrasena</label>
+                      <label htmlFor="gu-e-password" className="gu-form-label">
+                        Nueva Contrasena
+                      </label>
                       <input
                         id="gu-e-password"
                         type="password"
@@ -2216,7 +2271,9 @@ function GestionUsuarios() {
                       />
                     </div>
                     <div className="gu-form-group">
-                      <label htmlFor="gu-e-rol" className="gu-form-label">Rol</label>
+                      <label htmlFor="gu-e-rol" className="gu-form-label">
+                        Rol
+                      </label>
                       <select
                         id="gu-e-rol"
                         className="gu-form-control"
@@ -2250,12 +2307,12 @@ function GestionUsuarios() {
               </form>
             </div>
           </div>
-        </div>
+        </dialog>
       )}
 
       {/* MODAL DETALLES */}
       {showModalDetalle && detalleUsuario && (
-        <div
+        <dialog open
           className="gu-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowModalDetalle(false);
@@ -2263,9 +2320,7 @@ function GestionUsuarios() {
           onKeyDown={(e) => {
             if (e.key === "Escape") setShowModalDetalle(false);
           }}
-          role="dialog"
           aria-modal="true"
-          tabIndex={0}
           aria-label="Cerrar"
         >
           <div className="gu-modal" style={{ maxWidth: "600px" }}>
@@ -2383,7 +2438,7 @@ function GestionUsuarios() {
               </button>
             </div>
           </div>
-        </div>
+        </dialog>
       )}
     </div>
   );

@@ -280,7 +280,10 @@ function Parqueaderos() {
               showConfirmButton: false,
             });
             cargarParqueaderos();
-          } else if (data.visitaActiva || data.message?.includes("visita activa")) {
+          } else if (
+            data.visitaActiva ||
+            data.message?.includes("visita activa")
+          ) {
             // Manejo específico: visita activa
             Swal.fire({
               icon: "warning",
@@ -578,8 +581,7 @@ function Parqueaderos() {
             {modoSeleccion && (
               <div className="parq-selection-banner">
                 <i className="bi bi-info-circle me-2"></i> Selecciona un
-                parqueadero disponible para asignarlo a la visita.
-                {" "}
+                parqueadero disponible para asignarlo a la visita.{" "}
                 <button
                   className="parq-selection-banner-btn"
                   onClick={() => {
@@ -784,10 +786,10 @@ function Parqueaderos() {
                     badge: badgeClase,
                   } = estadoConfig[p.estadoId] || defecto;
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={p.id}
                       className={`parq-card ${estadoClase} ${modoSeleccion && disponible ? "seleccionable" : ""}`}
-                      role="button"
                       onClick={() => {
                         if (disponible && modoSeleccion) {
                           seleccionarParqueadero(p.codigoParqueadero);
@@ -844,7 +846,7 @@ function Parqueaderos() {
                           </button>
                         )}
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>

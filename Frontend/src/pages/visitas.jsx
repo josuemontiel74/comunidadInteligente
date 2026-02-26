@@ -83,6 +83,17 @@ function filtrarVisitas(
   });
 }
 
+/** Configuración visual del modal según modo crear/editar (extraída para reducir complejidad cognitiva) */
+function getModalEditConfig(isEditing) {
+  return {
+    headerIcon: isEditing ? "bi-pencil-square" : "bi-person-plus",
+    headerTitle: isEditing ? "Editar Visita" : "Registrar Nueva Visita",
+    submitColor: isEditing ? "orange" : "green",
+    submitIcon: isEditing ? "bi-pencil-square" : "bi-check-circle",
+    submitText: isEditing ? "Actualizar Visita" : "Registrar Visita",
+  };
+}
+
 function Visitas() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -797,6 +808,8 @@ function Visitas() {
     );
   }
 
+  const modalConfig = getModalEditConfig(modalEditar);
+
   // ══════════════════════ RENDER ══════════════════════
   return (
     <div className="vis-dashboard">
@@ -1414,7 +1427,7 @@ function Visitas() {
 
       {/* ══════════ MODAL CREAR / EDITAR ══════════ */}
       {(modalCrear || modalEditar) && (
-        <div
+        <dialog open
           className="vis-modal-overlay"
           onClick={(e) => {
             if (e.target !== e.currentTarget) return;
@@ -1431,20 +1444,18 @@ function Visitas() {
               resetForm();
             }
           }}
-          role="dialog"
           aria-modal="true"
-          tabIndex={0}
           aria-label="Cerrar"
         >
           <div className="vis-modal">
             <div className="vis-modal-header">
               <div className="vis-modal-header-left">
                 <i
-                  className={`bi ${modalEditar ? "bi-pencil-square" : "bi-person-plus"}`}
+                  className={`bi ${modalConfig.headerIcon}`}
                   style={{ color: "#4CAF50", fontSize: "22px" }}
                 ></i>
                 <h5>
-                  {modalEditar ? "Editar Visita" : "Registrar Nueva Visita"}
+                  {modalConfig.headerTitle}
                 </h5>
               </div>
               <button
@@ -1817,7 +1828,7 @@ function Visitas() {
               <div className="vis-modal-footer">
                 <button
                   type="submit"
-                  className={`vis-btn-submit ${modalEditar ? "orange" : "green"}`}
+                  className={`vis-btn-submit ${modalConfig.submitColor}`}
                   disabled={guardando}
                 >
                   {guardando ? (
@@ -1826,31 +1837,21 @@ function Visitas() {
                       Guardando...
                     </>
                   ) : (
-                    (() => {
-                      const submitIcon = modalEditar
-                        ? "bi-pencil-square"
-                        : "bi-check-circle";
-                      const submitText = modalEditar
-                        ? "Actualizar Visita"
-                        : "Registrar Visita";
-                      return (
-                        <>
-                          <i className={`bi ${submitIcon}`}></i>
-                          {submitText}
-                        </>
-                      );
-                    })()
+                    <>
+                      <i className={`bi ${modalConfig.submitIcon}`}></i>
+                      {modalConfig.submitText}
+                    </>
                   )}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </dialog>
       )}
 
       {/* ══════════ MODAL DETALLE ══════════ */}
       {modalDetalle && (
-        <div
+        <dialog open
           className="vis-modal-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setModalDetalle(null);
@@ -1858,9 +1859,7 @@ function Visitas() {
           onKeyDown={(e) => {
             if (e.key === "Escape") setModalDetalle(null);
           }}
-          role="dialog"
           aria-modal="true"
-          tabIndex={0}
           aria-label="Cerrar"
         >
           <div className="vis-modal">
@@ -2027,7 +2026,7 @@ function Visitas() {
               </button>
             </div>
           </div>
-        </div>
+        </dialog>
       )}
     </div>
   );
