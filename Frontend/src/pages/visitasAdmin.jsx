@@ -5,6 +5,7 @@ import logo from "../../img/logo.png";
 import moto from "../../img/moto.png";
 import { Link, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import useLogout from "../utils/useLogout.js";
 
 function VisitasAdmin() {
   const navigator = useNavigate();
@@ -25,12 +26,7 @@ function VisitasAdmin() {
       });
     }
   }, [navigator]);
-  const cerrarSesión = (s) => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    s.preventDefault();
-    navigator("/");
-  };
+  const cerrarSesión = useLogout();
   return (
     <div className="container-fluid p-0">
       {/* Navbar */}

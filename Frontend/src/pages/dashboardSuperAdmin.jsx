@@ -1,30 +1,24 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import Swal from "sweetalert2";
-import { Link, useNavigate } from "react-router-dom";
-import Chart from "chart.js/auto";
+import React, { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import "../Styles/dashboardSuperAdmin.css";
 import logo from "../../img/logo.png";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
-import { obtenerResumenDashboard } from "../services/dashboard.services.jsx";
 import {
   obtenerUsuariosEnLinea,
   logoutUsuario,
 } from "../services/gestionUsuarios.jsx";
-import { API_BASE } from "../services/api.config.js";
 import DescargaAppMovil from "./DescargaAppMovil.jsx";
 import ModoOscuro from "./ModoOscuro.jsx";
 import WhatsAppModal from "./WhatsAppModal.jsx";
-
-const PHOTO_STORAGE_KEY = "gu_user_photos";
-const getUserProfilePhoto = (key) => {
-  try {
-    const photos = JSON.parse(localStorage.getItem(PHOTO_STORAGE_KEY) || "{}");
-    return photos[key] || null;
-  } catch {
-    return null;
-  }
-};
+import useDarkMode from "../utils/useDarkMode.js";
+import useSessionCheck from "../utils/useSessionCheck.js";
+import useDashboardData from "../utils/useDashboardData.js";
+import {
+  donutParqueaderosConfig,
+  barChartConfig,
+  useChart,
+} from "../utils/chartConfigs.js";
 
 /** Calcula porcentaje como string. Retorna "0" si total es 0 */
 const calcPctStr = (val, total) =>
@@ -102,48 +96,30 @@ function buildModulos(showAreasComunes, showUserManagement) {
 }
 
 function Dashboard() {
-  const navigator = useNavigate();
-  const chartRef = useRef(null);
-  const barChartRef = useRef(null);
-  const visitasChartRef = useRef(null);
-
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [saliendo, setSaliendo] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [fotoUsuario, setFotoUsuario] = useState(null);
-  const [dataLoading, setDataLoading] = useState(true);
-  const [usuario, setUsuario] = useState(null);
-
-  // Datos del dashboard desde /api/dashboard/resumen
-  const [paquetesEntregados, setPaquetesEntregados] = useState(0);
-  const [paquetesPendientes, setPaquetesPendientes] = useState(0);
-  const [parqueosCarros, setParqueosCarros] = useState(0);
-  const [parqueosMotos, setParqueosMotos] = useState(0);
-  const [parqueosLibres, setParqueosLibres] = useState(0);
-  const [visitasHoy, setVisitasHoy] = useState(0);
-  const [visitasActivas, setVisitasActivas] = useState(0);
-  const [reservasHoy, setReservasHoy] = useState(0);
-  const [residentesActivos, setResidentesActivos] = useState(0);
   const [usuariosEnLinea, setUsuariosEnLinea] = useState([]);
-
-  // Modo oscuro – reactive para re-renderizar gráficas
-  const [oscuro, setOscuro] = useState(
-    () => document.documentElement.dataset.modo === "oscuro",
-  );
-  useEffect(() => {
-    const obs = new MutationObserver(() =>
-      setOscuro(document.documentElement.dataset.modo === "oscuro"),
-    );
-    obs.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-modo"],
-    });
-    return () => obs.disconnect();
-  }, []);
   const [totalEnLinea, setTotalEnLinea] = useState(0);
 
-  // Token / roles helpers
+  const oscuro = useDarkMode();
+  const { loading, usuario, fotoUsuario } = useSessionCheck();
+  const {
+    dataLoading,
+    setDataLoading,
+    cargarDatos: cargarDatosBase,
+    paquetesEntregados,
+    paquetesPendientes,
+    parqueosCarros,
+    parqueosMotos,
+    parqueosLibres,
+    visitasHoy,
+    visitasActivas,
+    reservasHoy,
+    residentesActivos,
+  } = useDashboardData(!loading);
+
+  // Token / roles helpers (inline, solo lectura de localStorage ya presente)
   const verificarTokenVencido = (token) => {
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
@@ -152,7 +128,6 @@ function Dashboard() {
       return true;
     }
   };
-
   const obtenerRolFromToken = (token) => {
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
@@ -168,313 +143,28 @@ function Dashboard() {
   const showUserManagement = tokenValido && rolesId === 1;
   const showAreasComunes = tokenValido && rolesId !== 3;
 
-  // Verificar sesión
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      Swal.fire({
-        icon: "warning",
-        title: "Sesión expirada",
-        text: "La sesión expiró. Vuelva a iniciar sesión.",
-        timer: 2000,
-        showConfirmButton: false,
-        timerProgressBar: true,
-      }).then(() => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigator("/");
-      });
-      return;
-    }
+  // Canvas refs
+  const parqueoCanvasRef = useRef(null);
+  const paquetesCanvasRef = useRef(null);
+  const visitasCanvasRef = useRef(null);
 
-    const userGuardado = localStorage.getItem("user");
-    if (userGuardado) {
-      try {
-        setUsuario(JSON.parse(userGuardado));
-        setLoading(false);
-      } catch {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigator("/");
-      }
-      return;
-    }
-
-    (async () => {
-      try {
-        const res = await fetch(`${API_BASE}/usuario`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (!res.ok) throw new Error("No autorizado");
-        const data = await res.json();
-        setUsuario(data.usuario);
-        localStorage.setItem("user", JSON.stringify(data.usuario));
-        setLoading(false);
-      } catch {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigator("/");
-      }
-    })();
-  }, [navigator]);
-
-  // Cargar foto de perfil
-  useEffect(() => {
-    if (usuario) {
-      setFotoUsuario(
-        usuario.fotoPerfil ||
-          getUserProfilePhoto(usuario.numeroDocumento) ||
-          getUserProfilePhoto(usuario.username) ||
-          null,
-      );
-    }
-  }, [usuario]);
-
-  // Cargar datos del dashboard (unificado como en Flutter)
-  const cargarDatos = useCallback(async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    setDataLoading(true);
+  // Cargar usuarios en línea junto con datos base
+  const cargarDatos = async () => {
+    await cargarDatosBase();
     try {
-      const res = await obtenerResumenDashboard(token);
-      const responseData = await res.json();
-
-      if (res.ok && responseData.success) {
-        const datos = responseData.data;
-        setPaquetesEntregados(datos.paquetes?.entregados ?? 0);
-        setPaquetesPendientes(datos.paquetes?.pendientes ?? 0);
-        setParqueosCarros(Math.max(0, datos.parqueaderos?.ocupadosCarros ?? 0));
-        setParqueosMotos(Math.max(0, datos.parqueaderos?.ocupadosMotos ?? 0));
-        setParqueosLibres(Math.max(0, datos.parqueaderos?.disponibles ?? 0));
-        setVisitasHoy(datos.visitas?.hoy ?? 0);
-        setVisitasActivas(datos.visitas?.activas ?? 0);
-        setReservasHoy(datos.reservas?.hoy ?? 0);
-        setResidentesActivos(datos.residentes?.activos ?? 0);
-      }
-
-      // Obtener usuarios en línea
-      try {
+      const token = localStorage.getItem("token");
+      if (token) {
         const enLineaData = await obtenerUsuariosEnLinea(token);
         const nombres = Object.keys(enLineaData);
         setUsuariosEnLinea(nombres);
         setTotalEnLinea(nombres.length);
-      } catch (error) {
-        console.warn("Error obteniendo usuarios en línea:", error);
       }
     } catch (error) {
-      console.warn("Error de red en dashboard:", error);
-    } finally {
-      setDataLoading(false);
+      console.warn("Error obteniendo usuarios en línea:", error);
     }
-  }, []);
+  };
 
-  useEffect(() => {
-    if (!loading) {
-      cargarDatos();
-    }
-  }, [loading, cargarDatos]);
-
-  // Gráfico de Donut para parqueaderos
-  useEffect(() => {
-    if (loading || dataLoading) return;
-    const ctx = document.getElementById("parqueoChart");
-    if (!ctx) return;
-
-    if (chartRef.current) chartRef.current.destroy();
-
-    const totalParqueos = parqueosCarros + parqueosMotos + parqueosLibres;
-
-    chartRef.current = new Chart(ctx, {
-      type: "doughnut",
-      data: {
-        labels: ["Carros", "Motos", "Libres"],
-        datasets: [
-          {
-            data: [parqueosCarros, parqueosMotos, parqueosLibres],
-            backgroundColor: ["#0d9488", "#f97316", "#d1d5db"],
-            borderWidth: 2,
-            borderColor: "#fff",
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: "50%",
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: (tooltipCtx) => {
-                const pct =
-                  totalParqueos > 0
-                    ? ((tooltipCtx.raw / totalParqueos) * 100).toFixed(0)
-                    : 0;
-                return `${tooltipCtx.label}: ${tooltipCtx.raw} (${pct}%)`;
-              },
-            },
-          },
-        },
-      },
-      plugins: [
-        {
-          id: "centerText",
-          beforeDraw(chart) {
-            const { width, height, ctx: drawCtx } = chart;
-            drawCtx.save();
-            const ocupados = parqueosCarros + parqueosMotos;
-            drawCtx.font = "bold 28px Arial";
-            drawCtx.fillStyle = oscuro ? "#e2e8f0" : "#1f2937";
-            drawCtx.textAlign = "center";
-            drawCtx.textBaseline = "middle";
-            drawCtx.fillText(ocupados, width / 2, height / 2 - 10);
-            drawCtx.font = "14px Arial";
-            drawCtx.fillStyle = oscuro ? "#94a3b8" : "#6b7280";
-            drawCtx.fillText("Ocupados", width / 2, height / 2 + 14);
-            drawCtx.restore();
-          },
-        },
-      ],
-    });
-
-    return () => {
-      if (chartRef.current) chartRef.current.destroy();
-    };
-  }, [
-    loading,
-    dataLoading,
-    parqueosCarros,
-    parqueosMotos,
-    parqueosLibres,
-    oscuro,
-  ]);
-
-  // Gráfico de barras para paquetes
-  useEffect(() => {
-    if (loading || dataLoading) return;
-    const ctx = document.getElementById("paquetesBarChart");
-    if (!ctx) return;
-
-    if (barChartRef.current) barChartRef.current.destroy();
-
-    barChartRef.current = new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels: ["Entregados", "Pendientes"],
-        datasets: [
-          {
-            data: [paquetesEntregados, paquetesPendientes],
-            backgroundColor: [
-              "rgba(34, 197, 94, 0.85)",
-              "rgba(249, 115, 22, 0.85)",
-            ],
-            borderRadius: 12,
-            borderSkipped: false,
-            barThickness: 60,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: (tooltipCtx) => `${tooltipCtx.raw} paquetes`,
-            },
-          },
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: { stepSize: 1, color: oscuro ? "#94a3b8" : "#6b7280" },
-            grid: {
-              color: oscuro ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
-            },
-          },
-          x: {
-            ticks: {
-              color: oscuro ? "#e2e8f0" : "#374151",
-              font: { weight: "500" },
-            },
-            grid: { display: false },
-          },
-        },
-      },
-    });
-
-    return () => {
-      if (barChartRef.current) barChartRef.current.destroy();
-    };
-  }, [loading, dataLoading, paquetesEntregados, paquetesPendientes, oscuro]);
-
-  // Gráfico de barras para visitas del día
-  useEffect(() => {
-    if (loading || dataLoading) return;
-    const ctx = document.getElementById("visitasBarChart");
-    if (!ctx) return;
-
-    if (visitasChartRef.current) visitasChartRef.current.destroy();
-
-    visitasChartRef.current = new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels: ["Hoy", "Activas"],
-        datasets: [
-          {
-            data: [visitasHoy, visitasActivas],
-            backgroundColor: [
-              "rgba(34, 197, 94, 0.85)",
-              "rgba(59, 130, 246, 0.85)",
-            ],
-            borderRadius: 12,
-            borderSkipped: false,
-            barThickness: 60,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: (tooltipCtx) => `${tooltipCtx.raw} visitas`,
-            },
-          },
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: { stepSize: 1, color: oscuro ? "#94a3b8" : "#6b7280" },
-            grid: {
-              color: oscuro ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
-            },
-          },
-          x: {
-            ticks: {
-              color: oscuro ? "#e2e8f0" : "#374151",
-              font: { weight: "500" },
-            },
-            grid: { display: false },
-          },
-        },
-      },
-    });
-
-    return () => {
-      if (visitasChartRef.current) visitasChartRef.current.destroy();
-    };
-  }, [loading, dataLoading, visitasHoy, visitasActivas, oscuro]);
-
-  // Auto-refresh cada 30 segundos para usuarios en línea
+  // Auto-refresh cada 30s para usuarios en línea
   useEffect(() => {
     if (loading) return;
     const interval = setInterval(() => {
@@ -492,6 +182,49 @@ function Dashboard() {
     return () => clearInterval(interval);
   }, [loading]);
 
+  // Gráficos
+  const ready = !loading && !dataLoading;
+  useChart(
+    parqueoCanvasRef,
+    ready
+      ? donutParqueaderosConfig(
+          {
+            carros: parqueosCarros,
+            motos: parqueosMotos,
+            libres: parqueosLibres,
+          },
+          oscuro,
+        )
+      : null,
+    [ready, parqueosCarros, parqueosMotos, parqueosLibres, oscuro],
+  );
+  useChart(
+    paquetesCanvasRef,
+    ready
+      ? barChartConfig(
+          ["Entregados", "Pendientes"],
+          [paquetesEntregados, paquetesPendientes],
+          ["rgba(34, 197, 94, 0.85)", "rgba(249, 115, 22, 0.85)"],
+          "paquetes",
+          oscuro,
+        )
+      : null,
+    [ready, paquetesEntregados, paquetesPendientes, oscuro],
+  );
+  useChart(
+    visitasCanvasRef,
+    ready
+      ? barChartConfig(
+          ["Hoy", "Activas"],
+          [visitasHoy, visitasActivas],
+          ["rgba(34, 197, 94, 0.85)", "rgba(59, 130, 246, 0.85)"],
+          "visitas",
+          oscuro,
+        )
+      : null,
+    [ready, visitasHoy, visitasActivas, oscuro],
+  );
+
   const cerrarSesion = async (e) => {
     e.preventDefault();
     setSaliendo(true);
@@ -500,7 +233,7 @@ function Dashboard() {
       if (token) await logoutUsuario(token);
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      navigator("/login", { replace: true });
+      window.location.replace("/login");
     }, 380);
   };
 
@@ -518,13 +251,11 @@ function Dashboard() {
   const totalPaquetes = paquetesEntregados + paquetesPendientes;
   const porcentajeEntregados = calcPctStr(paquetesEntregados, totalPaquetes);
   const totalParqueos = parqueosCarros + parqueosMotos + parqueosLibres;
-
-  // Definición de módulos (como en Flutter)
   const modulos = buildModulos(showAreasComunes, showUserManagement);
 
   return (
     <div className={`sa-dashboard${saliendo ? " sa-saliendo" : ""}`}>
-      {/* ====== OFFCANVAS MENU (hamburguesa como Flutter) ====== */}
+      {/* ====== OFFCANVAS MENU ====== */}
       <button
         type="button"
         className={`sa-overlay ${menuOpen ? "active" : ""}`}
@@ -554,9 +285,7 @@ function Dashboard() {
             {usuario?.username || usuario?.nombre || "Usuario"}
           </span>
         </div>
-
         <div className="sa-drawer-body">
-          {/* Navegación */}
           <div className="sa-menu-section">
             <h6 className="sa-menu-section-title">Navegación</h6>
             <Link
@@ -569,8 +298,6 @@ function Dashboard() {
               <i className="bi bi-chevron-right sa-menu-arrow"></i>
             </Link>
           </div>
-
-          {/* Módulos */}
           <div className="sa-menu-section">
             <h6 className="sa-menu-section-title">Módulos</h6>
             <Link
@@ -662,7 +389,6 @@ function Dashboard() {
             )}
           </div>
         </div>
-
         <div className="sa-drawer-footer">
           <button className="sa-logout-btn" onClick={cerrarSesion}>
             <i className="bi bi-box-arrow-right"></i> Cerrar Sesión
@@ -672,7 +398,6 @@ function Dashboard() {
 
       {/* ====== CONTENIDO PRINCIPAL ====== */}
       <div className="sa-main">
-        {/* Header / AppBar (como Flutter) */}
         <header className="sa-header">
           <div className="sa-profile-btn-wrap">
             <button
@@ -775,7 +500,6 @@ function Dashboard() {
           </div>
         </header>
 
-        {/* Bienvenida */}
         <div className="sa-welcome">
           <h2 className="sa-welcome-title">
             Bienvenido, {usuario?.username || usuario?.nombre || "Usuario"}
@@ -785,9 +509,8 @@ function Dashboard() {
           </p>
         </div>
 
-        {/* Tarjetas de módulos (como Flutter: iconos + gradientes) */}
         <div className="sa-modules-grid">
-          {modulos.map((mod, idx) => (
+          {modulos.map((mod) => (
             <Link
               to={mod.to}
               key={mod.to}
@@ -804,12 +527,10 @@ function Dashboard() {
           ))}
         </div>
 
-        {/* Sección de estadísticas (como Flutter) */}
         <div className="sa-stats-section">
           <h3 className="sa-stats-title">Estadísticas del Día</h3>
-
           <div className="sa-stats-grid">
-            {/* Tarjeta de Paquetes */}
+            {/* Paquetes */}
             <div className="sa-stat-card">
               <div className="sa-stat-card-header">
                 <i
@@ -818,11 +539,9 @@ function Dashboard() {
                 ></i>
                 <h5>Paquetes Entregados Hoy</h5>
               </div>
-
               <div className="sa-bar-chart-container">
-                <canvas id="paquetesBarChart"></canvas>
+                <canvas ref={paquetesCanvasRef}></canvas>
               </div>
-
               <div className="sa-stat-summary">
                 <div className="sa-stat-summary-item">
                   <span
@@ -846,7 +565,7 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* Tarjeta de Parqueaderos */}
+            {/* Parqueaderos */}
             <Link to="/parqueaderos" className="sa-stat-card sa-stat-card-link">
               <div className="sa-stat-card-header">
                 <i
@@ -859,49 +578,30 @@ function Dashboard() {
                   style={{ color: "#9ca3af", marginLeft: "auto" }}
                 ></i>
               </div>
-
               <div className="sa-donut-chart-container">
-                <canvas id="parqueoChart"></canvas>
+                <canvas ref={parqueoCanvasRef}></canvas>
               </div>
-
               <div className="sa-legend">
-                <div className="sa-legend-item">
-                  <span
-                    className="sa-legend-dot"
-                    style={{ backgroundColor: "#0d9488" }}
-                  ></span>
-                  <span className="sa-legend-label">Carros</span>
-                  <span className="sa-legend-value">
-                    {parqueosCarros} (
-                    {calcPctStr(parqueosCarros, totalParqueos)}%)
-                  </span>
-                </div>
-                <div className="sa-legend-item">
-                  <span
-                    className="sa-legend-dot"
-                    style={{ backgroundColor: "#f97316" }}
-                  ></span>
-                  <span className="sa-legend-label">Motos</span>
-                  <span className="sa-legend-value">
-                    {parqueosMotos} ({calcPctStr(parqueosMotos, totalParqueos)}
-                    %)
-                  </span>
-                </div>
-                <div className="sa-legend-item">
-                  <span
-                    className="sa-legend-dot"
-                    style={{ backgroundColor: "#d1d5db" }}
-                  ></span>
-                  <span className="sa-legend-label">Libres</span>
-                  <span className="sa-legend-value">
-                    {parqueosLibres} (
-                    {calcPctStr(parqueosLibres, totalParqueos)}%)
-                  </span>
-                </div>
+                {[
+                  { label: "Carros", value: parqueosCarros, color: "#0d9488" },
+                  { label: "Motos", value: parqueosMotos, color: "#f97316" },
+                  { label: "Libres", value: parqueosLibres, color: "#d1d5db" },
+                ].map((item) => (
+                  <div className="sa-legend-item" key={item.label}>
+                    <span
+                      className="sa-legend-dot"
+                      style={{ backgroundColor: item.color }}
+                    ></span>
+                    <span className="sa-legend-label">{item.label}</span>
+                    <span className="sa-legend-value">
+                      {item.value} ({calcPctStr(item.value, totalParqueos)}%)
+                    </span>
+                  </div>
+                ))}
               </div>
             </Link>
 
-            {/* Tarjeta de Visitas del Día */}
+            {/* Visitas del Día */}
             <Link to="/visitas" className="sa-stat-card sa-stat-card-link">
               <div className="sa-stat-card-header">
                 <i
@@ -914,11 +614,9 @@ function Dashboard() {
                   style={{ color: "#9ca3af", marginLeft: "auto" }}
                 ></i>
               </div>
-
               <div className="sa-bar-chart-container">
-                <canvas id="visitasBarChart"></canvas>
+                <canvas ref={visitasCanvasRef}></canvas>
               </div>
-
               <div className="sa-stat-summary">
                 <div className="sa-stat-summary-item">
                   <span
@@ -942,7 +640,7 @@ function Dashboard() {
               </div>
             </Link>
 
-            {/* Tarjeta de Reservas del Día */}
+            {/* Reservas del Día */}
             <Link to="/AreasComunes" className="sa-stat-card sa-stat-card-link">
               <div className="sa-stat-card-header">
                 <i
@@ -955,7 +653,6 @@ function Dashboard() {
                   style={{ color: "#9ca3af", marginLeft: "auto" }}
                 ></i>
               </div>
-
               <div className="sa-info-card-body">
                 <div className="sa-info-big-value" style={{ color: "#f97316" }}>
                   {reservasHoy}
@@ -964,7 +661,6 @@ function Dashboard() {
                   Áreas comunes reservadas hoy
                 </span>
               </div>
-
               <div className="sa-stat-summary">
                 <div className="sa-stat-summary-item">
                   <span
@@ -988,7 +684,7 @@ function Dashboard() {
               </div>
             </Link>
 
-            {/* Tarjeta de Usuarios en Línea */}
+            {/* Usuarios en Línea */}
             {showUserManagement && (
               <Link
                 to="/GestionUsuario"
@@ -1005,7 +701,6 @@ function Dashboard() {
                     style={{ color: "#9ca3af", marginLeft: "auto" }}
                   ></i>
                 </div>
-
                 <div className="sa-online-header">
                   <span
                     className="sa-online-count"
@@ -1019,7 +714,6 @@ function Dashboard() {
                       : "usuarios conectados"}
                   </span>
                 </div>
-
                 <div className="sa-online-users-list">
                   {usuariosEnLinea.length > 0 ? (
                     usuariosEnLinea.map((username) => (

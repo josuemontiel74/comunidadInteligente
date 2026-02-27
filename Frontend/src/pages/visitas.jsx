@@ -11,7 +11,9 @@ import {
   actualizarVisita,
   finalizarVisita,
 } from "../services/visitas.services.jsx";
-import { logoutUsuario } from "../services/gestionUsuarios.jsx";
+import ModalOverlay from "../utils/ModalOverlay.jsx";
+import { verificarTokenVencido, obtenerRolFromToken } from "../utils/auth.js";
+import useLogout from "../utils/useLogout.js";
 import { obtenerParqueaderos } from "../services/parqueadero.services.jsx";
 
 /** Valida los campos del formulario de visita. Retorna string de error o null */
@@ -123,7 +125,7 @@ function Visitas() {
   const [guardando, setGuardando] = useState(false);
 
   // ── formulario ──
-  const [formData, setFormData] = useState({
+  const FORM_INITIAL = {
     numeroDocumento: "",
     tipoDocumentoId: "",
     nombreVisitante: "",
@@ -135,7 +137,8 @@ function Visitas() {
     matricula: "",
     tipoVehiculoId: "",
     codigoParqueadero: "",
-  });
+  };
+  const [formData, setFormData] = useState(FORM_INITIAL);
 
   // ── parqueaderos ──
   const [parqueaderosDisponibles, setParqueaderosDisponibles] = useState([]);
@@ -194,24 +197,7 @@ function Visitas() {
     { id: 50, torreId: 10, numero: "301" },
   ];
 
-  // ── Token helpers ──
-  const verificarTokenVencido = (token) => {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return Date.now() >= payload.exp * 1000;
-    } catch {
-      return true;
-    }
-  };
-
-  const obtenerRolFromToken = (token) => {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload.rolesId;
-    } catch {
-      return null;
-    }
-  };
+  // Token helpers (importados de utils/auth.js)
 
   const tokenLocal = localStorage.getItem("token");
   const rolesId = tokenLocal ? obtenerRolFromToken(tokenLocal) : null;
@@ -424,40 +410,40 @@ function Visitas() {
     }
   }, []);
 
-  // ── Formatear fecha Colombia UTC-5 ──
+  // ── Convertir fecha a hora Colombia UTC-5 ──
+  const toColombiaDate = (fechaStr) => {
+    const fecha = new Date(fechaStr);
+    if (Number.isNaN(fecha.getTime())) return null;
+    const colombiaOffset = -5 * 60;
+    const utcMs = fecha.getTime() + fecha.getTimezoneOffset() * 60000;
+    return new Date(utcMs + colombiaOffset * 60000);
+  };
+
   const formatearFecha = (fechaStr) => {
     if (!fechaStr) return "N/A";
     try {
-      const fecha = new Date(fechaStr);
-      const colombiaOffset = -5 * 60;
-      const utcMs = fecha.getTime() + fecha.getTimezoneOffset() * 60000;
-      const colombiaDate = new Date(utcMs + colombiaOffset * 60000);
-      const dd = String(colombiaDate.getDate()).padStart(2, "0");
-      const mm = String(colombiaDate.getMonth() + 1).padStart(2, "0");
-      const yyyy = colombiaDate.getFullYear();
-      const hh = String(colombiaDate.getHours()).padStart(2, "0");
-      const min = String(colombiaDate.getMinutes()).padStart(2, "0");
-      return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+      const d = toColombiaDate(fechaStr);
+      if (!d) return fechaStr;
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const hh = String(d.getHours()).padStart(2, "0");
+      const min = String(d.getMinutes()).padStart(2, "0");
+      return `${dd}/${mm}/${d.getFullYear()} ${hh}:${min}`;
     } catch {
       return fechaStr;
     }
   };
 
-  // ── Convertir fecha UTC a formato datetime-local (Colombia UTC-5) ──
   const fechaParaInput = (fechaStr) => {
     if (!fechaStr) return "";
     try {
-      const fecha = new Date(fechaStr);
-      if (Number.isNaN(fecha.getTime())) return "";
-      const colombiaOffset = -5 * 60;
-      const utcMs = fecha.getTime() + fecha.getTimezoneOffset() * 60000;
-      const colombiaDate = new Date(utcMs + colombiaOffset * 60000);
-      const yyyy = colombiaDate.getFullYear();
-      const mm = String(colombiaDate.getMonth() + 1).padStart(2, "0");
-      const dd = String(colombiaDate.getDate()).padStart(2, "0");
-      const hh = String(colombiaDate.getHours()).padStart(2, "0");
-      const min = String(colombiaDate.getMinutes()).padStart(2, "0");
-      return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+      const d = toColombiaDate(fechaStr);
+      if (!d) return "";
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      const hh = String(d.getHours()).padStart(2, "0");
+      const min = String(d.getMinutes()).padStart(2, "0");
+      return `${d.getFullYear()}-${mm}-${dd}T${hh}:${min}`;
     } catch {
       return "";
     }
@@ -548,19 +534,7 @@ function Visitas() {
 
   // ── Reset form ──
   const resetForm = () => {
-    setFormData({
-      numeroDocumento: "",
-      tipoDocumentoId: "",
-      nombreVisitante: "",
-      torreId: "",
-      apartamentoId: "",
-      fechaHoraIngreso: "",
-      observaciones: "",
-      vieneEnVehiculo: "NO",
-      matricula: "",
-      tipoVehiculoId: "",
-      codigoParqueadero: "",
-    });
+    setFormData(FORM_INITIAL);
     setParqueaderosDisponibles([]);
   };
 
@@ -743,14 +717,7 @@ function Visitas() {
   };
 
   // ── Cerrar sesión ──
-  const cerrarSesion = async (e) => {
-    e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (token) await logoutUsuario(token);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/");
-  };
+  const cerrarSesion = useLogout();
 
   // ── Navegar a parqueaderos para seleccionar ──
   const irASeleccionarParqueadero = () => {
@@ -1426,441 +1393,407 @@ function Visitas() {
       </div>
 
       {/* ══════════ MODAL CREAR / EDITAR ══════════ */}
-      {(modalCrear || modalEditar) && (
-        <dialog
-          open
-          className="vis-modal-overlay"
-          onClick={(e) => {
-            if (e.target !== e.currentTarget) return;
-            setModalCrear(false);
-            setModalEditar(false);
-            setVisitaEditando(null);
-            resetForm();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") {
-              setModalCrear(false);
-              setModalEditar(false);
-              setVisitaEditando(null);
-              resetForm();
-            }
-          }}
-          aria-modal="true"
-          aria-label="Cerrar"
-        >
-          <div className="vis-modal">
-            <div className="vis-modal-header">
-              <div className="vis-modal-header-left">
-                <i
-                  className={`bi ${modalConfig.headerIcon}`}
-                  style={{ color: "#4CAF50", fontSize: "22px" }}
-                ></i>
-                <h5>{modalConfig.headerTitle}</h5>
-              </div>
-              <button
-                className="vis-modal-close"
-                onClick={() => {
-                  setModalCrear(false);
-                  setModalEditar(false);
-                  setVisitaEditando(null);
-                  resetForm();
-                }}
-              >
-                <i className="bi bi-x-lg"></i>
-              </button>
+      <ModalOverlay
+        isOpen={modalCrear || modalEditar}
+        onClose={() => {
+          setModalCrear(false);
+          setModalEditar(false);
+          setVisitaEditando(null);
+          resetForm();
+        }}
+        className="vis-modal-overlay"
+      >
+        <div className="vis-modal">
+          <div className="vis-modal-header">
+            <div className="vis-modal-header-left">
+              <i
+                className={`bi ${modalConfig.headerIcon}`}
+                style={{ color: "#4CAF50", fontSize: "22px" }}
+              ></i>
+              <h5>{modalConfig.headerTitle}</h5>
             </div>
+            <button
+              className="vis-modal-close"
+              onClick={() => {
+                setModalCrear(false);
+                setModalEditar(false);
+                setVisitaEditando(null);
+                resetForm();
+              }}
+            >
+              <i className="bi bi-x-lg"></i>
+            </button>
+          </div>
 
-            <form onSubmit={handleGuardar}>
-              <div className="vis-modal-body">
-                {/* Tipo Documento + Nro Documento */}
-                <div className="vis-form-row">
-                  <div className="vis-form-group">
-                    <label
-                      htmlFor="vis-tipoDocumentoId"
-                      className="vis-form-label"
-                    >
-                      Tipo Documento <span className="required">*</span>
-                    </label>
-                    <select
-                      id="vis-tipoDocumentoId"
-                      className="vis-form-control"
-                      value={formData.tipoDocumentoId}
-                      onChange={(e) =>
-                        handleChange("tipoDocumentoId", e.target.value)
-                      }
-                      required
-                    >
-                      <option value="">Selecciona...</option>
-                      <option value="1">CC</option>
-                      <option value="2">CE</option>
-                      <option value="3">PA</option>
-                      <option value="4">PP</option>
-                      <option value="5">PPT</option>
-                    </select>
+          <form onSubmit={handleGuardar}>
+            <div className="vis-modal-body">
+              {/* Tipo Documento + Nro Documento */}
+              <div className="vis-form-row">
+                <div className="vis-form-group">
+                  <label
+                    htmlFor="vis-tipoDocumentoId"
+                    className="vis-form-label"
+                  >
+                    Tipo Documento <span className="required">*</span>
+                  </label>
+                  <select
+                    id="vis-tipoDocumentoId"
+                    className="vis-form-control"
+                    value={formData.tipoDocumentoId}
+                    onChange={(e) =>
+                      handleChange("tipoDocumentoId", e.target.value)
+                    }
+                    required
+                  >
+                    <option value="">Selecciona...</option>
+                    <option value="1">CC</option>
+                    <option value="2">CE</option>
+                    <option value="3">PA</option>
+                    <option value="4">PP</option>
+                    <option value="5">PPT</option>
+                  </select>
+                </div>
+                <div className="vis-form-group">
+                  <label
+                    htmlFor="vis-numeroDocumento"
+                    className="vis-form-label"
+                  >
+                    N° Documento <span className="required">*</span>
+                  </label>
+                  <input
+                    id="vis-numeroDocumento"
+                    type="text"
+                    className="vis-form-control"
+                    value={formData.numeroDocumento}
+                    onChange={(e) =>
+                      handleChange("numeroDocumento", e.target.value)
+                    }
+                    placeholder="Ej: 12345678"
+                    minLength={8}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Nombre */}
+              <div className="vis-form-group">
+                <label htmlFor="vis-nombreVisitante" className="vis-form-label">
+                  Nombre Visitante <span className="required">*</span>
+                </label>
+                <input
+                  id="vis-nombreVisitante"
+                  type="text"
+                  className="vis-form-control"
+                  value={formData.nombreVisitante}
+                  onChange={(e) =>
+                    handleChange("nombreVisitante", e.target.value)
+                  }
+                  placeholder="Ej: Juan Carlos Rodriguez Gonzalez"
+                  minLength={10}
+                  required
+                />
+                {formData.nombreVisitante &&
+                  formData.nombreVisitante.length < 10 && (
+                    <small style={{ color: "#f97316", fontSize: "12px" }}>
+                      Faltan {10 - formData.nombreVisitante.length} caracteres
+                    </small>
+                  )}
+              </div>
+
+              {/* Torre + Apartamento */}
+              <div className="vis-form-row">
+                <div className="vis-form-group">
+                  <label htmlFor="vis-torreId" className="vis-form-label">
+                    Torre <span className="required">*</span>
+                  </label>
+                  <select
+                    id="vis-torreId"
+                    className="vis-form-control"
+                    value={formData.torreId}
+                    onChange={(e) => handleChange("torreId", e.target.value)}
+                    required
+                  >
+                    <option value="">Selecciona torre</option>
+                    {Array.from({ length: 10 }, (_, i) => (
+                      <option
+                        key={`torre-${String.fromCodePoint(65 + i)}`}
+                        value={i + 1}
+                      >
+                        Torre {String.fromCodePoint(65 + i)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="vis-form-group">
+                  <label htmlFor="vis-apartamentoId" className="vis-form-label">
+                    Apartamento <span className="required">*</span>
+                  </label>
+                  <select
+                    id="vis-apartamentoId"
+                    className="vis-form-control"
+                    value={formData.apartamentoId}
+                    onChange={(e) =>
+                      handleChange("apartamentoId", e.target.value)
+                    }
+                    required
+                    disabled={!formData.torreId}
+                  >
+                    <option value="">Selecciona apartamento</option>
+                    {apartamentos
+                      .filter(
+                        (a) =>
+                          a.torreId === Number.parseInt(formData.torreId, 10),
+                      )
+                      .map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.numero}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Fecha hora ingreso */}
+              <div className="vis-form-group">
+                <label
+                  htmlFor="vis-fechaHoraIngreso"
+                  className="vis-form-label"
+                >
+                  Fecha y Hora de Ingreso <span className="required">*</span>
+                </label>
+                <input
+                  id="vis-fechaHoraIngreso"
+                  type="datetime-local"
+                  className="vis-form-control"
+                  value={formData.fechaHoraIngreso}
+                  onChange={(e) =>
+                    handleChange("fechaHoraIngreso", e.target.value)
+                  }
+                  required
+                />
+              </div>
+
+              {/* ¿Viene en vehículo? */}
+              <div className="vis-form-group">
+                <label htmlFor="vis-vieneEnVehiculo" className="vis-form-label">
+                  ¿Viene en vehículo? <span className="required">*</span>
+                </label>
+                <select
+                  id="vis-vieneEnVehiculo"
+                  className="vis-form-control"
+                  value={formData.vieneEnVehiculo}
+                  onChange={(e) =>
+                    handleChange("vieneEnVehiculo", e.target.value)
+                  }
+                >
+                  <option value="NO">NO</option>
+                  <option value="SI">SI</option>
+                </select>
+              </div>
+
+              {/* Sección vehículo condicional */}
+              {formData.vieneEnVehiculo === "SI" && (
+                <div className="vis-vehicle-section">
+                  <div className="vis-vehicle-title">
+                    <i className="bi bi-car-front"></i> Datos del Vehículo
                   </div>
+
                   <div className="vis-form-group">
-                    <label
-                      htmlFor="vis-numeroDocumento"
-                      className="vis-form-label"
-                    >
-                      N° Documento <span className="required">*</span>
+                    <label htmlFor="vis-matricula" className="vis-form-label">
+                      Matrícula <span className="required">*</span>
                     </label>
                     <input
-                      id="vis-numeroDocumento"
+                      id="vis-matricula"
                       type="text"
                       className="vis-form-control"
-                      value={formData.numeroDocumento}
+                      value={formData.matricula}
                       onChange={(e) =>
-                        handleChange("numeroDocumento", e.target.value)
+                        handleChange("matricula", e.target.value.toUpperCase())
                       }
-                      placeholder="Ej: 12345678"
-                      minLength={8}
+                      placeholder="Ej: ABC123"
                       required
                     />
                   </div>
-                </div>
 
-                {/* Nombre */}
-                <div className="vis-form-group">
-                  <label
-                    htmlFor="vis-nombreVisitante"
-                    className="vis-form-label"
-                  >
-                    Nombre Visitante <span className="required">*</span>
-                  </label>
-                  <input
-                    id="vis-nombreVisitante"
-                    type="text"
-                    className="vis-form-control"
-                    value={formData.nombreVisitante}
-                    onChange={(e) =>
-                      handleChange("nombreVisitante", e.target.value)
-                    }
-                    placeholder="Ej: Juan Carlos Rodriguez Gonzalez"
-                    minLength={10}
-                    required
-                  />
-                  {formData.nombreVisitante &&
-                    formData.nombreVisitante.length < 10 && (
-                      <small style={{ color: "#f97316", fontSize: "12px" }}>
-                        Faltan {10 - formData.nombreVisitante.length} caracteres
-                      </small>
-                    )}
-                </div>
-
-                {/* Torre + Apartamento */}
-                <div className="vis-form-row">
-                  <div className="vis-form-group">
-                    <label htmlFor="vis-torreId" className="vis-form-label">
-                      Torre <span className="required">*</span>
-                    </label>
-                    <select
-                      id="vis-torreId"
-                      className="vis-form-control"
-                      value={formData.torreId}
-                      onChange={(e) => handleChange("torreId", e.target.value)}
-                      required
-                    >
-                      <option value="">Selecciona torre</option>
-                      {Array.from({ length: 10 }, (_, i) => (
-                        <option
-                          key={`torre-${String.fromCodePoint(65 + i)}`}
-                          value={i + 1}
-                        >
-                          Torre {String.fromCodePoint(65 + i)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
                   <div className="vis-form-group">
                     <label
-                      htmlFor="vis-apartamentoId"
+                      htmlFor="vis-tipoVehiculoId"
                       className="vis-form-label"
                     >
-                      Apartamento <span className="required">*</span>
+                      Tipo de Vehículo <span className="required">*</span>
                     </label>
                     <select
-                      id="vis-apartamentoId"
+                      id="vis-tipoVehiculoId"
                       className="vis-form-control"
-                      value={formData.apartamentoId}
+                      value={formData.tipoVehiculoId}
                       onChange={(e) =>
-                        handleChange("apartamentoId", e.target.value)
+                        handleChange("tipoVehiculoId", e.target.value)
                       }
                       required
-                      disabled={!formData.torreId}
                     >
-                      <option value="">Selecciona apartamento</option>
-                      {apartamentos
-                        .filter(
-                          (a) =>
-                            a.torreId === Number.parseInt(formData.torreId, 10),
-                        )
-                        .map((a) => (
-                          <option key={a.id} value={a.id}>
-                            {a.numero}
-                          </option>
-                        ))}
+                      <option value="">Selecciona tipo</option>
+                      <option value="1">Carro</option>
+                      <option value="2">Moto</option>
                     </select>
                   </div>
-                </div>
 
-                {/* Fecha hora ingreso */}
-                <div className="vis-form-group">
-                  <label
-                    htmlFor="vis-fechaHoraIngreso"
-                    className="vis-form-label"
-                  >
-                    Fecha y Hora de Ingreso <span className="required">*</span>
-                  </label>
-                  <input
-                    id="vis-fechaHoraIngreso"
-                    type="datetime-local"
-                    className="vis-form-control"
-                    value={formData.fechaHoraIngreso}
-                    onChange={(e) =>
-                      handleChange("fechaHoraIngreso", e.target.value)
-                    }
-                    required
-                  />
-                </div>
-
-                {/* ¿Viene en vehículo? */}
-                <div className="vis-form-group">
-                  <label
-                    htmlFor="vis-vieneEnVehiculo"
-                    className="vis-form-label"
-                  >
-                    ¿Viene en vehículo? <span className="required">*</span>
-                  </label>
-                  <select
-                    id="vis-vieneEnVehiculo"
-                    className="vis-form-control"
-                    value={formData.vieneEnVehiculo}
-                    onChange={(e) =>
-                      handleChange("vieneEnVehiculo", e.target.value)
-                    }
-                  >
-                    <option value="NO">NO</option>
-                    <option value="SI">SI</option>
-                  </select>
-                </div>
-
-                {/* Sección vehículo condicional */}
-                {formData.vieneEnVehiculo === "SI" && (
-                  <div className="vis-vehicle-section">
-                    <div className="vis-vehicle-title">
-                      <i className="bi bi-car-front"></i> Datos del Vehículo
-                    </div>
-
-                    <div className="vis-form-group">
-                      <label htmlFor="vis-matricula" className="vis-form-label">
-                        Matrícula <span className="required">*</span>
-                      </label>
-                      <input
-                        id="vis-matricula"
-                        type="text"
-                        className="vis-form-control"
-                        value={formData.matricula}
-                        onChange={(e) =>
-                          handleChange(
-                            "matricula",
-                            e.target.value.toUpperCase(),
-                          )
-                        }
-                        placeholder="Ej: ABC123"
-                        required
-                      />
-                    </div>
-
+                  {/* Parqueadero */}
+                  {formData.tipoVehiculoId && (
                     <div className="vis-form-group">
                       <label
-                        htmlFor="vis-tipoVehiculoId"
+                        htmlFor="vis-parqueadero"
                         className="vis-form-label"
                       >
-                        Tipo de Vehículo <span className="required">*</span>
+                        Parqueadero <span className="required">*</span>
                       </label>
-                      <select
-                        id="vis-tipoVehiculoId"
-                        className="vis-form-control"
-                        value={formData.tipoVehiculoId}
-                        onChange={(e) =>
-                          handleChange("tipoVehiculoId", e.target.value)
-                        }
-                        required
-                      >
-                        <option value="">Selecciona tipo</option>
-                        <option value="1">Carro</option>
-                        <option value="2">Moto</option>
-                      </select>
-                    </div>
-
-                    {/* Parqueadero */}
-                    {formData.tipoVehiculoId && (
-                      <div className="vis-form-group">
-                        <label
-                          htmlFor="vis-parqueadero"
-                          className="vis-form-label"
-                        >
-                          Parqueadero <span className="required">*</span>
-                        </label>
-                        {(() => {
-                          if (formData.codigoParqueadero) {
-                            return (
-                              <div className="vis-parking-selected">
-                                <div>
-                                  <div
-                                    style={{
-                                      fontSize: "11px",
-                                      color: "#6b7280",
-                                      textTransform: "uppercase",
-                                    }}
-                                  >
-                                    Parqueadero seleccionado
-                                  </div>
-                                  <div className="vis-parking-code">
-                                    {formData.codigoParqueadero}
-                                  </div>
-                                </div>
-                                <button
-                                  type="button"
-                                  className="vis-parking-change"
-                                  onClick={irASeleccionarParqueadero}
-                                >
-                                  Cambiar
-                                </button>
-                              </div>
-                            );
-                          }
-                          if (parqueaderosDisponibles.length > 0) {
-                            return (
-                              <div style={{ display: "flex", gap: "8px" }}>
-                                <select
-                                  className="vis-form-control"
-                                  value={formData.codigoParqueadero}
-                                  onChange={(e) => {
-                                    const sel = e.target.value;
-                                    const found = parqueaderosDisponibles.find(
-                                      (p) => p.codigoParqueadero === sel,
-                                    );
-                                    if (found?.disabled) {
-                                      Swal.fire(
-                                        "Tipo inválido",
-                                        "Este espacio no coincide con el tipo de vehículo.",
-                                        "error",
-                                      );
-                                      return;
-                                    }
-                                    handleChange("codigoParqueadero", sel);
-                                  }}
-                                  required
-                                  style={{ flex: 1 }}
-                                >
-                                  <option value="">
-                                    Selecciona un parqueadero
-                                  </option>
-                                  {parqueaderosDisponibles.map((p) => (
-                                    <option
-                                      key={p.codigoParqueadero}
-                                      value={p.codigoParqueadero}
-                                      disabled={p.disabled}
-                                    >
-                                      {p.codigoParqueadero}
-                                      {p.disabled ? " (no compatible)" : ""}
-                                    </option>
-                                  ))}
-                                </select>
-                                <button
-                                  type="button"
-                                  className="vis-parking-change"
-                                  onClick={irASeleccionarParqueadero}
-                                  style={{ whiteSpace: "nowrap" }}
-                                >
-                                  Ver mapa
-                                </button>
-                              </div>
-                            );
-                          }
-                          const tipoLabel =
-                            formData.tipoVehiculoId === "1"
-                              ? "carros"
-                              : "motos";
+                      {(() => {
+                        if (formData.codigoParqueadero) {
                           return (
-                            <div
-                              style={{
-                                background: "#fff7ed",
-                                border: "1px solid #fed7aa",
-                                borderRadius: "10px",
-                                padding: "12px",
-                                fontSize: "13px",
-                                color: "#c2410c",
-                              }}
-                            >
-                              <strong>No hay parqueaderos disponibles</strong>
-                              <br />
-                              Para {tipoLabel}.
+                            <div className="vis-parking-selected">
+                              <div>
+                                <div
+                                  style={{
+                                    fontSize: "11px",
+                                    color: "#6b7280",
+                                    textTransform: "uppercase",
+                                  }}
+                                >
+                                  Parqueadero seleccionado
+                                </div>
+                                <div className="vis-parking-code">
+                                  {formData.codigoParqueadero}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                className="vis-parking-change"
+                                onClick={irASeleccionarParqueadero}
+                              >
+                                Cambiar
+                              </button>
                             </div>
                           );
-                        })()}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Observaciones */}
-                <div className="vis-form-group">
-                  <label htmlFor="vis-observaciones" className="vis-form-label">
-                    Observaciones
-                  </label>
-                  <textarea
-                    id="vis-observaciones"
-                    className="vis-form-control vis-form-textarea"
-                    value={formData.observaciones}
-                    onChange={(e) =>
-                      handleChange("observaciones", e.target.value)
-                    }
-                    placeholder="Notas adicionales..."
-                    rows={2}
-                  />
-                </div>
-              </div>
-
-              <div className="vis-modal-footer">
-                <button
-                  type="submit"
-                  className={`vis-btn-submit ${modalConfig.submitColor}`}
-                  disabled={guardando}
-                >
-                  {guardando ? (
-                    <>
-                      <output className="spinner-border spinner-border-sm"></output>{" "}
-                      Guardando...
-                    </>
-                  ) : (
-                    <>
-                      <i className={`bi ${modalConfig.submitIcon}`}></i>
-                      {modalConfig.submitText}
-                    </>
+                        }
+                        if (parqueaderosDisponibles.length > 0) {
+                          return (
+                            <div style={{ display: "flex", gap: "8px" }}>
+                              <select
+                                className="vis-form-control"
+                                value={formData.codigoParqueadero}
+                                onChange={(e) => {
+                                  const sel = e.target.value;
+                                  const found = parqueaderosDisponibles.find(
+                                    (p) => p.codigoParqueadero === sel,
+                                  );
+                                  if (found?.disabled) {
+                                    Swal.fire(
+                                      "Tipo inválido",
+                                      "Este espacio no coincide con el tipo de vehículo.",
+                                      "error",
+                                    );
+                                    return;
+                                  }
+                                  handleChange("codigoParqueadero", sel);
+                                }}
+                                required
+                                style={{ flex: 1 }}
+                              >
+                                <option value="">
+                                  Selecciona un parqueadero
+                                </option>
+                                {parqueaderosDisponibles.map((p) => (
+                                  <option
+                                    key={p.codigoParqueadero}
+                                    value={p.codigoParqueadero}
+                                    disabled={p.disabled}
+                                  >
+                                    {p.codigoParqueadero}
+                                    {p.disabled ? " (no compatible)" : ""}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                className="vis-parking-change"
+                                onClick={irASeleccionarParqueadero}
+                                style={{ whiteSpace: "nowrap" }}
+                              >
+                                Ver mapa
+                              </button>
+                            </div>
+                          );
+                        }
+                        const tipoLabel =
+                          formData.tipoVehiculoId === "1" ? "carros" : "motos";
+                        return (
+                          <div
+                            style={{
+                              background: "#fff7ed",
+                              border: "1px solid #fed7aa",
+                              borderRadius: "10px",
+                              padding: "12px",
+                              fontSize: "13px",
+                              color: "#c2410c",
+                            }}
+                          >
+                            <strong>No hay parqueaderos disponibles</strong>
+                            <br />
+                            Para {tipoLabel}.
+                          </div>
+                        );
+                      })()}
+                    </div>
                   )}
-                </button>
+                </div>
+              )}
+
+              {/* Observaciones */}
+              <div className="vis-form-group">
+                <label htmlFor="vis-observaciones" className="vis-form-label">
+                  Observaciones
+                </label>
+                <textarea
+                  id="vis-observaciones"
+                  className="vis-form-control vis-form-textarea"
+                  value={formData.observaciones}
+                  onChange={(e) =>
+                    handleChange("observaciones", e.target.value)
+                  }
+                  placeholder="Notas adicionales..."
+                  rows={2}
+                />
               </div>
-            </form>
-          </div>
-        </dialog>
-      )}
+            </div>
+
+            <div className="vis-modal-footer">
+              <button
+                type="submit"
+                className={`vis-btn-submit ${modalConfig.submitColor}`}
+                disabled={guardando}
+              >
+                {guardando ? (
+                  <>
+                    <output className="spinner-border spinner-border-sm"></output>{" "}
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <i className={`bi ${modalConfig.submitIcon}`}></i>
+                    {modalConfig.submitText}
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </ModalOverlay>
 
       {/* ══════════ MODAL DETALLE ══════════ */}
       {modalDetalle && (
-        <dialog
-          open
+        <ModalOverlay
+          isOpen
+          onClose={() => setModalDetalle(null)}
           className="vis-modal-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setModalDetalle(null);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setModalDetalle(null);
-          }}
-          aria-modal="true"
-          aria-label="Cerrar"
         >
           <div className="vis-modal">
             <div className="vis-modal-header">
@@ -2026,7 +1959,7 @@ function Visitas() {
               </button>
             </div>
           </div>
-        </dialog>
+        </ModalOverlay>
       )}
     </div>
   );

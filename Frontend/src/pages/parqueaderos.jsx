@@ -8,7 +8,8 @@ import {
   obtenerParqueaderos,
   cambiarEstadoParqueadero,
 } from "../services/parqueadero.services.jsx";
-import { logoutUsuario } from "../services/gestionUsuarios.jsx";
+import { verificarTokenVencido, obtenerRolFromToken } from "../utils/auth.js";
+import useLogout from "../utils/useLogout.js";
 
 function Parqueaderos() {
   const navigate = useNavigate();
@@ -37,24 +38,7 @@ function Parqueaderos() {
   const [editModeVisitas, setEditModeVisitas] = useState(false);
   const [visitaEditandoVisitas, setVisitaEditandoVisitas] = useState(null);
 
-  // ── Token helpers ──
-  const verificarTokenVencido = (token) => {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return Date.now() >= payload.exp * 1000;
-    } catch {
-      return true;
-    }
-  };
-
-  const obtenerRolFromToken = (token) => {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload.rolesId;
-    } catch {
-      return null;
-    }
-  };
+  const cerrarSesion = useLogout();
 
   const tokenLocal = localStorage.getItem("token");
   const rolesId = tokenLocal ? obtenerRolFromToken(tokenLocal) : null;
@@ -310,15 +294,7 @@ function Parqueaderos() {
     });
   };
 
-  // ── Cerrar sesión ──
-  const cerrarSesion = async (e) => {
-    e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (token) await logoutUsuario(token);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/");
-  };
+  // cerrarSesion ya definido arriba mediante useLogout()
 
   // ── Loading ──
   if (loading && parqueaderos.length === 0) {

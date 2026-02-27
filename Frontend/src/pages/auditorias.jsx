@@ -5,7 +5,9 @@ import "../Styles/auditorias.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { obtenerRegistrosAuditoria } from "../services/auditorias.services.jsx";
-import { logoutUsuario } from "../services/gestionUsuarios.jsx";
+import ModalOverlay from "../utils/ModalOverlay.jsx";
+import { verificarTokenVencido, obtenerRolFromToken } from "../utils/auth.js";
+import useLogout from "../utils/useLogout.js";
 
 function Auditorias() {
   const navigator = useNavigate();
@@ -28,24 +30,7 @@ function Auditorias() {
   // Detalle modal
   const [detalleAuditoria, setDetalleAuditoria] = useState(null);
 
-  // Token helpers
-  const verificarTokenVencido = (token) => {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return Date.now() >= payload.exp * 1000;
-    } catch {
-      return true;
-    }
-  };
-
-  const obtenerRolFromToken = (token) => {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload.rolesId;
-    } catch {
-      return null;
-    }
-  };
+  // Token helpers (importados de utils/auth.js)
 
   // Verificar sesión y rol
   useEffect(() => {
@@ -200,14 +185,7 @@ function Auditorias() {
     setDetalleAuditoria(auditoria);
   };
 
-  const cerrarSesion = async (e) => {
-    e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (token) await logoutUsuario(token);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigator("/");
-  };
+  const cerrarSesion = useLogout();
 
   // Loading state
   if (loading && auditorias.length === 0) {
@@ -662,17 +640,10 @@ function Auditorias() {
 
       {/* Modal Detalle (igual que Flutter AlertDialog) */}
       {detalleAuditoria && (
-        <dialog
-          open
+        <ModalOverlay
+          isOpen
+          onClose={() => setDetalleAuditoria(null)}
           className="aud-modal-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setDetalleAuditoria(null);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setDetalleAuditoria(null);
-          }}
-          aria-modal="true"
-          aria-label="Cerrar"
         >
           <div className="aud-modal">
             <div className="aud-modal-header">
@@ -710,7 +681,7 @@ function Auditorias() {
               </button>
             </div>
           </div>
-        </dialog>
+        </ModalOverlay>
       )}
     </div>
   );
