@@ -29,6 +29,9 @@ import {
   validarEmail,
   validarDocumento,
 } from "../utils/validaciones.js";
+import ModalOverlay from "../utils/ModalOverlay.jsx";
+import { verificarTokenVencido, obtenerRolFromToken } from "../utils/auth.js";
+import useLogout from "../utils/useLogout.js";
 
 const ROLES_MAP = {
   1: "Super Administrador",
@@ -239,21 +242,7 @@ function GestionUsuarios() {
     originalUsername: "",
   });
 
-  const verificarTokenVencido = (token) => {
-    try {
-      const p = JSON.parse(atob(token.split(".")[1]));
-      return Date.now() >= p.exp * 1000;
-    } catch {
-      return true;
-    }
-  };
-  const obtenerRolFromToken = (token) => {
-    try {
-      return JSON.parse(atob(token.split(".")[1])).rolesId;
-    } catch {
-      return null;
-    }
-  };
+  // Token helpers (importados de utils/auth.js)
   const obtenerUsernameFromToken = (token) => {
     try {
       return JSON.parse(atob(token.split(".")[1])).username;
@@ -1005,14 +994,7 @@ function GestionUsuarios() {
     setShowModalDetalle(true);
   };
 
-  const cerrarSesion = async (e) => {
-    e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (token) await logoutUsuario(token);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/");
-  };
+  const cerrarSesion = useLogout();
 
   const esUsuarioActual = (username) => username === usernameActual;
 
@@ -1722,609 +1704,570 @@ function GestionUsuarios() {
       </div>
 
       {/* MODAL REGISTRAR */}
-      {showModalRegistrar && (
-        <dialog
-          open
-          className="gu-modal-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowModalRegistrar(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setShowModalRegistrar(false);
-          }}
-          aria-modal="true"
-          aria-label="Cerrar"
-        >
-          <div className="gu-modal">
-            <div className="gu-modal-header">
-              <h5>
-                <i className="bi bi-person-plus me-2"></i>Registrar Usuario
-              </h5>
-              <button
-                className="gu-modal-close"
-                onClick={() => setShowModalRegistrar(false)}
-              >
-                <i className="bi bi-x-lg"></i>
-              </button>
-            </div>
-            <div className="gu-modal-body">
-              <form onSubmit={handleRegistrar}>
-                {/* Seccion de foto opcional */}
-                <div className="gu-form-photo-section">
+      <ModalOverlay
+        isOpen={showModalRegistrar}
+        onClose={() => setShowModalRegistrar(false)}
+        className="gu-modal-overlay"
+      >
+        <div className="gu-modal">
+          <div className="gu-modal-header">
+            <h5>
+              <i className="bi bi-person-plus me-2"></i>Registrar Usuario
+            </h5>
+            <button
+              className="gu-modal-close"
+              onClick={() => setShowModalRegistrar(false)}
+            >
+              <i className="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <div className="gu-modal-body">
+            <form onSubmit={handleRegistrar}>
+              {/* Seccion de foto opcional */}
+              <div className="gu-form-photo-section">
+                <button
+                  type="button"
+                  className="gu-form-photo-wrap"
+                  onClick={triggerModalPhotoInput}
+                  aria-label="Seleccionar foto de perfil"
+                >
+                  {formPhotoPreview ? (
+                    <img
+                      src={formPhotoPreview}
+                      alt="Preview"
+                      className="gu-form-photo-img"
+                    />
+                  ) : (
+                    <div className="gu-form-photo-placeholder">
+                      <i className="bi bi-camera-fill"></i>
+                    </div>
+                  )}
+                  <div className="gu-form-photo-hover">
+                    <i className="bi bi-pencil-fill"></i>
+                  </div>
+                </button>
+                <div className="gu-form-photo-actions">
                   <button
                     type="button"
-                    className="gu-form-photo-wrap"
+                    className="gu-form-photo-btn upload"
                     onClick={triggerModalPhotoInput}
-                    aria-label="Seleccionar foto de perfil"
                   >
-                    {formPhotoPreview ? (
-                      <img
-                        src={formPhotoPreview}
-                        alt="Preview"
-                        className="gu-form-photo-img"
-                      />
-                    ) : (
-                      <div className="gu-form-photo-placeholder">
-                        <i className="bi bi-camera-fill"></i>
-                      </div>
-                    )}
-                    <div className="gu-form-photo-hover">
-                      <i className="bi bi-pencil-fill"></i>
-                    </div>
+                    <i className="bi bi-upload me-1"></i>
+                    {formPhotoPreview ? "Cambiar foto" : "Agregar foto"}
                   </button>
-                  <div className="gu-form-photo-actions">
+                  {formPhotoPreview && (
                     <button
                       type="button"
-                      className="gu-form-photo-btn upload"
-                      onClick={triggerModalPhotoInput}
+                      className="gu-form-photo-btn remove"
+                      onClick={removeFormPhoto}
                     >
-                      <i className="bi bi-upload me-1"></i>
-                      {formPhotoPreview ? "Cambiar foto" : "Agregar foto"}
+                      <i className="bi bi-trash me-1"></i>Quitar
                     </button>
-                    {formPhotoPreview && (
-                      <button
-                        type="button"
-                        className="gu-form-photo-btn remove"
-                        onClick={removeFormPhoto}
-                      >
-                        <i className="bi bi-trash me-1"></i>Quitar
-                      </button>
-                    )}
-                  </div>
-                  <span className="gu-form-photo-hint">
-                    <i className="bi bi-info-circle me-1"></i>Opcional - Max.
-                    2MB
-                  </span>
-                </div>
-
-                <div className="gu-form-section">
-                  <h6 className="gu-form-section-title">
-                    <i className="bi bi-person-badge me-2"></i>Datos Personales
-                  </h6>
-                  <div className="gu-form-grid">
-                    <div className="gu-form-group">
-                      <label htmlFor="gu-c-tipoDoc" className="gu-form-label">
-                        Tipo Documento *
-                      </label>
-                      <select
-                        id="gu-c-tipoDoc"
-                        className="gu-form-control"
-                        value={formData.tipoDocumentoId}
-                        onChange={(e) =>
-                          updateField("tipoDocumentoId", e.target.value)
-                        }
-                      >
-                        <option value="">-- Tipo de documento --</option>
-                        <option value="1">CC - Cédula de Ciudadanía</option>
-                        <option value="2">CE - Cédula de Extranjería</option>
-                        <option value="3">PP - Pasaporte</option>
-                        <option value="4">
-                          PEP - Permiso Especial de Permanencia
-                        </option>
-                        <option value="5">
-                          PPT - Permiso de Protección Temporal
-                        </option>
-                      </select>
-                    </div>
-                    <div className="gu-form-group">
-                      <label htmlFor="gu-c-numDoc" className="gu-form-label">
-                        Numero Documento *
-                      </label>
-                      <input
-                        id="gu-c-numDoc"
-                        type="number"
-                        className="gu-form-control"
-                        value={formData.numeroDocumento}
-                        onChange={(e) =>
-                          updateField("numeroDocumento", e.target.value)
-                        }
-                        required
-                      />
-                    </div>
-                    <div className="gu-form-group">
-                      <label
-                        htmlFor="gu-c-primerNombre"
-                        className="gu-form-label"
-                      >
-                        Primer Nombre *
-                      </label>
-                      <input
-                        id="gu-c-primerNombre"
-                        type="text"
-                        className="gu-form-control"
-                        value={formData.primerNombre}
-                        onChange={(e) =>
-                          updateField("primerNombre", e.target.value)
-                        }
-                        required
-                      />
-                    </div>
-                    <div className="gu-form-group">
-                      <label
-                        htmlFor="gu-c-segundoNombre"
-                        className="gu-form-label"
-                      >
-                        Segundo Nombre
-                      </label>
-                      <input
-                        id="gu-c-segundoNombre"
-                        type="text"
-                        className="gu-form-control"
-                        value={formData.segundoNombre}
-                        onChange={(e) =>
-                          updateField("segundoNombre", e.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="gu-form-group">
-                      <label
-                        htmlFor="gu-c-primerApellido"
-                        className="gu-form-label"
-                      >
-                        Primer Apellido *
-                      </label>
-                      <input
-                        id="gu-c-primerApellido"
-                        type="text"
-                        className="gu-form-control"
-                        value={formData.primerApellido}
-                        onChange={(e) =>
-                          updateField("primerApellido", e.target.value)
-                        }
-                        required
-                      />
-                    </div>
-                    <div className="gu-form-group">
-                      <label
-                        htmlFor="gu-c-segundoApellido"
-                        className="gu-form-label"
-                      >
-                        Segundo Apellido
-                      </label>
-                      <input
-                        id="gu-c-segundoApellido"
-                        type="text"
-                        className="gu-form-control"
-                        value={formData.segundoApellido}
-                        onChange={(e) =>
-                          updateField("segundoApellido", e.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="gu-form-group">
-                      <label htmlFor="gu-c-telefono" className="gu-form-label">
-                        Telefono
-                      </label>
-                      <input
-                        id="gu-c-telefono"
-                        type="number"
-                        className="gu-form-control"
-                        value={formData.telefono}
-                        onChange={(e) =>
-                          updateField("telefono", e.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="gu-form-group">
-                      <label htmlFor="gu-c-correo" className="gu-form-label">
-                        Correo Electronico
-                      </label>
-                      <input
-                        id="gu-c-correo"
-                        type="email"
-                        className="gu-form-control"
-                        value={formData.correoElectronico}
-                        onChange={(e) =>
-                          updateField("correoElectronico", e.target.value)
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="gu-form-section">
-                  <h6 className="gu-form-section-title">
-                    <i className="bi bi-shield-lock me-2"></i>Datos de Cuenta
-                  </h6>
-                  <div className="gu-form-grid">
-                    <div className="gu-form-group">
-                      <label htmlFor="gu-c-password" className="gu-form-label">
-                        Contrasena *
-                      </label>
-                      <input
-                        id="gu-c-password"
-                        type="password"
-                        className="gu-form-control"
-                        value={formData.password}
-                        onChange={(e) =>
-                          updateField("password", e.target.value)
-                        }
-                        required
-                        minLength={6}
-                        placeholder="Minimo 6 caracteres"
-                      />
-                    </div>
-                    <div className="gu-form-group">
-                      <label htmlFor="gu-c-rol" className="gu-form-label">
-                        Rol *
-                      </label>
-                      <select
-                        id="gu-c-rol"
-                        className="gu-form-control"
-                        value={formData.rolesId}
-                        onChange={(e) => updateField("rolesId", e.target.value)}
-                      >
-                        <option value="">-- Selecciona rol --</option>
-                        <option value="3">Vigilante</option>
-                        <option value="2">Administrador</option>
-                        <option value="1">Super Administrador</option>
-                      </select>
-                    </div>
-                  </div>
-                  <p
-                    style={{
-                      fontSize: "12px",
-                      color: "#9e9e9e",
-                      marginTop: "8px",
-                    }}
-                  >
-                    <i className="bi bi-info-circle me-1"></i>El username se
-                    generara automaticamente.
-                  </p>
-                </div>
-                <button
-                  type="submit"
-                  className="gu-form-submit"
-                  disabled={submitting}
-                >
-                  {submitting ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2"></span>{" "}
-                      Registrando...
-                    </>
-                  ) : (
-                    <>
-                      <i className="bi bi-person-plus me-2"></i>Registrar
-                      Usuario
-                    </>
                   )}
-                </button>
-              </form>
-            </div>
+                </div>
+                <span className="gu-form-photo-hint">
+                  <i className="bi bi-info-circle me-1"></i>Opcional - Max. 2MB
+                </span>
+              </div>
+
+              <div className="gu-form-section">
+                <h6 className="gu-form-section-title">
+                  <i className="bi bi-person-badge me-2"></i>Datos Personales
+                </h6>
+                <div className="gu-form-grid">
+                  <div className="gu-form-group">
+                    <label htmlFor="gu-c-tipoDoc" className="gu-form-label">
+                      Tipo Documento *
+                    </label>
+                    <select
+                      id="gu-c-tipoDoc"
+                      className="gu-form-control"
+                      value={formData.tipoDocumentoId}
+                      onChange={(e) =>
+                        updateField("tipoDocumentoId", e.target.value)
+                      }
+                    >
+                      <option value="">-- Tipo de documento --</option>
+                      <option value="1">CC - Cédula de Ciudadanía</option>
+                      <option value="2">CE - Cédula de Extranjería</option>
+                      <option value="3">PP - Pasaporte</option>
+                      <option value="4">
+                        PEP - Permiso Especial de Permanencia
+                      </option>
+                      <option value="5">
+                        PPT - Permiso de Protección Temporal
+                      </option>
+                    </select>
+                  </div>
+                  <div className="gu-form-group">
+                    <label htmlFor="gu-c-numDoc" className="gu-form-label">
+                      Numero Documento *
+                    </label>
+                    <input
+                      id="gu-c-numDoc"
+                      type="number"
+                      className="gu-form-control"
+                      value={formData.numeroDocumento}
+                      onChange={(e) =>
+                        updateField("numeroDocumento", e.target.value)
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="gu-form-group">
+                    <label
+                      htmlFor="gu-c-primerNombre"
+                      className="gu-form-label"
+                    >
+                      Primer Nombre *
+                    </label>
+                    <input
+                      id="gu-c-primerNombre"
+                      type="text"
+                      className="gu-form-control"
+                      value={formData.primerNombre}
+                      onChange={(e) =>
+                        updateField("primerNombre", e.target.value)
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="gu-form-group">
+                    <label
+                      htmlFor="gu-c-segundoNombre"
+                      className="gu-form-label"
+                    >
+                      Segundo Nombre
+                    </label>
+                    <input
+                      id="gu-c-segundoNombre"
+                      type="text"
+                      className="gu-form-control"
+                      value={formData.segundoNombre}
+                      onChange={(e) =>
+                        updateField("segundoNombre", e.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="gu-form-group">
+                    <label
+                      htmlFor="gu-c-primerApellido"
+                      className="gu-form-label"
+                    >
+                      Primer Apellido *
+                    </label>
+                    <input
+                      id="gu-c-primerApellido"
+                      type="text"
+                      className="gu-form-control"
+                      value={formData.primerApellido}
+                      onChange={(e) =>
+                        updateField("primerApellido", e.target.value)
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="gu-form-group">
+                    <label
+                      htmlFor="gu-c-segundoApellido"
+                      className="gu-form-label"
+                    >
+                      Segundo Apellido
+                    </label>
+                    <input
+                      id="gu-c-segundoApellido"
+                      type="text"
+                      className="gu-form-control"
+                      value={formData.segundoApellido}
+                      onChange={(e) =>
+                        updateField("segundoApellido", e.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="gu-form-group">
+                    <label htmlFor="gu-c-telefono" className="gu-form-label">
+                      Telefono
+                    </label>
+                    <input
+                      id="gu-c-telefono"
+                      type="number"
+                      className="gu-form-control"
+                      value={formData.telefono}
+                      onChange={(e) => updateField("telefono", e.target.value)}
+                    />
+                  </div>
+                  <div className="gu-form-group">
+                    <label htmlFor="gu-c-correo" className="gu-form-label">
+                      Correo Electronico
+                    </label>
+                    <input
+                      id="gu-c-correo"
+                      type="email"
+                      className="gu-form-control"
+                      value={formData.correoElectronico}
+                      onChange={(e) =>
+                        updateField("correoElectronico", e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="gu-form-section">
+                <h6 className="gu-form-section-title">
+                  <i className="bi bi-shield-lock me-2"></i>Datos de Cuenta
+                </h6>
+                <div className="gu-form-grid">
+                  <div className="gu-form-group">
+                    <label htmlFor="gu-c-password" className="gu-form-label">
+                      Contrasena *
+                    </label>
+                    <input
+                      id="gu-c-password"
+                      type="password"
+                      className="gu-form-control"
+                      value={formData.password}
+                      onChange={(e) => updateField("password", e.target.value)}
+                      required
+                      minLength={6}
+                      placeholder="Minimo 6 caracteres"
+                    />
+                  </div>
+                  <div className="gu-form-group">
+                    <label htmlFor="gu-c-rol" className="gu-form-label">
+                      Rol *
+                    </label>
+                    <select
+                      id="gu-c-rol"
+                      className="gu-form-control"
+                      value={formData.rolesId}
+                      onChange={(e) => updateField("rolesId", e.target.value)}
+                    >
+                      <option value="">-- Selecciona rol --</option>
+                      <option value="3">Vigilante</option>
+                      <option value="2">Administrador</option>
+                      <option value="1">Super Administrador</option>
+                    </select>
+                  </div>
+                </div>
+                <p
+                  style={{
+                    fontSize: "12px",
+                    color: "#9e9e9e",
+                    marginTop: "8px",
+                  }}
+                >
+                  <i className="bi bi-info-circle me-1"></i>El username se
+                  generara automaticamente.
+                </p>
+              </div>
+              <button
+                type="submit"
+                className="gu-form-submit"
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2"></span>{" "}
+                    Registrando...
+                  </>
+                ) : (
+                  <>
+                    <i className="bi bi-person-plus me-2"></i>Registrar Usuario
+                  </>
+                )}
+              </button>
+            </form>
           </div>
-        </dialog>
-      )}
+        </div>
+      </ModalOverlay>
 
       {/* MODAL EDITAR */}
-      {showModalEditar && (
-        <dialog
-          open
-          className="gu-modal-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowModalEditar(false);
-              resetForm();
-            }
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") {
-              setShowModalEditar(false);
-              resetForm();
-            }
-          }}
-          aria-modal="true"
-          aria-label="Cerrar"
-        >
-          <div className="gu-modal">
-            <div className="gu-modal-header">
-              <h5>
-                <i className="bi bi-pencil-square me-2"></i>Editar Usuario
-              </h5>
-              <button
-                className="gu-modal-close"
-                onClick={() => {
-                  setShowModalEditar(false);
-                  resetForm();
-                }}
-              >
-                <i className="bi bi-x-lg"></i>
-              </button>
-            </div>
-            <div className="gu-modal-body">
-              <form onSubmit={handleEditar}>
-                {/* Seccion de foto opcional */}
-                <div className="gu-form-photo-section">
+      <ModalOverlay
+        isOpen={showModalEditar}
+        onClose={() => {
+          setShowModalEditar(false);
+          resetForm();
+        }}
+        className="gu-modal-overlay"
+      >
+        <div className="gu-modal">
+          <div className="gu-modal-header">
+            <h5>
+              <i className="bi bi-pencil-square me-2"></i>Editar Usuario
+            </h5>
+            <button
+              className="gu-modal-close"
+              onClick={() => {
+                setShowModalEditar(false);
+                resetForm();
+              }}
+            >
+              <i className="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <div className="gu-modal-body">
+            <form onSubmit={handleEditar}>
+              {/* Seccion de foto opcional */}
+              <div className="gu-form-photo-section">
+                <button
+                  type="button"
+                  className="gu-form-photo-wrap"
+                  onClick={triggerModalPhotoInput}
+                  aria-label="Seleccionar foto de perfil"
+                >
+                  {formPhotoPreview ? (
+                    <img
+                      src={formPhotoPreview}
+                      alt="Preview"
+                      className="gu-form-photo-img"
+                    />
+                  ) : (
+                    <div className="gu-form-photo-placeholder">
+                      <i className="bi bi-camera-fill"></i>
+                    </div>
+                  )}
+                  <div className="gu-form-photo-hover">
+                    <i className="bi bi-pencil-fill"></i>
+                  </div>
+                </button>
+                <div className="gu-form-photo-actions">
                   <button
                     type="button"
-                    className="gu-form-photo-wrap"
+                    className="gu-form-photo-btn upload"
                     onClick={triggerModalPhotoInput}
-                    aria-label="Seleccionar foto de perfil"
                   >
-                    {formPhotoPreview ? (
-                      <img
-                        src={formPhotoPreview}
-                        alt="Preview"
-                        className="gu-form-photo-img"
-                      />
-                    ) : (
-                      <div className="gu-form-photo-placeholder">
-                        <i className="bi bi-camera-fill"></i>
-                      </div>
-                    )}
-                    <div className="gu-form-photo-hover">
-                      <i className="bi bi-pencil-fill"></i>
-                    </div>
+                    <i className="bi bi-upload me-1"></i>
+                    {formPhotoPreview ? "Cambiar foto" : "Agregar foto"}
                   </button>
-                  <div className="gu-form-photo-actions">
+                  {formPhotoPreview && (
                     <button
                       type="button"
-                      className="gu-form-photo-btn upload"
-                      onClick={triggerModalPhotoInput}
+                      className="gu-form-photo-btn remove"
+                      onClick={removeFormPhoto}
                     >
-                      <i className="bi bi-upload me-1"></i>
-                      {formPhotoPreview ? "Cambiar foto" : "Agregar foto"}
+                      <i className="bi bi-trash me-1"></i>Quitar
                     </button>
-                    {formPhotoPreview && (
-                      <button
-                        type="button"
-                        className="gu-form-photo-btn remove"
-                        onClick={removeFormPhoto}
-                      >
-                        <i className="bi bi-trash me-1"></i>Quitar
-                      </button>
-                    )}
-                  </div>
-                  <span className="gu-form-photo-hint">
-                    <i className="bi bi-info-circle me-1"></i>Opcional - Max.
-                    2MB
-                  </span>
-                </div>
-
-                <div className="gu-form-section">
-                  <h6 className="gu-form-section-title">
-                    <i className="bi bi-person-badge me-2"></i>Datos Personales
-                  </h6>
-                  <div className="gu-form-grid">
-                    <div className="gu-form-group">
-                      <label htmlFor="gu-e-tipoDoc" className="gu-form-label">
-                        Tipo Documento
-                      </label>
-                      <select
-                        id="gu-e-tipoDoc"
-                        className="gu-form-control"
-                        value={formData.tipoDocumentoId}
-                        onChange={(e) =>
-                          updateField("tipoDocumentoId", e.target.value)
-                        }
-                      >
-                        <option value="">-- Tipo de documento --</option>
-                        <option value="1">CC - Cédula de Ciudadanía</option>
-                        <option value="2">CE - Cédula de Extranjería</option>
-                        <option value="3">PP - Pasaporte</option>
-                        <option value="4">
-                          PEP - Permiso Especial de Permanencia
-                        </option>
-                        <option value="5">
-                          PPT - Permiso de Protección Temporal
-                        </option>
-                      </select>
-                    </div>
-                    <div className="gu-form-group">
-                      <label htmlFor="gu-e-numDoc" className="gu-form-label">
-                        Numero Documento
-                      </label>
-                      <input
-                        id="gu-e-numDoc"
-                        type="text"
-                        className="gu-form-control"
-                        value={formData.numeroDocumento}
-                        readOnly
-                      />
-                    </div>
-                    <div className="gu-form-group">
-                      <label
-                        htmlFor="gu-e-primerNombre"
-                        className="gu-form-label"
-                      >
-                        Primer Nombre *
-                      </label>
-                      <input
-                        id="gu-e-primerNombre"
-                        type="text"
-                        className="gu-form-control"
-                        value={formData.primerNombre}
-                        onChange={(e) =>
-                          updateField("primerNombre", e.target.value)
-                        }
-                        required
-                      />
-                    </div>
-                    <div className="gu-form-group">
-                      <label
-                        htmlFor="gu-e-segundoNombre"
-                        className="gu-form-label"
-                      >
-                        Segundo Nombre
-                      </label>
-                      <input
-                        id="gu-e-segundoNombre"
-                        type="text"
-                        className="gu-form-control"
-                        value={formData.segundoNombre}
-                        onChange={(e) =>
-                          updateField("segundoNombre", e.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="gu-form-group">
-                      <label
-                        htmlFor="gu-e-primerApellido"
-                        className="gu-form-label"
-                      >
-                        Primer Apellido *
-                      </label>
-                      <input
-                        id="gu-e-primerApellido"
-                        type="text"
-                        className="gu-form-control"
-                        value={formData.primerApellido}
-                        onChange={(e) =>
-                          updateField("primerApellido", e.target.value)
-                        }
-                        required
-                      />
-                    </div>
-                    <div className="gu-form-group">
-                      <label
-                        htmlFor="gu-e-segundoApellido"
-                        className="gu-form-label"
-                      >
-                        Segundo Apellido
-                      </label>
-                      <input
-                        id="gu-e-segundoApellido"
-                        type="text"
-                        className="gu-form-control"
-                        value={formData.segundoApellido}
-                        onChange={(e) =>
-                          updateField("segundoApellido", e.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="gu-form-group">
-                      <label htmlFor="gu-e-telefono" className="gu-form-label">
-                        Telefono
-                      </label>
-                      <input
-                        id="gu-e-telefono"
-                        type="text"
-                        className="gu-form-control"
-                        value={formData.telefono}
-                        onChange={(e) =>
-                          updateField("telefono", e.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="gu-form-group">
-                      <label htmlFor="gu-e-correo" className="gu-form-label">
-                        Correo Electronico
-                      </label>
-                      <input
-                        id="gu-e-correo"
-                        type="email"
-                        className="gu-form-control"
-                        value={formData.correoElectronico}
-                        onChange={(e) =>
-                          updateField("correoElectronico", e.target.value)
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="gu-form-section">
-                  <h6 className="gu-form-section-title">
-                    <i className="bi bi-shield-lock me-2"></i>Datos de Cuenta
-                  </h6>
-                  <div className="gu-form-grid">
-                    <div className="gu-form-group">
-                      <label htmlFor="gu-e-username" className="gu-form-label">
-                        Username
-                      </label>
-                      <input
-                        id="gu-e-username"
-                        type="text"
-                        className="gu-form-control"
-                        value={formData.username}
-                        readOnly
-                      />
-                    </div>
-                    <div className="gu-form-group">
-                      <label htmlFor="gu-e-password" className="gu-form-label">
-                        Nueva Contrasena
-                      </label>
-                      <input
-                        id="gu-e-password"
-                        type="password"
-                        className="gu-form-control"
-                        value={formData.password}
-                        onChange={(e) =>
-                          updateField("password", e.target.value)
-                        }
-                        placeholder="Dejar vacio para no cambiar"
-                      />
-                    </div>
-                    <div className="gu-form-group">
-                      <label htmlFor="gu-e-rol" className="gu-form-label">
-                        Rol
-                      </label>
-                      <select
-                        id="gu-e-rol"
-                        className="gu-form-control"
-                        value={formData.rolesId}
-                        onChange={(e) => updateField("rolesId", e.target.value)}
-                      >
-                        <option value="">-- Selecciona rol --</option>
-                        <option value="3">Vigilante</option>
-                        <option value="2">Administrador</option>
-                        <option value="1">Super Administrador</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-                <button
-                  type="submit"
-                  className="gu-form-submit"
-                  disabled={submitting}
-                >
-                  {submitting ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2"></span>{" "}
-                      Guardando...
-                    </>
-                  ) : (
-                    <>
-                      <i className="bi bi-save me-2"></i>Guardar Cambios
-                    </>
                   )}
-                </button>
-              </form>
-            </div>
+                </div>
+                <span className="gu-form-photo-hint">
+                  <i className="bi bi-info-circle me-1"></i>Opcional - Max. 2MB
+                </span>
+              </div>
+
+              <div className="gu-form-section">
+                <h6 className="gu-form-section-title">
+                  <i className="bi bi-person-badge me-2"></i>Datos Personales
+                </h6>
+                <div className="gu-form-grid">
+                  <div className="gu-form-group">
+                    <label htmlFor="gu-e-tipoDoc" className="gu-form-label">
+                      Tipo Documento
+                    </label>
+                    <select
+                      id="gu-e-tipoDoc"
+                      className="gu-form-control"
+                      value={formData.tipoDocumentoId}
+                      onChange={(e) =>
+                        updateField("tipoDocumentoId", e.target.value)
+                      }
+                    >
+                      <option value="">-- Tipo de documento --</option>
+                      <option value="1">CC - Cédula de Ciudadanía</option>
+                      <option value="2">CE - Cédula de Extranjería</option>
+                      <option value="3">PP - Pasaporte</option>
+                      <option value="4">
+                        PEP - Permiso Especial de Permanencia
+                      </option>
+                      <option value="5">
+                        PPT - Permiso de Protección Temporal
+                      </option>
+                    </select>
+                  </div>
+                  <div className="gu-form-group">
+                    <label htmlFor="gu-e-numDoc" className="gu-form-label">
+                      Numero Documento
+                    </label>
+                    <input
+                      id="gu-e-numDoc"
+                      type="text"
+                      className="gu-form-control"
+                      value={formData.numeroDocumento}
+                      readOnly
+                    />
+                  </div>
+                  <div className="gu-form-group">
+                    <label
+                      htmlFor="gu-e-primerNombre"
+                      className="gu-form-label"
+                    >
+                      Primer Nombre *
+                    </label>
+                    <input
+                      id="gu-e-primerNombre"
+                      type="text"
+                      className="gu-form-control"
+                      value={formData.primerNombre}
+                      onChange={(e) =>
+                        updateField("primerNombre", e.target.value)
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="gu-form-group">
+                    <label
+                      htmlFor="gu-e-segundoNombre"
+                      className="gu-form-label"
+                    >
+                      Segundo Nombre
+                    </label>
+                    <input
+                      id="gu-e-segundoNombre"
+                      type="text"
+                      className="gu-form-control"
+                      value={formData.segundoNombre}
+                      onChange={(e) =>
+                        updateField("segundoNombre", e.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="gu-form-group">
+                    <label
+                      htmlFor="gu-e-primerApellido"
+                      className="gu-form-label"
+                    >
+                      Primer Apellido *
+                    </label>
+                    <input
+                      id="gu-e-primerApellido"
+                      type="text"
+                      className="gu-form-control"
+                      value={formData.primerApellido}
+                      onChange={(e) =>
+                        updateField("primerApellido", e.target.value)
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="gu-form-group">
+                    <label
+                      htmlFor="gu-e-segundoApellido"
+                      className="gu-form-label"
+                    >
+                      Segundo Apellido
+                    </label>
+                    <input
+                      id="gu-e-segundoApellido"
+                      type="text"
+                      className="gu-form-control"
+                      value={formData.segundoApellido}
+                      onChange={(e) =>
+                        updateField("segundoApellido", e.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="gu-form-group">
+                    <label htmlFor="gu-e-telefono" className="gu-form-label">
+                      Telefono
+                    </label>
+                    <input
+                      id="gu-e-telefono"
+                      type="text"
+                      className="gu-form-control"
+                      value={formData.telefono}
+                      onChange={(e) => updateField("telefono", e.target.value)}
+                    />
+                  </div>
+                  <div className="gu-form-group">
+                    <label htmlFor="gu-e-correo" className="gu-form-label">
+                      Correo Electronico
+                    </label>
+                    <input
+                      id="gu-e-correo"
+                      type="email"
+                      className="gu-form-control"
+                      value={formData.correoElectronico}
+                      onChange={(e) =>
+                        updateField("correoElectronico", e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="gu-form-section">
+                <h6 className="gu-form-section-title">
+                  <i className="bi bi-shield-lock me-2"></i>Datos de Cuenta
+                </h6>
+                <div className="gu-form-grid">
+                  <div className="gu-form-group">
+                    <label htmlFor="gu-e-username" className="gu-form-label">
+                      Username
+                    </label>
+                    <input
+                      id="gu-e-username"
+                      type="text"
+                      className="gu-form-control"
+                      value={formData.username}
+                      readOnly
+                    />
+                  </div>
+                  <div className="gu-form-group">
+                    <label htmlFor="gu-e-password" className="gu-form-label">
+                      Nueva Contrasena
+                    </label>
+                    <input
+                      id="gu-e-password"
+                      type="password"
+                      className="gu-form-control"
+                      value={formData.password}
+                      onChange={(e) => updateField("password", e.target.value)}
+                      placeholder="Dejar vacio para no cambiar"
+                    />
+                  </div>
+                  <div className="gu-form-group">
+                    <label htmlFor="gu-e-rol" className="gu-form-label">
+                      Rol
+                    </label>
+                    <select
+                      id="gu-e-rol"
+                      className="gu-form-control"
+                      value={formData.rolesId}
+                      onChange={(e) => updateField("rolesId", e.target.value)}
+                    >
+                      <option value="">-- Selecciona rol --</option>
+                      <option value="3">Vigilante</option>
+                      <option value="2">Administrador</option>
+                      <option value="1">Super Administrador</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="submit"
+                className="gu-form-submit"
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2"></span>{" "}
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <i className="bi bi-save me-2"></i>Guardar Cambios
+                  </>
+                )}
+              </button>
+            </form>
           </div>
-        </dialog>
-      )}
+        </div>
+      </ModalOverlay>
 
       {/* MODAL DETALLES */}
       {showModalDetalle && detalleUsuario && (
-        <dialog
-          open
+        <ModalOverlay
+          isOpen
+          onClose={() => setShowModalDetalle(false)}
           className="gu-modal-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowModalDetalle(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setShowModalDetalle(false);
-          }}
-          aria-modal="true"
-          aria-label="Cerrar"
         >
           <div className="gu-modal" style={{ maxWidth: "600px" }}>
             <div className="gu-modal-header">
@@ -2441,7 +2384,7 @@ function GestionUsuarios() {
               </button>
             </div>
           </div>
-        </dialog>
+        </ModalOverlay>
       )}
     </div>
   );

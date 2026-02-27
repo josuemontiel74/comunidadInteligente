@@ -17,7 +17,9 @@ import {
   obtenerCalendarioReservas,
   actualizarAreaComun,
 } from "../services/areasComunes.services.jsx";
-import { logoutUsuario } from "../services/gestionUsuarios.jsx";
+import ModalOverlay from "../utils/ModalOverlay.jsx";
+import { verificarTokenVencido, obtenerRolFromToken } from "../utils/auth.js";
+import useLogout from "../utils/useLogout.js";
 import React, { useState, useEffect, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
@@ -143,14 +145,7 @@ function AreasComunes() {
     }
   }, [navegacion]);
 
-  const cerrarSesion = async (e) => {
-    e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (token) await logoutUsuario(token);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navegacion("/");
-  };
+  const cerrarSesion = useLogout();
 
   // ─── Token helpers ───
   const obtenerToken = () => {
@@ -166,14 +161,7 @@ function AreasComunes() {
   };
   const token = obtenerToken();
 
-  const verificarTokenVencido = (tk) => {
-    try {
-      const payload = JSON.parse(atob(tk.split(".")[1]));
-      return Date.now() >= payload.exp * 1000;
-    } catch {
-      return true;
-    }
-  };
+  // Token helpers (importados de utils/auth.js)
 
   const obtenerUsuarioDelToken = () => {
     try {
@@ -185,17 +173,7 @@ function AreasComunes() {
     }
   };
 
-  const obtenerRolDelToken = () => {
-    try {
-      if (verificarTokenVencido(token)) return 1;
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload.rolesId || 1;
-    } catch {
-      return 1;
-    }
-  };
-
-  const rolesId = obtenerRolDelToken();
+  const rolesId = obtenerRolFromToken(token);
   const nombreUsuario = obtenerUsuarioDelToken();
   const rolUsuario = mapRolLabel(rolesId);
   const dashboardPath = mapDashboardPath(rolesId);
@@ -324,7 +302,7 @@ function AreasComunes() {
       const resp = await obtenerAreas(token);
       if (resp.ok) {
         const d = await resp.json();
-        const areas = d.body || d.mostrarAreasComunes || [];
+        const areas = d.data || d.body || d.mostrarAreasComunes || [];
         if (areas.length > 0) {
           setAreasComunes(
             areas.map((a) => ({
@@ -1394,356 +1372,336 @@ function AreasComunes() {
       </div>
 
       {/* ══════════ MODAL — REGISTRAR / EDITAR ══════════ */}
-      {modalAbierto && (
-        <dialog
-          open
-          className="ac-modal-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) cerrarModal();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") cerrarModal();
-          }}
-          aria-modal="true"
-          aria-label="Cerrar"
-        >
-          <div className="ac-modal">
-            <div className="ac-modal-header">
-              <h5>
-                {editIndex !== null ? "Editar Reserva" : "Registrar Reserva"}
-              </h5>
-              <button className="ac-modal-close" onClick={cerrarModal}>
-                <i className="bi bi-x-lg" />
-              </button>
-            </div>
-            <div className="ac-modal-body">
-              <form onSubmit={handleSubmit}>
-                {/* Sección Solicitante */}
-                <div className="ac-form-section">
-                  <div className="ac-form-section-title">
-                    <i className="bi bi-person-fill me-2" /> Datos del
-                    Solicitante
-                  </div>
-                  <div className="ac-form-grid">
-                    <div className="ac-form-group">
-                      <label
-                        className="ac-form-label"
-                        htmlFor="tipoDocumentoId"
-                      >
-                        Tipo Documento *
-                      </label>
-                      <select
-                        id="tipoDocumentoId"
-                        name="tipoDocumentoId"
-                        className="ac-form-control"
-                        value={reserva.tipoDocumentoId}
-                        onChange={handleChange}
-                        required
-                      >
-                        <option value="">Seleccionar</option>
-                        {tiposDocumento.map((t) => (
-                          <option
-                            key={t.tipoDocumentoId}
-                            value={t.tipoDocumentoId}
-                          >
-                            {t.nombre}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="ac-form-group">
-                      <label
-                        className="ac-form-label"
-                        htmlFor="documentoSolicitante"
-                      >
-                        Nro. Documento *
-                      </label>
-                      <input
-                        type="text"
-                        id="documentoSolicitante"
-                        name="documentoSolicitante"
-                        className="ac-form-control"
-                        value={reserva.documentoSolicitante}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                    <div className="ac-form-group full-width">
-                      <label
-                        className="ac-form-label"
-                        htmlFor="nombreSolicitante"
-                      >
-                        Nombre Completo *
-                      </label>
-                      <input
-                        type="text"
-                        id="nombreSolicitante"
-                        name="nombreSolicitante"
-                        className="ac-form-control"
-                        value={reserva.nombreSolicitante}
-                        onChange={handleChange}
-                        placeholder="Nombre y apellidos"
-                        required
-                      />
-                    </div>
-                    <div className="ac-form-group">
-                      <label
-                        className="ac-form-label"
-                        htmlFor="telefonoSolicitante"
-                      >
-                        Teléfono *
-                      </label>
-                      <input
-                        type="text"
-                        id="telefonoSolicitante"
-                        name="telefonoSolicitante"
-                        className="ac-form-control"
-                        value={reserva.telefonoSolicitante}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                    <div className="ac-form-group">
-                      <label
-                        className="ac-form-label"
-                        htmlFor="correoSolicitante"
-                      >
-                        Correo *
-                      </label>
-                      <input
-                        type="email"
-                        id="correoSolicitante"
-                        name="correoSolicitante"
-                        className="ac-form-control"
-                        value={reserva.correoSolicitante}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sección Reserva */}
-                <div className="ac-form-section">
-                  <div className="ac-form-section-title">
-                    <i className="bi bi-calendar2-event me-2" /> Datos de la
-                    Reserva
-                  </div>
-                  <div className="ac-form-grid">
-                    <div className="ac-form-group">
-                      <label className="ac-form-label" htmlFor="torre">
-                        Torre *
-                      </label>
-                      <select
-                        id="torre"
-                        name="torre"
-                        className="ac-form-control"
-                        value={reserva.torre}
-                        onChange={handleTorreChange}
-                        required
-                      >
-                        <option value="">Seleccionar</option>
-                        {torresDisponibles.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.nombre}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="ac-form-group">
-                      <label className="ac-form-label" htmlFor="apartamentoId">
-                        Apartamento *
-                      </label>
-                      <select
-                        id="apartamentoId"
-                        name="apartamentoId"
-                        className="ac-form-control"
-                        value={reserva.apartamentoId}
-                        onChange={handleChange}
-                        required
-                        disabled={!reserva.torre}
-                      >
-                        <option value="">
-                          {!reserva.torre
-                            ? "Primero selecciona torre"
-                            : "Seleccionar"}
-                        </option>
-                        {apartamentosFiltrados.map((a) => (
-                          <option key={a.idApartamento} value={a.idApartamento}>
-                            Apto {a.numeroApartamento}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="ac-form-group full-width">
-                      <label className="ac-form-label" htmlFor="areaComunId">
-                        Área Común *
-                      </label>
-                      <select
-                        id="areaComunId"
-                        name="areaComunId"
-                        className="ac-form-control"
-                        value={reserva.areaComunId}
-                        onChange={handleChange}
-                        required
-                      >
-                        <option value="">Seleccionar área</option>
-                        {areasComunes
-                          .filter((a) => a.estadoId === 4)
-                          .map((a) => (
-                            <option key={a.idAreaComun} value={a.idAreaComun}>
-                              {a.nombreArea}
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-                    <div className="ac-form-group">
-                      <label className="ac-form-label" htmlFor="fechaReserva">
-                        Fecha Reserva *
-                      </label>
-                      <input
-                        type="date"
-                        id="fechaReserva"
-                        name="fechaReserva"
-                        className="ac-form-control"
-                        value={reserva.fechaReserva}
-                        onChange={handleChange}
-                        min={new Date().toISOString().split("T")[0]}
-                        required
-                      />
-                    </div>
-                    <div className="ac-form-group" />
-                    <div className="ac-form-group">
-                      <label className="ac-form-label" htmlFor="horaInicio">
-                        Hora Inicio *
-                      </label>
-                      <input
-                        type="time"
-                        id="horaInicio"
-                        name="horaInicio"
-                        className="ac-form-control"
-                        value={reserva.horaInicio}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                    <div className="ac-form-group">
-                      <label className="ac-form-label" htmlFor="horaFin">
-                        Hora Fin *
-                      </label>
-                      <input
-                        type="time"
-                        id="horaFin"
-                        name="horaFin"
-                        className="ac-form-control"
-                        value={reserva.horaFin}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                    <div className="ac-form-group">
-                      <label
-                        className="ac-form-label"
-                        htmlFor="cantidadAsistentes"
-                      >
-                        Asistentes *
-                      </label>
-                      <input
-                        type="number"
-                        id="cantidadAsistentes"
-                        name="cantidadAsistentes"
-                        className="ac-form-control"
-                        value={reserva.cantidadAsistentes}
-                        onChange={handleChange}
-                        min="1"
-                        required
-                      />
-                    </div>
-                    <div className="ac-form-group">
-                      <span className="ac-form-label">&nbsp;</span>
-                      <label
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          cursor: "pointer",
-                          fontSize: 14,
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          name="invitadosExternos"
-                          checked={reserva.invitadosExternos}
-                          onChange={handleChange}
-                        />{" "}
-                        Invitados externos
-                      </label>
-                    </div>
-                    <div className="ac-form-group full-width">
-                      <label className="ac-form-label" htmlFor="motivoReserva">
-                        Motivo de la Reserva *
-                      </label>
-                      <textarea
-                        id="motivoReserva"
-                        name="motivoReserva"
-                        className="ac-form-control"
-                        value={reserva.motivoReserva}
-                        onChange={handleChange}
-                        rows="2"
-                        placeholder="Describe el motivo de la reserva"
-                        required
-                      />
-                    </div>
-                    <div className="ac-form-group full-width">
-                      <label
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          cursor: "pointer",
-                          fontSize: 14,
-                          color: "#424242",
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          name="aceptaReglamento"
-                          checked={reserva.aceptaReglamento}
-                          onChange={handleChange}
-                          required
-                        />{" "}
-                        Acepto el reglamento de uso *
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="ac-form-submit"
-                  disabled={loading}
-                >
-                  {obtenerLabelSubmitReserva(loading, editIndex !== null)}
-                </button>
-              </form>
-            </div>
+      <ModalOverlay
+        isOpen={modalAbierto}
+        onClose={() => cerrarModal()}
+        className="ac-modal-overlay"
+      >
+        <div className="ac-modal">
+          <div className="ac-modal-header">
+            <h5>
+              {editIndex !== null ? "Editar Reserva" : "Registrar Reserva"}
+            </h5>
+            <button className="ac-modal-close" onClick={cerrarModal}>
+              <i className="bi bi-x-lg" />
+            </button>
           </div>
-        </dialog>
-      )}
+          <div className="ac-modal-body">
+            <form onSubmit={handleSubmit}>
+              {/* Sección Solicitante */}
+              <div className="ac-form-section">
+                <div className="ac-form-section-title">
+                  <i className="bi bi-person-fill me-2" /> Datos del Solicitante
+                </div>
+                <div className="ac-form-grid">
+                  <div className="ac-form-group">
+                    <label className="ac-form-label" htmlFor="tipoDocumentoId">
+                      Tipo Documento *
+                    </label>
+                    <select
+                      id="tipoDocumentoId"
+                      name="tipoDocumentoId"
+                      className="ac-form-control"
+                      value={reserva.tipoDocumentoId}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="">Seleccionar</option>
+                      {tiposDocumento.map((t) => (
+                        <option
+                          key={t.tipoDocumentoId}
+                          value={t.tipoDocumentoId}
+                        >
+                          {t.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="ac-form-group">
+                    <label
+                      className="ac-form-label"
+                      htmlFor="documentoSolicitante"
+                    >
+                      Nro. Documento *
+                    </label>
+                    <input
+                      type="text"
+                      id="documentoSolicitante"
+                      name="documentoSolicitante"
+                      className="ac-form-control"
+                      value={reserva.documentoSolicitante}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="ac-form-group full-width">
+                    <label
+                      className="ac-form-label"
+                      htmlFor="nombreSolicitante"
+                    >
+                      Nombre Completo *
+                    </label>
+                    <input
+                      type="text"
+                      id="nombreSolicitante"
+                      name="nombreSolicitante"
+                      className="ac-form-control"
+                      value={reserva.nombreSolicitante}
+                      onChange={handleChange}
+                      placeholder="Nombre y apellidos"
+                      required
+                    />
+                  </div>
+                  <div className="ac-form-group">
+                    <label
+                      className="ac-form-label"
+                      htmlFor="telefonoSolicitante"
+                    >
+                      Teléfono *
+                    </label>
+                    <input
+                      type="text"
+                      id="telefonoSolicitante"
+                      name="telefonoSolicitante"
+                      className="ac-form-control"
+                      value={reserva.telefonoSolicitante}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="ac-form-group">
+                    <label
+                      className="ac-form-label"
+                      htmlFor="correoSolicitante"
+                    >
+                      Correo *
+                    </label>
+                    <input
+                      type="email"
+                      id="correoSolicitante"
+                      name="correoSolicitante"
+                      className="ac-form-control"
+                      value={reserva.correoSolicitante}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Sección Reserva */}
+              <div className="ac-form-section">
+                <div className="ac-form-section-title">
+                  <i className="bi bi-calendar2-event me-2" /> Datos de la
+                  Reserva
+                </div>
+                <div className="ac-form-grid">
+                  <div className="ac-form-group">
+                    <label className="ac-form-label" htmlFor="torre">
+                      Torre *
+                    </label>
+                    <select
+                      id="torre"
+                      name="torre"
+                      className="ac-form-control"
+                      value={reserva.torre}
+                      onChange={handleTorreChange}
+                      required
+                    >
+                      <option value="">Seleccionar</option>
+                      {torresDisponibles.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="ac-form-group">
+                    <label className="ac-form-label" htmlFor="apartamentoId">
+                      Apartamento *
+                    </label>
+                    <select
+                      id="apartamentoId"
+                      name="apartamentoId"
+                      className="ac-form-control"
+                      value={reserva.apartamentoId}
+                      onChange={handleChange}
+                      required
+                      disabled={!reserva.torre}
+                    >
+                      <option value="">
+                        {!reserva.torre
+                          ? "Primero selecciona torre"
+                          : "Seleccionar"}
+                      </option>
+                      {apartamentosFiltrados.map((a) => (
+                        <option key={a.idApartamento} value={a.idApartamento}>
+                          Apto {a.numeroApartamento}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="ac-form-group full-width">
+                    <label className="ac-form-label" htmlFor="areaComunId">
+                      Área Común *
+                    </label>
+                    <select
+                      id="areaComunId"
+                      name="areaComunId"
+                      className="ac-form-control"
+                      value={reserva.areaComunId}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="">Seleccionar área</option>
+                      {areasComunes
+                        .filter((a) => a.estadoId === 4)
+                        .map((a) => (
+                          <option key={a.idAreaComun} value={a.idAreaComun}>
+                            {a.nombreArea}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <div className="ac-form-group">
+                    <label className="ac-form-label" htmlFor="fechaReserva">
+                      Fecha Reserva *
+                    </label>
+                    <input
+                      type="date"
+                      id="fechaReserva"
+                      name="fechaReserva"
+                      className="ac-form-control"
+                      value={reserva.fechaReserva}
+                      onChange={handleChange}
+                      min={new Date().toISOString().split("T")[0]}
+                      required
+                    />
+                  </div>
+                  <div className="ac-form-group" />
+                  <div className="ac-form-group">
+                    <label className="ac-form-label" htmlFor="horaInicio">
+                      Hora Inicio *
+                    </label>
+                    <input
+                      type="time"
+                      id="horaInicio"
+                      name="horaInicio"
+                      className="ac-form-control"
+                      value={reserva.horaInicio}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="ac-form-group">
+                    <label className="ac-form-label" htmlFor="horaFin">
+                      Hora Fin *
+                    </label>
+                    <input
+                      type="time"
+                      id="horaFin"
+                      name="horaFin"
+                      className="ac-form-control"
+                      value={reserva.horaFin}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="ac-form-group">
+                    <label
+                      className="ac-form-label"
+                      htmlFor="cantidadAsistentes"
+                    >
+                      Asistentes *
+                    </label>
+                    <input
+                      type="number"
+                      id="cantidadAsistentes"
+                      name="cantidadAsistentes"
+                      className="ac-form-control"
+                      value={reserva.cantidadAsistentes}
+                      onChange={handleChange}
+                      min="1"
+                      required
+                    />
+                  </div>
+                  <div className="ac-form-group">
+                    <span className="ac-form-label">&nbsp;</span>
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        cursor: "pointer",
+                        fontSize: 14,
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        name="invitadosExternos"
+                        checked={reserva.invitadosExternos}
+                        onChange={handleChange}
+                      />{" "}
+                      Invitados externos
+                    </label>
+                  </div>
+                  <div className="ac-form-group full-width">
+                    <label className="ac-form-label" htmlFor="motivoReserva">
+                      Motivo de la Reserva *
+                    </label>
+                    <textarea
+                      id="motivoReserva"
+                      name="motivoReserva"
+                      className="ac-form-control"
+                      value={reserva.motivoReserva}
+                      onChange={handleChange}
+                      rows="2"
+                      placeholder="Describe el motivo de la reserva"
+                      required
+                    />
+                  </div>
+                  <div className="ac-form-group full-width">
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        cursor: "pointer",
+                        fontSize: 14,
+                        color: "#424242",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        name="aceptaReglamento"
+                        checked={reserva.aceptaReglamento}
+                        onChange={handleChange}
+                        required
+                      />{" "}
+                      Acepto el reglamento de uso *
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="ac-form-submit"
+                disabled={loading}
+              >
+                {obtenerLabelSubmitReserva(loading, editIndex !== null)}
+              </button>
+            </form>
+          </div>
+        </div>
+      </ModalOverlay>
 
       {/* ══════════ MODAL — DETALLES ══════════ */}
       {showModalDetalles && registroSeleccionado && (
-        <dialog
-          open
+        <ModalOverlay
+          isOpen
+          onClose={() => setShowModalDetalles(false)}
           className="ac-modal-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowModalDetalles(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setShowModalDetalles(false);
-          }}
-          aria-modal="true"
-          aria-label="Cerrar"
         >
           <div className="ac-modal">
             <div className="ac-modal-header">
@@ -1851,225 +1809,207 @@ function AreasComunes() {
               </button>
             </div>
           </div>
-        </dialog>
+        </ModalOverlay>
       )}
 
       {/* ══════════ MODAL — CALENDARIO ══════════ */}
-      {showCalendario && (
-        <dialog
-          open
-          className="ac-modal-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowCalendario(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setShowCalendario(false);
-          }}
-          aria-modal="true"
-          aria-label="Cerrar"
-        >
-          <div className="ac-modal ac-calendar-modal">
-            <div className="ac-modal-header">
-              <h5>Calendario de Reservas</h5>
-              <button
-                className="ac-modal-close"
-                onClick={() => setShowCalendario(false)}
-              >
-                <i className="bi bi-x-lg" />
-              </button>
-            </div>
-            <div className="ac-modal-body">
-              {/* Navegación de mes */}
-              <div className="ac-calendar-nav">
-                <button className="ac-calendar-nav-btn" onClick={mesAnterior}>
-                  <i className="bi bi-chevron-left" />
-                </button>
-                <span className="ac-calendar-month">
-                  {MESES[calMonth]} {calYear}
-                </span>
-                <button className="ac-calendar-nav-btn" onClick={mesSiguiente}>
-                  <i className="bi bi-chevron-right" />
-                </button>
-              </div>
-
-              {/* Encabezados de semana */}
-              <div className="ac-calendar-weekdays">
-                {DIAS_SEMANA.map((d) => (
-                  <div key={d} className="ac-calendar-weekday">
-                    {d}
-                  </div>
-                ))}
-              </div>
-
-              {/* Grilla de días */}
-              <div className="ac-calendar-grid">
-                {buildCalendarGrid().map((cell, idx) => {
-                  if (!cell.day) {
-                    return (
-                      <div
-                        key={`empty-${idx}`}
-                        className="ac-calendar-day empty"
-                      />
-                    );
-                  }
-                  const reservasDia = reservasDelDia(cell.day);
-                  const tieneReservas = reservasDia.length > 0;
-                  const past = esPasado(cell.day);
-                  const today = esHoy(cell.day);
-                  const isSelected = selectedDay === cell.day;
-
-                  let cls = "ac-calendar-day";
-                  if (past) cls += " past";
-                  if (today) cls += " today";
-                  if (isSelected) cls += " selected";
-                  if (tieneReservas && !past) cls += " has-reservas";
-
-                  return (
-                    <button
-                      type="button"
-                      key={cell.day}
-                      className={cls}
-                      onClick={() => !past && setSelectedDay(cell.day)}
-                      onKeyDown={(e) => {
-                        if ((e.key === "Enter" || e.key === " ") && !past)
-                          setSelectedDay(cell.day);
-                      }}
-                      tabIndex={past ? -1 : 0}
-                    >
-                      {cell.day}
-                      {tieneReservas && !past && (
-                        <div className="ac-calendar-day-dot" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Lista de reservas del día seleccionado */}
-              {selectedDay && (
-                <div className="ac-calendar-reservas">
-                  <div className="ac-calendar-fecha">
-                    {selectedDay} de {MESES[calMonth]} {calYear}
-                  </div>
-                  {reservasDelDia(selectedDay).length === 0 ? (
-                    <p style={{ color: "#9e9e9e", textAlign: "center" }}>
-                      No hay reservas este día
-                    </p>
-                  ) : (
-                    reservasDelDia(selectedDay).map((r) => (
-                      <div
-                        key={r.idReservas}
-                        className="ac-calendar-reserva-card"
-                      >
-                        <div className="ac-calendar-reserva-icon">
-                          <i className="bi bi-calendar2-event" />
-                        </div>
-                        <div className="ac-calendar-reserva-info">
-                          <div className="ac-calendar-reserva-area">
-                            {r.areaComun?.nombreArea ||
-                              r.nombreArea ||
-                              "Área común"}
-                          </div>
-                          <div className="ac-calendar-reserva-hora">
-                            {formatHora(r.horaInicio)} — {formatHora(r.horaFin)}
-                          </div>
-                          <div className="ac-calendar-reserva-nombre">
-                            {r.Solicitante?.nombreSolicitante ||
-                              r.nombreSolicitante ||
-                              ""}
-                          </div>
-                        </div>
-                        <div className="ac-calendar-reserva-estado">
-                          {r.estado?.nombreEstado || r.nombreEstado || "Activa"}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
+      <ModalOverlay
+        isOpen={showCalendario}
+        onClose={() => setShowCalendario(false)}
+        className="ac-modal-overlay"
+      >
+        <div className="ac-modal ac-calendar-modal">
+          <div className="ac-modal-header">
+            <h5>Calendario de Reservas</h5>
+            <button
+              className="ac-modal-close"
+              onClick={() => setShowCalendario(false)}
+            >
+              <i className="bi bi-x-lg" />
+            </button>
           </div>
-        </dialog>
-      )}
-
-      {/* ══════════ MODAL GESTIONAR ÁREAS (SuperAdmin) ══════════ */}
-      {showModalAreas && rolesId === 1 && (
-        <dialog
-          open
-          className="ac-modal-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowModalAreas(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setShowModalAreas(false);
-          }}
-          aria-modal="true"
-          aria-label="Cerrar"
-        >
-          <div className="ac-modal ac-modal-areas">
-            <div className="ac-modal-header">
-              <h2>
-                <i className="bi bi-toggles me-2" /> Gestionar Áreas Comunes
-              </h2>
-              <button
-                className="ac-modal-close"
-                onClick={() => setShowModalAreas(false)}
-              >
-                <i className="bi bi-x-lg" />
+          <div className="ac-modal-body">
+            {/* Navegación de mes */}
+            <div className="ac-calendar-nav">
+              <button className="ac-calendar-nav-btn" onClick={mesAnterior}>
+                <i className="bi bi-chevron-left" />
+              </button>
+              <span className="ac-calendar-month">
+                {MESES[calMonth]} {calYear}
+              </span>
+              <button className="ac-calendar-nav-btn" onClick={mesSiguiente}>
+                <i className="bi bi-chevron-right" />
               </button>
             </div>
-            <div className="ac-modal-body" style={{ padding: "20px" }}>
-              <p className="ac-areas-desc">
-                <i className="bi bi-info-circle me-1" /> Active o desactive las
-                áreas comunes. Las áreas inhabilitadas no aparecerán en el
-                formulario de reservas.
-              </p>
-              <div className="ac-areas-list">
-                {areasComunes.map((area) => {
-                  const disponible = area.estadoId === 4;
+
+            {/* Encabezados de semana */}
+            <div className="ac-calendar-weekdays">
+              {DIAS_SEMANA.map((d) => (
+                <div key={d} className="ac-calendar-weekday">
+                  {d}
+                </div>
+              ))}
+            </div>
+
+            {/* Grilla de días */}
+            <div className="ac-calendar-grid">
+              {buildCalendarGrid().map((cell, idx) => {
+                if (!cell.day) {
                   return (
                     <div
-                      key={area.idAreaComun}
-                      className={`ac-area-card ${disponible ? "ac-area-disponible" : "ac-area-inhabilitada"}`}
+                      key={`empty-${idx}`}
+                      className="ac-calendar-day empty"
+                    />
+                  );
+                }
+                const reservasDia = reservasDelDia(cell.day);
+                const tieneReservas = reservasDia.length > 0;
+                const past = esPasado(cell.day);
+                const today = esHoy(cell.day);
+                const isSelected = selectedDay === cell.day;
+
+                let cls = "ac-calendar-day";
+                if (past) cls += " past";
+                if (today) cls += " today";
+                if (isSelected) cls += " selected";
+                if (tieneReservas && !past) cls += " has-reservas";
+
+                return (
+                  <button
+                    type="button"
+                    key={cell.day}
+                    className={cls}
+                    onClick={() => !past && setSelectedDay(cell.day)}
+                    onKeyDown={(e) => {
+                      if ((e.key === "Enter" || e.key === " ") && !past)
+                        setSelectedDay(cell.day);
+                    }}
+                    tabIndex={past ? -1 : 0}
+                  >
+                    {cell.day}
+                    {tieneReservas && !past && (
+                      <div className="ac-calendar-day-dot" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Lista de reservas del día seleccionado */}
+            {selectedDay && (
+              <div className="ac-calendar-reservas">
+                <div className="ac-calendar-fecha">
+                  {selectedDay} de {MESES[calMonth]} {calYear}
+                </div>
+                {reservasDelDia(selectedDay).length === 0 ? (
+                  <p style={{ color: "#9e9e9e", textAlign: "center" }}>
+                    No hay reservas este día
+                  </p>
+                ) : (
+                  reservasDelDia(selectedDay).map((r) => (
+                    <div
+                      key={r.idReservas}
+                      className="ac-calendar-reserva-card"
                     >
-                      <div className="ac-area-card-info">
-                        <div className="ac-area-card-icon">
-                          <i
-                            className={`bi ${disponible ? "bi-building-check" : "bi-building-slash"}`}
-                          />
+                      <div className="ac-calendar-reserva-icon">
+                        <i className="bi bi-calendar2-event" />
+                      </div>
+                      <div className="ac-calendar-reserva-info">
+                        <div className="ac-calendar-reserva-area">
+                          {r.areaComun?.nombreArea ||
+                            r.nombreArea ||
+                            "Área común"}
                         </div>
-                        <div>
-                          <div className="ac-area-card-name">
-                            {area.nombreArea}
-                          </div>
-                          <div className="ac-area-card-meta">
-                            Capacidad: {area.capacidad || "—"} personas
-                          </div>
-                          <span
-                            className={`ac-badge ${disponible ? "ac-badge-activa" : "ac-badge-finalizada"}`}
-                          >
-                            {disponible ? "Disponible" : "Inhabilitada"}
-                          </span>
+                        <div className="ac-calendar-reserva-hora">
+                          {formatHora(r.horaInicio)} — {formatHora(r.horaFin)}
+                        </div>
+                        <div className="ac-calendar-reserva-nombre">
+                          {r.Solicitante?.nombreSolicitante ||
+                            r.nombreSolicitante ||
+                            ""}
                         </div>
                       </div>
-                      <button
-                        className={`ac-area-toggle-btn ${disponible ? "ac-area-toggle-off" : "ac-area-toggle-on"}`}
-                        onClick={() => toggleEstadoArea(area)}
-                        title={disponible ? "Inhabilitar" : "Habilitar"}
-                      >
-                        <i
-                          className={`bi ${disponible ? "bi-toggle-on" : "bi-toggle-off"}`}
-                        />
-                        {disponible ? "Inhabilitar" : "Habilitar"}
-                      </button>
+                      <div className="ac-calendar-reserva-estado">
+                        {r.estado?.nombreEstado || r.nombreEstado || "Activa"}
+                      </div>
                     </div>
-                  );
-                })}
+                  ))
+                )}
               </div>
+            )}
+          </div>
+        </div>
+      </ModalOverlay>
+
+      {/* ══════════ MODAL GESTIONAR ÁREAS (SuperAdmin) ══════════ */}
+      <ModalOverlay
+        isOpen={showModalAreas && rolesId === 1}
+        onClose={() => setShowModalAreas(false)}
+        className="ac-modal-overlay"
+      >
+        <div className="ac-modal ac-modal-areas">
+          <div className="ac-modal-header">
+            <h2>
+              <i className="bi bi-toggles me-2" /> Gestionar Áreas Comunes
+            </h2>
+            <button
+              className="ac-modal-close"
+              onClick={() => setShowModalAreas(false)}
+            >
+              <i className="bi bi-x-lg" />
+            </button>
+          </div>
+          <div className="ac-modal-body" style={{ padding: "20px" }}>
+            <p className="ac-areas-desc">
+              <i className="bi bi-info-circle me-1" /> Active o desactive las
+              áreas comunes. Las áreas inhabilitadas no aparecerán en el
+              formulario de reservas.
+            </p>
+            <div className="ac-areas-list">
+              {areasComunes.map((area) => {
+                const disponible = area.estadoId === 4;
+                return (
+                  <div
+                    key={area.idAreaComun}
+                    className={`ac-area-card ${disponible ? "ac-area-disponible" : "ac-area-inhabilitada"}`}
+                  >
+                    <div className="ac-area-card-info">
+                      <div className="ac-area-card-icon">
+                        <i
+                          className={`bi ${disponible ? "bi-building-check" : "bi-building-slash"}`}
+                        />
+                      </div>
+                      <div>
+                        <div className="ac-area-card-name">
+                          {area.nombreArea}
+                        </div>
+                        <div className="ac-area-card-meta">
+                          Capacidad: {area.capacidad || "—"} personas
+                        </div>
+                        <span
+                          className={`ac-badge ${disponible ? "ac-badge-activa" : "ac-badge-finalizada"}`}
+                        >
+                          {disponible ? "Disponible" : "Inhabilitada"}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      className={`ac-area-toggle-btn ${disponible ? "ac-area-toggle-off" : "ac-area-toggle-on"}`}
+                      onClick={() => toggleEstadoArea(area)}
+                      title={disponible ? "Inhabilitar" : "Habilitar"}
+                    >
+                      <i
+                        className={`bi ${disponible ? "bi-toggle-on" : "bi-toggle-off"}`}
+                      />
+                      {disponible ? "Inhabilitar" : "Habilitar"}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        </dialog>
-      )}
+        </div>
+      </ModalOverlay>
     </div>
   );
 }

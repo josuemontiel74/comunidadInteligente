@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ModalOverlay from "../utils/ModalOverlay.jsx";
 import "../Styles/whatsAppModal.css";
 
 const WA_URL = "https://chat.whatsapp.com/LhaKlTnihkgAq8f9GdGuDh?mode=gi_t";
@@ -23,60 +24,52 @@ export default function WhatsAppModal() {
       </button>
 
       {/* Modal */}
-      {open && (
-        <dialog
-          open
-          className="wa-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setOpen(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setOpen(false);
-          }}
-          aria-modal="true"
-        >
-          <div className="wa-modal">
-            {/* Cierre */}
-            <button
-              className="wa-modal-x"
-              onClick={() => setOpen(false)}
-              aria-label="Cerrar"
-            >
-              <i className="bi bi-x-lg"></i>
-            </button>
+      <ModalOverlay
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        className="wa-overlay"
+      >
+        <div className="wa-modal">
+          {/* Cierre */}
+          <button
+            className="wa-modal-x"
+            onClick={() => setOpen(false)}
+            aria-label="Cerrar"
+          >
+            <i className="bi bi-x-lg"></i>
+          </button>
 
-            {/* Icono */}
-            <div className="wa-modal-icon-wrap">
-              <i className="bi bi-whatsapp"></i>
-            </div>
-
-            <h3 className="wa-modal-title">Grupo Comunitario</h3>
-            <p className="wa-modal-subtitle">Comunidad Inteligente</p>
-
-            <p className="wa-modal-text">
-              Únete a nuestro grupo de WhatsApp donde podrás comunicarte
-              directamente con los administradores e integrantes del equipo de
-              trabajo. Comparte novedades, resuelve inquietudes y mantente al
-              tanto de todo lo que ocurre en el conjunto residencial.
-            </p>
-
-            <a
-              href={WA_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="wa-join-btn"
-              onClick={() => setOpen(false)}
-            >
-              <i className="bi bi-whatsapp"></i> Unirse al grupo
-            </a>
-
-            <p className="wa-modal-note">
-              <i className="bi bi-shield-check"></i> Enlace oficial · Solo para
-              personal autorizado
-            </p>
+          {/* Icono */}
+          <div className="wa-modal-icon-wrap">
+            <i className="bi bi-whatsapp"></i>
           </div>
-        </dialog>
-      )}
+
+          <h3 className="wa-modal-title">Grupo Comunitario</h3>
+          <p className="wa-modal-subtitle">Comunidad Inteligente</p>
+
+          <p className="wa-modal-text">
+            Únete a nuestro grupo de WhatsApp donde podrás comunicarte
+            directamente con los administradores e integrantes del equipo de
+            trabajo. Comparte novedades, resuelve inquietudes y mantente al
+            tanto de todo lo que ocurre en el conjunto residencial.
+          </p>
+
+          <a
+            href={WA_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="wa-join-btn"
+            onClick={() => setOpen(false)}
+          >
+            <i className="bi bi-whatsapp"></i> Unirse al grupo
+          </a>
+
+          <p className="wa-modal-note">
+            <i className="bi bi-shield-check"></i> Enlace oficial · Solo para
+            personal autorizado
+          </p>
+        </div>
+      </ModalOverlay>
     </>
   );
 }

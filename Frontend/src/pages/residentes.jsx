@@ -13,7 +13,9 @@ import {
   actualizarOcupante,
   finalizarOcupante,
 } from "../services/residentes.services.jsx";
-import { logoutUsuario } from "../services/gestionUsuarios.jsx";
+import ModalOverlay from "../utils/ModalOverlay.jsx";
+import { verificarTokenVencido, obtenerRolFromToken } from "../utils/auth.js";
+import useLogout from "../utils/useLogout.js";
 
 /* =========================================================
    UTILIDADES
@@ -28,14 +30,7 @@ const obtenerToken = () => {
   );
 };
 
-const verificarTokenVencido = (token) => {
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return Date.now() >= payload.exp * 1000;
-  } catch {
-    return true;
-  }
-};
+// verificarTokenVencido — importado desde ../utils/auth.js
 
 const obtenerUsuarioDelToken = () => {
   try {
@@ -48,16 +43,7 @@ const obtenerUsuarioDelToken = () => {
   }
 };
 
-const obtenerRolDelToken = () => {
-  try {
-    const t = obtenerToken();
-    if (!t || verificarTokenVencido(t)) return null;
-    const payload = JSON.parse(atob(t.split(".")[1]));
-    return payload.rolesId || null;
-  } catch {
-    return null;
-  }
-};
+// obtenerRolFromToken — importado desde ../utils/auth.js
 
 const mapTipoDocumento = (id) =>
   ({ 1: "CC", 2: "CE", 3: "PP", 4: "PEP", 5: "PPT" })[id] || "CC";
@@ -369,7 +355,7 @@ PaginacionResidentes.propTypes = {
 function Residentes() {
   const location = useLocation();
   const navegacion = useNavigate();
-  const rolesId = obtenerRolDelToken();
+  const rolesId = obtenerRolFromToken(obtenerToken());
   const nombreUsuario = obtenerUsuarioDelToken();
   const showUserManagement = rolesId === 1;
   const showAreasComunes = rolesId !== 3;
@@ -774,14 +760,7 @@ function Residentes() {
     }
   };
 
-  const cerrarSesion = async (e) => {
-    e?.preventDefault();
-    const token = localStorage.getItem("token");
-    if (token) await logoutUsuario(token);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navegacion("/");
-  };
+  const cerrarSesion = useLogout();
 
   const ejecutarFinalizar = async (r) => {
     if (!r) return;
@@ -1365,438 +1344,351 @@ function Residentes() {
       </main>
 
       {/* ===== MODAL CREAR / EDITAR ===== */}
-      {modalAbierto && (
-        <dialog
-          open
-          className="res-modal-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) cerrarModal();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") cerrarModal();
-          }}
-          aria-modal="true"
-          aria-label="Cerrar"
-        >
-          <div className="res-modal">
-            <div className="res-modal-header">
-              <h3>
-                <i
-                  className={`bi ${editIndex === null ? "bi-person-plus-fill" : "bi-pencil-square"}`}
-                  style={{ fontSize: "22px" }}
-                ></i>
-                {editIndex === null
-                  ? "Registrar Residente"
-                  : "Editar Residente"}
-              </h3>
-              <button className="res-modal-close" onClick={cerrarModal}>
-                <i className="bi bi-x-lg"></i>
+      <ModalOverlay
+        isOpen={modalAbierto}
+        onClose={() => cerrarModal()}
+        className="res-modal-overlay"
+      >
+        <div className="res-modal">
+          <div className="res-modal-header">
+            <h3>
+              <i
+                className={`bi ${editIndex === null ? "bi-person-plus-fill" : "bi-pencil-square"}`}
+                style={{ fontSize: "22px" }}
+              ></i>
+              {editIndex === null ? "Registrar Residente" : "Editar Residente"}
+            </h3>
+            <button className="res-modal-close" onClick={cerrarModal}>
+              <i className="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <form onSubmit={handleSubmit}>
+            <div className="res-modal-body">
+              {/* SECCION: Informacion de Ocupacion */}
+              <p className="res-modal-section-title">
+                <i className="bi bi-house-door"></i> Información de la Ocupación
+              </p>
+              <div className="res-form-row triple">
+                <div className="res-form-group">
+                  <label htmlFor="res-torreId">Torre *</label>
+                  <select
+                    id="res-torreId"
+                    name="torreId"
+                    value={formData.torreId}
+                    onChange={(e) => {
+                      handleChange(e);
+                      setFormData((f) => ({ ...f, apto: "" }));
+                    }}
+                    required
+                  >
+                    {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                      <option key={n} value={n}>
+                        Torre {String.fromCodePoint(64 + n)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="res-form-group">
+                  <label htmlFor="res-apto">Apartamento *</label>
+                  <select
+                    id="res-apto"
+                    name="apto"
+                    value={formData.apto}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Seleccione...</option>
+                    {generarAptos(formData.torreId).map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.numero}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="res-form-group">
+                  <label htmlFor="res-tipoOcupacion">Tipo Ocupación *</label>
+                  <select
+                    id="res-tipoOcupacion"
+                    name="tipoOcupacion"
+                    value={formData.tipoOcupacion}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="Propietario">Propietario</option>
+                    <option value="Arrendatario">Arrendatario</option>
+                  </select>
+                </div>
+              </div>
+              <div className="res-form-row">
+                <div className="res-form-group">
+                  <label htmlFor="res-fechaInicio">Fecha de Inicio *</label>
+                  <input
+                    id="res-fechaInicio"
+                    type="date"
+                    name="fechaInicio"
+                    value={formData.fechaInicio}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                <div className="res-form-group">
+                  <label htmlFor="res-personasACargo">
+                    ¿Cuántas personas vivirán con usted?
+                  </label>
+                  <input
+                    id="res-personasACargo"
+                    type="number"
+                    name="personasACargo"
+                    value={formData.personasACargo}
+                    onChange={handleChange}
+                    min="0"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              {/* SECCION: Informacion Personal */}
+              <p className="res-modal-section-title">
+                <i className="bi bi-person-vcard"></i> Información Personal
+              </p>
+              <div className="res-form-row triple">
+                <div className="res-form-group">
+                  <label htmlFor="res-tipoDocumento">Tipo Documento *</label>
+                  <select
+                    id="res-tipoDocumento"
+                    name="tipoDocumento"
+                    value={formData.tipoDocumento}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="CC">CC</option>
+                    <option value="CE">CE</option>
+                    <option value="PP">PP</option>
+                    <option value="PEP">PEP</option>
+                    <option value="PPT">PPT</option>
+                  </select>
+                </div>
+                <div
+                  className="res-form-group"
+                  style={{ gridColumn: "span 2" }}
+                >
+                  <label htmlFor="res-numeroDocumento">
+                    Número de Documento *
+                  </label>
+                  <input
+                    id="res-numeroDocumento"
+                    type="text"
+                    name="numeroDocumento"
+                    value={formData.numeroDocumento}
+                    onChange={handleChange}
+                    required={editIndex === null}
+                    disabled={editIndex !== null}
+                  />
+                </div>
+              </div>
+              <div className="res-form-row">
+                <div className="res-form-group">
+                  <label htmlFor="res-primerNombre">Primer Nombre *</label>
+                  <input
+                    id="res-primerNombre"
+                    type="text"
+                    name="primerNombre"
+                    value={formData.primerNombre}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                <div className="res-form-group">
+                  <label htmlFor="res-segundoNombre">Segundo Nombre</label>
+                  <input
+                    id="res-segundoNombre"
+                    type="text"
+                    name="segundoNombre"
+                    value={formData.segundoNombre}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+              <div className="res-form-row">
+                <div className="res-form-group">
+                  <label htmlFor="res-primerApellido">Primer Apellido *</label>
+                  <input
+                    id="res-primerApellido"
+                    type="text"
+                    name="primerApellido"
+                    value={formData.primerApellido}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                <div className="res-form-group">
+                  <label htmlFor="res-segundoApellido">Segundo Apellido</label>
+                  <input
+                    id="res-segundoApellido"
+                    type="text"
+                    name="segundoApellido"
+                    value={formData.segundoApellido}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+
+              {/* SECCION: Contacto */}
+              <p className="res-modal-section-title">
+                <i className="bi bi-telephone"></i> Contacto
+              </p>
+              <div className="res-form-row">
+                <div className="res-form-group">
+                  <label htmlFor="res-correo">Correo Electrónico</label>
+                  <input
+                    id="res-correo"
+                    type="email"
+                    name="correo"
+                    value={formData.correo}
+                    onChange={handleChange}
+                  />
+                </div>
+                <div className="res-form-group">
+                  <label htmlFor="res-telefono">Teléfono</label>
+                  <input
+                    id="res-telefono"
+                    type="tel"
+                    name="telefono"
+                    inputMode="numeric"
+                    pattern="\d*"
+                    maxLength={15}
+                    placeholder="Ej: 3001234567"
+                    value={formData.telefono}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+
+              {/* SECCION: Información Adicional */}
+              <p className="res-modal-section-title">
+                <i className="bi bi-info-circle"></i> Información Adicional
+              </p>
+              <p
+                style={{
+                  fontSize: "13px",
+                  color: "#64748b",
+                  marginBottom: "12px",
+                  fontStyle: "italic",
+                }}
+              >
+                ¿Cuenta con alguno de estos en su núcleo familiar?
+              </p>
+              <div className="res-form-row triple">
+                <div className="res-form-check">
+                  <input
+                    type="checkbox"
+                    id="tieneNinos"
+                    checked={Number(formData.tieneNinos) === 1}
+                    onChange={(e) =>
+                      setFormData((f) => ({
+                        ...f,
+                        tieneNinos: e.target.checked ? 1 : 0,
+                      }))
+                    }
+                  />
+                  <label htmlFor="tieneNinos">
+                    <i className="bi bi-emoji-smile"></i> Niños
+                  </label>
+                </div>
+                <div className="res-form-check">
+                  <input
+                    type="checkbox"
+                    id="tieneAdultoMayor"
+                    checked={Number(formData.tieneAdultoMayor) === 1}
+                    onChange={(e) =>
+                      setFormData((f) => ({
+                        ...f,
+                        tieneAdultoMayor: e.target.checked ? 1 : 0,
+                      }))
+                    }
+                  />
+                  <label htmlFor="tieneAdultoMayor">
+                    <i className="bi bi-person-cane"></i> Adulto Mayor
+                  </label>
+                </div>
+                <div className="res-form-check">
+                  <input
+                    type="checkbox"
+                    id="tieneDiscapacidad"
+                    checked={Number(formData.tieneDiscapacidad) === 1}
+                    onChange={(e) =>
+                      setFormData((f) => ({
+                        ...f,
+                        tieneDiscapacidad: e.target.checked ? 1 : 0,
+                      }))
+                    }
+                  />
+                  <label htmlFor="tieneDiscapacidad">
+                    <i className="bi bi-wheelchair"></i> Discapacidad
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div className="res-modal-footer">
+              <button
+                type="button"
+                className="res-btn-cancel"
+                onClick={cerrarModal}
+              >
+                Cancelar
+              </button>
+              <button type="submit" className="res-btn-submit">
+                {editIndex === null ? "Registrar" : "Actualizar"}
               </button>
             </div>
-            <form onSubmit={handleSubmit}>
-              <div className="res-modal-body">
-                {/* SECCION: Informacion de Ocupacion */}
-                <p className="res-modal-section-title">
-                  <i className="bi bi-house-door"></i> Información de la
-                  Ocupación
-                </p>
-                <div className="res-form-row triple">
-                  <div className="res-form-group">
-                    <label htmlFor="res-torreId">Torre *</label>
-                    <select
-                      id="res-torreId"
-                      name="torreId"
-                      value={formData.torreId}
-                      onChange={(e) => {
-                        handleChange(e);
-                        setFormData((f) => ({ ...f, apto: "" }));
-                      }}
-                      required
-                    >
-                      {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                        <option key={n} value={n}>
-                          Torre {String.fromCodePoint(64 + n)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="res-form-group">
-                    <label htmlFor="res-apto">Apartamento *</label>
-                    <select
-                      id="res-apto"
-                      name="apto"
-                      value={formData.apto}
-                      onChange={handleChange}
-                      required
-                    >
-                      <option value="">Seleccione...</option>
-                      {generarAptos(formData.torreId).map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.numero}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="res-form-group">
-                    <label htmlFor="res-tipoOcupacion">Tipo Ocupación *</label>
-                    <select
-                      id="res-tipoOcupacion"
-                      name="tipoOcupacion"
-                      value={formData.tipoOcupacion}
-                      onChange={handleChange}
-                      required
-                    >
-                      <option value="Propietario">Propietario</option>
-                      <option value="Arrendatario">Arrendatario</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="res-form-row">
-                  <div className="res-form-group">
-                    <label htmlFor="res-fechaInicio">Fecha de Inicio *</label>
-                    <input
-                      id="res-fechaInicio"
-                      type="date"
-                      name="fechaInicio"
-                      value={formData.fechaInicio}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="res-form-group">
-                    <label htmlFor="res-personasACargo">
-                      ¿Cuántas personas vivirán con usted?
-                    </label>
-                    <input
-                      id="res-personasACargo"
-                      type="number"
-                      name="personasACargo"
-                      value={formData.personasACargo}
-                      onChange={handleChange}
-                      min="0"
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-
-                {/* SECCION: Informacion Personal */}
-                <p className="res-modal-section-title">
-                  <i className="bi bi-person-vcard"></i> Información Personal
-                </p>
-                <div className="res-form-row triple">
-                  <div className="res-form-group">
-                    <label htmlFor="res-tipoDocumento">Tipo Documento *</label>
-                    <select
-                      id="res-tipoDocumento"
-                      name="tipoDocumento"
-                      value={formData.tipoDocumento}
-                      onChange={handleChange}
-                      required
-                    >
-                      <option value="CC">CC</option>
-                      <option value="CE">CE</option>
-                      <option value="PP">PP</option>
-                      <option value="PEP">PEP</option>
-                      <option value="PPT">PPT</option>
-                    </select>
-                  </div>
-                  <div
-                    className="res-form-group"
-                    style={{ gridColumn: "span 2" }}
-                  >
-                    <label htmlFor="res-numeroDocumento">
-                      Número de Documento *
-                    </label>
-                    <input
-                      id="res-numeroDocumento"
-                      type="text"
-                      name="numeroDocumento"
-                      value={formData.numeroDocumento}
-                      onChange={handleChange}
-                      required={editIndex === null}
-                      disabled={editIndex !== null}
-                    />
-                  </div>
-                </div>
-                <div className="res-form-row">
-                  <div className="res-form-group">
-                    <label htmlFor="res-primerNombre">Primer Nombre *</label>
-                    <input
-                      id="res-primerNombre"
-                      type="text"
-                      name="primerNombre"
-                      value={formData.primerNombre}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="res-form-group">
-                    <label htmlFor="res-segundoNombre">Segundo Nombre</label>
-                    <input
-                      id="res-segundoNombre"
-                      type="text"
-                      name="segundoNombre"
-                      value={formData.segundoNombre}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-                <div className="res-form-row">
-                  <div className="res-form-group">
-                    <label htmlFor="res-primerApellido">
-                      Primer Apellido *
-                    </label>
-                    <input
-                      id="res-primerApellido"
-                      type="text"
-                      name="primerApellido"
-                      value={formData.primerApellido}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="res-form-group">
-                    <label htmlFor="res-segundoApellido">
-                      Segundo Apellido
-                    </label>
-                    <input
-                      id="res-segundoApellido"
-                      type="text"
-                      name="segundoApellido"
-                      value={formData.segundoApellido}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-
-                {/* SECCION: Contacto */}
-                <p className="res-modal-section-title">
-                  <i className="bi bi-telephone"></i> Contacto
-                </p>
-                <div className="res-form-row">
-                  <div className="res-form-group">
-                    <label htmlFor="res-correo">Correo Electrónico</label>
-                    <input
-                      id="res-correo"
-                      type="email"
-                      name="correo"
-                      value={formData.correo}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="res-form-group">
-                    <label htmlFor="res-telefono">Teléfono</label>
-                    <input
-                      id="res-telefono"
-                      type="tel"
-                      name="telefono"
-                      inputMode="numeric"
-                      pattern="\d*"
-                      maxLength={15}
-                      placeholder="Ej: 3001234567"
-                      value={formData.telefono}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-
-                {/* SECCION: Información Adicional */}
-                <p className="res-modal-section-title">
-                  <i className="bi bi-info-circle"></i> Información Adicional
-                </p>
-                <p
-                  style={{
-                    fontSize: "13px",
-                    color: "#64748b",
-                    marginBottom: "12px",
-                    fontStyle: "italic",
-                  }}
-                >
-                  ¿Cuenta con alguno de estos en su núcleo familiar?
-                </p>
-                <div className="res-form-row triple">
-                  <div className="res-form-check">
-                    <input
-                      type="checkbox"
-                      id="tieneNinos"
-                      checked={Number(formData.tieneNinos) === 1}
-                      onChange={(e) =>
-                        setFormData((f) => ({
-                          ...f,
-                          tieneNinos: e.target.checked ? 1 : 0,
-                        }))
-                      }
-                    />
-                    <label htmlFor="tieneNinos">
-                      <i className="bi bi-emoji-smile"></i> Niños
-                    </label>
-                  </div>
-                  <div className="res-form-check">
-                    <input
-                      type="checkbox"
-                      id="tieneAdultoMayor"
-                      checked={Number(formData.tieneAdultoMayor) === 1}
-                      onChange={(e) =>
-                        setFormData((f) => ({
-                          ...f,
-                          tieneAdultoMayor: e.target.checked ? 1 : 0,
-                        }))
-                      }
-                    />
-                    <label htmlFor="tieneAdultoMayor">
-                      <i className="bi bi-person-cane"></i> Adulto Mayor
-                    </label>
-                  </div>
-                  <div className="res-form-check">
-                    <input
-                      type="checkbox"
-                      id="tieneDiscapacidad"
-                      checked={Number(formData.tieneDiscapacidad) === 1}
-                      onChange={(e) =>
-                        setFormData((f) => ({
-                          ...f,
-                          tieneDiscapacidad: e.target.checked ? 1 : 0,
-                        }))
-                      }
-                    />
-                    <label htmlFor="tieneDiscapacidad">
-                      <i className="bi bi-wheelchair"></i> Discapacidad
-                    </label>
-                  </div>
-                </div>
-              </div>
-              <div className="res-modal-footer">
-                <button
-                  type="button"
-                  className="res-btn-cancel"
-                  onClick={cerrarModal}
-                >
-                  Cancelar
-                </button>
-                <button type="submit" className="res-btn-submit">
-                  {editIndex === null ? "Registrar" : "Actualizar"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </dialog>
-      )}
+          </form>
+        </div>
+      </ModalOverlay>
 
       {/* ===== MODAL TORRES ===== */}
-      {modalTorres && (
-        <dialog
-          open
-          className="res-modal-overlay res-torres-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setModalTorres(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setModalTorres(false);
-          }}
-          aria-modal="true"
-          aria-label="Cerrar"
-        >
-          <div className="res-modal res-torres-modal">
-            <div className="res-modal-header">
-              {torreSeleccionada === null ? (
+      <ModalOverlay
+        isOpen={modalTorres}
+        onClose={() => setModalTorres(false)}
+        className="res-modal-overlay res-torres-overlay"
+      >
+        <div className="res-modal res-torres-modal">
+          <div className="res-modal-header">
+            {torreSeleccionada === null ? (
+              <h3>
+                <i className="bi bi-buildings"></i> Mapa de Torres
+              </h3>
+            ) : (
+              <>
+                <button
+                  className="res-torres-back"
+                  onClick={() => setTorreSeleccionada(null)}
+                >
+                  <i className="bi bi-arrow-left"></i> Volver
+                </button>
                 <h3>
-                  <i className="bi bi-buildings"></i> Mapa de Torres
+                  <i className="bi bi-building"></i> Torre{" "}
+                  {
+                    ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"][
+                      torreSeleccionada - 1
+                    ]
+                  }
+                  {" — Apartamentos"}
                 </h3>
-              ) : (
-                <>
-                  <button
-                    className="res-torres-back"
-                    onClick={() => setTorreSeleccionada(null)}
-                  >
-                    <i className="bi bi-arrow-left"></i> Volver
-                  </button>
-                  <h3>
-                    <i className="bi bi-building"></i> Torre{" "}
-                    {
-                      ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"][
-                        torreSeleccionada - 1
-                      ]
-                    }
-                    {" — Apartamentos"}
-                  </h3>
-                </>
-              )}
-              <button
-                className="res-modal-close"
-                onClick={() => setModalTorres(false)}
-              >
-                <i className="bi bi-x-lg"></i>
-              </button>
-            </div>
+              </>
+            )}
+            <button
+              className="res-modal-close"
+              onClick={() => setModalTorres(false)}
+            >
+              <i className="bi bi-x-lg"></i>
+            </button>
+          </div>
 
-            <div className="res-modal-body">
-              {torreSeleccionada === null ? (
-                /* ---- Vista: selección de torre ---- */
-                <div className="res-torres-grid">
-                  {Array.from({ length: 10 }, (_, i) => i + 1).map((tid) => {
-                    const letra = [
-                      "A",
-                      "B",
-                      "C",
-                      "D",
-                      "E",
-                      "F",
-                      "G",
-                      "H",
-                      "I",
-                      "J",
-                    ][tid - 1];
-                    const resEnTorre = residentes.filter(
-                      (r) => r.torresId === tid && r.estado === "Activo",
-                    );
-                    const totalAptos = apartamentos.filter(
-                      (a) => a.torresId === tid,
-                    ).length;
-                    const aptosLibres = apartamentos.filter(
-                      (a) =>
-                        a.torresId === tid &&
-                        !residentes.some(
-                          (r) =>
-                            r.apartamentosId === a.idApartamento &&
-                            r.estado === "Activo",
-                        ),
-                    ).length;
-                    return (
-                      <button
-                        type="button"
-                        key={tid}
-                        className="res-torre-card"
-                        onClick={() => setTorreSeleccionada(tid)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ")
-                            setTorreSeleccionada(tid);
-                        }}
-                        tabIndex={0}
-                        title={`Ver apartamentos Torre ${letra}`}
-                      >
-                        <div className="res-torre-letter">{letra}</div>
-                        <p className="res-torre-info">
-                          <i className="bi bi-door-open"></i> {totalAptos} apto
-                          {totalAptos === 1 ? "" : "s"}
-                        </p>
-                        <p className="res-torre-info">
-                          <i className="bi bi-people"></i> {resEnTorre.length}{" "}
-                          residente
-                          {resEnTorre.length === 1 ? "" : "s"}
-                        </p>
-                        {aptosLibres > 0 && (
-                          <p className="res-torre-libre-count">
-                            <i className="bi bi-check-circle"></i> {aptosLibres}{" "}
-                            libre{aptosLibres === 1 ? "" : "s"}
-                          </p>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                /* ---- Vista: apartamentos de la torre ---- */
-                (() => {
+          <div className="res-modal-body">
+            {torreSeleccionada === null ? (
+              /* ---- Vista: selección de torre ---- */
+              <div className="res-torres-grid">
+                {Array.from({ length: 10 }, (_, i) => i + 1).map((tid) => {
                   const letra = [
                     "A",
                     "B",
@@ -1808,130 +1700,185 @@ function Residentes() {
                     "H",
                     "I",
                     "J",
-                  ][torreSeleccionada - 1];
-                  // Usar todos los apartamentos registrados en la torre
-                  const aptosEnTorre = apartamentos.filter(
-                    (a) => a.torresId === torreSeleccionada,
+                  ][tid - 1];
+                  const resEnTorre = residentes.filter(
+                    (r) => r.torresId === tid && r.estado === "Activo",
                   );
-                  const aptosList = aptosEnTorre
-                    .map((a) => {
-                      const ocupantes = residentes.filter(
-                        (r) => r.apartamentosId === a.idApartamento,
-                      );
-                      const activos = ocupantes.filter(
-                        (r) => r.estado === "Activo",
-                      );
-                      return {
-                        idApartamento: a.idApartamento,
-                        numeroApartamento: a.numeroApartamento,
-                        ocupantes,
-                        activos,
-                        libre: activos.length === 0,
-                      };
-                    })
-                    .sort((a, b) => a.numeroApartamento - b.numeroApartamento);
-                  if (aptosList.length === 0)
-                    return (
-                      <p className="res-torres-empty">
-                        No hay apartamentos registrados en Torre {letra}.
-                      </p>
-                    );
+                  const totalAptos = apartamentos.filter(
+                    (a) => a.torresId === tid,
+                  ).length;
+                  const aptosLibres = apartamentos.filter(
+                    (a) =>
+                      a.torresId === tid &&
+                      !residentes.some(
+                        (r) =>
+                          r.apartamentosId === a.idApartamento &&
+                          r.estado === "Activo",
+                      ),
+                  ).length;
                   return (
-                    <div className="res-aptos-grid">
-                      {aptosList.map((ap) => (
-                        <div
-                          key={ap.idApartamento}
-                          className={`res-apto-card${ap.libre ? " res-apto-card-libre" : ""}`}
-                        >
-                          <div className="res-apto-numero">
-                            <i
-                              className={`bi ${ap.libre ? "bi-door-open" : "bi-door-closed"}`}
-                            ></i>{" "}
-                            Apto {ap.numeroApartamento}
-                            {ap.libre && (
-                              <span className="res-apto-libre ms-2">LIBRE</span>
-                            )}
-                          </div>
-                          {ap.libre ? (
-                            <p className="res-apto-libre-text">
-                              Apartamento disponible
-                            </p>
-                          ) : (
-                            ap.ocupantes.map((oc) => (
-                              <div
-                                key={oc.idOcupante}
-                                className={`res-apto-ocupante ${
-                                  oc.estado === "Activo"
-                                    ? "res-apto-activo"
-                                    : "res-apto-finalizado"
-                                }`}
-                              >
-                                <span className="res-apto-nombre">
-                                  {oc.nombreCompleto}
-                                </span>
-                                <span
-                                  className={`res-badge ${
-                                    oc.tipoOcupacion?.toLowerCase() ===
-                                    "propietario"
-                                      ? "res-badge-propietario"
-                                      : "res-badge-arrendatario"
-                                  }`}
-                                >
-                                  {oc.tipoOcupacion}
-                                </span>
-                                <div className="res-apto-tags">
-                                  {Number(oc.tieneNinos) === 1 && (
-                                    <span
-                                      className="res-apto-tag"
-                                      title="Tiene niños"
-                                    >
-                                      <i className="bi bi-emoji-smile"></i>
-                                    </span>
-                                  )}
-                                  {Number(oc.tieneAdultoMayor) === 1 && (
-                                    <span
-                                      className="res-apto-tag"
-                                      title="Adulto mayor"
-                                    >
-                                      <i className="bi bi-person-cane"></i>
-                                    </span>
-                                  )}
-                                  {Number(oc.tieneDiscapacidad) === 1 && (
-                                    <span
-                                      className="res-apto-tag"
-                                      title="Discapacidad"
-                                    >
-                                      <i className="bi bi-wheelchair"></i>
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            ))
+                    <button
+                      type="button"
+                      key={tid}
+                      className="res-torre-card"
+                      onClick={() => setTorreSeleccionada(tid)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ")
+                          setTorreSeleccionada(tid);
+                      }}
+                      tabIndex={0}
+                      title={`Ver apartamentos Torre ${letra}`}
+                    >
+                      <div className="res-torre-letter">{letra}</div>
+                      <p className="res-torre-info">
+                        <i className="bi bi-door-open"></i> {totalAptos} apto
+                        {totalAptos === 1 ? "" : "s"}
+                      </p>
+                      <p className="res-torre-info">
+                        <i className="bi bi-people"></i> {resEnTorre.length}{" "}
+                        residente
+                        {resEnTorre.length === 1 ? "" : "s"}
+                      </p>
+                      {aptosLibres > 0 && (
+                        <p className="res-torre-libre-count">
+                          <i className="bi bi-check-circle"></i> {aptosLibres}{" "}
+                          libre{aptosLibres === 1 ? "" : "s"}
+                        </p>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              /* ---- Vista: apartamentos de la torre ---- */
+              (() => {
+                const letra = [
+                  "A",
+                  "B",
+                  "C",
+                  "D",
+                  "E",
+                  "F",
+                  "G",
+                  "H",
+                  "I",
+                  "J",
+                ][torreSeleccionada - 1];
+                // Usar todos los apartamentos registrados en la torre
+                const aptosEnTorre = apartamentos.filter(
+                  (a) => a.torresId === torreSeleccionada,
+                );
+                const aptosList = aptosEnTorre
+                  .map((a) => {
+                    const ocupantes = residentes.filter(
+                      (r) => r.apartamentosId === a.idApartamento,
+                    );
+                    const activos = ocupantes.filter(
+                      (r) => r.estado === "Activo",
+                    );
+                    return {
+                      idApartamento: a.idApartamento,
+                      numeroApartamento: a.numeroApartamento,
+                      ocupantes,
+                      activos,
+                      libre: activos.length === 0,
+                    };
+                  })
+                  .sort((a, b) => a.numeroApartamento - b.numeroApartamento);
+                if (aptosList.length === 0)
+                  return (
+                    <p className="res-torres-empty">
+                      No hay apartamentos registrados en Torre {letra}.
+                    </p>
+                  );
+                return (
+                  <div className="res-aptos-grid">
+                    {aptosList.map((ap) => (
+                      <div
+                        key={ap.idApartamento}
+                        className={`res-apto-card${ap.libre ? " res-apto-card-libre" : ""}`}
+                      >
+                        <div className="res-apto-numero">
+                          <i
+                            className={`bi ${ap.libre ? "bi-door-open" : "bi-door-closed"}`}
+                          ></i>{" "}
+                          Apto {ap.numeroApartamento}
+                          {ap.libre && (
+                            <span className="res-apto-libre ms-2">LIBRE</span>
                           )}
                         </div>
-                      ))}
-                    </div>
-                  );
-                })()
-              )}
-            </div>
+                        {ap.libre ? (
+                          <p className="res-apto-libre-text">
+                            Apartamento disponible
+                          </p>
+                        ) : (
+                          ap.ocupantes.map((oc) => (
+                            <div
+                              key={oc.idOcupante}
+                              className={`res-apto-ocupante ${
+                                oc.estado === "Activo"
+                                  ? "res-apto-activo"
+                                  : "res-apto-finalizado"
+                              }`}
+                            >
+                              <span className="res-apto-nombre">
+                                {oc.nombreCompleto}
+                              </span>
+                              <span
+                                className={`res-badge ${
+                                  oc.tipoOcupacion?.toLowerCase() ===
+                                  "propietario"
+                                    ? "res-badge-propietario"
+                                    : "res-badge-arrendatario"
+                                }`}
+                              >
+                                {oc.tipoOcupacion}
+                              </span>
+                              <div className="res-apto-tags">
+                                {Number(oc.tieneNinos) === 1 && (
+                                  <span
+                                    className="res-apto-tag"
+                                    title="Tiene niños"
+                                  >
+                                    <i className="bi bi-emoji-smile"></i>
+                                  </span>
+                                )}
+                                {Number(oc.tieneAdultoMayor) === 1 && (
+                                  <span
+                                    className="res-apto-tag"
+                                    title="Adulto mayor"
+                                  >
+                                    <i className="bi bi-person-cane"></i>
+                                  </span>
+                                )}
+                                {Number(oc.tieneDiscapacidad) === 1 && (
+                                  <span
+                                    className="res-apto-tag"
+                                    title="Discapacidad"
+                                  >
+                                    <i className="bi bi-wheelchair"></i>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()
+            )}
           </div>
-        </dialog>
-      )}
+        </div>
+      </ModalOverlay>
 
       {/* ===== MODAL DETALLES ===== */}
       {showModalDetalles && residenteSeleccionado && (
-        <dialog
-          open
+        <ModalOverlay
+          isOpen
+          onClose={() => setShowModalDetalles(false)}
           className="res-modal-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowModalDetalles(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setShowModalDetalles(false);
-          }}
-          aria-modal="true"
-          aria-label="Cerrar"
         >
           <div className="res-modal" style={{ maxWidth: 800 }}>
             <div className="res-modal-header">
@@ -2095,7 +2042,7 @@ function Residentes() {
               </button>
             </div>
           </div>
-        </dialog>
+        </ModalOverlay>
       )}
     </div>
   );

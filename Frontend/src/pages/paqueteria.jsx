@@ -15,7 +15,9 @@ import {
   actualizarPaquete,
   eliminarPaquete,
 } from "../services/paqueteria.services.jsx";
-import { logoutUsuario } from "../services/gestionUsuarios.jsx";
+import ModalOverlay from "../utils/ModalOverlay.jsx";
+import { verificarTokenVencido, obtenerRolFromToken } from "../utils/auth.js";
+import useLogout from "../utils/useLogout.js";
 
 // ── Torres y apartamentos (idéntico a Flutter) ──
 const TORRES = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
@@ -159,24 +161,7 @@ function Paqueteria() {
   // Formulario editar
   const [formEditar, setFormEditar] = useState(formCrearVacio);
 
-  // Token helpers
-  const verificarTokenVencido = (token) => {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return Date.now() >= payload.exp * 1000;
-    } catch {
-      return true;
-    }
-  };
-
-  const obtenerRolFromToken = (token) => {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload.rolesId;
-    } catch {
-      return null;
-    }
-  };
+  // Token helpers (importados de utils/auth.js)
 
   const tokenLocal = localStorage.getItem("token");
   const rolesId = tokenLocal ? obtenerRolFromToken(tokenLocal) : null;
@@ -533,14 +518,7 @@ function Paqueteria() {
     });
   };
 
-  const cerrarSesion = async (e) => {
-    e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (token) await logoutUsuario(token);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigator("/");
-  };
+  const cerrarSesion = useLogout();
 
   // ── Loading ──
   if (loading && paquetes.length === 0) {
@@ -1138,444 +1116,408 @@ function Paqueteria() {
       </div>
 
       {/* ====== MODAL CREAR PAQUETE ====== */}
-      {modalCrear && (
-        <dialog
-          open
-          className="paq-modal-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setModalCrear(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setModalCrear(false);
-          }}
-          aria-modal="true"
-          aria-label="Cerrar"
-        >
-          <div className="paq-modal">
-            <div className="paq-modal-header">
-              <div className="paq-modal-header-left">
-                <i
-                  className="bi bi-plus-circle"
-                  style={{ color: "#3b82f6", fontSize: "22px" }}
-                ></i>
-                <h5>Registrar Paquete</h5>
-              </div>
-              <button
-                className="paq-modal-close"
-                onClick={() => setModalCrear(false)}
-              >
-                <i className="bi bi-x-lg"></i>
-              </button>
+      <ModalOverlay
+        isOpen={modalCrear}
+        onClose={() => setModalCrear(false)}
+        className="paq-modal-overlay"
+      >
+        <div className="paq-modal">
+          <div className="paq-modal-header">
+            <div className="paq-modal-header-left">
+              <i
+                className="bi bi-plus-circle"
+                style={{ color: "#3b82f6", fontSize: "22px" }}
+              ></i>
+              <h5>Registrar Paquete</h5>
             </div>
-            <div className="paq-modal-body">
-              <form onSubmit={handleSubmitCrear}>
+            <button
+              className="paq-modal-close"
+              onClick={() => setModalCrear(false)}
+            >
+              <i className="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <div className="paq-modal-body">
+            <form onSubmit={handleSubmitCrear}>
+              <div className="paq-form-group">
+                <label htmlFor="paq-crear-residente" className="paq-form-label">
+                  Nombre del Residente <span className="required">*</span>
+                </label>
+                <input
+                  id="paq-crear-residente"
+                  type="text"
+                  className="paq-form-control"
+                  value={formCrear.residente}
+                  onChange={(e) =>
+                    setFormCrear({ ...formCrear, residente: e.target.value })
+                  }
+                  required
+                  placeholder="Nombre completo"
+                />
+              </div>
+
+              <div className="paq-form-row">
                 <div className="paq-form-group">
-                  <label
-                    htmlFor="paq-crear-residente"
-                    className="paq-form-label"
-                  >
-                    Nombre del Residente <span className="required">*</span>
+                  <label htmlFor="paq-crear-torre" className="paq-form-label">
+                    Torre <span className="required">*</span>
                   </label>
-                  <input
-                    id="paq-crear-residente"
-                    type="text"
+                  <select
+                    id="paq-crear-torre"
                     className="paq-form-control"
-                    value={formCrear.residente}
+                    value={formCrear.torre}
                     onChange={(e) =>
-                      setFormCrear({ ...formCrear, residente: e.target.value })
+                      setFormCrear({
+                        ...formCrear,
+                        torre: e.target.value,
+                        apartamento: "",
+                      })
                     }
                     required
-                    placeholder="Nombre completo"
-                  />
+                  >
+                    <option value="">Seleccionar torre</option>
+                    {TORRES.map((t) => (
+                      <option key={t} value={t}>
+                        Torre {t}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-
-                <div className="paq-form-row">
-                  <div className="paq-form-group">
-                    <label htmlFor="paq-crear-torre" className="paq-form-label">
-                      Torre <span className="required">*</span>
-                    </label>
-                    <select
-                      id="paq-crear-torre"
-                      className="paq-form-control"
-                      value={formCrear.torre}
-                      onChange={(e) =>
-                        setFormCrear({
-                          ...formCrear,
-                          torre: e.target.value,
-                          apartamento: "",
-                        })
-                      }
-                      required
-                    >
-                      <option value="">Seleccionar torre</option>
-                      {TORRES.map((t) => (
-                        <option key={t} value={t}>
-                          Torre {t}
+                <div className="paq-form-group">
+                  <label
+                    htmlFor="paq-crear-apartamento"
+                    className="paq-form-label"
+                  >
+                    Apartamento <span className="required">*</span>
+                  </label>
+                  <select
+                    id="paq-crear-apartamento"
+                    className="paq-form-control"
+                    value={formCrear.apartamento}
+                    onChange={(e) =>
+                      setFormCrear({
+                        ...formCrear,
+                        apartamento: e.target.value,
+                      })
+                    }
+                    required
+                    disabled={!formCrear.torre}
+                  >
+                    <option value="">Seleccionar apto</option>
+                    {formCrear.torre &&
+                      getApartamentosPorTorre(formCrear.torre).map((num) => (
+                        <option key={num} value={num}>
+                          {formCrear.torre} - {num}
                         </option>
                       ))}
-                    </select>
-                  </div>
-                  <div className="paq-form-group">
-                    <label
-                      htmlFor="paq-crear-apartamento"
-                      className="paq-form-label"
-                    >
-                      Apartamento <span className="required">*</span>
-                    </label>
-                    <select
-                      id="paq-crear-apartamento"
-                      className="paq-form-control"
-                      value={formCrear.apartamento}
-                      onChange={(e) =>
-                        setFormCrear({
-                          ...formCrear,
-                          apartamento: e.target.value,
-                        })
-                      }
-                      required
-                      disabled={!formCrear.torre}
-                    >
-                      <option value="">Seleccionar apto</option>
-                      {formCrear.torre &&
-                        getApartamentosPorTorre(formCrear.torre).map((num) => (
-                          <option key={num} value={num}>
-                            {formCrear.torre} - {num}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
+                  </select>
                 </div>
+              </div>
 
-                <div className="paq-form-group">
-                  <label
-                    htmlFor="paq-crear-transportadora"
-                    className="paq-form-label"
-                  >
-                    Transportadora <span className="required">*</span>
-                  </label>
-                  <input
-                    id="paq-crear-transportadora"
-                    type="text"
-                    list="transportadoras-list-crear"
-                    className="paq-form-control"
-                    value={formCrear.transportadora}
-                    onChange={(e) =>
-                      setFormCrear({
-                        ...formCrear,
-                        transportadora: e.target.value,
-                      })
-                    }
-                    required
-                    placeholder="Ej: Servientrega, Inter Rapidísimo..."
-                  />
-                  <datalist id="transportadoras-list-crear">
-                    {TRANSPORTADORAS_CO.map((t) => (
-                      <option key={t} value={t} />
-                    ))}
-                  </datalist>
-                </div>
+              <div className="paq-form-group">
+                <label
+                  htmlFor="paq-crear-transportadora"
+                  className="paq-form-label"
+                >
+                  Transportadora <span className="required">*</span>
+                </label>
+                <input
+                  id="paq-crear-transportadora"
+                  type="text"
+                  list="transportadoras-list-crear"
+                  className="paq-form-control"
+                  value={formCrear.transportadora}
+                  onChange={(e) =>
+                    setFormCrear({
+                      ...formCrear,
+                      transportadora: e.target.value,
+                    })
+                  }
+                  required
+                  placeholder="Ej: Servientrega, Inter Rapidísimo..."
+                />
+                <datalist id="transportadoras-list-crear">
+                  {TRANSPORTADORAS_CO.map((t) => (
+                    <option key={t} value={t} />
+                  ))}
+                </datalist>
+              </div>
 
-                <div className="paq-form-group">
-                  <label
-                    htmlFor="paq-crear-fechaRecepcion"
-                    className="paq-form-label"
-                  >
-                    Fecha y Hora de Recepción{" "}
-                    <span className="required">*</span>
-                  </label>
-                  <input
-                    id="paq-crear-fechaRecepcion"
-                    type="datetime-local"
-                    className="paq-form-control"
-                    value={formCrear.fechaHoraRecepcion}
-                    onChange={(e) =>
-                      setFormCrear({
-                        ...formCrear,
-                        fechaHoraRecepcion: e.target.value,
-                      })
-                    }
-                    required
-                  />
-                </div>
+              <div className="paq-form-group">
+                <label
+                  htmlFor="paq-crear-fechaRecepcion"
+                  className="paq-form-label"
+                >
+                  Fecha y Hora de Recepción <span className="required">*</span>
+                </label>
+                <input
+                  id="paq-crear-fechaRecepcion"
+                  type="datetime-local"
+                  className="paq-form-control"
+                  value={formCrear.fechaHoraRecepcion}
+                  onChange={(e) =>
+                    setFormCrear({
+                      ...formCrear,
+                      fechaHoraRecepcion: e.target.value,
+                    })
+                  }
+                  required
+                />
+              </div>
 
-                <div className="paq-form-group">
-                  <label
-                    htmlFor="paq-crear-observaciones"
-                    className="paq-form-label"
-                  >
-                    Observaciones
-                  </label>
-                  <textarea
-                    id="paq-crear-observaciones"
-                    className="paq-form-control paq-form-textarea"
-                    value={formCrear.observaciones}
-                    onChange={(e) =>
-                      setFormCrear({
-                        ...formCrear,
-                        observaciones: e.target.value,
-                      })
-                    }
-                    rows={3}
-                    placeholder="Opcional..."
-                  />
-                </div>
+              <div className="paq-form-group">
+                <label
+                  htmlFor="paq-crear-observaciones"
+                  className="paq-form-label"
+                >
+                  Observaciones
+                </label>
+                <textarea
+                  id="paq-crear-observaciones"
+                  className="paq-form-control paq-form-textarea"
+                  value={formCrear.observaciones}
+                  onChange={(e) =>
+                    setFormCrear({
+                      ...formCrear,
+                      observaciones: e.target.value,
+                    })
+                  }
+                  rows={3}
+                  placeholder="Opcional..."
+                />
+              </div>
 
-                <div className="paq-modal-footer" style={{ padding: "0" }}>
-                  <button
-                    type="submit"
-                    className="paq-btn-submit blue"
-                    disabled={enviando}
-                  >
-                    {enviando ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm"></span>{" "}
-                        Registrando...
-                      </>
-                    ) : (
-                      <>
-                        <i className="bi bi-check-lg"></i> Registrar Paquete
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
+              <div className="paq-modal-footer" style={{ padding: "0" }}>
+                <button
+                  type="submit"
+                  className="paq-btn-submit blue"
+                  disabled={enviando}
+                >
+                  {enviando ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm"></span>{" "}
+                      Registrando...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-check-lg"></i> Registrar Paquete
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
-        </dialog>
-      )}
+        </div>
+      </ModalOverlay>
 
       {/* ====== MODAL EDITAR PAQUETE ====== */}
-      {modalEditar && paqueteEditar && (
-        <dialog
-          open
-          className="paq-modal-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setModalEditar(false);
-              setPaqueteEditar(null);
-            }
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") {
-              setModalEditar(false);
-              setPaqueteEditar(null);
-            }
-          }}
-          aria-modal="true"
-          aria-label="Cerrar"
-        >
-          <div className="paq-modal">
-            <div className="paq-modal-header">
-              <div className="paq-modal-header-left">
-                <i
-                  className="bi bi-pencil-square"
-                  style={{ color: "#f97316", fontSize: "22px" }}
-                ></i>
-                <h5>Editar Paquete</h5>
-              </div>
-              <button
-                className="paq-modal-close"
-                onClick={() => {
-                  setModalEditar(false);
-                  setPaqueteEditar(null);
-                }}
-              >
-                <i className="bi bi-x-lg"></i>
-              </button>
+      <ModalOverlay
+        isOpen={modalEditar && !!paqueteEditar}
+        onClose={() => {
+          setModalEditar(false);
+          setPaqueteEditar(null);
+        }}
+        className="paq-modal-overlay"
+      >
+        <div className="paq-modal">
+          <div className="paq-modal-header">
+            <div className="paq-modal-header-left">
+              <i
+                className="bi bi-pencil-square"
+                style={{ color: "#f97316", fontSize: "22px" }}
+              ></i>
+              <h5>Editar Paquete</h5>
             </div>
-            <div className="paq-modal-body">
-              <form onSubmit={handleSubmitEditar}>
+            <button
+              className="paq-modal-close"
+              onClick={() => {
+                setModalEditar(false);
+                setPaqueteEditar(null);
+              }}
+            >
+              <i className="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <div className="paq-modal-body">
+            <form onSubmit={handleSubmitEditar}>
+              <div className="paq-form-group">
+                <label
+                  htmlFor="paq-editar-residente"
+                  className="paq-form-label"
+                >
+                  Nombre del Residente <span className="required">*</span>
+                </label>
+                <input
+                  id="paq-editar-residente"
+                  type="text"
+                  className="paq-form-control"
+                  value={formEditar.residente}
+                  onChange={(e) =>
+                    setFormEditar({
+                      ...formEditar,
+                      residente: e.target.value,
+                    })
+                  }
+                  required
+                />
+              </div>
+
+              <div className="paq-form-row">
                 <div className="paq-form-group">
-                  <label
-                    htmlFor="paq-editar-residente"
-                    className="paq-form-label"
-                  >
-                    Nombre del Residente <span className="required">*</span>
+                  <label htmlFor="paq-editar-torre" className="paq-form-label">
+                    Torre <span className="required">*</span>
                   </label>
-                  <input
-                    id="paq-editar-residente"
-                    type="text"
+                  <select
+                    id="paq-editar-torre"
                     className="paq-form-control"
-                    value={formEditar.residente}
+                    value={formEditar.torre}
                     onChange={(e) =>
                       setFormEditar({
                         ...formEditar,
-                        residente: e.target.value,
+                        torre: e.target.value,
+                        apartamento: "",
                       })
                     }
                     required
-                  />
+                  >
+                    <option value="">Seleccionar torre</option>
+                    {TORRES.map((t) => (
+                      <option key={t} value={t}>
+                        Torre {t}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-
-                <div className="paq-form-row">
-                  <div className="paq-form-group">
-                    <label
-                      htmlFor="paq-editar-torre"
-                      className="paq-form-label"
-                    >
-                      Torre <span className="required">*</span>
-                    </label>
-                    <select
-                      id="paq-editar-torre"
-                      className="paq-form-control"
-                      value={formEditar.torre}
-                      onChange={(e) =>
-                        setFormEditar({
-                          ...formEditar,
-                          torre: e.target.value,
-                          apartamento: "",
-                        })
-                      }
-                      required
-                    >
-                      <option value="">Seleccionar torre</option>
-                      {TORRES.map((t) => (
-                        <option key={t} value={t}>
-                          Torre {t}
+                <div className="paq-form-group">
+                  <label
+                    htmlFor="paq-editar-apartamento"
+                    className="paq-form-label"
+                  >
+                    Apartamento <span className="required">*</span>
+                  </label>
+                  <select
+                    id="paq-editar-apartamento"
+                    className="paq-form-control"
+                    value={formEditar.apartamento}
+                    onChange={(e) =>
+                      setFormEditar({
+                        ...formEditar,
+                        apartamento: e.target.value,
+                      })
+                    }
+                    required
+                    disabled={!formEditar.torre}
+                  >
+                    <option value="">Seleccionar apto</option>
+                    {formEditar.torre &&
+                      getApartamentosPorTorre(formEditar.torre).map((num) => (
+                        <option key={num} value={num}>
+                          {formEditar.torre} - {num}
                         </option>
                       ))}
-                    </select>
-                  </div>
-                  <div className="paq-form-group">
-                    <label
-                      htmlFor="paq-editar-apartamento"
-                      className="paq-form-label"
-                    >
-                      Apartamento <span className="required">*</span>
-                    </label>
-                    <select
-                      id="paq-editar-apartamento"
-                      className="paq-form-control"
-                      value={formEditar.apartamento}
-                      onChange={(e) =>
-                        setFormEditar({
-                          ...formEditar,
-                          apartamento: e.target.value,
-                        })
-                      }
-                      required
-                      disabled={!formEditar.torre}
-                    >
-                      <option value="">Seleccionar apto</option>
-                      {formEditar.torre &&
-                        getApartamentosPorTorre(formEditar.torre).map((num) => (
-                          <option key={num} value={num}>
-                            {formEditar.torre} - {num}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
+                  </select>
                 </div>
+              </div>
 
-                <div className="paq-form-group">
-                  <label
-                    htmlFor="paq-editar-transportadora"
-                    className="paq-form-label"
-                  >
-                    Transportadora <span className="required">*</span>
-                  </label>
-                  <input
-                    id="paq-editar-transportadora"
-                    type="text"
-                    list="transportadoras-list-editar"
-                    className="paq-form-control"
-                    value={formEditar.transportadora}
-                    onChange={(e) =>
-                      setFormEditar({
-                        ...formEditar,
-                        transportadora: e.target.value,
-                      })
-                    }
-                    required
-                  />
-                  <datalist id="transportadoras-list-editar">
-                    {TRANSPORTADORAS_CO.map((t) => (
-                      <option key={t} value={t} />
-                    ))}
-                  </datalist>
-                </div>
+              <div className="paq-form-group">
+                <label
+                  htmlFor="paq-editar-transportadora"
+                  className="paq-form-label"
+                >
+                  Transportadora <span className="required">*</span>
+                </label>
+                <input
+                  id="paq-editar-transportadora"
+                  type="text"
+                  list="transportadoras-list-editar"
+                  className="paq-form-control"
+                  value={formEditar.transportadora}
+                  onChange={(e) =>
+                    setFormEditar({
+                      ...formEditar,
+                      transportadora: e.target.value,
+                    })
+                  }
+                  required
+                />
+                <datalist id="transportadoras-list-editar">
+                  {TRANSPORTADORAS_CO.map((t) => (
+                    <option key={t} value={t} />
+                  ))}
+                </datalist>
+              </div>
 
-                <div className="paq-form-group">
-                  <label
-                    htmlFor="paq-editar-fechaRecepcion"
-                    className="paq-form-label"
-                  >
-                    Fecha y Hora de Recepción{" "}
-                    <span className="required">*</span>
-                  </label>
-                  <input
-                    id="paq-editar-fechaRecepcion"
-                    type="datetime-local"
-                    className="paq-form-control"
-                    value={formEditar.fechaHoraRecepcion}
-                    onChange={(e) =>
-                      setFormEditar({
-                        ...formEditar,
-                        fechaHoraRecepcion: e.target.value,
-                      })
-                    }
-                    required
-                  />
-                </div>
+              <div className="paq-form-group">
+                <label
+                  htmlFor="paq-editar-fechaRecepcion"
+                  className="paq-form-label"
+                >
+                  Fecha y Hora de Recepción <span className="required">*</span>
+                </label>
+                <input
+                  id="paq-editar-fechaRecepcion"
+                  type="datetime-local"
+                  className="paq-form-control"
+                  value={formEditar.fechaHoraRecepcion}
+                  onChange={(e) =>
+                    setFormEditar({
+                      ...formEditar,
+                      fechaHoraRecepcion: e.target.value,
+                    })
+                  }
+                  required
+                />
+              </div>
 
-                <div className="paq-form-group">
-                  <label
-                    htmlFor="paq-editar-observaciones"
-                    className="paq-form-label"
-                  >
-                    Observaciones
-                  </label>
-                  <textarea
-                    id="paq-editar-observaciones"
-                    className="paq-form-control paq-form-textarea"
-                    value={formEditar.observaciones}
-                    onChange={(e) =>
-                      setFormEditar({
-                        ...formEditar,
-                        observaciones: e.target.value,
-                      })
-                    }
-                    rows={3}
-                  />
-                </div>
+              <div className="paq-form-group">
+                <label
+                  htmlFor="paq-editar-observaciones"
+                  className="paq-form-label"
+                >
+                  Observaciones
+                </label>
+                <textarea
+                  id="paq-editar-observaciones"
+                  className="paq-form-control paq-form-textarea"
+                  value={formEditar.observaciones}
+                  onChange={(e) =>
+                    setFormEditar({
+                      ...formEditar,
+                      observaciones: e.target.value,
+                    })
+                  }
+                  rows={3}
+                />
+              </div>
 
-                <div className="paq-modal-footer" style={{ padding: "0" }}>
-                  <button
-                    type="submit"
-                    className="paq-btn-submit orange"
-                    disabled={enviando}
-                  >
-                    {enviando ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm"></span>{" "}
-                        Actualizando...
-                      </>
-                    ) : (
-                      <>
-                        <i className="bi bi-check-lg"></i> Actualizar Paquete
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
+              <div className="paq-modal-footer" style={{ padding: "0" }}>
+                <button
+                  type="submit"
+                  className="paq-btn-submit orange"
+                  disabled={enviando}
+                >
+                  {enviando ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm"></span>{" "}
+                      Actualizando...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-check-lg"></i> Actualizar Paquete
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
-        </dialog>
-      )}
+        </div>
+      </ModalOverlay>
 
       {/* ====== MODAL DETALLES ====== */}
       {modalDetalle && (
-        <dialog
-          open
+        <ModalOverlay
+          isOpen
+          onClose={() => setModalDetalle(null)}
           className="paq-modal-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setModalDetalle(null);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setModalDetalle(null);
-          }}
-          aria-modal="true"
-          aria-label="Cerrar"
         >
           <div className="paq-modal" style={{ maxWidth: "480px" }}>
             <div className="paq-modal-header">
@@ -1703,7 +1645,7 @@ function Paqueteria() {
               </button>
             </div>
           </div>
-        </dialog>
+        </ModalOverlay>
       )}
     </div>
   );

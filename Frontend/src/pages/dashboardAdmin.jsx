@@ -1,399 +1,91 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import Swal from "sweetalert2";
-import { Link, useNavigate } from "react-router-dom";
-import Chart from "chart.js/auto";
+import React, { useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import "../Styles/dashboardAdmin.css";
 import logo from "../../img/logo.png";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
-import { obtenerResumenDashboard } from "../services/dashboard.services.jsx";
 import { logoutUsuario } from "../services/gestionUsuarios.jsx";
-import { API_BASE } from "../services/api.config.js";
 import DescargaAppMovil from "./DescargaAppMovil.jsx";
 import ModoOscuro from "./ModoOscuro.jsx";
 import WhatsAppModal from "./WhatsAppModal.jsx";
-
-const PHOTO_STORAGE_KEY = "gu_user_photos";
-const getUserProfilePhoto = (key) => {
-  try {
-    const photos = JSON.parse(localStorage.getItem(PHOTO_STORAGE_KEY) || "{}");
-    return photos[key] || null;
-  } catch {
-    return null;
-  }
-};
+import useDarkMode from "../utils/useDarkMode.js";
+import useSessionCheck from "../utils/useSessionCheck.js";
+import useDashboardData from "../utils/useDashboardData.js";
+import {
+  donutParqueaderosConfig,
+  barChartConfig,
+  useChart,
+} from "../utils/chartConfigs.js";
 
 function Dashboard() {
-  const navigator = useNavigate();
-  const chartRef = useRef(null);
-  const barChartRef = useRef(null);
-  const visitasChartRef = useRef(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [saliendo, setSaliendo] = useState(false);
 
-  // Canvas refs (evita document.getElementById que es inestable en React)
+  const oscuro = useDarkMode();
+  const { loading, usuario, fotoUsuario } = useSessionCheck();
+  const {
+    dataLoading,
+    setDataLoading,
+    cargarDatos,
+    paquetesEntregados,
+    paquetesPendientes,
+    parqueosCarros,
+    parqueosMotos,
+    parqueosLibres,
+    visitasHoy,
+    visitasActivas,
+    reservasHoy,
+    residentesActivos,
+  } = useDashboardData(!loading);
+
+  // Canvas refs
   const parqueoCanvasRef = useRef(null);
   const paquetesCanvasRef = useRef(null);
   const visitasCanvasRef = useRef(null);
 
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [saliendo, setSaliendo] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [fotoUsuario, setFotoUsuario] = useState(null);
-  const [dataLoading, setDataLoading] = useState(true);
-  const [usuario, setUsuario] = useState(null);
-
-  // Datos del dashboard
-  const [paquetesEntregados, setPaquetesEntregados] = useState(0);
-  const [paquetesPendientes, setPaquetesPendientes] = useState(0);
-  const [parqueosCarros, setParqueosCarros] = useState(0);
-  const [parqueosMotos, setParqueosMotos] = useState(0);
-  const [parqueosLibres, setParqueosLibres] = useState(0);
-  const [visitasHoy, setVisitasHoy] = useState(0);
-  const [visitasActivas, setVisitasActivas] = useState(0);
-  const [reservasHoy, setReservasHoy] = useState(0);
-  const [residentesActivos, setResidentesActivos] = useState(0);
-
-  // Modo oscuro – reactive para re-renderizar gráficas
-  const [oscuro, setOscuro] = useState(
-    () => document.documentElement.dataset.modo === "oscuro",
-  );
-  useEffect(() => {
-    const obs = new MutationObserver(() =>
-      setOscuro(document.documentElement.dataset.modo === "oscuro"),
-    );
-    obs.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-modo"],
-    });
-    return () => obs.disconnect();
-  }, []);
-
-  // Verificar sesión
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      Swal.fire({
-        icon: "warning",
-        title: "Sesión expirada",
-        text: "La sesión expiró. Vuelva a iniciar sesión.",
-        timer: 2000,
-        showConfirmButton: false,
-        timerProgressBar: true,
-      }).then(() => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigator("/");
-      });
-      return;
-    }
-
-    const userGuardado = localStorage.getItem("user");
-    if (userGuardado) {
-      try {
-        setUsuario(JSON.parse(userGuardado));
-        setLoading(false);
-      } catch {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigator("/");
-      }
-    } else {
-      fetch(`${API_BASE}/usuario`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      })
-        .then((res) => {
-          if (!res.ok) throw new Error("No autorizado");
-          return res.json();
-        })
-        .then((data) => {
-          setUsuario(data.usuario);
-          localStorage.setItem("user", JSON.stringify(data.usuario));
-          setLoading(false);
-        })
-        .catch(() => {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          navigator("/");
-        });
-    }
-  }, [navigator]);
-
-  // Cargar foto de perfil
-  useEffect(() => {
-    if (usuario) {
-      setFotoUsuario(
-        usuario.fotoPerfil ||
-          getUserProfilePhoto(usuario.numeroDocumento) ||
-          getUserProfilePhoto(usuario.username) ||
-          null,
-      );
-    }
-  }, [usuario]);
-
-  // Cargar datos del dashboard
-  const cargarDatos = useCallback(async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    setDataLoading(true);
-    try {
-      const res = await obtenerResumenDashboard(token);
-      const responseData = await res.json();
-
-      if (res.ok && responseData.success) {
-        const datos = responseData.data;
-        setPaquetesEntregados(datos.paquetes?.entregados ?? 0);
-        setPaquetesPendientes(datos.paquetes?.pendientes ?? 0);
-        setParqueosCarros(Math.max(0, datos.parqueaderos?.ocupadosCarros ?? 0));
-        setParqueosMotos(Math.max(0, datos.parqueaderos?.ocupadosMotos ?? 0));
-        setParqueosLibres(Math.max(0, datos.parqueaderos?.disponibles ?? 0));
-        setVisitasHoy(datos.visitas?.hoy ?? 0);
-        setVisitasActivas(datos.visitas?.activas ?? 0);
-        setReservasHoy(datos.reservas?.hoy ?? 0);
-        setResidentesActivos(datos.residentes?.activos ?? 0);
-      }
-    } catch {
-      /* error de red ignorado, el dashboard muestra 0s */
-    } finally {
-      setDataLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!loading) {
-      cargarDatos();
-    }
-  }, [loading, cargarDatos]);
-
-  // Gráfico Donut parqueaderos
-  useEffect(() => {
-    if (loading || dataLoading) return;
-    const ctx = parqueoCanvasRef.current;
-    if (!ctx) return;
-
-    try {
-      if (chartRef.current) {
-        chartRef.current.destroy();
-        chartRef.current = null;
-      }
-
-      const totalParqueos = parqueosCarros + parqueosMotos + parqueosLibres;
-      const ocupados = parqueosCarros + parqueosMotos;
-
-      chartRef.current = new Chart(ctx, {
-        type: "doughnut",
-        data: {
-          labels: ["Carros", "Motos", "Libres"],
-          datasets: [
-            {
-              data: [parqueosCarros, parqueosMotos, parqueosLibres],
-              backgroundColor: ["#0d9488", "#f97316", "#d1d5db"],
-              borderWidth: 2,
-              borderColor: "#fff",
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          cutout: "50%",
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: (tooltipCtx) => {
-                  const pct =
-                    totalParqueos > 0
-                      ? ((tooltipCtx.raw / totalParqueos) * 100).toFixed(0)
-                      : 0;
-                  return `${tooltipCtx.label}: ${tooltipCtx.raw} (${pct}%)`;
-                },
-              },
-            },
-          },
-        },
-        plugins: [
+  // Gráficos
+  const ready = !loading && !dataLoading;
+  useChart(
+    parqueoCanvasRef,
+    ready
+      ? donutParqueaderosConfig(
           {
-            id: "centerText",
-            beforeDraw(chart) {
-              const { width, height, ctx: drawCtx } = chart;
-              if (width === 0 || height === 0) return;
-              drawCtx.save();
-              drawCtx.font = "bold 28px Arial";
-              drawCtx.fillStyle = oscuro ? "#e2e8f0" : "#1f2937";
-              drawCtx.textAlign = "center";
-              drawCtx.textBaseline = "middle";
-              drawCtx.fillText(ocupados, width / 2, height / 2 - 10);
-              drawCtx.font = "14px Arial";
-              drawCtx.fillStyle = oscuro ? "#94a3b8" : "#6b7280";
-              drawCtx.fillText("Ocupados", width / 2, height / 2 + 14);
-              drawCtx.restore();
-            },
+            carros: parqueosCarros,
+            motos: parqueosMotos,
+            libres: parqueosLibres,
           },
-        ],
-      });
-    } catch (err) {
-      console.error("Error creando gráfico de parqueaderos:", err);
-    }
-
-    return () => {
-      if (chartRef.current) {
-        chartRef.current.destroy();
-        chartRef.current = null;
-      }
-    };
-  }, [
-    loading,
-    dataLoading,
-    parqueosCarros,
-    parqueosMotos,
-    parqueosLibres,
-    oscuro,
-  ]);
-
-  // Gráfico de barras paquetes
-  useEffect(() => {
-    if (loading || dataLoading) return;
-    const ctx = paquetesCanvasRef.current;
-    if (!ctx) return;
-
-    try {
-      if (barChartRef.current) {
-        barChartRef.current.destroy();
-        barChartRef.current = null;
-      }
-
-      barChartRef.current = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels: ["Entregados", "Pendientes"],
-          datasets: [
-            {
-              data: [paquetesEntregados, paquetesPendientes],
-              backgroundColor: [
-                "rgba(34, 197, 94, 0.85)",
-                "rgba(249, 115, 22, 0.85)",
-              ],
-              borderRadius: 12,
-              borderSkipped: false,
-              barThickness: 60,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: (tooltipCtx) => `${tooltipCtx.raw} paquetes`,
-              },
-            },
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: { stepSize: 1, color: oscuro ? "#94a3b8" : "#6b7280" },
-              grid: {
-                color: oscuro ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
-              },
-            },
-            x: {
-              ticks: {
-                color: oscuro ? "#e2e8f0" : "#374151",
-                font: { weight: "500" },
-              },
-              grid: { display: false },
-            },
-          },
-        },
-      });
-    } catch (err) {
-      console.error("Error creando gráfico de paquetes:", err);
-    }
-
-    return () => {
-      if (barChartRef.current) {
-        barChartRef.current.destroy();
-        barChartRef.current = null;
-      }
-    };
-  }, [loading, dataLoading, paquetesEntregados, paquetesPendientes, oscuro]);
-
-  // Gráfico de barras visitas
-  useEffect(() => {
-    if (loading || dataLoading) return;
-    const ctx = visitasCanvasRef.current;
-    if (!ctx) return;
-
-    try {
-      if (visitasChartRef.current) {
-        visitasChartRef.current.destroy();
-        visitasChartRef.current = null;
-      }
-
-      visitasChartRef.current = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels: ["Hoy", "Activas"],
-          datasets: [
-            {
-              data: [visitasHoy, visitasActivas],
-              backgroundColor: [
-                "rgba(34, 197, 94, 0.85)",
-                "rgba(59, 130, 246, 0.85)",
-              ],
-              borderRadius: 12,
-              borderSkipped: false,
-              barThickness: 60,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: (tooltipCtx) => `${tooltipCtx.raw} visitas`,
-              },
-            },
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: { stepSize: 1, color: oscuro ? "#94a3b8" : "#6b7280" },
-              grid: {
-                color: oscuro ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
-              },
-            },
-            x: {
-              ticks: {
-                color: oscuro ? "#e2e8f0" : "#374151",
-                font: { weight: "500" },
-              },
-              grid: { display: false },
-            },
-          },
-        },
-      });
-    } catch (err) {
-      console.error("Error creando gráfico de visitas:", err);
-    }
-
-    return () => {
-      if (visitasChartRef.current) {
-        visitasChartRef.current.destroy();
-        visitasChartRef.current = null;
-      }
-    };
-  }, [loading, dataLoading, visitasHoy, visitasActivas, oscuro]);
+          oscuro,
+        )
+      : null,
+    [ready, parqueosCarros, parqueosMotos, parqueosLibres, oscuro],
+  );
+  useChart(
+    paquetesCanvasRef,
+    ready
+      ? barChartConfig(
+          ["Entregados", "Pendientes"],
+          [paquetesEntregados, paquetesPendientes],
+          ["rgba(34, 197, 94, 0.85)", "rgba(249, 115, 22, 0.85)"],
+          "paquetes",
+          oscuro,
+        )
+      : null,
+    [ready, paquetesEntregados, paquetesPendientes, oscuro],
+  );
+  useChart(
+    visitasCanvasRef,
+    ready
+      ? barChartConfig(
+          ["Hoy", "Activas"],
+          [visitasHoy, visitasActivas],
+          ["rgba(34, 197, 94, 0.85)", "rgba(59, 130, 246, 0.85)"],
+          "visitas",
+          oscuro,
+        )
+      : null,
+    [ready, visitasHoy, visitasActivas, oscuro],
+  );
 
   const cerrarSesion = async (e) => {
     e.preventDefault();
@@ -403,7 +95,7 @@ function Dashboard() {
       if (token) await logoutUsuario(token);
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      navigator("/login", { replace: true });
+      window.location.replace("/login");
     }, 380);
   };
 
@@ -427,7 +119,6 @@ function Dashboard() {
       : 0;
   const totalParqueos = parqueosCarros + parqueosMotos + parqueosLibres;
 
-  // Módulos del administrador
   const modulos = [
     {
       icon: "bi-box-seam-fill",
@@ -503,9 +194,7 @@ function Dashboard() {
             {usuario?.username || usuario?.nombre || "Usuario"}
           </span>
         </div>
-
         <div className="adm-drawer-body">
-          {/* Navegación */}
           <div className="adm-menu-section">
             <h6 className="adm-menu-section-title">Navegación</h6>
             <Link
@@ -518,8 +207,6 @@ function Dashboard() {
               <i className="bi bi-chevron-right adm-menu-arrow"></i>
             </Link>
           </div>
-
-          {/* Módulos */}
           <div className="adm-menu-section">
             <h6 className="adm-menu-section-title">Módulos</h6>
             <Link
@@ -578,7 +265,6 @@ function Dashboard() {
             </Link>
           </div>
         </div>
-
         <div className="adm-drawer-footer">
           <button className="adm-logout-btn" onClick={cerrarSesion}>
             <i className="bi bi-box-arrow-right"></i> Cerrar Sesión
@@ -588,7 +274,6 @@ function Dashboard() {
 
       {/* ====== CONTENIDO PRINCIPAL ====== */}
       <div className="adm-main">
-        {/* Header */}
         <header className="adm-header">
           <div className="adm-profile-btn-wrap">
             <button
@@ -690,7 +375,6 @@ function Dashboard() {
           </div>
         </header>
 
-        {/* Bienvenida */}
         <div className="adm-welcome">
           <h2 className="adm-welcome-title">
             Bienvenido, {usuario?.username || usuario?.nombre || "Usuario"}
@@ -700,9 +384,8 @@ function Dashboard() {
           </p>
         </div>
 
-        {/* Tarjetas de módulos */}
         <div className="adm-modules-grid">
-          {modulos.map((mod, idx) => (
+          {modulos.map((mod) => (
             <Link
               to={mod.to}
               key={mod.to}
@@ -719,10 +402,8 @@ function Dashboard() {
           ))}
         </div>
 
-        {/* Estadísticas */}
         <div className="adm-stats-section">
           <h3 className="adm-stats-title">Estadísticas del Día</h3>
-
           <div className="adm-stats-grid">
             {/* Paquetes */}
             <div className="adm-stat-card">
@@ -733,11 +414,9 @@ function Dashboard() {
                 ></i>
                 <h5>Paquetes Entregados Hoy</h5>
               </div>
-
               <div className="adm-bar-chart-container">
                 <canvas ref={paquetesCanvasRef}></canvas>
               </div>
-
               <div className="adm-stat-summary">
                 <div className="adm-stat-summary-item">
                   <span
@@ -777,54 +456,30 @@ function Dashboard() {
                   style={{ color: "#9ca3af", marginLeft: "auto" }}
                 ></i>
               </div>
-
               <div className="adm-donut-chart-container">
                 <canvas ref={parqueoCanvasRef}></canvas>
               </div>
-
               <div className="adm-legend">
-                <div className="adm-legend-item">
-                  <span
-                    className="adm-legend-dot"
-                    style={{ backgroundColor: "#0d9488" }}
-                  ></span>
-                  <span className="adm-legend-label">Carros</span>
-                  <span className="adm-legend-value">
-                    {parqueosCarros} (
-                    {totalParqueos > 0
-                      ? ((parqueosCarros / totalParqueos) * 100).toFixed(0)
-                      : 0}
-                    %)
-                  </span>
-                </div>
-                <div className="adm-legend-item">
-                  <span
-                    className="adm-legend-dot"
-                    style={{ backgroundColor: "#f97316" }}
-                  ></span>
-                  <span className="adm-legend-label">Motos</span>
-                  <span className="adm-legend-value">
-                    {parqueosMotos} (
-                    {totalParqueos > 0
-                      ? ((parqueosMotos / totalParqueos) * 100).toFixed(0)
-                      : 0}
-                    %)
-                  </span>
-                </div>
-                <div className="adm-legend-item">
-                  <span
-                    className="adm-legend-dot"
-                    style={{ backgroundColor: "#d1d5db" }}
-                  ></span>
-                  <span className="adm-legend-label">Libres</span>
-                  <span className="adm-legend-value">
-                    {parqueosLibres} (
-                    {totalParqueos > 0
-                      ? ((parqueosLibres / totalParqueos) * 100).toFixed(0)
-                      : 0}
-                    %)
-                  </span>
-                </div>
+                {[
+                  { label: "Carros", value: parqueosCarros, color: "#0d9488" },
+                  { label: "Motos", value: parqueosMotos, color: "#f97316" },
+                  { label: "Libres", value: parqueosLibres, color: "#d1d5db" },
+                ].map((item) => (
+                  <div className="adm-legend-item" key={item.label}>
+                    <span
+                      className="adm-legend-dot"
+                      style={{ backgroundColor: item.color }}
+                    ></span>
+                    <span className="adm-legend-label">{item.label}</span>
+                    <span className="adm-legend-value">
+                      {item.value} (
+                      {totalParqueos > 0
+                        ? ((item.value / totalParqueos) * 100).toFixed(0)
+                        : 0}
+                      %)
+                    </span>
+                  </div>
+                ))}
               </div>
             </Link>
 
@@ -841,11 +496,9 @@ function Dashboard() {
                   style={{ color: "#9ca3af", marginLeft: "auto" }}
                 ></i>
               </div>
-
               <div className="adm-bar-chart-container">
                 <canvas ref={visitasCanvasRef}></canvas>
               </div>
-
               <div className="adm-stat-summary">
                 <div className="adm-stat-summary-item">
                   <span
@@ -885,7 +538,6 @@ function Dashboard() {
                   style={{ color: "#9ca3af", marginLeft: "auto" }}
                 ></i>
               </div>
-
               <div className="adm-info-card-body">
                 <div
                   className="adm-info-big-value"
@@ -897,7 +549,6 @@ function Dashboard() {
                   Áreas comunes reservadas hoy
                 </span>
               </div>
-
               <div className="adm-stat-summary">
                 <div className="adm-stat-summary-item">
                   <span
