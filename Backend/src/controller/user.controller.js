@@ -1,4 +1,4 @@
-import { randomInt } from "crypto";
+import { randomInt } from "node:crypto";
 import { Op } from "sequelize";
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";

@@ -51,7 +51,7 @@ export default function ErrorPage({ code = 404 }) {
     if (cfg.ruta) {
       navigate(cfg.ruta);
     } else {
-      window.location.reload();
+      globalThis.location.reload();
     }
   };
 

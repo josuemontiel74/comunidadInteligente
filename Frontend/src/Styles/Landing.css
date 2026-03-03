@@ -9,11 +9,11 @@
   --ld-surface2: #eef3e8;
   --ld-text: #1a2e1a;
   --ld-text2: #4a6050;
-  --ld-text3: #8aaa90;
+  --ld-text3: #4e7a55;
   --ld-border: #d4e6cc;
   --ld-primary: #3a7f44;
   --ld-primary-dark: #2d6b35;
-  --ld-accent: #7ec88a;
+  --ld-accent: #357a3f;
   --ld-header-bg: rgba(245, 247, 242, 0.92);
   --ld-header-shadow: 0 2px 20px rgba(60, 100, 60, 0.1);
 }
@@ -23,8 +23,8 @@
   --ld-surface2: #1c2e1e;
   --ld-text: #e8f5e9;
   --ld-text2: #a5c9aa;
-  --ld-text3: #5a8060;
-  --ld-border: #2a4a2e;
+  --ld-text3: #74a27c;
+  --ld-border: #437044;
   --ld-header-bg: rgba(13, 26, 14, 0.94);
   --ld-header-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
 }

@@ -86,6 +86,7 @@ function Auditorias() {
       const data = await obtenerRegistrosAuditoria(token);
       setAuditorias(data);
     } catch (err) {
+      console.error(err);
       setError("Error al cargar los datos de auditoría.");
     } finally {
       setLoading(false);
@@ -466,7 +467,6 @@ function Auditorias() {
                         }}
                         className="aud-table-row"
                         tabIndex={0}
-                        role="button"
                       >
                         <td>{formatearFecha(a.fechaHoraAuditoria)}</td>
                         <td>{a.username || "N/A"}</td>
