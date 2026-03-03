@@ -349,6 +349,9 @@ PaginacionResidentes.propTypes = {
   totalResidentes: PropTypes.number.isRequired,
 };
 
+/** Helper para mostrar booleans como texto */
+const boolDisplay = (val) => (val === 1 ? "Sí" : "No");
+
 /* =========================================================
    COMPONENTE PRINCIPAL
    ========================================================= */
@@ -1291,12 +1294,12 @@ function Residentes() {
                       <span
                         className={`res-card-condition ${r.tieneAdultoMayor === 1 ? "active" : "inactive"}`}
                       >
-                        <i className="bi bi-person-cane"></i> Adulto Mayor
+                        <i className="bi bi-person-walking"></i> Adulto Mayor
                       </span>
                       <span
                         className={`res-card-condition ${r.tieneDiscapacidad === 1 ? "active" : "inactive"}`}
                       >
-                        <i className="bi bi-wheelchair"></i> Discapacidad
+                        <i className="bi bi-person-wheelchair"></i> Discapacidad
                       </span>
                     </div>
                     <div className="res-card-actions">
@@ -1608,7 +1611,7 @@ function Residentes() {
                     }
                   />
                   <label htmlFor="tieneAdultoMayor">
-                    <i className="bi bi-person-cane"></i> Adulto Mayor
+                    <i className="bi bi-person-walking"></i> Adulto Mayor
                   </label>
                 </div>
                 <div className="res-form-check">
@@ -1624,7 +1627,7 @@ function Residentes() {
                     }
                   />
                   <label htmlFor="tieneDiscapacidad">
-                    <i className="bi bi-wheelchair"></i> Discapacidad
+                    <i className="bi bi-person-wheelchair"></i> Discapacidad
                   </label>
                 </div>
               </div>
@@ -1848,7 +1851,7 @@ function Residentes() {
                                     className="res-apto-tag"
                                     title="Adulto mayor"
                                   >
-                                    <i className="bi bi-person-cane"></i>
+                                    <i className="bi bi-person-walking"></i>
                                   </span>
                                 )}
                                 {Number(oc.tieneDiscapacidad) === 1 && (
@@ -1856,7 +1859,7 @@ function Residentes() {
                                     className="res-apto-tag"
                                     title="Discapacidad"
                                   >
-                                    <i className="bi bi-wheelchair"></i>
+                                    <i className="bi bi-person-wheelchair"></i>
                                   </span>
                                 )}
                               </div>
@@ -2010,25 +2013,23 @@ function Residentes() {
                     <i className="bi bi-emoji-smile"></i> Niños
                   </span>
                   <span className="res-detail-value">
-                    {residenteSeleccionado.tieneNinos === 1 ? "Sí" : "No"}
+                    {boolDisplay(residenteSeleccionado.tieneNinos)}
                   </span>
                 </div>
                 <div className="res-detail-row">
                   <span className="res-detail-label">
-                    <i className="bi bi-person-cane"></i> Adulto Mayor
+                    <i className="bi bi-person-walking"></i> Adulto Mayor
                   </span>
                   <span className="res-detail-value">
-                    {residenteSeleccionado.tieneAdultoMayor === 1 ? "Sí" : "No"}
+                    {boolDisplay(residenteSeleccionado.tieneAdultoMayor)}
                   </span>
                 </div>
                 <div className="res-detail-row">
                   <span className="res-detail-label">
-                    <i className="bi bi-wheelchair"></i> Discapacidad
+                    <i className="bi bi-person-wheelchair"></i> Discapacidad
                   </span>
                   <span className="res-detail-value">
-                    {residenteSeleccionado.tieneDiscapacidad === 1
-                      ? "Sí"
-                      : "No"}
+                    {boolDisplay(residenteSeleccionado.tieneDiscapacidad)}
                   </span>
                 </div>
               </div>

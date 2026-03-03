@@ -1,3 +1,4 @@
+import { useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 
 /**
@@ -16,18 +17,34 @@ export default function ModalOverlay({
   className = "",
   children,
 }) {
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    const handleClick = (e) => {
+      if (e.target === dialog) onClose();
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+
+    dialog.addEventListener("click", handleClick);
+    dialog.addEventListener("keydown", handleKeyDown);
+    return () => {
+      dialog.removeEventListener("click", handleClick);
+      dialog.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
+
   if (!isOpen) return null;
 
   return (
     <dialog
+      ref={dialogRef}
       open
       className={className}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") onClose();
-      }}
       aria-modal="true"
       aria-label="Cerrar"
     >

@@ -743,9 +743,9 @@ function AreasComunes() {
 
     const cells = [];
     // Celdas vacías antes del día 1
-    for (let i = 0; i < startDay; i++) cells.push({ day: null });
+    for (let i = 0; i < startDay; i++) cells.push({ day: null, id: `empty-${i}` });
     // Días del mes
-    for (let d = 1; d <= diasEnMes; d++) cells.push({ day: d });
+    for (let d = 1; d <= diasEnMes; d++) cells.push({ day: d, id: `day-${d}` });
     return cells;
   };
 
@@ -1853,11 +1853,11 @@ function AreasComunes() {
 
             {/* Grilla de días */}
             <div className="ac-calendar-grid">
-              {buildCalendarGrid().map((cell, idx) => {
+              {buildCalendarGrid().map((cell) => {
                 if (!cell.day) {
                   return (
                     <div
-                      key={`empty-${idx}`}
+                      key={cell.id}
                       className="ac-calendar-day empty"
                     />
                   );
@@ -1877,7 +1877,7 @@ function AreasComunes() {
                 return (
                   <button
                     type="button"
-                    key={cell.day}
+                    key={cell.id}
                     className={cls}
                     onClick={() => !past && setSelectedDay(cell.day)}
                     onKeyDown={(e) => {

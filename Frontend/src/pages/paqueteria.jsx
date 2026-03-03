@@ -120,6 +120,9 @@ function parsearFechaHoraColombia(fechaRaw) {
   }
 }
 
+/** Helper para clase disabled en paginación */
+const disabledIf = (cond) => (cond ? "disabled" : "");
+
 function Paqueteria() {
   const navigator = useNavigate();
   const location = useLocation();
@@ -1050,7 +1053,7 @@ function Paqueteria() {
                 {totalPaginas > 1 && (
                   <nav>
                     <ul className="paq-pagination">
-                      <li className={paginaActual === 1 ? "disabled" : ""}>
+                      <li className={disabledIf(paginaActual === 1)}>
                         <button
                           onClick={() => setPaginaActual(1)}
                           disabled={paginaActual === 1}
@@ -1059,7 +1062,7 @@ function Paqueteria() {
                           <i className="bi bi-chevron-double-left"></i>
                         </button>
                       </li>
-                      <li className={paginaActual === 1 ? "disabled" : ""}>
+                      <li className={disabledIf(paginaActual === 1)}>
                         <button
                           onClick={() =>
                             setPaginaActual((p) => Math.max(1, p - 1))
@@ -1081,9 +1084,7 @@ function Paqueteria() {
                         </li>
                       ))}
                       <li
-                        className={
-                          paginaActual === totalPaginas ? "disabled" : ""
-                        }
+                        className={disabledIf(paginaActual === totalPaginas)}
                       >
                         <button
                           onClick={() =>
@@ -1098,9 +1099,7 @@ function Paqueteria() {
                         </button>
                       </li>
                       <li
-                        className={
-                          paginaActual === totalPaginas ? "disabled" : ""
-                        }
+                        className={disabledIf(paginaActual === totalPaginas)}
                       >
                         <button
                           onClick={() => setPaginaActual(totalPaginas)}
