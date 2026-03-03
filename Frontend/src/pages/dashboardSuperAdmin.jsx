@@ -95,6 +95,24 @@ function buildModulos(showAreasComunes, showUserManagement) {
   return base;
 }
 
+/** Helper: extrae permisos del token para reducir complejidad del componente */
+function getTokenPermissions() {
+  const token = localStorage.getItem("token");
+  if (!token) return { rolesId: null, showUserManagement: false, showAreasComunes: false };
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    const valido = Date.now() < payload.exp * 1000;
+    const rolesId = payload.rolesId ?? null;
+    return {
+      rolesId,
+      showUserManagement: valido && rolesId === 1,
+      showAreasComunes: valido && rolesId !== 3,
+    };
+  } catch {
+    return { rolesId: null, showUserManagement: false, showAreasComunes: false };
+  }
+}
+
 function Dashboard() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -119,29 +137,8 @@ function Dashboard() {
     residentesActivos,
   } = useDashboardData(!loading);
 
-  // Token / roles helpers (inline, solo lectura de localStorage ya presente)
-  const verificarTokenVencido = (token) => {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return Date.now() >= payload.exp * 1000;
-    } catch {
-      return true;
-    }
-  };
-  const obtenerRolFromToken = (token) => {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload.rolesId;
-    } catch {
-      return null;
-    }
-  };
-
-  const tokenLocal = localStorage.getItem("token");
-  const tokenValido = tokenLocal && !verificarTokenVencido(tokenLocal);
-  const rolesId = tokenLocal ? obtenerRolFromToken(tokenLocal) : null;
-  const showUserManagement = tokenValido && rolesId === 1;
-  const showAreasComunes = tokenValido && rolesId !== 3;
+  // Token / roles (extraído a helper externo para reducir complejidad cognitiva)
+  const { rolesId, showUserManagement, showAreasComunes } = getTokenPermissions();
 
   // Canvas refs
   const parqueoCanvasRef = useRef(null);

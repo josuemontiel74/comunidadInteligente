@@ -96,6 +96,9 @@ function getModalEditConfig(isEditing) {
   };
 }
 
+/** Helper para clase disabled en paginación */
+const disabledIf = (cond) => (cond ? "disabled" : "");
+
 function Visitas() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -1323,7 +1326,7 @@ function Visitas() {
                 {totalPaginas > 1 && (
                   <nav>
                     <ul className="vis-pagination">
-                      <li className={paginaActual === 1 ? "disabled" : ""}>
+                      <li className={disabledIf(paginaActual === 1)}>
                         <button
                           onClick={() => setPaginaActual(1)}
                           disabled={paginaActual === 1}
@@ -1332,7 +1335,7 @@ function Visitas() {
                           <i className="bi bi-chevron-double-left"></i>
                         </button>
                       </li>
-                      <li className={paginaActual === 1 ? "disabled" : ""}>
+                      <li className={disabledIf(paginaActual === 1)}>
                         <button
                           onClick={() =>
                             setPaginaActual((p) => Math.max(1, p - 1))
@@ -1354,9 +1357,7 @@ function Visitas() {
                         </li>
                       ))}
                       <li
-                        className={
-                          paginaActual === totalPaginas ? "disabled" : ""
-                        }
+                        className={disabledIf(paginaActual === totalPaginas)}
                       >
                         <button
                           onClick={() =>
@@ -1371,9 +1372,7 @@ function Visitas() {
                         </button>
                       </li>
                       <li
-                        className={
-                          paginaActual === totalPaginas ? "disabled" : ""
-                        }
+                        className={disabledIf(paginaActual === totalPaginas)}
                       >
                         <button
                           onClick={() => setPaginaActual(totalPaginas)}

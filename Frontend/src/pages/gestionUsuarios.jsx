@@ -200,6 +200,10 @@ const savePhoto = (docOrUser, base64) => {
   localStorage.setItem(PHOTO_STORAGE_KEY, JSON.stringify(photos));
 };
 
+/** Helpers para reducir complejidad cognitiva */
+const activeIf = (cond) => (cond ? "active" : "");
+const pluralS = (n) => (n === 1 ? "" : "s");
+
 function GestionUsuarios() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
@@ -1280,14 +1284,14 @@ function GestionUsuarios() {
             </button>
             <div className="gu-view-toggle">
               <button
-                className={`gu-view-btn ${vistaGrid ? "" : "active"}`}
+                className={`gu-view-btn ${activeIf(!vistaGrid)}`}
                 onClick={() => setVistaGrid(false)}
                 title="Vista lista"
               >
                 <i className="bi bi-list-ul"></i>
               </button>
               <button
-                className={`gu-view-btn ${vistaGrid ? "active" : ""}`}
+                className={`gu-view-btn ${activeIf(vistaGrid)}`}
                 onClick={() => setVistaGrid(true)}
                 title="Vista cuadricula"
               >
@@ -1361,8 +1365,8 @@ function GestionUsuarios() {
             {usuariosFiltrados.length > 0 && (
               <p className="gu-results-info">
                 {usuariosFiltrados.length} usuario
-                {usuariosFiltrados.length === 1 ? "" : "s"} encontrado
-                {usuariosFiltrados.length === 1 ? "" : "s"}
+                {pluralS(usuariosFiltrados.length)} encontrado
+                {pluralS(usuariosFiltrados.length)}
               </p>
             )}
           </div>
