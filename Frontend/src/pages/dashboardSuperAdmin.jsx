@@ -164,10 +164,11 @@ function Dashboard() {
     }
   };
 
-  // Auto-refresh cada 30s para usuarios en línea
+  // Carga inicial + auto-refresh cada 30s para usuarios en línea
   useEffect(() => {
     if (loading) return;
-    const interval = setInterval(() => {
+
+    const fetchEnLinea = () => {
       const token = localStorage.getItem("token");
       if (token) {
         obtenerUsuariosEnLinea(token)
@@ -178,7 +179,12 @@ function Dashboard() {
           })
           .catch(() => {});
       }
-    }, 30000);
+    };
+
+    // Carga inmediata al montar / volver al dashboard
+    fetchEnLinea();
+
+    const interval = setInterval(fetchEnLinea, 30000);
     return () => clearInterval(interval);
   }, [loading]);
 
@@ -233,7 +239,7 @@ function Dashboard() {
       if (token) await logoutUsuario(token);
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      window.location.replace("/login");
+      globalThis.location.replace("/login");
     }, 380);
   };
 

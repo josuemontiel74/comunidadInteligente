@@ -20,7 +20,6 @@ import {
   finalizarUsuarioService,
   activarUsuarioService,
   obtenerUsuariosEnLinea,
-  logoutUsuario,
   actualizarFotoPerfil,
 } from "../services/gestionUsuarios.jsx";
 import {
@@ -101,7 +100,7 @@ function traducirObjeto(obj) {
   }
   const partes = [];
   for (const k in obj) {
-    if (!Object.prototype.hasOwnProperty.call(obj, k)) continue;
+    if (!Object.hasOwn(obj, k)) continue;
     partes.push(campoAmigable(k) + ": " + traducirMensajeBackend(obj[k]));
   }
   return partes.length ? partes.join(" ") : JSON.stringify(obj);
@@ -754,6 +753,7 @@ function GestionUsuarios() {
       await cargarUsuarios();
       setShowModalRegistrar(false);
     } catch (err) {
+      console.error(err);
       Swal.fire({
         icon: "error",
         title: "Lo siento",
@@ -791,6 +791,7 @@ function GestionUsuarios() {
         }));
       }
     } catch (err) {
+      console.error(err);
       setFormData({
         username: user.username || "",
         originalUsername: user.username || "",
@@ -820,7 +821,7 @@ function GestionUsuarios() {
 
   /** Construye payload de edición filtrando campos vacíos */
   const buildPayloadEditar = (fd, username) => {
-    const INT_FIELDS = ["rolesId", "tipoDocumentoId"];
+    const INT_FIELDS = new Set(["rolesId", "tipoDocumentoId"]);
     const campos = {
       username,
       password: fd.password,
@@ -837,7 +838,7 @@ function GestionUsuarios() {
     const payload = {};
     for (const [key, val] of Object.entries(campos)) {
       if (!val) continue;
-      payload[key] = INT_FIELDS.includes(key) ? Number.parseInt(val) : val;
+      payload[key] = INT_FIELDS.has(key) ? Number.parseInt(val) : val;
     }
     return payload;
   };
@@ -882,6 +883,7 @@ function GestionUsuarios() {
       setShowModalEditar(false);
       resetForm();
     } catch (err) {
+      console.error(err);
       Swal.fire({
         icon: "error",
         title: "Lo siento",
@@ -937,6 +939,7 @@ function GestionUsuarios() {
         showConfirmButton: false,
       });
     } catch (err) {
+      console.error(err);
       Swal.fire({ icon: "error", title: "Error de conexion" });
     }
   };
@@ -974,6 +977,7 @@ function GestionUsuarios() {
         showConfirmButton: false,
       });
     } catch (err) {
+      console.error(err);
       Swal.fire({ icon: "error", title: "Error de conexion" });
     }
   };
@@ -1357,8 +1361,8 @@ function GestionUsuarios() {
             {usuariosFiltrados.length > 0 && (
               <p className="gu-results-info">
                 {usuariosFiltrados.length} usuario
-                {usuariosFiltrados.length !== 1 ? "s" : ""} encontrado
-                {usuariosFiltrados.length !== 1 ? "s" : ""}
+                {usuariosFiltrados.length === 1 ? "" : "s"} encontrado
+                {usuariosFiltrados.length === 1 ? "" : "s"}
               </p>
             )}
           </div>

@@ -61,7 +61,13 @@ function Login() {
       localStorage.setItem("user", JSON.stringify(data.usuario));
       localStorage.setItem("rol", data.usuario.rolesId);
 
-      if (data.usuario.estadoId !== 2) {
+      if (data.usuario.estadoId === 2) {
+        Swal.fire({
+          icon: "error",
+          title: "Sin acceso",
+          text: "No tienes acceso a la aplicación :(",
+        });
+      } else {
         setFeedback("ok");
         setTimeout(() => {
           // replace:true elimina /login del historial — el usuario
@@ -76,14 +82,9 @@ function Login() {
             navigate("/", { replace: true });
           }
         }, 3160);
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "Sin acceso",
-          text: "No tienes acceso a la aplicación :(",
-        });
       }
     } catch (err) {
+      console.error(err);
       Swal.fire({
         icon: "error",
         title: "Error de conexión",

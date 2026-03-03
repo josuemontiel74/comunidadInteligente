@@ -12,9 +12,9 @@
   --le-border2: #d1d5db;
   --le-text: #111827;
   --le-text-sub: #374151;
-  --le-text-muted: #6b7280;
-  --le-text-faint: #9ca3af;
-  --le-red: #ef4444;
+  --le-text-muted: #606873;
+  --le-text-faint: #656e7c;
+  --le-red: #dc2626;
   --le-red-dark: #b91c1c;
   --le-red-glow: rgba(239, 68, 68, 0.1);
   --le-row-hover: #fee2e2;
@@ -27,11 +27,11 @@
   --le-surface2: #222222;
   --le-surface3: #2a2a2a;
   --le-border: #2d2d2d;
-  --le-border2: #3a3a3a;
+  --le-border2: #686868;
   --le-text: #e5e7eb;
   --le-text-sub: #d1d5db;
   --le-text-muted: #9ca3af;
-  --le-text-faint: #6b7280;
+  --le-text-faint: #8891a0;
   --le-row-hover: #2d1515;
 }
 

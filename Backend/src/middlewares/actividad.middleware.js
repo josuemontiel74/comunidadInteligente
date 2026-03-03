@@ -29,9 +29,8 @@ export const actualizarActividad = (req, res, next) => {
         ).catch(() => {});
       }
     }
-  } catch (error) {
+  } catch {
     // Token inválido o expirado — esperado para usuarios no autenticados
-    void error;
   }
   next();
 };

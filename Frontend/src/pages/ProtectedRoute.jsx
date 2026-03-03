@@ -23,18 +23,18 @@ function ProtectedRoute() {
   // navegación entre módulos debe funcionar con normalidad.
   useEffect(() => {
     // Añade UNA entrada extra para tener margen de retroceso
-    window.history.pushState(null, "", window.location.pathname);
+    globalThis.history.pushState(null, "", globalThis.location.pathname);
     const bloquearAtras = () => {
-      const destino = window.location.pathname;
+      const destino = globalThis.location.pathname;
       // Solo cancelar si el usuario salió hacia rutas públicas
       if (destino === "/" || destino === "/login") {
-        window.history.go(1);
+        globalThis.history.go(1);
       }
       // Si el destino es cualquier ruta protegida, dejar que React
       // Router resuelva la navegación con normalidad
     };
-    window.addEventListener("popstate", bloquearAtras);
-    return () => window.removeEventListener("popstate", bloquearAtras);
+    globalThis.addEventListener("popstate", bloquearAtras);
+    return () => globalThis.removeEventListener("popstate", bloquearAtras);
   }, []);
 
   // Solo verifica expiración periódicamente (60 s), sin tocar el render

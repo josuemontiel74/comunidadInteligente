@@ -71,7 +71,7 @@ function Dashboard() {
       if (token) await logoutUsuario(token);
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      window.location.replace("/login");
+      globalThis.location.replace("/login");
     }, 380);
   };
 

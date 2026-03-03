@@ -24,6 +24,7 @@ export default function CalendarioReservas() {
       const payload = JSON.parse(atob(token.split(".")[1]));
       return Date.now() >= payload.exp * 1000;
     } catch (error) {
+      console.error(error);
       return true;
     }
   };
@@ -35,6 +36,7 @@ export default function CalendarioReservas() {
       const payload = JSON.parse(atob(token.split(".")[1]));
       return payload.username || "Usuario";
     } catch (error) {
+      console.error(error);
       return "Usuario";
     }
   };
@@ -46,6 +48,7 @@ export default function CalendarioReservas() {
       const payload = JSON.parse(atob(token.split(".")[1]));
       return payload.rolesId;
     } catch (error) {
+      console.error(error);
       return null;
     }
   };
@@ -102,6 +105,7 @@ export default function CalendarioReservas() {
         setReservas([]);
       }
     } catch (error) {
+      console.error(error);
       setReservas([]);
     } finally {
       setLoading(false);

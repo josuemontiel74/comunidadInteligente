@@ -96,6 +96,7 @@ function LogErrores() {
       setRegistros(data);
       setResumen(resumenData.resumenNivel || []);
     } catch (err) {
+      console.error(err);
       setError("Error al cargar el log de errores.");
     } finally {
       setLoading(false);

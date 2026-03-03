@@ -1380,7 +1380,7 @@ function AreasComunes() {
         <div className="ac-modal">
           <div className="ac-modal-header">
             <h5>
-              {editIndex !== null ? "Editar Reserva" : "Registrar Reserva"}
+              {editIndex === null ? "Registrar Reserva" : "Editar Reserva"}
             </h5>
             <button className="ac-modal-close" onClick={cerrarModal}>
               <i className="bi bi-x-lg" />
@@ -1530,9 +1530,9 @@ function AreasComunes() {
                       disabled={!reserva.torre}
                     >
                       <option value="">
-                        {!reserva.torre
-                          ? "Primero selecciona torre"
-                          : "Seleccionar"}
+                        {reserva.torre
+                          ? "Seleccionar"
+                          : "Primero selecciona torre"}
                       </option>
                       {apartamentosFiltrados.map((a) => (
                         <option key={a.idApartamento} value={a.idApartamento}>
