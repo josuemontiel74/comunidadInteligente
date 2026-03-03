@@ -21,7 +21,6 @@ export default function ModalOverlay({
   return (
     <dialog
       open
-      role="dialog"
       className={className}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
