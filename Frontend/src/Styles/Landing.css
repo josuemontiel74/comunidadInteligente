@@ -240,7 +240,7 @@
   transform: translateX(-50%);
   display: flex;
   gap: 0;
-  background: linear-gradient(135deg, #3d8647 0%, #52a85a 100%);
+  background: linear-gradient(135deg, #357a3d 0%, #52a85a 100%);
   border-radius: 20px 20px 0 0;
   overflow: hidden;
   z-index: 3;
@@ -408,14 +408,14 @@
 .ld-about-img-inner {
   height: 400px;
   background: url("../../img/imagenLanding.jpg") center 40% / cover no-repeat;
-  background-color: #3d8647;
+  background-color: #357a3d;
 }
 .ld-about-img-badge {
   position: absolute;
   bottom: 16px;
   left: 16px;
   background: rgba(255, 255, 255, 0.92);
-  color: #3d8647;
+  color: #357a3d;
   padding: 8px 16px;
   border-radius: 10px;
   font-size: 13px;
@@ -535,7 +535,7 @@
 
 /* ── CTA BAND ────────────────────────────────────────────────── */
 .ld-cta-band {
-  background: linear-gradient(135deg, #3d8647 0%, #52a85a 60%, #6abf6a 100%);
+  background: linear-gradient(135deg, #357a3d 0%, #52a85a 60%, #6abf6a 100%);
   padding: clamp(36px, 5vw, 56px) 24px;
 }
 .ld-cta-inner {
@@ -557,7 +557,7 @@
 }
 .ld-cta-band .ld-btn-primary {
   background: #fff;
-  color: #3d8647;
+  color: #357a3d;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
   flex-shrink: 0;
 }
@@ -565,7 +565,7 @@
   background: #f0fff4;
   transform: translateY(-2px);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
-  color: #3d8647;
+  color: #357a3d;
 }
 
 /* ── DOWNLOADS ───────────────────────────────────────────────── */
@@ -608,7 +608,7 @@
 }
 .ld-download-icon--green {
   background: rgba(5, 150, 105, 0.15);
-  color: #059669;
+  color: #047857;
 }
 .ld-download-icon--blue {
   background: rgba(37, 99, 235, 0.15);
@@ -616,7 +616,7 @@
 }
 .ld-download-icon--purple {
   background: rgba(99, 102, 241, 0.15);
-  color: #6366f1;
+  color: #4f46e5;
 }
 .ld-download-title {
   font-size: 17px;
@@ -643,11 +643,11 @@
 }
 .ld-btn-download--green {
   background: rgba(5, 150, 105, 0.12);
-  color: #059669;
+  color: #047857;
   border: 1px solid rgba(5, 150, 105, 0.3);
 }
 .ld-btn-download--green:hover {
-  background: #059669;
+  background: #047857;
   color: #fff;
 }
 .ld-btn-download--blue {
@@ -661,11 +661,11 @@
 }
 .ld-btn-download--purple {
   background: rgba(99, 102, 241, 0.1);
-  color: #6366f1;
+  color: #4f46e5;
   border: 1px solid rgba(99, 102, 241, 0.25);
 }
 .ld-btn-download--purple:hover {
-  background: #6366f1;
+  background: #4f46e5;
   color: #fff;
 }
 

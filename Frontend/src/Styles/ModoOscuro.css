@@ -511,13 +511,13 @@
   color: #94a3b8 !important;
 }
 [data-modo="oscuro"] .page-item.active .page-link {
-  background-color: #3b82f6 !important;
-  border-color: #3b82f6 !important;
+  background-color: #2d6bd0 !important;
+  border-color: #2d6bd0 !important;
   color: #fff !important;
 }
 [data-modo="oscuro"] .page-item.disabled .page-link {
   background-color: #1e293b !important;
-  color: #64748b !important;
+  color: #8492a6 !important;
 }
 
 /* ── SCROLLBAR en modo oscuro ────────────────────────────────── */

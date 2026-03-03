@@ -154,7 +154,7 @@
 
 /* ====== HEADER ====== */
 .ac-header {
-  background: linear-gradient(135deg, #bf360c, #e65100);
+  background: linear-gradient(135deg, #bf360c, #c04000);
   color: white;
   padding: 12px 20px;
   display: flex;
@@ -244,7 +244,7 @@
   flex: 1;
   min-width: 200px;
   padding: 12px 20px;
-  background: linear-gradient(135deg, #e65100, #f57c00);
+  background: linear-gradient(135deg, #c04000, #b85c00);
   color: white;
   border: none;
   border-radius: 10px;
@@ -318,7 +318,7 @@
   height: 38px !important;
 }
 .ac-filter-input:focus {
-  border-color: #f57c00 !important;
+  border-color: #b85c00 !important;
   box-shadow: 0 0 0 3px rgba(245, 124, 0, 0.15) !important;
 }
 
@@ -331,7 +331,7 @@
 .ac-filter-label {
   font-size: 13px;
   font-weight: 600;
-  color: #757575;
+  color: #6b6b6b;
   white-space: nowrap;
 }
 .ac-filter-chips {
@@ -352,17 +352,17 @@
   white-space: nowrap;
 }
 .ac-chip:hover {
-  border-color: #f57c00;
-  color: #e65100;
+  border-color: #b85c00;
+  color: #c04000;
 }
 .ac-chip.active {
-  background: linear-gradient(135deg, #e65100, #f57c00);
+  background: linear-gradient(135deg, #c04000, #b85c00);
   color: white;
   border-color: transparent;
 }
 .ac-chip-clear {
   border-color: #ef9a9a;
-  color: #c62828;
+  color: #b71c1c;
 }
 .ac-chip-clear:hover {
   background: #ffebee;
@@ -397,7 +397,7 @@
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #e65100;
+  color: #c04000;
   letter-spacing: 0.5px;
   border-bottom: 2px solid #ffcc80;
   white-space: nowrap;
@@ -449,7 +449,7 @@
   transform: scale(1.15);
 }
 .ac-action-btn.info {
-  color: #f57c00;
+  color: #b85c00;
 }
 .ac-action-btn.info:hover {
   background: #fff3e0;
@@ -461,7 +461,7 @@
   background: #e3f2fd;
 }
 .ac-action-btn.finish {
-  color: #2e7d32;
+  color: #256b29;
 }
 .ac-action-btn.finish:hover {
   background: #e8f5e9;
@@ -510,7 +510,7 @@
 }
 .ac-card-row-icon.area {
   background: #e8f5e9;
-  color: #2e7d32;
+  color: #256b29;
 }
 .ac-card-row-icon.fecha {
   background: #e3f2fd;
@@ -545,8 +545,8 @@
 }
 .ac-card-btn.detalles {
   background: white;
-  border: 1px solid #f57c00;
-  color: #f57c00;
+  border: 1px solid #b85c00;
+  color: #b85c00;
 }
 .ac-card-btn.detalles:hover {
   background: #fff3e0;
@@ -560,8 +560,8 @@
   background: #e3f2fd;
 }
 .ac-card-btn.finalizar {
-  background: #2e7d32;
-  border: 1px solid #2e7d32;
+  background: #256b29;
+  border: 1px solid #256b29;
   color: white;
 }
 .ac-card-btn.finalizar:hover {
@@ -591,8 +591,8 @@
   color: #616161;
 }
 .ac-page-btn:hover:not(:disabled) {
-  border-color: #f57c00;
-  color: #e65100;
+  border-color: #b85c00;
+  color: #c04000;
   background: #fff3e0;
 }
 .ac-page-btn:disabled {
@@ -600,13 +600,13 @@
   cursor: not-allowed;
 }
 .ac-page-btn.active {
-  background: linear-gradient(135deg, #e65100, #f57c00);
+  background: linear-gradient(135deg, #c04000, #b85c00);
   color: white;
   border-color: transparent;
 }
 .ac-page-info {
   font-size: 13px;
-  color: #757575;
+  color: #6b6b6b;
   font-weight: 600;
   padding: 0 8px;
 }
@@ -671,7 +671,7 @@
   overflow: hidden;
 }
 .ac-modal-header {
-  background: linear-gradient(135deg, #e65100, #f57c00);
+  background: linear-gradient(135deg, #c04000, #b85c00);
   color: white;
   padding: 18px 24px;
   display: flex;
@@ -752,7 +752,7 @@
   background: white;
 }
 .ac-form-control:focus {
-  border-color: #f57c00;
+  border-color: #b85c00;
   box-shadow: 0 0 0 3px rgba(245, 124, 0, 0.12);
 }
 select.ac-form-control {
@@ -763,7 +763,7 @@ select.ac-form-control {
 .ac-form-submit {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #e65100, #f57c00);
+  background: linear-gradient(135deg, #c04000, #b85c00);
   color: white;
   border: none;
   border-radius: 14px;
@@ -802,7 +802,7 @@ select.ac-form-control {
 .ac-detalle-section {
   font-size: 17px;
   font-weight: 700;
-  color: #f57c00;
+  color: #b85c00;
   margin: 20px 0 12px;
   padding-top: 12px;
   border-top: 2px solid #ffe0b2;
@@ -830,12 +830,12 @@ select.ac-form-control {
   justify-content: center;
   cursor: pointer;
   font-size: 16px;
-  color: #f57c00;
+  color: #b85c00;
   transition: all 0.2s;
 }
 .ac-calendar-nav-btn:hover:not(:disabled) {
   background: #fff3e0;
-  border-color: #f57c00;
+  border-color: #b85c00;
 }
 .ac-calendar-nav-btn:disabled {
   opacity: 0.3;
@@ -844,7 +844,7 @@ select.ac-form-control {
 .ac-calendar-month {
   font-size: 18px;
   font-weight: 700;
-  color: #e65100;
+  color: #c04000;
   text-transform: uppercase;
   min-width: 200px;
   text-align: center;
@@ -860,7 +860,7 @@ select.ac-form-control {
   text-align: center;
   font-size: 13px;
   font-weight: 700;
-  color: #f57c00;
+  color: #b85c00;
   padding: 8px 0;
 }
 
@@ -885,7 +885,7 @@ select.ac-form-control {
   font-weight: 500;
 }
 .ac-calendar-day:hover:not(.empty):not(.past) {
-  border-color: #f57c00;
+  border-color: #b85c00;
   background: #fff3e0;
 }
 .ac-calendar-day.empty {
@@ -897,9 +897,9 @@ select.ac-form-control {
   font-weight: 700;
 }
 .ac-calendar-day.selected {
-  background: #f57c00;
+  background: #b85c00;
   color: white;
-  border-color: #f57c00;
+  border-color: #b85c00;
   font-weight: 700;
 }
 .ac-calendar-day.past {
@@ -908,7 +908,7 @@ select.ac-form-control {
   cursor: not-allowed;
 }
 .ac-calendar-day.has-reservas:not(.past) {
-  border-color: #f57c00;
+  border-color: #b85c00;
   border-width: 2px;
   font-weight: 700;
 }
@@ -916,7 +916,7 @@ select.ac-form-control {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #f57c00;
+  background: #b85c00;
   position: absolute;
   bottom: 4px;
 }
@@ -933,7 +933,7 @@ select.ac-form-control {
 .ac-calendar-fecha {
   font-size: 15px;
   font-weight: 700;
-  color: #e65100;
+  color: #c04000;
   text-transform: uppercase;
   margin-bottom: 12px;
 }
@@ -957,7 +957,7 @@ select.ac-form-control {
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  color: #e65100;
+  color: #c04000;
   flex-shrink: 0;
 }
 .ac-calendar-reserva-info {
@@ -970,7 +970,7 @@ select.ac-form-control {
 }
 .ac-calendar-reserva-hora {
   font-size: 13px;
-  color: #757575;
+  color: #6b6b6b;
 }
 .ac-calendar-reserva-nombre {
   font-size: 12px;
@@ -979,7 +979,7 @@ select.ac-form-control {
 .ac-calendar-reserva-estado {
   padding: 4px 10px;
   background: #e8f5e9;
-  color: #2e7d32;
+  color: #256b29;
   border-radius: 12px;
   font-size: 11px;
   font-weight: 700;
@@ -1346,7 +1346,7 @@ select.ac-form-control {
   width: 100%;
   padding: 12px 20px;
   margin-top: 12px;
-  background: linear-gradient(135deg, #e65100, #f57c00);
+  background: linear-gradient(135deg, #c04000, #b85c00);
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -1357,7 +1357,7 @@ select.ac-form-control {
   box-shadow: 0 2px 8px rgba(230, 81, 0, 0.25);
 }
 .ac-btn-imprimir:hover {
-  background: linear-gradient(135deg, #bf360c, #e65100);
+  background: linear-gradient(135deg, #bf360c, #c04000);
   box-shadow: 0 4px 14px rgba(230, 81, 0, 0.35);
   transform: translateY(-1px);
 }
@@ -1405,11 +1405,11 @@ select.ac-form-control {
 }
 .ac-areas-desc {
   font-size: 13px;
-  color: #757575;
+  color: #6b6b6b;
   background: #fff8e1;
   padding: 10px 14px;
   border-radius: 8px;
-  border-left: 4px solid #f57c00;
+  border-left: 4px solid #b85c00;
   margin-bottom: 18px;
   line-height: 1.5;
 }
@@ -1450,11 +1450,11 @@ select.ac-form-control {
 }
 .ac-area-disponible .ac-area-card-icon {
   background: #c8e6c9;
-  color: #2e7d32;
+  color: #256b29;
 }
 .ac-area-inhabilitada .ac-area-card-icon {
   background: #ffcdd2;
-  color: #c62828;
+  color: #b71c1c;
 }
 .ac-area-card-name {
   font-weight: 700;
@@ -1463,7 +1463,7 @@ select.ac-form-control {
 }
 .ac-area-card-meta {
   font-size: 12px;
-  color: #757575;
+  color: #6b6b6b;
   margin: 2px 0 4px;
 }
 .ac-area-toggle-btn {
@@ -1488,7 +1488,7 @@ select.ac-form-control {
   transform: translateY(-1px);
 }
 .ac-area-toggle-on {
-  background: #2e7d32;
+  background: #256b29;
   color: #fff;
 }
 .ac-area-toggle-on:hover {
@@ -1534,7 +1534,7 @@ select.ac-form-control {
 /* Secciones del formulario */
 [data-modo="oscuro"] .ac-form-section {
   background: #0f172a !important;
-  border-color: #334155 !important;
+  border-color: #7589a0 !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
 }
 [data-modo="oscuro"] .ac-form-section-title {
@@ -1547,10 +1547,10 @@ select.ac-form-control {
 [data-modo="oscuro"] .ac-form-control {
   background: #1e293b !important;
   color: #e2e8f0 !important;
-  border-color: #334155 !important;
+  border-color: #7589a0 !important;
 }
 [data-modo="oscuro"] .ac-form-control:focus {
-  border-color: #f57c00 !important;
+  border-color: #b85c00 !important;
   box-shadow: 0 0 0 3px rgba(245, 124, 0, 0.2) !important;
 }
 [data-modo="oscuro"] select.ac-form-control {
@@ -1560,7 +1560,7 @@ select.ac-form-control {
 
 /* Modal detalles */
 [data-modo="oscuro"] .ac-detalle-row {
-  border-bottom-color: #334155 !important;
+  border-bottom-color: #7589a0 !important;
 }
 [data-modo="oscuro"] .ac-detalle-label {
   color: #cbd5e1 !important;
@@ -1576,12 +1576,12 @@ select.ac-form-control {
 /* Modal calendario */
 [data-modo="oscuro"] .ac-calendar-nav-btn {
   background: #1e293b !important;
-  border-color: #334155 !important;
+  border-color: #7589a0 !important;
   color: #fb923c !important;
 }
 [data-modo="oscuro"] .ac-calendar-nav-btn:hover:not(:disabled) {
   background: #2d1a08 !important;
-  border-color: #f57c00 !important;
+  border-color: #b85c00 !important;
 }
 [data-modo="oscuro"] .ac-calendar-month {
   color: #fb923c !important;
@@ -1591,24 +1591,24 @@ select.ac-form-control {
 }
 [data-modo="oscuro"] .ac-calendar-day {
   background: #0f172a !important;
-  border-color: #334155 !important;
+  border-color: #7589a0 !important;
   color: #e2e8f0 !important;
 }
 [data-modo="oscuro"] .ac-calendar-day:hover:not(.empty):not(.past) {
   background: #2d1a08 !important;
-  border-color: #f57c00 !important;
+  border-color: #b85c00 !important;
 }
 [data-modo="oscuro"] .ac-calendar-day.today {
   background: #2d1a08 !important;
 }
 [data-modo="oscuro"] .ac-calendar-day.selected {
-  background: #f57c00 !important;
-  border-color: #f57c00 !important;
+  background: #b85c00 !important;
+  border-color: #b85c00 !important;
   color: #fff !important;
 }
 [data-modo="oscuro"] .ac-calendar-day.past {
   background: #0f172a !important;
-  color: #334155 !important;
+  color: #7589a0 !important;
 }
 
 /* ── DRAWER MODO OSCURO ── */
