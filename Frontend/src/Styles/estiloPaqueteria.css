@@ -117,7 +117,7 @@
   margin-bottom: 4px;
 }
 .paq-menu-item:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: #2f69de;
   color: white;
   text-decoration: none;
 }
@@ -146,8 +146,8 @@
 .paq-logout-btn {
   width: 100%;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: #2f69de;
+  border: 1px solid #6888e5;
   color: white;
   border-radius: 10px;
   font-size: 14px;
@@ -188,7 +188,7 @@
 }
 
 .paq-header-btn {
-  background: rgba(255, 255, 255, 0.15);
+  background: #2f69de;
   border: none;
   color: white;
   width: 40px;
@@ -334,14 +334,14 @@
   background: #eff6ff;
 }
 .paq-chip.active {
-  background: #3b82f6;
-  border-color: #3b82f6;
+  background: #2563eb;
+  border-color: #2563eb;
   color: white;
 }
 .paq-chip-clear {
   background: #fee2e2 !important;
   border-color: #fca5a5 !important;
-  color: #dc2626 !important;
+  color: #b91c1c !important;
 }
 .paq-chip-clear:hover {
   background: #fecaca !important;
@@ -370,7 +370,7 @@
   margin-bottom: 16px;
 }
 .paq-btn-retry {
-  background: #3b82f6;
+  background: #2563eb;
   color: white;
   border-radius: 10px;
   padding: 10px 24px;
@@ -499,25 +499,25 @@
   transition: all 0.2s;
 }
 .paq-action-btn.info {
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
+  background: #eef4fe;
+  color: #1d4ed8;
 }
 .paq-action-btn.info:hover {
-  background: rgba(59, 130, 246, 0.2);
+  background: #dce8fd;
 }
 .paq-action-btn.edit {
-  background: rgba(249, 115, 22, 0.1);
-  color: #f97316;
+  background: #fef2e8;
+  color: #c2410c;
 }
 .paq-action-btn.edit:hover {
-  background: rgba(249, 115, 22, 0.2);
+  background: #fde5d2;
 }
 .paq-action-btn.deliver {
-  background: rgba(34, 197, 94, 0.1);
-  color: #22c55e;
+  background: #eaf9ee;
+  color: #15803d;
 }
 .paq-action-btn.deliver:hover {
-  background: rgba(34, 197, 94, 0.2);
+  background: #d5f3dc;
 }
 
 /* ====== CARDS (movil) -- ocultas en escritorio ====== */
@@ -582,16 +582,16 @@
   flex-shrink: 0;
 }
 .paq-card-info-icon.blue {
-  background: rgba(59, 130, 246, 0.12);
-  color: #3b82f6;
+  background: #ecf2fe;
+  color: #1d4ed8;
 }
 .paq-card-info-icon.green {
-  background: rgba(34, 197, 94, 0.12);
-  color: #22c55e;
+  background: #e8f9ec;
+  color: #15803d;
 }
 .paq-card-info-icon.orange {
-  background: rgba(249, 115, 22, 0.12);
-  color: #f97316;
+  background: #fef1e7;
+  color: #c2410c;
 }
 .paq-card-info-label {
   font-size: 11px;
@@ -623,29 +623,29 @@
   border: 2px solid;
 }
 .paq-card-action-btn.details {
-  border-color: #3b82f6;
-  color: #3b82f6;
+  border-color: #1d4ed8;
+  color: #1d4ed8;
   background: white;
 }
 .paq-card-action-btn.details:hover {
   background: #eff6ff;
 }
 .paq-card-action-btn.editar {
-  border-color: #f97316;
-  color: #f97316;
+  border-color: #c2410c;
+  color: #c2410c;
   background: white;
 }
 .paq-card-action-btn.editar:hover {
   background: #fff7ed;
 }
 .paq-card-action-btn.entregar {
-  border-color: #22c55e;
+  border-color: #15803d;
   color: white;
-  background: #22c55e;
+  background: #15803d;
 }
 .paq-card-action-btn.entregar:hover {
-  background: #16a34a;
-  border-color: #16a34a;
+  background: #166534;
+  border-color: #166534;
 }
 
 /* ====== PAGINACION ====== */
@@ -689,12 +689,12 @@
 }
 .paq-pagination li button:hover:not(:disabled) {
   background: #eff6ff;
-  border-color: #3b82f6;
-  color: #3b82f6;
+  border-color: #1d4ed8;
+  color: #1d4ed8;
 }
 .paq-pagination li.active button {
-  background: #3b82f6;
-  border-color: #3b82f6;
+  background: #2563eb;
+  border-color: #2563eb;
   color: white;
 }
 .paq-pagination li.disabled button {
@@ -834,18 +834,18 @@
   transition: background 0.2s;
 }
 .paq-btn-submit.blue {
-  background: #3b82f6;
+  background: #2563eb;
   color: white;
 }
 .paq-btn-submit.blue:hover {
-  background: #2563eb;
+  background: #1d4ed8;
 }
 .paq-btn-submit.orange {
-  background: #f97316;
+  background: #c2410c;
   color: white;
 }
 .paq-btn-submit.orange:hover {
-  background: #ea580c;
+  background: #9a3412;
 }
 .paq-btn-submit:disabled {
   opacity: 0.6;
@@ -872,8 +872,8 @@
   justify-content: center;
   font-size: 16px;
   flex-shrink: 0;
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
+  background: #eef4fe;
+  color: #1d4ed8;
 }
 .paq-detalle-content {
   flex: 1;
@@ -999,7 +999,7 @@
   border-bottom-color: #334155 !important;
 }
 [data-modo="oscuro"] .paq-detalle-icon {
-  background: rgba(59, 130, 246, 0.15) !important;
+  background: #223657 !important;
   color: #60a5fa !important;
 }
 [data-modo="oscuro"] .paq-detalle-label {

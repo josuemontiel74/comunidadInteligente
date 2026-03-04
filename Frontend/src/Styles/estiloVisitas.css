@@ -179,7 +179,7 @@
 }
 
 .vis-header-btn {
-  background: rgba(255, 255, 255, 0.15);
+  background: #2d6e30;
   border: none;
   color: white;
   width: 40px;
@@ -390,14 +390,14 @@
   background: #e8f5e9;
 }
 .vis-chip.active {
-  background: #4caf50;
-  border-color: #4caf50;
+  background: #2e7d32;
+  border-color: #2e7d32;
   color: white;
 }
 .vis-chip-clear {
   background: #fee2e2 !important;
   border-color: #fca5a5 !important;
-  color: #dc2626 !important;
+  color: #b91c1c !important;
 }
 .vis-chip-clear:hover {
   background: #fecaca !important;
@@ -426,7 +426,7 @@
   margin-bottom: 16px;
 }
 .vis-btn-retry {
-  background: #4caf50;
+  background: #2e7d32;
   color: white;
   border-radius: 10px;
   padding: 10px 24px;
@@ -435,7 +435,7 @@
   margin-top: 12px;
 }
 .vis-btn-retry:hover {
-  background: #388e3c;
+  background: #1b5e20;
   color: white;
 }
 
@@ -519,25 +519,25 @@
   transition: all 0.2s;
 }
 .vis-action-btn.info {
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
+  background: #eef4fe;
+  color: #1d4ed8;
 }
 .vis-action-btn.info:hover {
-  background: rgba(59, 130, 246, 0.2);
+  background: #dce8fd;
 }
 .vis-action-btn.edit {
-  background: rgba(249, 115, 22, 0.1);
-  color: #f97316;
+  background: #fef2e8;
+  color: #c2410c;
 }
 .vis-action-btn.edit:hover {
-  background: rgba(249, 115, 22, 0.2);
+  background: #fde5d0;
 }
 .vis-action-btn.finalizar {
-  background: rgba(76, 175, 80, 0.1);
-  color: #4caf50;
+  background: #eaf9ee;
+  color: #2e7d32;
 }
 .vis-action-btn.finalizar:hover {
-  background: rgba(76, 175, 80, 0.2);
+  background: #d5f3dc;
 }
 
 /* ====== CARDS (móvil) — ocultas en escritorio ====== */
@@ -602,20 +602,20 @@
   flex-shrink: 0;
 }
 .vis-card-info-icon.green {
-  background: rgba(76, 175, 80, 0.12);
-  color: #4caf50;
+  background: #e7f8e8;
+  color: #2e7d32;
 }
 .vis-card-info-icon.blue {
-  background: rgba(59, 130, 246, 0.12);
-  color: #3b82f6;
+  background: #ecf2fe;
+  color: #1d4ed8;
 }
 .vis-card-info-icon.orange {
-  background: rgba(249, 115, 22, 0.12);
-  color: #f97316;
+  background: #fef1e6;
+  color: #c2410c;
 }
 .vis-card-info-icon.gray {
-  background: rgba(107, 114, 128, 0.12);
-  color: #6b7280;
+  background: #edeef0;
+  color: #4b5563;
 }
 .vis-card-info-label {
   font-size: 11px;
@@ -647,29 +647,29 @@
   border: 2px solid;
 }
 .vis-card-action-btn.details {
-  border-color: #3b82f6;
-  color: #3b82f6;
+  border-color: #1d4ed8;
+  color: #1d4ed8;
   background: white;
 }
 .vis-card-action-btn.details:hover {
   background: #eff6ff;
 }
 .vis-card-action-btn.editar {
-  border-color: #f97316;
-  color: #f97316;
+  border-color: #c2410c;
+  color: #c2410c;
   background: white;
 }
 .vis-card-action-btn.editar:hover {
   background: #fff7ed;
 }
 .vis-card-action-btn.finalizar {
-  border-color: #4caf50;
+  border-color: #2e7d32;
   color: white;
-  background: #4caf50;
+  background: #2e7d32;
 }
 .vis-card-action-btn.finalizar:hover {
-  background: #388e3c;
-  border-color: #388e3c;
+  background: #1b5e20;
+  border-color: #1b5e20;
 }
 
 /* ====== PAGINACIÓN ====== */
@@ -713,12 +713,12 @@
 }
 .vis-pagination li button:hover:not(:disabled) {
   background: #e8f5e9;
-  border-color: #4caf50;
-  color: #4caf50;
+  border-color: #2e7d32;
+  color: #2e7d32;
 }
 .vis-pagination li.active button {
-  background: #4caf50;
-  border-color: #4caf50;
+  background: #2e7d32;
+  border-color: #2e7d32;
   color: white;
 }
 .vis-pagination li.disabled button {
@@ -885,7 +885,7 @@
   transition: all 0.2s;
 }
 .vis-parking-change:hover {
-  background: #4caf50;
+  background: #2e7d32;
   color: white;
 }
 
@@ -945,18 +945,18 @@
   transition: background 0.2s;
 }
 .vis-btn-submit.green {
-  background: #4caf50;
+  background: #2e7d32;
   color: white;
 }
 .vis-btn-submit.green:hover {
-  background: #388e3c;
+  background: #1b5e20;
 }
 .vis-btn-submit.orange {
-  background: #f97316;
+  background: #c2410c;
   color: white;
 }
 .vis-btn-submit.orange:hover {
-  background: #ea580c;
+  background: #9a3412;
 }
 .vis-btn-submit:disabled {
   opacity: 0.6;
@@ -983,8 +983,8 @@
   justify-content: center;
   font-size: 16px;
   flex-shrink: 0;
-  background: rgba(76, 175, 80, 0.1);
-  color: #4caf50;
+  background: #edf7ee;
+  color: #2e7d32;
 }
 .vis-detalle-content {
   flex: 1;

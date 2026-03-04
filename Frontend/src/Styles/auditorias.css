@@ -553,7 +553,7 @@
   margin-bottom: 8px;
 }
 .aud-modal-id-box {
-  background: rgba(79, 70, 229, 0.08);
+  background: #f1f0fd;
   padding: 12px 16px;
   border-radius: 8px;
   font-size: 20px;
@@ -562,7 +562,7 @@
   text-align: center;
 }
 .aud-modal-name-box {
-  background: rgba(79, 70, 229, 0.05);
+  background: #f6f5fe;
   padding: 10px 16px;
   border-radius: 8px;
   font-size: 16px;
@@ -583,7 +583,7 @@
   border-radius: 8px;
 }
 .aud-btn-cerrar:hover {
-  background: rgba(79, 70, 229, 0.08);
+  background: #f1f0fd;
   color: #4f46e5;
 }
 
