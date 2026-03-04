@@ -98,18 +98,21 @@ function buildModulos(showAreasComunes, showUserManagement) {
 /** Helper: extrae permisos del token para reducir complejidad del componente */
 function getTokenPermissions() {
   const token = localStorage.getItem("token");
-  if (!token) return { rolesId: null, showUserManagement: false, showAreasComunes: false };
+  if (!token)
+    return { showUserManagement: false, showAreasComunes: false };
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
     const valido = Date.now() < payload.exp * 1000;
     const rolesId = payload.rolesId ?? null;
     return {
-      rolesId,
       showUserManagement: valido && rolesId === 1,
       showAreasComunes: valido && rolesId !== 3,
     };
   } catch {
-    return { rolesId: null, showUserManagement: false, showAreasComunes: false };
+    return {
+      showUserManagement: false,
+      showAreasComunes: false,
+    };
   }
 }
 
@@ -138,7 +141,7 @@ function Dashboard() {
   } = useDashboardData(!loading);
 
   // Token / roles (extraído a helper externo para reducir complejidad cognitiva)
-  const { rolesId, showUserManagement, showAreasComunes } = getTokenPermissions();
+  const { showUserManagement, showAreasComunes } = getTokenPermissions();
 
   // Canvas refs
   const parqueoCanvasRef = useRef(null);
