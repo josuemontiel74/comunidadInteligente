@@ -834,7 +834,7 @@
   font-size: 14px;
 }
 .rpt-info-alert.warning {
-  background: rgba(245, 158, 11, 0.1);
+  background: #fef5e7;
   border: 1px solid rgba(245, 158, 11, 0.3);
   color: #92400e;
 }

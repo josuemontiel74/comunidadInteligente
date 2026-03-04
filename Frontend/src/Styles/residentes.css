@@ -293,7 +293,7 @@
 }
 .res-view-btn:hover {
   color: #087b6e;
-  background: rgba(20, 184, 166, 0.08);
+  background: #edf9f8;
 }
 .res-view-btn.active {
   background: linear-gradient(135deg, #087b6e, #0a8275);
@@ -439,7 +439,7 @@
   transition: all 0.2s;
 }
 .res-btn-ver {
-  background: rgba(20, 184, 166, 0.1);
+  background: #e8f8f6;
   color: #087066;
 }
 .res-btn-ver:hover {
@@ -447,7 +447,7 @@
   transform: scale(1.1);
 }
 .res-btn-editar {
-  background: rgba(59, 130, 246, 0.1);
+  background: #ebf3fe;
   color: #1d4ed8;
 }
 .res-btn-editar:hover {

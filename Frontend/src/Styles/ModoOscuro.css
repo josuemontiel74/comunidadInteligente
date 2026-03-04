@@ -707,23 +707,23 @@
 
 /* ── BADGES de estado – contraste adecuado ───────────────────── */
 [data-modo="oscuro"] .gu-badge-activo {
-  background: rgba(46, 125, 50, 0.25) !important;
+  background: #223e39 !important;
   color: #4ade80 !important;
 }
 [data-modo="oscuro"] .gu-badge-inactivo {
-  background: rgba(198, 40, 40, 0.25) !important;
+  background: #482936 !important;
   color: #f87171 !important;
 }
 [data-modo="oscuro"] .gu-badge-rol {
-  background: rgba(123, 31, 162, 0.35) !important;
+  background: #3f265f !important;
   color: #d8b4fe !important;
 }
 [data-modo="oscuro"] .paq-badge-recibido {
-  background: rgba(194, 65, 12, 0.25) !important;
+  background: #472f2f !important;
   color: #fb923c !important;
 }
 [data-modo="oscuro"] .paq-badge-entregado {
-  background: rgba(21, 128, 61, 0.25) !important;
+  background: #1c3f3c !important;
   color: #4ade80 !important;
 }
 
@@ -830,23 +830,23 @@
 }
 /* Fondos de íconos de fila en modo oscuro */
 [data-modo="oscuro"] .gu-card-row-icon.doc {
-  background: rgba(29, 78, 216, 0.25) !important;
+  background: #1e3262 !important;
   color: #93c5fd !important;
 }
 [data-modo="oscuro"] .gu-card-row-icon.rol {
-  background: rgba(123, 31, 162, 0.25) !important;
+  background: #352755 !important;
   color: #d8b4fe !important;
 }
 [data-modo="oscuro"] .gu-card-row-icon.estado {
-  background: rgba(46, 125, 50, 0.25) !important;
+  background: #223e39 !important;
   color: #4ade80 !important;
 }
 [data-modo="oscuro"] .gu-card-row-icon.tel {
-  background: rgba(230, 81, 0, 0.25) !important;
+  background: #50332c !important;
   color: #fdba74 !important;
 }
 [data-modo="oscuro"] .gu-card-row-icon.email {
-  background: rgba(198, 40, 40, 0.25) !important;
+  background: #482936 !important;
   color: #fca5a5 !important;
 }
 /* Botones de acción dentro de las cards */
@@ -877,7 +877,7 @@
   color: #94a3b8 !important;
 }
 [data-modo="oscuro"] .res-view-btn:hover {
-  background: rgba(45, 212, 191, 0.1) !important;
+  background: #1f3a48 !important;
   color: #2dd4bf !important;
 }
 
