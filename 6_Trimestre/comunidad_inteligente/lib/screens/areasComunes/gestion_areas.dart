@@ -187,11 +187,22 @@ class _GestionAreasState extends State<GestionAreas> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.home_work_outlined, size: 80, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+                  Icon(
+                    Icons.home_work_outlined,
+                    size: 80,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.5),
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'No hay áreas comunes registradas',
-                    style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
                   ),
                 ],
               ),
@@ -228,9 +239,9 @@ class _GestionAreasState extends State<GestionAreas> {
                   ),
                   const SizedBox(height: 20),
                   // Lista de áreas
-                  ..._areasComunes
-                      .map((area) => _buildAreaCard(area, isSmallScreen))
-                      ,
+                  ..._areasComunes.map(
+                    (area) => _buildAreaCard(area, isSmallScreen),
+                  ),
                 ],
               ),
             ),
@@ -294,13 +305,17 @@ class _GestionAreasState extends State<GestionAreas> {
                             Icon(
                               Icons.people_outline,
                               size: 16,
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.7),
                             ),
                             const SizedBox(width: 4),
                             Text(
                               'Capacidad: ${capacidadMax ?? 'N/A'}',
                               style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.7),
                                 fontSize: 13,
                               ),
                             ),

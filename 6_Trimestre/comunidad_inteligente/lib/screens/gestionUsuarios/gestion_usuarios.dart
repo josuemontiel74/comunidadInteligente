@@ -465,7 +465,9 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
             padding: EdgeInsets.all(
               MediaQuery.of(context).size.width < 600 ? 12 : 20,
             ),
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade900 : Colors.grey.shade50,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade900
+                : Colors.grey.shade50,
             child: Column(
               children: [
                 ElevatedButton.icon(
@@ -501,7 +503,7 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: Theme.of(context).cardColor,
                   ),
                   onChanged: (value) => setState(() {
                     busquedaNombre = value;
@@ -526,7 +528,7 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: Theme.of(context).cardColor,
                         ),
                         items: [
                           const DropdownMenuItem(
@@ -583,10 +585,10 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : usuariosFiltradosList.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       'No hay usuarios registrados',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                      style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                     ),
                   )
                 : Column(
@@ -626,7 +628,7 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
       },
       selectedColor: Colors.purple,
       labelStyle: TextStyle(
-        color: seleccionado ? Colors.white : Colors.black,
+        color: seleccionado ? Colors.white : Theme.of(context).colorScheme.onSurface,
         fontWeight: seleccionado ? FontWeight.bold : FontWeight.normal,
       ),
     );
@@ -769,7 +771,7 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
                 const SizedBox(width: 12),
                 Text(
                   usuario['username'] ?? 'N/A',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                  style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
                 ),
               ],
             ),
@@ -793,7 +795,7 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
                 Expanded(
                   child: Text(
                     _obtenerNumeroDocumento(usuario),
-                    style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                    style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
                   ),
                 ),
               ],
@@ -817,7 +819,7 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
                 const SizedBox(width: 12),
                 Text(
                   _obtenerNombreRol(usuario),
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                  style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
                 ),
               ],
             ),
@@ -1350,7 +1352,7 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(20),
                   bottomRight: Radius.circular(20),
@@ -1503,11 +1505,13 @@ class DetallesUsuarioDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     _buildDetalleItem(
+                      context,
                       'Username',
                       usuario['username'] ?? 'N/A',
                       Icons.person,
                     ),
                     _buildDetalleItem(
+                      context,
                       'Rol',
                       _obtenerNombreRol(usuario['rolesId']),
                       Icons.security,
@@ -1517,12 +1521,14 @@ class DetallesUsuarioDialog extends StatelessWidget {
                     _buildSeccionTitulo('Información Personal', Icons.badge),
                     const SizedBox(height: 12),
                     _buildDetalleItem(
+                      context,
                       'Nombre Completo',
                       '${persona['primerNombre'] ?? ''} ${persona['segundoNombre'] ?? ''} ${persona['primerApellido'] ?? ''} ${persona['segundoApellido'] ?? ''}'
                           .trim(),
                       Icons.person_outline,
                     ),
                     _buildDetalleItem(
+                      context,
                       'Tipo Documento',
                       persona['TipoDocumento']?['nombreDocumento'] ??
                           persona['tipoDocumento']?['nombreDocumento'] ??
@@ -1530,6 +1536,7 @@ class DetallesUsuarioDialog extends StatelessWidget {
                       Icons.credit_card,
                     ),
                     _buildDetalleItem(
+                      context,
                       'Número Documento',
                       persona['numeroDocumento']?.toString() ?? 'N/A',
                       Icons.badge,
@@ -1542,11 +1549,13 @@ class DetallesUsuarioDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     _buildDetalleItem(
+                      context,
                       'Teléfono',
                       persona['telefono']?.toString() ?? 'N/A',
                       Icons.phone,
                     ),
                     _buildDetalleItem(
+                      context,
                       'Correo Electrónico',
                       persona['correoElectronico'] ?? 'N/A',
                       Icons.email,
@@ -1559,7 +1568,7 @@ class DetallesUsuarioDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(20),
                   bottomRight: Radius.circular(20),
@@ -1602,7 +1611,7 @@ class DetallesUsuarioDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildDetalleItem(String label, String valor, IconData icono) {
+  Widget _buildDetalleItem(BuildContext context, String label, String valor, IconData icono) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -1611,10 +1620,10 @@ class DetallesUsuarioDialog extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icono, size: 18, color: Colors.grey.shade600),
+            child: Icon(icono, size: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1623,7 +1632,7 @@ class DetallesUsuarioDialog extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -1739,18 +1748,18 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
             ),
           ],
         ),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               '¿Está seguro de actualizar este usuario?',
               style: TextStyle(fontSize: 16),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               'Los cambios se guardarán permanentemente.',
-              style: TextStyle(color: Colors.grey, fontSize: 13),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5), fontSize: 13),
             ),
           ],
         ),
@@ -1978,7 +1987,7 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           filled: true,
-                          fillColor: Colors.grey.shade200,
+                          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                           helperText: 'El username no se puede modificar',
                         ),
                       ),
@@ -2197,7 +2206,7 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(20),
                   bottomRight: Radius.circular(20),

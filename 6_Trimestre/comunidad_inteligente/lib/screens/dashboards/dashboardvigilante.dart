@@ -147,7 +147,49 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                 ],
               ),
             ),
-            SizedBox(height: 10),
+            // Toggle de modo oscuro en el drawer
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: ListenableBuilder(
+                listenable: ThemeProvider(),
+                builder: (context, _) {
+                  final darkMode = ThemeProvider().isDarkMode;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: darkMode ? Colors.grey.shade800 : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          darkMode ? Icons.dark_mode : Icons.light_mode,
+                          color: darkMode ? Colors.amber : Colors.blue,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            darkMode ? 'Modo Oscuro' : 'Modo Claro',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                        Switch(
+                          value: darkMode,
+                          onChanged: (_) => ThemeProvider().toggleTheme(),
+                          activeThumbColor: Colors.amber,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 4),
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
@@ -287,32 +329,9 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                 ),
               ),
             ),
-            // Botón de modo oscuro
-            Positioned(
-              right: 48,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: ListenableBuilder(
-                  listenable: ThemeProvider(),
-                  builder: (context, _) {
-                    final darkMode = ThemeProvider().isDarkMode;
-                    return IconButton(
-                      icon: Icon(
-                        darkMode ? Icons.light_mode : Icons.dark_mode,
-                        color: darkMode ? Colors.amber : Colors.grey.shade700,
-                        size: 26,
-                      ),
-                      onPressed: () => ThemeProvider().toggleTheme(),
-                      tooltip: darkMode ? 'Modo claro' : 'Modo oscuro',
-                    );
-                  },
-                ),
-              ),
-            ),
             // Botón de actualizar a la derecha (antes del menú)
             Positioned(
-              right: 90,
+              right: 48,
               top: 0,
               bottom: 0,
               child: Center(
@@ -545,7 +564,12 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
             SizedBox(height: 10),
             Text(
               'Rol: Vigilante',
-              style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
             ),
             SizedBox(height: 10),
             Text(
@@ -594,8 +618,18 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
   ) {
     return ListTile(
       leading: Icon(icon, color: Colors.blue.shade600, size: 24),
-      title: Text(title, style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface)),
-      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 15,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+      ),
+      trailing: Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+      ),
       onTap: () {
         Navigator.pop(context);
         Navigator.push(
@@ -711,7 +745,12 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
             SizedBox(height: 20),
             Text(
               'Paquetes registrados hoy',
-              style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+              style: TextStyle(
+                fontSize: 16,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
             ),
           ],
         ),
@@ -824,10 +863,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
         ),
         SizedBox(width: 12),
         Expanded(
-          child: Text(
-            label,
-            style: TextStyle(fontSize: 15, color: onSurface),
-          ),
+          child: Text(label, style: TextStyle(fontSize: 15, color: onSurface)),
         ),
         Text(
           '$valorSeguro (${porcentaje.toStringAsFixed(0)}%)',
@@ -914,7 +950,9 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
             Container(
               padding: EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: isDark ? Colors.blue.shade900.withValues(alpha: 0.3) : Colors.blue.shade50,
+                color: isDark
+                    ? Colors.blue.shade900.withValues(alpha: 0.3)
+                    : Colors.blue.shade50,
                 shape: BoxShape.circle,
               ),
               child: Text(
@@ -931,7 +969,9 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
               'Reservas registradas hoy',
               style: TextStyle(
                 fontSize: 14,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
           ],
@@ -980,7 +1020,9 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
       ],

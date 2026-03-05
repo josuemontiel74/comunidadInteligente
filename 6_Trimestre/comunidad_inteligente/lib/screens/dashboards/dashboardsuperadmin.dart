@@ -41,10 +41,49 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
   int residentesActivos = 0;
   bool isLoading = true;
 
+  // Usuarios en línea
+  List<String> usuariosEnLinea = [];
+  int totalEnLinea = 0;
+
   @override
   void initState() {
     super.initState();
     _cargarDatos();
+    _cargarUsuariosEnLinea();
+    // Auto-refresh cada 30 segundos
+    _iniciarAutoRefreshEnLinea();
+  }
+
+  void _iniciarAutoRefreshEnLinea() {
+    Future.delayed(const Duration(seconds: 30), () {
+      if (mounted) {
+        _cargarUsuariosEnLinea();
+        _iniciarAutoRefreshEnLinea();
+      }
+    });
+  }
+
+  Future<void> _cargarUsuariosEnLinea() async {
+    try {
+      if (LoginServe.token == null) return;
+      final response = await http.get(
+        Uri.parse('${LoginServe.baseUrl}/api/usuario/en-linea'),
+        headers: {
+          'Authorization': 'Bearer ${LoginServe.token}',
+          'Content-Type': 'application/json',
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final enLinea = data['enLinea'] as Map<String, dynamic>? ?? {};
+        if (mounted) {
+          setState(() {
+            usuariosEnLinea = enLinea.keys.toList();
+            totalEnLinea = usuariosEnLinea.length;
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _cargarDatos() async {
@@ -157,7 +196,49 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                 ],
               ),
             ),
-            SizedBox(height: 10),
+            // Toggle de modo oscuro en el drawer
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: ListenableBuilder(
+                listenable: ThemeProvider(),
+                builder: (context, _) {
+                  final darkMode = ThemeProvider().isDarkMode;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: darkMode ? Colors.grey.shade800 : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          darkMode ? Icons.dark_mode : Icons.light_mode,
+                          color: darkMode ? Colors.amber : Colors.orange,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            darkMode ? 'Modo Oscuro' : 'Modo Claro',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                        Switch(
+                          value: darkMode,
+                          onChanged: (_) => ThemeProvider().toggleTheme(),
+                          activeThumbColor: Colors.amber,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 4),
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
@@ -378,32 +459,9 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                 ),
               ),
             ),
-            // Botón de modo oscuro
-            Positioned(
-              right: 48,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: ListenableBuilder(
-                  listenable: ThemeProvider(),
-                  builder: (context, _) {
-                    final darkMode = ThemeProvider().isDarkMode;
-                    return IconButton(
-                      icon: Icon(
-                        darkMode ? Icons.light_mode : Icons.dark_mode,
-                        color: darkMode ? Colors.amber : Colors.grey.shade700,
-                        size: 26,
-                      ),
-                      onPressed: () => ThemeProvider().toggleTheme(),
-                      tooltip: darkMode ? 'Modo claro' : 'Modo oscuro',
-                    );
-                  },
-                ),
-              ),
-            ),
             // Botón de actualizar
             Positioned(
-              right: 90,
+              right: 48,
               top: 0,
               bottom: 0,
               child: Center(
@@ -735,7 +793,12 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
             SizedBox(height: 10),
             Text(
               'Rol: Super Administrador',
-              style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
             ),
             SizedBox(height: 10),
             Text(
@@ -781,8 +844,18 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
   Widget _buildMenuItem(BuildContext context, IconData icon, String title) {
     return ListTile(
       leading: Icon(icon, color: Colors.green.shade600, size: 24),
-      title: Text(title, style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface)),
-      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 15,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+      ),
+      trailing: Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+      ),
       onTap: () {
         Navigator.pop(context); // Cerrar el drawer
         ScaffoldMessenger.of(
@@ -803,8 +876,18 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
   ) {
     return ListTile(
       leading: Icon(icon, color: Colors.green.shade600, size: 24),
-      title: Text(title, style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface)),
-      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 15,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+      ),
+      trailing: Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+      ),
       onTap: () {
         Navigator.pop(context);
         Navigator.push(
@@ -859,6 +942,8 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                 _buildVisitasCard(),
                 SizedBox(height: 20),
                 _buildResumenRapidoCard(),
+                SizedBox(height: 20),
+                _buildUsuariosEnLineaCard(),
               ],
             ),
           ),
@@ -872,6 +957,16 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                 Expanded(child: _buildVisitasCard()),
                 SizedBox(width: 30),
                 Expanded(child: _buildResumenRapidoCard()),
+              ],
+            ),
+          ),
+          SizedBox(height: 30),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: _buildUsuariosEnLineaCard()),
               ],
             ),
           ),
@@ -954,11 +1049,22 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                       ),
                       Text(
                         'Entregados',
-                        style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
                       ),
                     ],
                   ),
-                  Container(width: 1, height: 40, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2)),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.2),
+                  ),
                   Column(
                     children: [
                       Text(
@@ -971,7 +1077,12 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                       ),
                       Text(
                         'Eficiencia',
-                        style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
                       ),
                     ],
                   ),
@@ -1121,7 +1232,9 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
       ],
@@ -1145,10 +1258,7 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
         ),
         SizedBox(width: 12),
         Expanded(
-          child: Text(
-            label,
-            style: TextStyle(fontSize: 15, color: onSurface),
-          ),
+          child: Text(label, style: TextStyle(fontSize: 15, color: onSurface)),
         ),
         Text(
           '$valorSeguro (${porcentaje.toStringAsFixed(0)}%)',
@@ -1235,7 +1345,9 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
             Container(
               padding: EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: isDark ? Colors.blue.shade900.withValues(alpha: 0.3) : Colors.blue.shade50,
+                color: isDark
+                    ? Colors.blue.shade900.withValues(alpha: 0.3)
+                    : Colors.blue.shade50,
                 shape: BoxShape.circle,
               ),
               child: Text(
@@ -1252,7 +1364,9 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
               'Reservas registradas hoy',
               style: TextStyle(
                 fontSize: 14,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
             SizedBox(height: 12),
@@ -1265,12 +1379,128 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                   '$residentesActivos residentes activos',
                   style: TextStyle(
                     fontSize: 13,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // Tarjeta de usuarios en línea
+  Widget _buildUsuariosEnLineaCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => GestionUsuarios()),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.broadcast_on_personal, color: Colors.purple, size: 32),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Usuarios en Línea',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                  Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+                ],
+              ),
+              SizedBox(height: 20),
+              // Contador grande
+              Text(
+                '$totalEnLinea',
+                style: TextStyle(
+                  fontSize: 48,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.purple,
+                ),
+              ),
+              Text(
+                totalEnLinea == 1 ? 'usuario conectado' : 'usuarios conectados',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+              SizedBox(height: 16),
+              // Lista de usuarios
+              Container(
+                constraints: const BoxConstraints(maxHeight: 200),
+                child: usuariosEnLinea.isNotEmpty
+                    ? ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: usuariosEnLinea.length,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.green,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    usuariosEnLinea[index],
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      )
+                    : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.wifi_off,
+                            size: 40,
+                            color: isDark ? Colors.grey.shade600 : Colors.grey.shade400,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Ningún usuario en línea',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1316,7 +1546,9 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
       ],

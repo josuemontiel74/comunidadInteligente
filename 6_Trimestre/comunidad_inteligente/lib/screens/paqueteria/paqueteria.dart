@@ -325,7 +325,7 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
             const SizedBox(height: 8),
             Text(
               'Esta acción no se puede deshacer.',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 13),
             ),
           ],
         ),
@@ -474,7 +474,7 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                       'Torre ${_convertirTorreIdALetra(paquete['apartamento']?['torresId'])} - Apto ${paquete['apartamento']?['numeroApartamento']?.toString() ?? ''}',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade700,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -501,7 +501,7 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                         paquete['empresaMensajeria']?.toString() ?? '',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey.shade700,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ),
@@ -530,7 +530,7 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                       ),
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade700,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -758,7 +758,9 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
             padding: EdgeInsets.all(
               MediaQuery.of(context).size.width < 600 ? 12 : 20,
             ),
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade900 : Colors.grey.shade50,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade900
+                : Colors.grey.shade50,
             child: Column(
               children: [
                 ElevatedButton.icon(
@@ -794,7 +796,7 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: Theme.of(context).cardColor,
                   ),
                   onChanged: (value) {
                     setState(() {
@@ -817,7 +819,7 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: Theme.of(context).cardColor,
                         ),
                         items: [
                           const DropdownMenuItem(
@@ -859,7 +861,7 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: Theme.of(context).cardColor,
                         ),
                         items: [
                           const DropdownMenuItem(
@@ -914,10 +916,10 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : paquetes.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       'No hay paquetes registrados',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                      style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                     ),
                   )
                 : MediaQuery.of(context).size.width < 600
@@ -984,7 +986,7 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
       },
       selectedColor: Colors.blue,
       labelStyle: TextStyle(
-        color: seleccionado ? Colors.white : Colors.black,
+        color: seleccionado ? Colors.white : Theme.of(context).colorScheme.onSurface,
         fontWeight: seleccionado ? FontWeight.bold : FontWeight.normal,
       ),
     );
@@ -2099,41 +2101,49 @@ class DetallesPaquete extends StatelessWidget {
               child: Column(
                 children: [
                   _buildDetalle(
+                    context,
                     'Residente',
                     paquete['nombreDestinatario']?.toString() ?? 'N/A',
                   ),
                   _buildDetalle(
+                    context,
                     'Torre',
                     _convertirTorreIdALetra(
                       paquete['apartamento']?['torresId'],
                     ),
                   ),
                   _buildDetalle(
+                    context,
                     'Apartamento',
                     paquete['apartamento']?['numeroApartamento']?.toString() ??
                         'N/A',
                   ),
                   _buildDetalle(
+                    context,
                     'Empresa Mensajería',
                     paquete['empresaMensajeria']?.toString() ?? 'N/A',
                   ),
                   _buildDetalle(
+                    context,
                     'Fecha Recepción',
                     formatearFechaParaMostrar(
                       paquete['fechaRecepcion']?.toString(),
                     ),
                   ),
                   _buildDetalle(
+                    context,
                     'Hora Recepción',
                     formatearHoraParaMostrar(
                       paquete['fechaRecepcion']?.toString(),
                     ),
                   ),
                   _buildDetalle(
+                    context,
                     'Estado',
                     paquete['estado']?['nombreEstado']?.toString() ?? 'N/A',
                   ),
                   _buildDetalle(
+                    context,
                     'Observaciones',
                     paquete['observaciones']?.toString() ?? 'Sin observaciones',
                   ),
@@ -2146,7 +2156,7 @@ class DetallesPaquete extends StatelessWidget {
     );
   }
 
-  Widget _buildDetalle(String titulo, String valor) {
+  Widget _buildDetalle(BuildContext context, String titulo, String valor) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
@@ -2159,7 +2169,7 @@ class DetallesPaquete extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             valor,
-            style: const TextStyle(fontSize: 15, color: Colors.black87),
+            style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
           ),
         ],
       ),

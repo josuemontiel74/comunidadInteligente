@@ -310,7 +310,7 @@ class _ResidentesState extends State<Residentes> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -469,9 +469,11 @@ class _ResidentesState extends State<Residentes> {
               margin: const EdgeInsets.symmetric(horizontal: 16),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade900 : Colors.grey.shade50,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade900
+                    : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(color: Theme.of(context).dividerColor),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -673,10 +675,10 @@ class _ResidentesState extends State<Residentes> {
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : ocupantesFiltrados.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       'No se encontraron residentes',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                      style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                     ),
                   )
                 : Column(
@@ -839,7 +841,7 @@ class _ResidentesState extends State<Residentes> {
                       ? () => _finalizarOcupante(ocupante['idOcupante'])
                       : null,
                   icon: Icon(esActivo ? Icons.block : Icons.check_circle),
-                  color: esActivo ? Colors.red : Colors.grey,
+                  color: esActivo ? Colors.red : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                   tooltip: esActivo ? 'Finalizar' : 'Finalizado',
                 ),
               ],
@@ -855,19 +857,19 @@ class _ResidentesState extends State<Residentes> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: Colors.grey.shade600),
+          Icon(icon, size: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
           const SizedBox(width: 8),
           Text(
             '$label: ',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: Colors.grey.shade700,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
           Expanded(
             child: Text(
               value?.toString() ?? 'N/A',
-              style: TextStyle(color: Colors.grey.shade800),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8)),
             ),
           ),
         ],
@@ -1052,7 +1054,7 @@ class _ResidentesState extends State<Residentes> {
                       IconButton(
                         icon: Icon(
                           esActivo ? Icons.block : Icons.check_circle,
-                          color: esActivo ? Colors.red : Colors.grey,
+                          color: esActivo ? Colors.red : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
                         tooltip: esActivo ? 'Finalizar' : 'Finalizado',
                         onPressed: esActivo
@@ -1554,7 +1556,7 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
                     },
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(4),
-                      side: BorderSide(color: Colors.grey.shade400),
+                      side: BorderSide(color: Theme.of(context).dividerColor),
                     ),
                   ),
 
@@ -1707,7 +1709,7 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
                       'Especifique las características de las ${personasACargoController.text} persona(s) a cargo',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade600,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -1892,18 +1894,18 @@ class _EditarResidenteDialogState extends State<EditarResidenteDialog> {
             ),
           ],
         ),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               '¿Está seguro de actualizar este residente?',
               style: TextStyle(fontSize: 16),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               'Los cambios se guardarán permanentemente.',
-              style: TextStyle(color: Colors.grey, fontSize: 13),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5), fontSize: 13),
             ),
           ],
         ),
@@ -2209,7 +2211,7 @@ class _EditarResidenteDialogState extends State<EditarResidenteDialog> {
                     },
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(4),
-                      side: BorderSide(color: Colors.grey.shade400),
+                      side: BorderSide(color: Theme.of(context).dividerColor),
                     ),
                   ),
 
@@ -2529,7 +2531,7 @@ class VerDetalleResidenteDialog extends StatelessWidget {
                                   'ID: ${ocupante['idOcupante']}',
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: Colors.grey.shade600,
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                   ),
                                 ),
                               ],

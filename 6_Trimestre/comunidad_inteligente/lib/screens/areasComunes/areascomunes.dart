@@ -160,18 +160,18 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
             ),
           ],
         ),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               '¿Está seguro de finalizar esta reserva?',
               style: TextStyle(fontSize: 16),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               'La reserva será marcada como completada.',
-              style: TextStyle(color: Colors.grey, fontSize: 13),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5), fontSize: 13),
             ),
           ],
         ),
@@ -459,7 +459,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                       ),
                       decoration: BoxDecoration(
                         color: estaFinalizada
-                            ? Colors.grey.shade100
+                            ? Theme.of(context).colorScheme.surfaceContainerHighest
                             : Colors.orange.shade100,
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -467,7 +467,9 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                         r.nombreEstado ?? 'N/A',
                         style: TextStyle(
                           color: estaFinalizada
-                              ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)
+                              ? Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.7)
                               : Colors.orange.shade700,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
@@ -498,7 +500,9 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                         obtenerNombreAreaComun(r.areaComunId),
                         style: TextStyle(
                           fontSize: 14,
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ),
@@ -526,7 +530,9 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                         '${r.fechaReserva ?? "N/A"} | ${r.horaInicio ?? ""} - ${r.horaFin ?? ""}',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ),
@@ -553,7 +559,9 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                       'Apto ${r.numeroApartamento ?? "N/A"}',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -735,7 +743,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                     ),
                     decoration: BoxDecoration(
                       color: estaFinalizada
-                          ? Colors.grey.shade100
+                          ? Theme.of(context).colorScheme.surfaceContainerHighest
                           : Colors.orange.shade100,
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -743,7 +751,9 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                       r.nombreEstado ?? 'N/A',
                       style: TextStyle(
                         color: estaFinalizada
-                            ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)
+                            ? Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.7)
                             : Colors.orange.shade700,
                         fontWeight: FontWeight.bold,
                       ),
@@ -828,7 +838,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
           padding: EdgeInsets.all(
             MediaQuery.of(context).size.width < 600 ? 12 : 20,
           ),
-          color: Colors.grey.shade50,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
           child: Column(
             children: [
               Row(
@@ -899,7 +909,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: Theme.of(context).cardColor,
                 ),
                 onChanged: (value) {
                   setState(() {
@@ -922,7 +932,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: Theme.of(context).cardColor,
                       ),
                       items: [
                         const DropdownMenuItem(
@@ -964,7 +974,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: Theme.of(context).cardColor,
                       ),
                       items: [
                         const DropdownMenuItem(
@@ -1021,10 +1031,10 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
               : errorMessage.isNotEmpty
               ? Center(child: Text(errorMessage))
               : reservas.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text(
                     'No hay reservas registradas',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                   ),
                 )
               : MediaQuery.of(context).size.width < 600
@@ -1090,7 +1100,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
       },
       selectedColor: Colors.orange,
       labelStyle: TextStyle(
-        color: seleccionado ? Colors.white : Colors.black,
+        color: seleccionado ? Colors.white : Theme.of(context).colorScheme.onSurface,
         fontWeight: seleccionado ? FontWeight.bold : FontWeight.normal,
       ),
     );

@@ -171,7 +171,7 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
         fontWeight: FontWeight.bold,
         fontSize: 12,
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).cardColor,
       side: const BorderSide(color: Colors.teal),
     );
   }
@@ -248,7 +248,12 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
                     const SizedBox(height: 4),
                     Text(
                       '$ocupados/$total apartamentos ocupados',
-                      style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
                     ),
                   ],
                 ),
@@ -262,7 +267,10 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
                   children: [
                     CircularProgressIndicator(
                       value: total > 0 ? ocupados / total : 0,
-                      backgroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[800] : Colors.grey[200],
+                      backgroundColor:
+                          Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey[800]
+                          : Colors.grey[200],
                       color: Colors.teal,
                       strokeWidth: 5,
                     ),
@@ -277,7 +285,12 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+              Icon(
+                Icons.chevron_right,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
             ],
           ),
         ),
@@ -417,7 +430,12 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
             ),
             Text(
               estadoNombre,
-              style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+              style: TextStyle(
+                fontSize: 10,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
             ),
           ],
         ),

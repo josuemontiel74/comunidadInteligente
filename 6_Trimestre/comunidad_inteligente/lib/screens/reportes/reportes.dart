@@ -340,7 +340,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
           // Selector de fechas
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade900 : Colors.grey.shade100,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade900
+                : Colors.grey.shade100,
             child: Column(
               children: [
                 Row(
@@ -467,7 +469,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade400),
+          border: Border.all(color: Theme.of(context).dividerColor),
           borderRadius: BorderRadius.circular(8),
           color: Theme.of(context).cardColor,
         ),
@@ -481,7 +483,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
                   label,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -798,7 +802,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
                           fechaCorta,
                           style: TextStyle(
                             fontSize: 11,
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
                         ),
                       ],
@@ -860,9 +866,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
               ],
             ),
             const Divider(height: 24),
-            const Text(
+            Text(
               'Top 10 horas con mayor ocupación',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+              style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
             ),
             const SizedBox(height: 16),
             // Gráfico de barras horizontales
@@ -900,7 +906,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                               Container(
                                 height: 32,
                                 decoration: BoxDecoration(
-                                  color: Colors.grey.shade200,
+                                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
@@ -934,7 +940,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                                     fontWeight: FontWeight.bold,
                                     color: porcentaje > 0.3
                                         ? Colors.white
-                                        : Colors.black87,
+                                        : Theme.of(context).colorScheme.onSurface,
                                   ),
                                 ),
                               ),
@@ -1226,7 +1232,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                           value: totalReservas > 0
                               ? cantidad / totalReservas
                               : 0,
-                          backgroundColor: Colors.grey.shade200,
+                          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                           valueColor: AlwaysStoppedAnimation(estadoColor),
                         ),
                       ),
@@ -1265,7 +1271,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                           value: totalReservas > 0
                               ? cantidad / totalReservas
                               : 0,
-                          backgroundColor: Colors.grey.shade200,
+                          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                           valueColor: AlwaysStoppedAnimation(
                             Colors.teal.shade400,
                           ),
@@ -1310,7 +1316,12 @@ class _ReportesScreenState extends State<ReportesScreen> {
               Expanded(
                 child: Text(
                   label,
-                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
                 ),
               ),
             ],
@@ -1366,12 +1377,21 @@ class _ReportesScreenState extends State<ReportesScreen> {
   }) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+        Icon(
+          icon,
+          size: 20,
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             label,
-            style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+            style: TextStyle(
+              fontSize: 15,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
           ),
         ),
         Text(
@@ -1404,7 +1424,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
         const SizedBox(height: 4),
         LinearProgressIndicator(
           value: porcentaje,
-          backgroundColor: Colors.grey.shade200,
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           valueColor: AlwaysStoppedAnimation(color),
           minHeight: 8,
           borderRadius: BorderRadius.circular(4),
@@ -2560,7 +2580,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                             '$apartamentosOcupados/$totalApartamentos',
                             style: TextStyle(
                               fontSize: 10,
-                              color: Colors.grey.shade600,
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                           ),
                         ],
@@ -2575,7 +2595,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                   'Ocupados / Total apartamentos',
                   style: TextStyle(
                     fontSize: 11,
-                    color: Colors.grey.shade500,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                     fontStyle: FontStyle.italic,
                   ),
                 ),
@@ -2589,12 +2609,12 @@ class _ReportesScreenState extends State<ReportesScreen> {
                       Icon(
                         Icons.apartment,
                         size: 48,
-                        color: Colors.grey.shade300,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'No hay datos de ocupación disponibles',
-                        style: TextStyle(color: Colors.grey.shade500),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                       ),
                     ],
                   ),
@@ -2636,7 +2656,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
         ),
         Text(
           label,
-          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
         ),
       ],
     );
@@ -2784,12 +2804,12 @@ class _ReportesScreenState extends State<ReportesScreen> {
                       Icon(
                         Icons.child_care,
                         size: 48,
-                        color: Colors.grey.shade300,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'No hay datos de niños disponibles',
-                        style: TextStyle(color: Colors.grey.shade500),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                       ),
                     ],
                   ),
@@ -2894,7 +2914,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                           '(60+ años)',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey.shade600,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                       ],
@@ -2938,7 +2958,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                           'Discapacidad',
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.grey.shade700,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -3066,12 +3086,12 @@ class _ReportesScreenState extends State<ReportesScreen> {
                       Icon(
                         Icons.accessibility,
                         size: 48,
-                        color: Colors.grey.shade300,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'No hay datos de población especial disponibles',
-                        style: TextStyle(color: Colors.grey.shade500),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                       ),
                     ],
                   ),

@@ -154,7 +154,49 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
                 ],
               ),
             ),
-            SizedBox(height: 10),
+            // Toggle de modo oscuro en el drawer
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: ListenableBuilder(
+                listenable: ThemeProvider(),
+                builder: (context, _) {
+                  final darkMode = ThemeProvider().isDarkMode;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: darkMode ? Colors.grey.shade800 : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          darkMode ? Icons.dark_mode : Icons.light_mode,
+                          color: darkMode ? Colors.amber : Colors.orange,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            darkMode ? 'Modo Oscuro' : 'Modo Claro',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                        Switch(
+                          value: darkMode,
+                          onChanged: (_) => ThemeProvider().toggleTheme(),
+                          activeThumbColor: Colors.amber,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 4),
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
@@ -341,32 +383,9 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
                 ),
               ),
             ),
-            // Botón de modo oscuro
-            Positioned(
-              right: 48,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: ListenableBuilder(
-                  listenable: ThemeProvider(),
-                  builder: (context, _) {
-                    final darkMode = ThemeProvider().isDarkMode;
-                    return IconButton(
-                      icon: Icon(
-                        darkMode ? Icons.light_mode : Icons.dark_mode,
-                        color: darkMode ? Colors.amber : Colors.grey.shade700,
-                        size: 26,
-                      ),
-                      onPressed: () => ThemeProvider().toggleTheme(),
-                      tooltip: darkMode ? 'Modo claro' : 'Modo oscuro',
-                    );
-                  },
-                ),
-              ),
-            ),
             // Botón de actualizar
             Positioned(
-              right: 90,
+              right: 48,
               top: 0,
               bottom: 0,
               child: Center(
@@ -631,7 +650,12 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
             SizedBox(height: 10),
             Text(
               'Rol: Administrador',
-              style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
             ),
             SizedBox(height: 10),
             Text(
@@ -677,8 +701,18 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
   Widget _buildMenuItem(BuildContext context, IconData icon, String title) {
     return ListTile(
       leading: Icon(icon, color: Colors.orange.shade600, size: 24),
-      title: Text(title, style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface)),
-      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 15,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+      ),
+      trailing: Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+      ),
       onTap: () {
         Navigator.pop(context); // Cerrar el drawer
         ScaffoldMessenger.of(
@@ -699,8 +733,18 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
   ) {
     return ListTile(
       leading: Icon(icon, color: Colors.orange.shade600, size: 24),
-      title: Text(title, style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface)),
-      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 15,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+      ),
+      trailing: Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+      ),
       onTap: () {
         Navigator.pop(context);
         Navigator.push(
@@ -850,11 +894,22 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
                       ),
                       Text(
                         'Entregados',
-                        style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
                       ),
                     ],
                   ),
-                  Container(width: 1, height: 40, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2)),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.2),
+                  ),
                   Column(
                     children: [
                       Text(
@@ -867,7 +922,12 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
                       ),
                       Text(
                         'Eficiencia',
-                        style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
                       ),
                     ],
                   ),
@@ -1015,7 +1075,9 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
       ],
@@ -1039,10 +1101,7 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
         ),
         SizedBox(width: 12),
         Expanded(
-          child: Text(
-            label,
-            style: TextStyle(fontSize: 15, color: onSurface),
-          ),
+          child: Text(label, style: TextStyle(fontSize: 15, color: onSurface)),
         ),
         Text(
           '$valorSeguro (${porcentaje.toStringAsFixed(0)}%)',
@@ -1129,7 +1188,9 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
             Container(
               padding: EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: isDark ? Colors.blue.shade900.withValues(alpha: 0.3) : Colors.blue.shade50,
+                color: isDark
+                    ? Colors.blue.shade900.withValues(alpha: 0.3)
+                    : Colors.blue.shade50,
                 shape: BoxShape.circle,
               ),
               child: Text(
@@ -1146,7 +1207,9 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
               'Reservas registradas hoy',
               style: TextStyle(
                 fontSize: 14,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
             SizedBox(height: 12),
@@ -1159,7 +1222,9 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
                   '$residentesActivos residentes activos',
                   style: TextStyle(
                     fontSize: 13,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -1210,7 +1275,9 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
       ],
