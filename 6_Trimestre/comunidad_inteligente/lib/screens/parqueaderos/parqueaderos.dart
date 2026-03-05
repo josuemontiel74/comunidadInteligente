@@ -107,7 +107,6 @@ class _SeleccionarParqueaderoScreenState
     final noDisponibles = parqueaderos.where((p) => p.enMantenimiento).length;
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
@@ -165,7 +164,7 @@ class _SeleccionarParqueaderoScreenState
           // Barra de búsqueda y filtros
           Container(
             padding: const EdgeInsets.all(16),
-            color: Colors.white,
+            color: Theme.of(context).cardColor,
             child: Column(
               children: [
                 // Barra de búsqueda
@@ -230,7 +229,7 @@ class _SeleccionarParqueaderoScreenState
                           'No hay parqueaderos disponibles',
                           style: TextStyle(
                             fontSize: 16,
-                            color: Colors.grey[600],
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
                         ),
                       ],

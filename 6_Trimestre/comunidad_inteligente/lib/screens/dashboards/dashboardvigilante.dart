@@ -289,7 +289,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
             ),
             // Botón de modo oscuro
             Positioned(
-              right: 90,
+              right: 48,
               top: 0,
               bottom: 0,
               child: Center(
@@ -312,7 +312,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
             ),
             // Botón de actualizar a la derecha (antes del menú)
             Positioned(
-              right: 48,
+              right: 90,
               top: 0,
               bottom: 0,
               child: Center(
@@ -363,7 +363,10 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Text(
                             'Módulos disponibles para vigilancia',
-                            style: TextStyle(fontSize: 13, color: onSurface.withValues(alpha: 0.7)),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: onSurface.withValues(alpha: 0.7),
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -542,7 +545,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
             SizedBox(height: 10),
             Text(
               'Rol: Vigilante',
-              style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+              style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
             ),
             SizedBox(height: 10),
             Text(
@@ -591,8 +594,8 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
   ) {
     return ListTile(
       leading: Icon(icon, color: Colors.blue.shade600, size: 24),
-      title: Text(title, style: TextStyle(fontSize: 15, color: Colors.black87)),
-      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+      title: Text(title, style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface)),
+      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
       onTap: () {
         Navigator.pop(context);
         Navigator.push(
@@ -691,7 +694,9 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
             Container(
               padding: EdgeInsets.all(30),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.blue.shade900.withValues(alpha: 0.3)
+                    : Colors.blue.shade50,
                 shape: BoxShape.circle,
               ),
               child: Text(
@@ -706,7 +711,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
             SizedBox(height: 20),
             Text(
               'Paquetes registrados hoy',
-              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+              style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
             ),
           ],
         ),
@@ -766,6 +771,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                     carros: parqueosCarros,
                     motos: parqueosMotos,
                     libres: parqueosLibres,
+                    isDark: Theme.of(context).brightness == Brightness.dark,
                   ),
                 ),
               ),
@@ -807,6 +813,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
     int valorSeguro = valor < 0 ? 0 : valor;
     int totalSeguro = total > 0 ? total : 1;
     double porcentaje = (valorSeguro / totalSeguro) * 100;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
 
     return Row(
       children: [
@@ -819,7 +826,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
         Expanded(
           child: Text(
             label,
-            style: TextStyle(fontSize: 15, color: Colors.black87),
+            style: TextStyle(fontSize: 15, color: onSurface),
           ),
         ),
         Text(
@@ -827,7 +834,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: onSurface,
           ),
         ),
       ],
@@ -879,8 +886,9 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
     );
   }
 
-  // Tarjeta de resumen rápido (reservas + usuarios en línea)
+  // Tarjeta de reservas del día
   Widget _buildResumenRapidoCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       elevation: 6,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -890,10 +898,10 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
           children: [
             Row(
               children: [
-                Icon(Icons.dashboard_outlined, color: Colors.teal, size: 32),
+                Icon(Icons.calendar_today, color: Colors.blue, size: 32),
                 SizedBox(width: 12),
                 Text(
-                  'Resumen General',
+                  'Reservas del Día',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -902,17 +910,29 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                 ),
               ],
             ),
-            SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildStatCircle('$reservasHoy', 'Reservas\ndel día', Colors.blue),
-                _buildStatCircle(
-                  '$usuariosActivos',
-                  'Usuarios\nen línea',
-                  Colors.green,
+            SizedBox(height: 30),
+            Container(
+              padding: EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.blue.shade900.withValues(alpha: 0.3) : Colors.blue.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                '$reservasHoy',
+                style: TextStyle(
+                  fontSize: 56,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
                 ),
-              ],
+              ),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Reservas registradas hoy',
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
             ),
           ],
         ),
@@ -960,7 +980,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: Colors.grey[700],
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
       ],
@@ -973,11 +993,13 @@ class PieChartPainterVigilante extends CustomPainter {
   final int carros;
   final int motos;
   final int libres;
+  final bool isDark;
 
   PieChartPainterVigilante({
     required this.carros,
     required this.motos,
     required this.libres,
+    this.isDark = false,
   });
 
   @override
@@ -993,7 +1015,7 @@ class PieChartPainterVigilante extends CustomPainter {
         ..style = PaintingStyle.fill;
       canvas.drawCircle(center, radius, emptyPaint);
       final innerCirclePaint = Paint()
-        ..color = Colors.white
+        ..color = isDark ? const Color(0xFF1E1E1E) : Colors.white
         ..style = PaintingStyle.fill;
       canvas.drawCircle(center, radius * 0.5, innerCirclePaint);
       return;
@@ -1044,7 +1066,7 @@ class PieChartPainterVigilante extends CustomPainter {
 
     // Dibujar círculo blanco en el centro para efecto de dona
     final innerCirclePaint = Paint()
-      ..color = Colors.white
+      ..color = isDark ? const Color(0xFF1E1E1E) : Colors.white
       ..style = PaintingStyle.fill;
     canvas.drawCircle(center, radius * 0.5, innerCirclePaint);
 
@@ -1055,7 +1077,7 @@ class PieChartPainterVigilante extends CustomPainter {
         style: TextStyle(
           fontSize: 32,
           fontWeight: FontWeight.bold,
-          color: Colors.black87,
+          color: isDark ? Colors.white : Colors.black87,
         ),
         children: [
           TextSpan(
@@ -1063,7 +1085,7 @@ class PieChartPainterVigilante extends CustomPainter {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.normal,
-              color: Colors.grey[600],
+              color: isDark ? Colors.white70 : Colors.grey[600],
             ),
           ),
         ],
@@ -1085,6 +1107,7 @@ class PieChartPainterVigilante extends CustomPainter {
   bool shouldRepaint(PieChartPainterVigilante oldDelegate) {
     return oldDelegate.carros != carros ||
         oldDelegate.motos != motos ||
-        oldDelegate.libres != libres;
+        oldDelegate.libres != libres ||
+        oldDelegate.isDark != isDark;
   }
 }

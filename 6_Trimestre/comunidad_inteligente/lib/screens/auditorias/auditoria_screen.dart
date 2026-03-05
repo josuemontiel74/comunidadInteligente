@@ -182,7 +182,7 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
   Widget _buildFilters() {
     return Container(
       padding: EdgeInsets.all(16),
-      color: Colors.grey[100],
+      color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade900 : Colors.grey[100],
       child: Column(
         children: [
           // Barra de búsqueda
@@ -199,7 +199,7 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
                 borderSide: BorderSide(color: Colors.indigo, width: 2),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: Theme.of(context).cardColor,
             ),
             onChanged: (value) {
               setState(() {
@@ -221,7 +221,7 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: Theme.of(context).cardColor,
                   ),
                   items: [
                     DropdownMenuItem(value: 'todos', child: Text('Todas')),
@@ -247,7 +247,7 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: Theme.of(context).cardColor,
                   ),
                   items: [
                     DropdownMenuItem(value: 'todos', child: Text('Todas')),
@@ -339,7 +339,7 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
           child: DataTable(
             columnSpacing: 24,
             headingRowColor: WidgetStateProperty.all(
-              Colors.indigo.withValues(alpha: 0.1),
+              Theme.of(context).brightness == Brightness.dark ? Colors.indigo.withValues(alpha: 0.3) : Colors.indigo.withValues(alpha: 0.1),
             ),
             columns: const [
               DataColumn(
@@ -460,7 +460,7 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
                             dateFormat.format(auditoria.fechaHoraAuditoria),
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                             ),
                           ),
                         ],
@@ -494,7 +494,7 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
                             'Tabla Afectada',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                             ),
                           ),
                           SizedBox(height: 4),
@@ -512,7 +512,7 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
                           'ID Afectado',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[600],
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
                         ),
                         SizedBox(height: 4),

@@ -19,7 +19,11 @@ class WhatsAppFab extends StatelessWidget {
       onPressed: () => _mostrarModal(context),
       backgroundColor: const Color(0xFF25D366),
       tooltip: 'Grupo de WhatsApp de la comunidad',
-      child: const FaIcon(FontAwesomeIcons.whatsapp, color: Colors.white, size: 28),
+      child: const FaIcon(
+        FontAwesomeIcons.whatsapp,
+        color: Colors.white,
+        size: 28,
+      ),
     );
   }
 
@@ -89,7 +93,11 @@ class WhatsAppFab extends StatelessWidget {
                     Navigator.pop(ctx);
                     _abrirEnlace();
                   },
-                  icon: const FaIcon(FontAwesomeIcons.whatsapp, color: Colors.white, size: 20),
+                  icon: const FaIcon(
+                    FontAwesomeIcons.whatsapp,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                   label: const Text(
                     'Unirse al grupo',
                     style: TextStyle(

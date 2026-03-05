@@ -465,7 +465,6 @@ class _VisitasScreenState extends State<VisitasScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
       body: Column(
         children: [
           // Sección de filtros y búsqueda
@@ -473,7 +472,7 @@ class _VisitasScreenState extends State<VisitasScreen> {
             padding: EdgeInsets.all(
               MediaQuery.of(context).size.width < 600 ? 12 : 20,
             ),
-            color: Colors.grey.shade50,
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade900 : Colors.grey.shade50,
             child: Column(
               children: [
                 // Botón de registrar
@@ -1083,7 +1082,6 @@ class _VisitantesScreenState extends State<VisitantesScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
       body: Column(
         children: [
           // Sección de búsqueda
@@ -1091,7 +1089,7 @@ class _VisitantesScreenState extends State<VisitantesScreen> {
             padding: EdgeInsets.all(
               MediaQuery.of(context).size.width < 600 ? 12 : 20,
             ),
-            color: Colors.grey.shade50,
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade900 : Colors.grey.shade50,
             child: Column(
               children: [
                 // Botón de registrar
@@ -1891,7 +1889,6 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
           child: Scaffold(
-            backgroundColor: Colors.white,
             body: Column(
               children: [
                 // Header
@@ -2766,7 +2763,6 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
           child: Scaffold(
-            backgroundColor: Colors.white,
             appBar: AppBar(
               title: Text(
                 'Editar Visita #${widget.visita['idVisita']}',

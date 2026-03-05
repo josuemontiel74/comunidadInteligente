@@ -745,7 +745,6 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
@@ -759,7 +758,7 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
             padding: EdgeInsets.all(
               MediaQuery.of(context).size.width < 600 ? 12 : 20,
             ),
-            color: Colors.grey.shade50,
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade900 : Colors.grey.shade50,
             child: Column(
               children: [
                 ElevatedButton.icon(

@@ -174,7 +174,6 @@ class _GestionAreasState extends State<GestionAreas> {
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
@@ -188,11 +187,11 @@ class _GestionAreasState extends State<GestionAreas> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.home_work_outlined, size: 80, color: Colors.grey),
+                  Icon(Icons.home_work_outlined, size: 80, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'No hay áreas comunes registradas',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                   ),
                 ],
               ),
@@ -295,13 +294,13 @@ class _GestionAreasState extends State<GestionAreas> {
                             Icon(
                               Icons.people_outline,
                               size: 16,
-                              color: Colors.grey.shade600,
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                             ),
                             const SizedBox(width: 4),
                             Text(
                               'Capacidad: ${capacidadMax ?? 'N/A'}',
                               style: TextStyle(
-                                color: Colors.grey.shade600,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                                 fontSize: 13,
                               ),
                             ),

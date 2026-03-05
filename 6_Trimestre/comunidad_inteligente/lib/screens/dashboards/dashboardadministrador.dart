@@ -343,7 +343,7 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
             ),
             // Botón de modo oscuro
             Positioned(
-              right: 90,
+              right: 48,
               top: 0,
               bottom: 0,
               child: Center(
@@ -366,7 +366,7 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
             ),
             // Botón de actualizar
             Positioned(
-              right: 48,
+              right: 90,
               top: 0,
               bottom: 0,
               child: Center(
@@ -416,7 +416,10 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Text(
                       'Selecciona el módulo que deseas gestionar en la plataforma',
-                      style: TextStyle(fontSize: 13, color: onSurface.withValues(alpha: 0.7)),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: onSurface.withValues(alpha: 0.7),
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -628,7 +631,7 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
             SizedBox(height: 10),
             Text(
               'Rol: Administrador',
-              style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+              style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
             ),
             SizedBox(height: 10),
             Text(
@@ -674,8 +677,8 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
   Widget _buildMenuItem(BuildContext context, IconData icon, String title) {
     return ListTile(
       leading: Icon(icon, color: Colors.orange.shade600, size: 24),
-      title: Text(title, style: TextStyle(fontSize: 15, color: Colors.black87)),
-      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+      title: Text(title, style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface)),
+      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
       onTap: () {
         Navigator.pop(context); // Cerrar el drawer
         ScaffoldMessenger.of(
@@ -696,8 +699,8 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
   ) {
     return ListTile(
       leading: Icon(icon, color: Colors.orange.shade600, size: 24),
-      title: Text(title, style: TextStyle(fontSize: 15, color: Colors.black87)),
-      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+      title: Text(title, style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface)),
+      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
       onTap: () {
         Navigator.pop(context);
         Navigator.push(
@@ -827,7 +830,9 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
             Container(
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.blue.shade900.withValues(alpha: 0.3)
+                    : Colors.blue.shade50,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -845,11 +850,11 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
                       ),
                       Text(
                         'Entregados',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                        style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
                       ),
                     ],
                   ),
-                  Container(width: 1, height: 40, color: Colors.grey.shade300),
+                  Container(width: 1, height: 40, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2)),
                   Column(
                     children: [
                       Text(
@@ -862,7 +867,7 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
                       ),
                       Text(
                         'Eficiencia',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                        style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
                       ),
                     ],
                   ),
@@ -926,6 +931,7 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
                     residentes: parqueosCarros,
                     visitantes: parqueosMotos,
                     libres: parqueosLibres,
+                    isDark: Theme.of(context).brightness == Brightness.dark,
                   ),
                 ),
               ),
@@ -1009,7 +1015,7 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: Colors.grey[700],
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
       ],
@@ -1022,6 +1028,7 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
     int valorSeguro = valor < 0 ? 0 : valor;
     int totalSeguro = total > 0 ? total : 1;
     double porcentaje = (valorSeguro / totalSeguro) * 100;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
 
     return Row(
       children: [
@@ -1034,7 +1041,7 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
         Expanded(
           child: Text(
             label,
-            style: TextStyle(fontSize: 15, color: Colors.black87),
+            style: TextStyle(fontSize: 15, color: onSurface),
           ),
         ),
         Text(
@@ -1042,7 +1049,7 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: onSurface,
           ),
         ),
       ],
@@ -1094,8 +1101,9 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
     );
   }
 
-  // Tarjeta de resumen rápido (reservas + usuarios en línea)
+  // Tarjeta de reservas del día
   Widget _buildResumenRapidoCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       elevation: 6,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -1105,10 +1113,10 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
           children: [
             Row(
               children: [
-                Icon(Icons.dashboard_outlined, color: Colors.teal, size: 32),
+                Icon(Icons.calendar_today, color: Colors.blue, size: 32),
                 SizedBox(width: 12),
                 Text(
-                  'Resumen General',
+                  'Reservas del Día',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -1117,15 +1125,42 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
                 ),
               ],
             ),
-            SizedBox(height: 24),
+            SizedBox(height: 30),
+            Container(
+              padding: EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.blue.shade900.withValues(alpha: 0.3) : Colors.blue.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                '$reservasHoy',
+                style: TextStyle(
+                  fontSize: 56,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
+              ),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Reservas registradas hoy',
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            SizedBox(height: 12),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _buildStatCircle('$reservasHoy', 'Reservas\ndel día', Colors.blue),
-                _buildStatCircle(
-                  '$usuariosActivos',
-                  'Usuarios\nen línea',
-                  Colors.green,
+                Icon(Icons.people, size: 18, color: Colors.green),
+                SizedBox(width: 6),
+                Text(
+                  '$residentesActivos residentes activos',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
                 ),
               ],
             ),
@@ -1175,7 +1210,7 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: Colors.grey[700],
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
       ],
@@ -1188,11 +1223,13 @@ class PieChartPainter extends CustomPainter {
   final int residentes;
   final int visitantes;
   final int libres;
+  final bool isDark;
 
   PieChartPainter({
     required this.residentes,
     required this.visitantes,
     required this.libres,
+    this.isDark = false,
   });
 
   @override
@@ -1201,9 +1238,20 @@ class PieChartPainter extends CustomPainter {
     final radius = size.width / 2;
     final total = residentes + visitantes + libres;
 
-    double startAngle = -90 * 3.14159 / 180; // Comenzar desde arriba
+    if (total == 0) {
+      final emptyPaint = Paint()
+        ..color = Colors.grey.shade300
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(center, radius, emptyPaint);
+      final innerPaint = Paint()
+        ..color = isDark ? const Color(0xFF1E1E1E) : Colors.white
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(center, radius * 0.5, innerPaint);
+      return;
+    }
 
-    // Dibujar sección de residentes
+    double startAngle = -90 * 3.14159 / 180;
+
     final residentesAngle = (residentes / total) * 2 * 3.14159;
     final residentesPaint = Paint()
       ..color = Colors.teal
@@ -1217,7 +1265,6 @@ class PieChartPainter extends CustomPainter {
     );
     startAngle += residentesAngle;
 
-    // Dibujar sección de visitantes
     final visitantesAngle = (visitantes / total) * 2 * 3.14159;
     final visitantesPaint = Paint()
       ..color = Colors.orange
@@ -1231,7 +1278,6 @@ class PieChartPainter extends CustomPainter {
     );
     startAngle += visitantesAngle;
 
-    // Dibujar sección de libres
     final libresAngle = (libres / total) * 2 * 3.14159;
     final libresPaint = Paint()
       ..color = Colors.grey.shade300
@@ -1244,20 +1290,18 @@ class PieChartPainter extends CustomPainter {
       libresPaint,
     );
 
-    // Dibujar círculo blanco en el centro para efecto de dona
     final innerCirclePaint = Paint()
-      ..color = Colors.white
+      ..color = isDark ? const Color(0xFF1E1E1E) : Colors.white
       ..style = PaintingStyle.fill;
     canvas.drawCircle(center, radius * 0.5, innerCirclePaint);
 
-    // Dibujar texto en el centro
     final textPainter = TextPainter(
       text: TextSpan(
         text: '${residentes + visitantes}',
         style: TextStyle(
           fontSize: 32,
           fontWeight: FontWeight.bold,
-          color: Colors.black87,
+          color: isDark ? Colors.white : Colors.black87,
         ),
         children: [
           TextSpan(
@@ -1265,7 +1309,7 @@ class PieChartPainter extends CustomPainter {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.normal,
-              color: Colors.grey[600],
+              color: isDark ? Colors.white70 : Colors.grey[600],
             ),
           ),
         ],
@@ -1287,6 +1331,7 @@ class PieChartPainter extends CustomPainter {
   bool shouldRepaint(PieChartPainter oldDelegate) {
     return oldDelegate.residentes != residentes ||
         oldDelegate.visitantes != visitantes ||
-        oldDelegate.libres != libres;
+        oldDelegate.libres != libres ||
+        oldDelegate.isDark != isDark;
   }
 }

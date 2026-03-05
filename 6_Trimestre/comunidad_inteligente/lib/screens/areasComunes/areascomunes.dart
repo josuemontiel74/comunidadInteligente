@@ -16,7 +16,6 @@ class Areascomunes extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
@@ -468,7 +467,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                         r.nombreEstado ?? 'N/A',
                         style: TextStyle(
                           color: estaFinalizada
-                              ? Colors.grey.shade700
+                              ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)
                               : Colors.orange.shade700,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
@@ -499,7 +498,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                         obtenerNombreAreaComun(r.areaComunId),
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey.shade700,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ),
@@ -527,7 +526,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                         '${r.fechaReserva ?? "N/A"} | ${r.horaInicio ?? ""} - ${r.horaFin ?? ""}',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey.shade700,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ),
@@ -554,7 +553,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                       'Apto ${r.numeroApartamento ?? "N/A"}',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade700,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -744,7 +743,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                       r.nombreEstado ?? 'N/A',
                       style: TextStyle(
                         color: estaFinalizada
-                            ? Colors.grey.shade700
+                            ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)
                             : Colors.orange.shade700,
                         fontWeight: FontWeight.bold,
                       ),

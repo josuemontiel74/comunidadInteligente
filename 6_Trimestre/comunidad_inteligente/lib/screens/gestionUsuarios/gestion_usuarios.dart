@@ -189,7 +189,7 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -452,7 +452,6 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
     final usuariosFiltradosList = usuariosFiltrados;
 
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Gestión de Usuarios'),
         backgroundColor: Colors.purple,
@@ -466,7 +465,7 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
             padding: EdgeInsets.all(
               MediaQuery.of(context).size.width < 600 ? 12 : 20,
             ),
-            color: Colors.grey.shade50,
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade900 : Colors.grey.shade50,
             child: Column(
               children: [
                 ElevatedButton.icon(

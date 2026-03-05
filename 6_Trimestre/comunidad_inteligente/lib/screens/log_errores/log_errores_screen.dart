@@ -494,7 +494,7 @@ class _LogErroresScreenState extends State<LogErroresScreen> {
                   const Spacer(),
                   Text(
                     fechaFormateada,
-                    style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                    style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                   ),
                 ],
               ),
@@ -511,22 +511,22 @@ class _LogErroresScreenState extends State<LogErroresScreen> {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  Icon(Icons.route, size: 12, color: Colors.grey[400]),
+                  Icon(Icons.route, size: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       registro.rutaAfectada,
-                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                      style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   if (registro.username != null) ...[
                     const SizedBox(width: 8),
-                    Icon(Icons.person, size: 12, color: Colors.grey[400]),
+                    Icon(Icons.person, size: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                     const SizedBox(width: 2),
                     Text(
                       registro.username!,
-                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                      style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                     ),
                   ],
                 ],
@@ -599,9 +599,9 @@ class _LogErroresScreenState extends State<LogErroresScreen> {
                   padding: const EdgeInsets.all(10),
                   constraints: const BoxConstraints(maxHeight: 200),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey[100],
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade700 : Colors.grey[300]!),
                   ),
                   child: SingleChildScrollView(
                     child: Text(

@@ -218,7 +218,7 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
     );
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).cardColor,
       body: Column(
         children: [
           // Header personalizado con botón cerrar

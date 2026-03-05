@@ -340,7 +340,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
           // Selector de fechas
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: Colors.grey.shade100,
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade900 : Colors.grey.shade100,
             child: Column(
               children: [
                 Row(
@@ -469,7 +469,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
         decoration: BoxDecoration(
           border: Border.all(color: Colors.grey.shade400),
           borderRadius: BorderRadius.circular(8),
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -481,7 +481,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                   label,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade600,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -798,7 +798,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                           fechaCorta,
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey.shade700,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
                         ),
                       ],
@@ -1310,7 +1310,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
               Expanded(
                 child: Text(
                   label,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
                 ),
               ),
             ],
@@ -1366,12 +1366,12 @@ class _ReportesScreenState extends State<ReportesScreen> {
   }) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: Colors.grey.shade600),
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             label,
-            style: TextStyle(fontSize: 15, color: Colors.grey.shade700),
+            style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
           ),
         ),
         Text(

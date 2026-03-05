@@ -469,7 +469,7 @@ class _ResidentesState extends State<Residentes> {
               margin: const EdgeInsets.symmetric(horizontal: 16),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade900 : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.grey.shade300),
               ),
@@ -485,7 +485,7 @@ class _ResidentesState extends State<Residentes> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: Theme.of(context).cardColor,
                     ),
                     onChanged: (value) {
                       setState(() {
@@ -513,7 +513,7 @@ class _ResidentesState extends State<Residentes> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: Theme.of(context).cardColor,
                             ),
                             isExpanded: true,
                             items: [
@@ -552,7 +552,7 @@ class _ResidentesState extends State<Residentes> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 filled: true,
-                                fillColor: Colors.white,
+                                fillColor: Theme.of(context).cardColor,
                               ),
                               isExpanded: true,
                               items: [
