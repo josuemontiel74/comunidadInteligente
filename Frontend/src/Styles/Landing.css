@@ -46,9 +46,29 @@
   background: #1f5528;
 }
 
-/* Stats bar: labels más visibles */
+/* Stats bar: labels y valores plenamente visibles en modo oscuro */
+[data-modo="oscuro"] .ld-stats-bar {
+  background: linear-gradient(135deg, #1b4d22 0%, #2a6e35 100%);
+}
+[data-modo="oscuro"] .ld-stat-value {
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
 [data-modo="oscuro"] .ld-stat-label {
+  color: #fff;
+}
+
+/* CTA band: textos más legibles en modo oscuro */
+[data-modo="oscuro"] .ld-cta-band {
+  background: linear-gradient(135deg, #1b4d22 0%, #2a6e35 60%, #358a40 100%);
+}
+[data-modo="oscuro"] .ld-cta-title {
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+}
+[data-modo="oscuro"] .ld-cta-sub {
   color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
 /* ── Reset / base ───────────────────────────────────────────── */

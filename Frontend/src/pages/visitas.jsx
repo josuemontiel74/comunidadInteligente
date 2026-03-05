@@ -1157,7 +1157,7 @@ function Visitas() {
                             {v.matricula ? (
                               <span>
                                 <i
-                                  className={`bi ${v.nombreVehiculo === "Moto" ? "bi-scooter" : "bi-car-front"} text-success me-1`}
+                                  className={`bi ${v.nombreVehiculo?.toLowerCase() === "moto" ? "bi-scooter" : "bi-car-front"} text-success me-1`}
                                 ></i>
                                 {v.matricula}
                               </span>
@@ -1267,7 +1267,7 @@ function Visitas() {
                             <div className="vis-card-info-icon green">
                               <i
                                 className={
-                                  v.nombreVehiculo === "Moto"
+                                  v.nombreVehiculo?.toLowerCase() === "moto"
                                     ? "bi bi-scooter"
                                     : "bi bi-car-front"
                                 }
@@ -1590,7 +1590,10 @@ function Visitas() {
               {formData.vieneEnVehiculo === "SI" && (
                 <div className="vis-vehicle-section">
                   <div className="vis-vehicle-title">
-                    <i className={`bi ${formData.tipoVehiculoId === "2" ? "bi-scooter" : "bi-car-front"}`}></i> Datos del Vehículo
+                    <i
+                      className={`bi ${String(formData.tipoVehiculoId) === "2" ? "bi-scooter" : "bi-car-front"}`}
+                    ></i>{" "}
+                    Datos del Vehículo
                   </div>
 
                   <div className="vis-form-group">
@@ -1895,7 +1898,9 @@ function Visitas() {
                 <>
                   <div className="vis-detalle-row">
                     <div className="vis-detalle-icon">
-                      <i className={`bi ${modalDetalle.nombreVehiculo === "Moto" ? "bi-scooter" : "bi-car-front"}`}></i>
+                      <i
+                        className={`bi ${modalDetalle.nombreVehiculo?.toLowerCase() === "moto" ? "bi-scooter" : "bi-car-front"}`}
+                      ></i>
                     </div>
                     <div className="vis-detalle-content">
                       <div className="vis-detalle-label">Vehículo</div>
