@@ -58,7 +58,7 @@ const tieneSentido = (str) => {
 export const filtrarInputDocumento = (valor, esPasaporte = false) => {
   if (esPasaporte) {
     // Solo alfanuméricos
-    const limpio = valor.replace(/[^a-zA-Z0-9]/g, "");
+    const limpio = valor.replaceAll(/[^a-zA-Z0-9]/g, "");
     let letrasCount = 0;
     let resultado = "";
     for (const ch of limpio) {
@@ -72,7 +72,7 @@ export const filtrarInputDocumento = (valor, esPasaporte = false) => {
     return resultado;
   }
   // Solo dígitos
-  return valor.replace(/\D/g, "");
+  return valor.replaceAll(/\D/g, "");
 };
 
 /**
@@ -80,7 +80,7 @@ export const filtrarInputDocumento = (valor, esPasaporte = false) => {
  * Solo permite letras (incl. tildes y ñ), espacios, apóstrofos y guiones.
  */
 export const filtrarInputNombre = (valor) =>
-  valor.replace(/[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]/g, "");
+  valor.replaceAll(/[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]/g, "");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // NOMBRES / APELLIDOS
@@ -184,15 +184,13 @@ export const validarDocumento = (str, tipoId, tipoNombre = "") => {
     return null;
   }
 
-  // Pasaporte (id 3): alfanumérico, máximo 2 letras
+  // Pasaporte (id 3): alfanumérico, máximo 2 letras, longitud 4-20
   if (id === 3) {
-    if (!/^[a-zA-Z0-9]+$/.test(s))
-      return `El documento (${etiqueta}) solo puede contener letras y números, sin caracteres especiales.`;
+    if (!/^[a-zA-Z0-9]{4,20}$/.test(s))
+      return `El pasaporte debe tener entre 4 y 20 caracteres alfanuméricos, sin caracteres especiales.`;
     const letras = (s.match(/[a-zA-Z]/g) || []).length;
     if (letras > 2)
       return `El pasaporte no puede tener más de 2 letras. Formato esperado: hasta 2 letras seguidas de números (ej: AB1234567).`;
-    if (s.length < 4 || s.length > 20)
-      return `El documento (${etiqueta}) debe tener entre 4 y 20 caracteres.`;
     return null;
   }
 

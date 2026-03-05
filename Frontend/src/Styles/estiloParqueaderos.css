@@ -148,7 +148,7 @@
   font-size: 14px;
 }
 .parq-logout-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: #8b1515;
   color: white;
 }
 
@@ -636,8 +636,8 @@
   transition: all 0.2s;
 }
 .parq-page-btn:hover:not(:disabled) {
-  border-color: #ef5350;
-  color: #ef5350;
+  border-color: #c0392b;
+  color: #c0392b;
   background: #fff5f5;
 }
 .parq-page-btn.active {

@@ -98,8 +98,7 @@ function buildModulos(showAreasComunes, showUserManagement) {
 /** Helper: extrae permisos del token para reducir complejidad del componente */
 function getTokenPermissions() {
   const token = localStorage.getItem("token");
-  if (!token)
-    return { showUserManagement: false, showAreasComunes: false };
+  if (!token) return { showUserManagement: false, showAreasComunes: false };
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
     const valido = Date.now() < payload.exp * 1000;
