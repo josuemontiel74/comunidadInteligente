@@ -79,9 +79,11 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
   List<Map<String, dynamic>> _getOcupantesDeApartamento(dynamic aptoId) {
     if (aptoId == null) return [];
     return _ocupantes
-        .where((o) =>
-            o['apartamentosId'].toString() == aptoId.toString() &&
-            (o['estadoId'] == null || o['estadoId'] != 4))
+        .where(
+          (o) =>
+              o['apartamentosId'].toString() == aptoId.toString() &&
+              (o['estadoId'] == null || o['estadoId'] != 4),
+        )
         .toList();
   }
 
@@ -432,7 +434,9 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
       estaOcupado = true;
       estadoNombre = 'Ocupado';
     }
-    final color = estaOcupado ? Colors.green : Colors.grey[400]!;
+    final color = estaOcupado ? Colors.teal : Colors.grey[400]!;
+    final ocupantes = _getOcupantesDeApartamento(apto['idApartamento']);
+    final primerOcupante = ocupantes.isNotEmpty ? ocupantes.first : null;
 
     return Card(
       elevation: 2,
@@ -443,33 +447,70 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
         onTap: () => _mostrarDetalleApartamento(apto),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              estaOcupado ? Icons.home : Icons.home_outlined,
-              color: color,
-              size: 28,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              codigo,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                estaOcupado ? Icons.home : Icons.home_outlined,
                 color: color,
+                size: 22,
               ),
-            ),
-            Text(
-              estadoNombre,
-              style: TextStyle(
-                fontSize: 10,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.7),
+              const SizedBox(height: 2),
+              Text(
+                codigo,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: color,
+                ),
               ),
-            ),
-          ],
+              if (primerOcupante != null) ...[  
+                const SizedBox(height: 2),
+                Text(
+                  '${primerOcupante['primerNombre'] ?? ''} ${primerOcupante['primerApellido'] ?? ''}'
+                      .trim(),
+                  style: const TextStyle(fontSize: 9),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
+                _buildTipoBadgeSmall(
+                    primerOcupante['tipoOcupacion']?.toString() ?? ''),
+              ] else
+                Text(
+                  estadoNombre,
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.7),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTipoBadgeSmall(String tipo) {
+    final esProp = tipo.toLowerCase() == 'propietario';
+    return Container(
+      margin: const EdgeInsets.only(top: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      decoration: BoxDecoration(
+        color: esProp ? Colors.teal.shade100 : Colors.orange.shade100,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        esProp ? 'Prop.' : 'Arr.',
+        style: TextStyle(
+          fontSize: 8,
+          fontWeight: FontWeight.bold,
+          color: esProp ? Colors.teal.shade700 : Colors.orange.shade700,
         ),
       ),
     );
@@ -539,9 +580,7 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
             '$label: ',
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
           ),
-          Expanded(
-            child: Text(value, style: const TextStyle(fontSize: 13)),
-          ),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 13))),
         ],
       ),
     );
@@ -550,35 +589,140 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
   /// Construye filas con los ocupantes del apartamento
   List<Widget> _buildOcupanteRows(dynamic aptoId) {
     final ocupantes = _getOcupantesDeApartamento(aptoId);
-    if (ocupantes.isEmpty) return [];
+    if (ocupantes.isEmpty) {
+      return [
+        const Divider(height: 16),
+        const Row(
+          children: [
+            Icon(Icons.home_outlined, size: 14, color: Colors.grey),
+            SizedBox(width: 6),
+            Text('Sin ocupantes registrados',
+                style: TextStyle(fontSize: 12, color: Colors.grey)),
+          ],
+        ),
+      ];
+    }
 
     return [
-      const Divider(height: 12),
+      const Divider(height: 16),
       const Text(
-        'Ocupantes:',
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+        'Ocupantes',
+        style: TextStyle(
+            fontWeight: FontWeight.bold, fontSize: 13, color: Colors.teal),
       ),
-      const SizedBox(height: 4),
+      const SizedBox(height: 8),
       ...ocupantes.map((o) {
         final nombre =
             '${o['primerNombre'] ?? ''} ${o['primerApellido'] ?? ''}'.trim();
-        final tipo = o['tipoOcupacion'] ?? '';
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 2),
-          child: Row(
+        final tipo = o['tipoOcupacion']?.toString() ?? '';
+        final esProp = tipo.toLowerCase() == 'propietario';
+        final tieneNinos = o['tieneNinos'] == 1 || o['tieneNinos'] == true;
+        final tieneAdulto =
+            o['tieneAdultoMayor'] == 1 || o['tieneAdultoMayor'] == true;
+        final tieneDisca =
+            o['tieneDiscapacidad'] == 1 || o['tieneDiscapacidad'] == true;
+        final personasACargo = o['personasACargo'];
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: esProp ? Colors.teal.shade50 : Colors.orange.shade50,
+            border: Border.all(
+              color:
+                  esProp ? Colors.teal.shade200 : Colors.orange.shade200,
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.person, size: 14, color: Colors.teal),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  '$nombre${tipo.isNotEmpty ? ' ($tipo)' : ''}',
-                  style: const TextStyle(fontSize: 12),
-                ),
+              Row(
+                children: [
+                  Icon(Icons.person,
+                      size: 16,
+                      color: esProp ? Colors.teal : Colors.orange),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      nombre.isNotEmpty ? nombre : 'Sin nombre',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: esProp
+                          ? Colors.teal.shade100
+                          : Colors.orange.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      tipo.isEmpty ? 'Sin tipo' : tipo,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: esProp
+                            ? Colors.teal.shade700
+                            : Colors.orange.shade700,
+                      ),
+                    ),
+                  ),
+                ],
               ),
+              if (personasACargo != null) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.group, size: 13, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Text('Personas a cargo: $personasACargo',
+                        style: const TextStyle(
+                            fontSize: 11, color: Colors.grey)),
+                  ],
+                ),
+              ],
+              if (tieneNinos || tieneAdulto || tieneDisca) ...[
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  children: [
+                    if (tieneNinos)
+                      _buildTag(Icons.child_care, 'Niños',
+                          Colors.blue.shade200),
+                    if (tieneAdulto)
+                      _buildTag(Icons.elderly, 'Adulto mayor',
+                          Colors.purple.shade200),
+                    if (tieneDisca)
+                      _buildTag(Icons.accessible, 'Discapacidad',
+                          Colors.red.shade200),
+                  ],
+                ),
+              ],
             ],
           ),
         );
       }),
     ];
+  }
+
+  Widget _buildTag(IconData icon, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12),
+          const SizedBox(width: 3),
+          Text(label, style: const TextStyle(fontSize: 10)),
+        ],
+      ),
+    );
   }
 }

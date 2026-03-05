@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'screens/dashboards/dashboardsuperadmin.dart';
@@ -8,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'utils/api_config.dart';
 import 'utils/theme_provider.dart';
+import 'utils/user_photo_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,7 +20,8 @@ void main() async {
 class LoginServe {
   static String baseUrl = ApiConfig.baseUrl;
   static String? token;
-  static String? rolActual;      // rol del usuario logueado: 'superAdministrador', 'administrador', 'vigilante'
+  static String?
+  rolActual; // rol del usuario logueado: 'superAdministrador', 'administrador', 'vigilante'
   static String? usernameActual; // username del usuario logueado
 
   static Future<http.Response> postLogin(
@@ -399,6 +402,12 @@ class Loginstate extends State<Login> {
         // Guardar username y rol actuales
         LoginServe.rolActual = rol.toString().toLowerCase().trim();
         LoginServe.usernameActual = username;
+
+        // Guardar foto de perfil si viene del backend
+        final fotoPerfil = responseBody['usuario']?['fotoPerfil']?.toString();
+        if (fotoPerfil != null && fotoPerfil.isNotEmpty) {
+          await UserPhotoService.savePhoto(username, fotoPerfil);
+        }
 
         showDialog(
           context: context,

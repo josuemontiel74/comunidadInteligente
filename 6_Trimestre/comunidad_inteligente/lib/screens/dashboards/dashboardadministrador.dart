@@ -51,7 +51,8 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
 
   Future<void> _cargarFotoPerfil() async {
     final foto = await UserPhotoService.getPhoto(
-        LoginServe.usernameActual ?? widget.nombreUsuario);
+      LoginServe.usernameActual ?? widget.nombreUsuario,
+    );
     if (mounted && foto != null) setState(() => _fotoBase64 = foto);
   }
 
@@ -401,8 +402,11 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
                         ? MemoryImage(base64Decode(_fotoBase64!))
                         : null,
                     child: _fotoBase64 == null
-                        ? const Icon(Icons.person,
-                            color: Colors.orange, size: 18)
+                        ? const Icon(
+                            Icons.person,
+                            color: Colors.orange,
+                            size: 18,
+                          )
                         : null,
                   ),
                   onPressed: () {

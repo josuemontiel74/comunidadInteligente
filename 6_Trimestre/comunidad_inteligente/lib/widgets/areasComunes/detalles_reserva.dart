@@ -55,15 +55,51 @@ class DetallesReserva extends StatelessWidget {
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    _buildDetalle(context, 'ID Reserva', '#${reserva.idReservas ?? "N/A"}'),
-                    _buildDetalle(context, 'Área Común', obtenerNombreAreaComun(reserva.areaComun)),
-                    _buildDetalle(context, 'Fecha', reserva.fechaReserva ?? 'N/A'),
-                    _buildDetalle(context, 'Horario', '${reserva.horaInicio ?? ""} - ${reserva.horaFin ?? ""}'),
-                    _buildDetalle(context, 'Motivo', reserva.motivoReserva ?? 'N/A'),
-                    _buildDetalle(context, 'Cantidad de Asistentes', '${reserva.cantidadAsistentes ?? 0}'),
-                    _buildDetalle(context, 'Invitados Externos', reserva.invitadosExternos == 1 ? 'Sí' : 'No'),
-                    _buildDetalle(context, 'Apartamento', reserva.numeroApartamento ?? 'N/A'),
-                    _buildDetalle(context, 'Estado', reserva.nombreEstado ?? 'N/A'),
+                    _buildDetalle(
+                      context,
+                      'ID Reserva',
+                      '#${reserva.idReservas ?? "N/A"}',
+                    ),
+                    _buildDetalle(
+                      context,
+                      'Área Común',
+                      obtenerNombreAreaComun(reserva.areaComun),
+                    ),
+                    _buildDetalle(
+                      context,
+                      'Fecha',
+                      reserva.fechaReserva ?? 'N/A',
+                    ),
+                    _buildDetalle(
+                      context,
+                      'Horario',
+                      '${reserva.horaInicio ?? ""} - ${reserva.horaFin ?? ""}',
+                    ),
+                    _buildDetalle(
+                      context,
+                      'Motivo',
+                      reserva.motivoReserva ?? 'N/A',
+                    ),
+                    _buildDetalle(
+                      context,
+                      'Cantidad de Asistentes',
+                      '${reserva.cantidadAsistentes ?? 0}',
+                    ),
+                    _buildDetalle(
+                      context,
+                      'Invitados Externos',
+                      reserva.invitadosExternos == 1 ? 'Sí' : 'No',
+                    ),
+                    _buildDetalle(
+                      context,
+                      'Apartamento',
+                      reserva.numeroApartamento ?? 'N/A',
+                    ),
+                    _buildDetalle(
+                      context,
+                      'Estado',
+                      reserva.nombreEstado ?? 'N/A',
+                    ),
                     const Divider(height: 30),
                     const Text(
                       'Solicitante',
@@ -74,11 +110,31 @@ class DetallesReserva extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    _buildDetalle(context, 'Nombre', reserva.nombreSolicitante ?? 'N/A'),
-                    _buildDetalle(context, 'Documento', '${reserva.tipodocumento ?? ""} ${reserva.documentoSolicitante ?? ""}'),
-                    _buildDetalle(context, 'Correo', reserva.correoSolicitante ?? 'N/A'),
-                    _buildDetalle(context, 'Teléfono', reserva.telefonoSolicitante ?? 'N/A'),
-                    _buildDetalle(context, 'Acepta Reglamento', reserva.aceptaReglamento == 1 ? 'Sí' : 'No'),
+                    _buildDetalle(
+                      context,
+                      'Nombre',
+                      reserva.nombreSolicitante ?? 'N/A',
+                    ),
+                    _buildDetalle(
+                      context,
+                      'Documento',
+                      '${reserva.tipodocumento ?? ""} ${reserva.documentoSolicitante ?? ""}',
+                    ),
+                    _buildDetalle(
+                      context,
+                      'Correo',
+                      reserva.correoSolicitante ?? 'N/A',
+                    ),
+                    _buildDetalle(
+                      context,
+                      'Teléfono',
+                      reserva.telefonoSolicitante ?? 'N/A',
+                    ),
+                    _buildDetalle(
+                      context,
+                      'Acepta Reglamento',
+                      reserva.aceptaReglamento == 1 ? 'Sí' : 'No',
+                    ),
                   ],
                 ),
               ),

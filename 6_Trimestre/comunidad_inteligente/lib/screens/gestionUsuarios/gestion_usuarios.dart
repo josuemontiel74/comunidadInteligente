@@ -76,7 +76,9 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
         final enLinea = data['enLinea'] as Map<String, dynamic>? ?? {};
         if (mounted) {
           setState(() {
-            _usuariosEnLinea = enLinea.keys.where((k) => enLinea[k] == true).toList();
+            _usuariosEnLinea = enLinea.keys
+                .where((k) => enLinea[k] == true)
+                .toList();
           });
         }
       }
@@ -109,10 +111,20 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
 
       if (response.statusCode == 200) {
         final datos = json.decode(response.body);
+        final lista =
+            List<dynamic>.from(datos['body'] ?? datos['data'] ?? []);
         setState(() {
-          usuarios = datos['body'] ?? datos['data'] ?? [];
+          usuarios = lista;
           isLoading = false;
         });
+        // Hidratar fotos desde la BD (igual que el web con localStorage)
+        for (final u in lista) {
+          final foto = u['fotoPerfil']?.toString();
+          final uname = u['username']?.toString() ?? '';
+          if (foto != null && foto.isNotEmpty && uname.isNotEmpty) {
+            UserPhotoService.savePhoto(uname, foto);
+          }
+        }
       } else {
         throw Exception('Error al cargar usuarios');
       }
@@ -614,9 +626,15 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
                       const SizedBox(width: 10),
                       _buildChipFiltro('Inactivos', 'inactivo'),
                       // Chip "En línea" solo visible para superadmin
-                      if ((LoginServe.rolActual ?? '').contains('superadmin')) ...[
+                      if ((LoginServe.rolActual ?? '').contains(
+                        'superadmin',
+                      )) ...[
                         const SizedBox(width: 10),
-                        _buildChipFiltroColor('En línea', 'enlinea', Colors.green),
+                        _buildChipFiltroColor(
+                          'En línea',
+                          'enlinea',
+                          Colors.green,
+                        ),
                       ],
                     ],
                   ),
@@ -715,7 +733,9 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
       },
       selectedColor: color,
       labelStyle: TextStyle(
-        color: seleccionado ? Colors.white : Theme.of(context).colorScheme.onSurface,
+        color: seleccionado
+            ? Colors.white
+            : Theme.of(context).colorScheme.onSurface,
         fontWeight: seleccionado ? FontWeight.bold : FontWeight.normal,
       ),
     );
@@ -1166,12 +1186,21 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
         if (_fotoBytes != null) {
           try {
             final responseData = json.decode(response.body);
-            final newUsername = responseData['body']?['username'] ??
-                responseData['username'];
+            final newUsername =
+                responseData['body']?['username'] ?? responseData['username'];
             if (newUsername != null) {
-              await UserPhotoService.savePhoto(
-                newUsername.toString(),
-                base64Encode(_fotoBytes!),
+              final b64 = base64Encode(_fotoBytes!);
+              final dataUrl = 'data:image/jpeg;base64,$b64';
+              await UserPhotoService.savePhoto(newUsername.toString(), b64);
+              // Persistir en BD
+              await http.put(
+                Uri.parse(
+                    '${LoginServe.baseUrl}/api/usuario/${Uri.encodeComponent(newUsername.toString())}/foto'),
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer ${LoginServe.token}',
+                },
+                body: json.encode({'fotoPerfil': dataUrl}),
               );
             }
           } catch (_) {}
@@ -1323,11 +1352,18 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
                               TextButton.icon(
                                 onPressed: () =>
                                     setState(() => _fotoBytes = null),
-                                icon: const Icon(Icons.delete,
-                                    size: 16, color: Colors.red),
-                                label: const Text('Quitar foto',
-                                    style: TextStyle(
-                                        color: Colors.red, fontSize: 12)),
+                                icon: const Icon(
+                                  Icons.delete,
+                                  size: 16,
+                                  color: Colors.red,
+                                ),
+                                label: const Text(
+                                  'Quitar foto',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 12,
+                                  ),
+                                ),
                               ),
                           ],
                         ),
@@ -1599,7 +1635,16 @@ class _DetallesUsuarioDialogState extends State<DetallesUsuarioDialog> {
 
   Future<void> _cargarFoto() async {
     final username = widget.usuario['username']?.toString() ?? '';
-    final foto = await UserPhotoService.getPhoto(username);
+    // Primero intentar desde SharedPreferences (puede ya estar hidratada)
+    var foto = await UserPhotoService.getPhoto(username);
+    // Si no hay, leer del objeto usuario que vino de la BD
+    if (foto == null || foto.isEmpty) {
+      final fotoApi = widget.usuario['fotoPerfil']?.toString();
+      if (fotoApi != null && fotoApi.isNotEmpty) {
+        await UserPhotoService.savePhoto(username, fotoApi);
+        foto = UserPhotoService.extractBase64(fotoApi);
+      }
+    }
     if (mounted && foto != null) {
       setState(() => _fotoBase64 = foto);
     }
@@ -1616,9 +1661,23 @@ class _DetallesUsuarioDialogState extends State<DetallesUsuarioDialog> {
       if (picked == null) return;
       final bytes = await picked.readAsBytes();
       final b64 = base64Encode(bytes);
+      final dataUrl = 'data:image/jpeg;base64,$b64';
       final username = widget.usuario['username']?.toString() ?? '';
+      // Guardar localmente
       await UserPhotoService.savePhoto(username, b64);
       if (mounted) setState(() => _fotoBase64 = b64);
+      // Persistir en la BD
+      try {
+        await http.put(
+          Uri.parse(
+              '${LoginServe.baseUrl}/api/usuario/${Uri.encodeComponent(username)}/foto'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${LoginServe.token}',
+          },
+          body: json.encode({'fotoPerfil': dataUrl}),
+        );
+      } catch (_) {}
     } catch (e) {
       debugPrint('Error al seleccionar foto: $e');
     }
@@ -1635,7 +1694,8 @@ class _DetallesUsuarioDialogState extends State<DetallesUsuarioDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final persona = widget.usuario['Persona'] ?? widget.usuario['persona'] ?? {};
+    final persona =
+        widget.usuario['Persona'] ?? widget.usuario['persona'] ?? {};
     final bool esActivo = widget.usuario['estadoId'] == 1;
 
     return Dialog(
@@ -1671,7 +1731,11 @@ class _DetallesUsuarioDialogState extends State<DetallesUsuarioDialog> {
                               ? MemoryImage(base64Decode(_fotoBase64!))
                               : null,
                           child: _fotoBase64 == null
-                              ? const Icon(Icons.person, color: Colors.purple, size: 32)
+                              ? const Icon(
+                                  Icons.person,
+                                  color: Colors.purple,
+                                  size: 32,
+                                )
                               : null,
                         ),
                         Positioned(
@@ -1683,7 +1747,11 @@ class _DetallesUsuarioDialogState extends State<DetallesUsuarioDialog> {
                               color: Colors.white,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.camera_alt, size: 14, color: Colors.purple),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              size: 14,
+                              color: Colors.purple,
+                            ),
                           ),
                         ),
                       ],
