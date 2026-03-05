@@ -9,8 +9,7 @@ import 'package:flutter/services.dart';
 // ══════════════════════════════════════════════════════════════════
 
 /// Patrón para nombres: letras (con tildes/ñ), espacios, apóstrofos, guiones
-final RegExp _nombrePattern =
-    RegExp(r"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'\-]+$");
+final RegExp _nombrePattern = RegExp(r"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'\-]+$");
 
 /// Patrón para documentos numéricos (CC, CE, PEP, PPT)
 final RegExp _soloDigitos = RegExp(r'^\d+$');
@@ -205,18 +204,24 @@ String? validarDocumento(String? value, int? tipoDocId) {
   switch (tipoDocId) {
     case 1: // Cédula de ciudadanía
       if (!_soloDigitos.hasMatch(str)) return 'Solo números para CC';
-      if (str.length < 6 || str.length > 10) return 'CC debe tener entre 6 y 10 dígitos';
+      if (str.length < 6 || str.length > 10) {
+        return 'CC debe tener entre 6 y 10 dígitos';
+      }
       break;
     case 2: // Pasaporte
       if (!_pasaportePattern.hasMatch(str)) return 'Solo letras y números';
       final letras = str.replaceAll(RegExp(r'[0-9]'), '');
       if (letras.length > 2) return 'Máximo 2 letras en pasaporte';
-      if (str.length < 4 || str.length > 20) return 'Pasaporte: entre 4 y 20 caracteres';
+      if (str.length < 4 || str.length > 20) {
+        return 'Pasaporte: entre 4 y 20 caracteres';
+      }
       break;
     case 3: // Cédula de extranjería
     case 4: // PEP
     case 5: // PPT
-      if (!_soloDigitos.hasMatch(str)) return 'Solo números para este documento';
+      if (!_soloDigitos.hasMatch(str)) {
+        return 'Solo números para este documento';
+      }
       if (str.length < 4 || str.length > 20) return 'Entre 4 y 20 dígitos';
       break;
     default:
@@ -247,7 +252,9 @@ String? validarEmail(String? value, {bool obligatorio = false}) {
   final emailRegex = RegExp(r'^[\w\-.]+@([\w\-]+\.)+[\w\-]{2,4}$');
   if (!emailRegex.hasMatch(str)) return 'Correo electrónico no válido';
   final parteLocal = str.split('@').first;
-  if (parteLocal.length < 2) return 'La parte antes de @ debe tener al menos 2 caracteres';
+  if (parteLocal.length < 2) {
+    return 'La parte antes de @ debe tener al menos 2 caracteres';
+  }
   return null;
 }
 

@@ -330,12 +330,18 @@ class _LoginScreenState extends State<LoginScreen>
       children: [
         Text(
           '© 2025 Comunidad Inteligente',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.7),
+            fontSize: 12,
+          ),
         ),
         const SizedBox(height: 5),
         Text(
           'Versión 1.0.0',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.5),
+            fontSize: 11,
+          ),
         ),
       ],
     );

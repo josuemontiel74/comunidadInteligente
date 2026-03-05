@@ -55,11 +55,11 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
 
   /// Obtiene la lista de apartamentos filtrados por torre
   List<Map<String, dynamic>> _getApartamentosPorTorre(int torreId) {
-    return apartamentos
-        .where((a) => a['torresId'] == torreId)
-        .toList()
-      ..sort((a, b) =>
-          (a['codigoApartamento'] ?? '').compareTo(b['codigoApartamento'] ?? ''));
+    return apartamentos.where((a) => a['torresId'] == torreId).toList()..sort(
+      (a, b) => (a['numeroApartamento'] ?? '').compareTo(
+        b['numeroApartamento'] ?? '',
+      ),
+    );
   }
 
   @override
@@ -149,10 +149,7 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
           ),
         ),
         const SizedBox(width: 6),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white, fontSize: 13),
-        ),
+        Text(label, style: const TextStyle(color: Colors.white, fontSize: 13)),
       ],
     );
   }
@@ -200,8 +197,13 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
     final torreLetra = String.fromCharCode('A'.codeUnitAt(0) + torreId - 1);
     final aptosEnTorre = _getApartamentosPorTorre(torreId);
     final ocupados = aptosEnTorre.where((a) {
-      final ocupantes = a['ocupantes'] as List<dynamic>?;
-      return ocupantes != null && ocupantes.isNotEmpty;
+      final estado = a['estado'];
+      if (estado != null && estado is Map) {
+        final nombre = (estado['nombreEstado'] ?? '').toString().toLowerCase();
+        return nombre == 'ocupado';
+      }
+      // Fallback: estadoId 1 = ocupado
+      return a['estadoId'] == 1;
     }).length;
     final total = aptosEnTorre.length;
     final porcentaje = total > 0 ? (ocupados / total * 100).round() : 0;
@@ -246,10 +248,7 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
                     const SizedBox(height: 4),
                     Text(
                       '$ocupados/$total apartamentos ocupados',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -296,11 +295,13 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
     final listaAptos = aptosEnTorre.isNotEmpty
         ? aptosEnTorre
         : (apartamentosPorTorre[torreKey] ?? [])
-            .map((codigo) => <String, dynamic>{
-                  'codigoApartamento': codigo,
+              .map(
+                (codigo) => <String, dynamic>{
+                  'numeroApartamento': codigo,
                   'torresId': torreId,
-                })
-            .toList();
+                },
+              )
+              .toList();
 
     return RefreshIndicator(
       onRefresh: _cargarApartamentos,
@@ -310,8 +311,9 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
           // Header de torre
           Card(
             color: Colors.teal,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -342,8 +344,7 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () =>
-                        setState(() => torreSeleccionada = null),
+                    onPressed: () => setState(() => torreSeleccionada = null),
                     tooltip: 'Volver a todas las torres',
                   ),
                 ],
@@ -375,10 +376,18 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
 
   /// Tarjeta visual de un apartamento
   Widget _buildApartamentoCard(Map<String, dynamic> apto) {
-    final codigo = apto['codigoApartamento'] ?? 'N/A';
-    final ocupantes = apto['ocupantes'] as List<dynamic>?;
-    final tieneOcupantes = ocupantes != null && ocupantes.isNotEmpty;
-    final color = tieneOcupantes ? Colors.green : Colors.grey[400]!;
+    final codigo = apto['numeroApartamento'] ?? 'N/A';
+    final estado = apto['estado'];
+    bool estaOcupado = false;
+    String estadoNombre = 'Vacío';
+    if (estado != null && estado is Map) {
+      estadoNombre = estado['nombreEstado'] ?? 'Vacío';
+      estaOcupado = estadoNombre.toLowerCase() == 'ocupado';
+    } else if (apto['estadoId'] == 1) {
+      estaOcupado = true;
+      estadoNombre = 'Ocupado';
+    }
+    final color = estaOcupado ? Colors.green : Colors.grey[400]!;
 
     return Card(
       elevation: 2,
@@ -393,7 +402,7 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              tieneOcupantes ? Icons.home : Icons.home_outlined,
+              estaOcupado ? Icons.home : Icons.home_outlined,
               color: color,
               size: 28,
             ),
@@ -407,13 +416,8 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
               ),
             ),
             Text(
-              tieneOcupantes
-                  ? '${ocupantes.length} residente${ocupantes.length > 1 ? "s" : ""}'
-                  : 'Vacío',
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.grey[600],
-              ),
+              estadoNombre,
+              style: TextStyle(fontSize: 10, color: Colors.grey[600]),
             ),
           ],
         ),
@@ -421,12 +425,22 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
     );
   }
 
-  /// Modal con detalle del apartamento y sus ocupantes
+  /// Modal con detalle del apartamento
   void _mostrarDetalleApartamento(Map<String, dynamic> apto) {
-    final codigo = apto['codigoApartamento'] ?? 'N/A';
+    final codigo = apto['numeroApartamento'] ?? 'N/A';
     final torreId = apto['torresId'];
-    final torreLetra = torreId != null ? convertirTorreIdALetra(torreId) : 'N/A';
-    final ocupantes = apto['ocupantes'] as List<dynamic>?;
+    final torreLetra = torreId != null
+        ? convertirTorreIdALetra(torreId)
+        : 'N/A';
+    final torre = apto['torre'];
+    final torreNombre = torre != null && torre is Map
+        ? (torre['nombreTorre'] ?? 'Torre $torreLetra')
+        : 'Torre $torreLetra';
+    final estado = apto['estado'];
+    String estadoNombre = 'Sin estado';
+    if (estado != null && estado is Map) {
+      estadoNombre = estado['nombreEstado'] ?? 'Sin estado';
+    }
 
     showDialog(
       context: context,
@@ -435,15 +449,13 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
         title: Row(
           children: [
             Icon(
-              ocupantes != null && ocupantes.isNotEmpty
+              estadoNombre.toLowerCase() == 'ocupado'
                   ? Icons.home
                   : Icons.home_outlined,
               color: Colors.teal,
             ),
             const SizedBox(width: 8),
-            Expanded(
-              child: Text('Apartamento $codigo'),
-            ),
+            Expanded(child: Text('Apartamento $codigo')),
           ],
         ),
         content: SingleChildScrollView(
@@ -451,49 +463,9 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildInfoRow('Torre', torreLetra),
+              _buildInfoRow('Torre', torreNombre),
               _buildInfoRow('Apartamento', codigo),
-              const Divider(),
-              Text(
-                'Residentes (${ocupantes?.length ?? 0}):',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (ocupantes == null || ocupantes.isEmpty)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    'No hay residentes registrados',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                )
-              else
-                ...ocupantes.map((o) {
-                  final persona = o['persona'] ?? o;
-                  final nombre =
-                      '${persona['primerNombre'] ?? ''} ${persona['primerApellido'] ?? ''}'
-                          .trim();
-                  final doc = persona['documentoIdentidad'] ?? '';
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    leading: CircleAvatar(
-                      backgroundColor: Colors.teal.withValues(alpha: 0.1),
-                      child: const Icon(Icons.person, color: Colors.teal, size: 20),
-                    ),
-                    title: Text(nombre.isNotEmpty ? nombre : 'Sin nombre'),
-                    subtitle: doc.isNotEmpty ? Text('Doc: $doc') : null,
-                  );
-                }),
+              _buildInfoRow('Estado', estadoNombre),
             ],
           ),
         ),

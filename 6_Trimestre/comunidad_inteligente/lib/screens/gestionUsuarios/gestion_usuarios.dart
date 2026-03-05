@@ -1252,7 +1252,9 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
                           ),
                         ),
                         keyboardType: TextInputType.number,
-                        inputFormatters: [getDocumentoFormatter(tipoDocumentoId)],
+                        inputFormatters: [
+                          getDocumentoFormatter(tipoDocumentoId),
+                        ],
                         validator: (v) => validarDocumento(v, tipoDocumentoId),
                       ),
                       const SizedBox(height: 16),
@@ -2093,7 +2095,9 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                           ),
                         ),
                         keyboardType: TextInputType.number,
-                        inputFormatters: [getDocumentoFormatter(tipoDocumentoId)],
+                        inputFormatters: [
+                          getDocumentoFormatter(tipoDocumentoId),
+                        ],
                         validator: (v) => validarDocumento(v, tipoDocumentoId),
                       ),
                       const SizedBox(height: 16),

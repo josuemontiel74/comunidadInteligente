@@ -25,7 +25,8 @@ class _SeleccionarParqueaderoScreenState
   List<Parqueadero> parqueaderos = [];
   List<Parqueadero> parqueaderosFiltrados = [];
   bool isLoading = true;
-  String filtroEstado = 'todos'; // 'todos', 'disponibles', 'ocupados', 'noDisponible'
+  String filtroEstado =
+      'todos'; // 'todos', 'disponibles', 'ocupados', 'noDisponible'
   String searchQuery = '';
 
   @override
@@ -400,7 +401,11 @@ class _SeleccionarParqueaderoScreenState
                 SizedBox(
                   height: 28,
                   child: IconButton(
-                    icon: Icon(Icons.settings, size: 18, color: Colors.grey[600]),
+                    icon: Icon(
+                      Icons.settings,
+                      size: 18,
+                      color: Colors.grey[600],
+                    ),
                     padding: EdgeInsets.zero,
                     tooltip: 'Cambiar estado',
                     onPressed: () => _cambiarEstado(parqueadero),
@@ -449,7 +454,9 @@ class _SeleccionarParqueaderoScreenState
             Text(
               'Estado actual: ${parqueadero.estaDisponible ? "Disponible" : "No disponible"}',
               style: TextStyle(
-                color: parqueadero.estaDisponible ? Colors.green : Colors.orange,
+                color: parqueadero.estaDisponible
+                    ? Colors.green
+                    : Colors.orange,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -566,9 +573,9 @@ class Parqueadero {
     required this.estadoId,
   });
 
-  bool get estaDisponible => estadoId == 4;       // 4 = Disponible
-  bool get estaOcupado => estadoId == 3;           // 3 = Ocupado
-  bool get enMantenimiento => estadoId == 18;      // 18 = No disponible
+  bool get estaDisponible => estadoId == 4; // 4 = Disponible
+  bool get estaOcupado => estadoId == 3; // 3 = Ocupado
+  bool get enMantenimiento => estadoId == 18; // 18 = No disponible
 
   factory Parqueadero.fromJson(Map<String, dynamic> json) {
     return Parqueadero(

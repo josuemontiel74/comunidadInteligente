@@ -2714,9 +2714,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
-                  headingRowColor: WidgetStateProperty.all(
-                    Colors.pink.shade50,
-                  ),
+                  headingRowColor: WidgetStateProperty.all(Colors.pink.shade50),
                   columns: const [
                     DataColumn(
                       label: Text(

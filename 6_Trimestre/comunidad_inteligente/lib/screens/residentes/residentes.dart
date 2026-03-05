@@ -1630,7 +1630,8 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
                             border: OutlineInputBorder(),
                           ),
                           inputFormatters: [NombreInputFormatter()],
-                          validator: (v) => validarNombre(v, obligatorio: false),
+                          validator: (v) =>
+                              validarNombre(v, obligatorio: false),
                         ),
                       ),
                     ],
@@ -1659,7 +1660,8 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
                             border: OutlineInputBorder(),
                           ),
                           inputFormatters: [NombreInputFormatter()],
-                          validator: (v) => validarNombre(v, obligatorio: false),
+                          validator: (v) =>
+                              validarNombre(v, obligatorio: false),
                         ),
                       ),
                     ],
@@ -2282,7 +2284,8 @@ class _EditarResidenteDialogState extends State<EditarResidenteDialog> {
                             border: OutlineInputBorder(),
                           ),
                           inputFormatters: [NombreInputFormatter()],
-                          validator: (v) => validarNombre(v, obligatorio: false),
+                          validator: (v) =>
+                              validarNombre(v, obligatorio: false),
                         ),
                       ),
                     ],
@@ -2311,7 +2314,8 @@ class _EditarResidenteDialogState extends State<EditarResidenteDialog> {
                             border: OutlineInputBorder(),
                           ),
                           inputFormatters: [NombreInputFormatter()],
-                          validator: (v) => validarNombre(v, obligatorio: false),
+                          validator: (v) =>
+                              validarNombre(v, obligatorio: false),
                         ),
                       ),
                     ],

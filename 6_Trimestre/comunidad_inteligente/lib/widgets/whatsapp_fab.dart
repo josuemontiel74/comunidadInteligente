@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const String _waUrl =
@@ -18,7 +19,7 @@ class WhatsAppFab extends StatelessWidget {
       onPressed: () => _mostrarModal(context),
       backgroundColor: const Color(0xFF25D366),
       tooltip: 'Grupo de WhatsApp de la comunidad',
-      child: const Icon(Icons.chat, color: Colors.white, size: 28),
+      child: const FaIcon(FontAwesomeIcons.whatsapp, color: Colors.white, size: 28),
     );
   }
 
@@ -51,10 +52,12 @@ class WhatsAppFab extends StatelessWidget {
                   color: const Color(0xFF25D366).withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.chat,
-                  color: Color(0xFF25D366),
-                  size: 42,
+                child: const Center(
+                  child: FaIcon(
+                    FontAwesomeIcons.whatsapp,
+                    color: Color(0xFF25D366),
+                    size: 42,
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -86,7 +89,7 @@ class WhatsAppFab extends StatelessWidget {
                     Navigator.pop(ctx);
                     _abrirEnlace();
                   },
-                  icon: const Icon(Icons.chat, color: Colors.white),
+                  icon: const FaIcon(FontAwesomeIcons.whatsapp, color: Colors.white, size: 20),
                   label: const Text(
                     'Unirse al grupo',
                     style: TextStyle(
@@ -109,14 +112,15 @@ class WhatsAppFab extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.verified_user, size: 14, color: Colors.grey.shade500),
+                  Icon(
+                    Icons.verified_user,
+                    size: 14,
+                    color: Colors.grey.shade500,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     'Enlace oficial · Solo para personal autorizado',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade500,
-                    ),
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                   ),
                 ],
               ),

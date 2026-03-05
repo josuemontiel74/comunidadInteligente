@@ -103,10 +103,14 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final onSurface = theme.colorScheme.onSurface;
+    final surface = theme.colorScheme.surface;
+
     return Scaffold(
       floatingActionButton: const WhatsAppFab(),
       endDrawer: Drawer(
-        backgroundColor: Colors.white,
         child: Column(
           children: [
             Container(
@@ -173,41 +177,14 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                         context,
                         Icons.local_parking,
                         'Consultar Parqueadero',
-                        SeleccionarParqueaderoScreen(token: LoginServe.token, rolId: 3),
+                        SeleccionarParqueaderoScreen(
+                          token: LoginServe.token,
+                          rolId: 3,
+                        ),
                       ),
                     ]),
                   ],
                 ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: ListenableBuilder(
-                listenable: ThemeProvider(),
-                builder: (context, _) {
-                  final isDark = ThemeProvider().isDarkMode;
-                  return SwitchListTile(
-                    title: Text(
-                      'Modo Oscuro',
-                      style: TextStyle(fontSize: 15),
-                    ),
-                    subtitle: Text(
-                      isDark ? 'Activado' : 'Desactivado',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    value: isDark,
-                    onChanged: (_) => ThemeProvider().toggleTheme(),
-                    secondary: Icon(
-                      isDark ? Icons.dark_mode : Icons.light_mode,
-                      color: isDark ? Colors.amber : Colors.grey.shade600,
-                    ),
-                    activeTrackColor: Colors.green.shade200,
-                    activeThumbColor: Colors.green,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  );
-                },
               ),
             ),
             Padding(
@@ -242,12 +219,13 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
           ],
         ),
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: surface,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: Colors.white,
+        backgroundColor: surface,
         elevation: 3,
         toolbarHeight: 90,
+        iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
         title: Stack(
           children: [
             // Logo centrado
@@ -309,6 +287,29 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                 ),
               ),
             ),
+            // Botón de modo oscuro
+            Positioned(
+              right: 90,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: ListenableBuilder(
+                  listenable: ThemeProvider(),
+                  builder: (context, _) {
+                    final darkMode = ThemeProvider().isDarkMode;
+                    return IconButton(
+                      icon: Icon(
+                        darkMode ? Icons.light_mode : Icons.dark_mode,
+                        color: darkMode ? Colors.amber : Colors.grey.shade700,
+                        size: 26,
+                      ),
+                      onPressed: () => ThemeProvider().toggleTheme(),
+                      tooltip: darkMode ? 'Modo claro' : 'Modo oscuro',
+                    );
+                  },
+                ),
+              ),
+            ),
             // Botón de actualizar a la derecha (antes del menú)
             Positioned(
               right: 48,
@@ -351,7 +352,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                           'Bienvenido, ${widget.nombreUsuario}',
                           style: TextStyle(
                             fontSize: 35,
-                            color: Colors.black,
+                            color: onSurface,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -362,7 +363,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Text(
                             'Módulos disponibles para vigilancia',
-                            style: TextStyle(fontSize: 13, color: Colors.black),
+                            style: TextStyle(fontSize: 13, color: onSurface.withValues(alpha: 0.7)),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -614,7 +615,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
@@ -681,7 +682,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -727,8 +728,10 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) =>
-                  SeleccionarParqueaderoScreen(token: LoginServe.token, rolId: 3),
+              builder: (context) => SeleccionarParqueaderoScreen(
+                token: LoginServe.token,
+                rolId: 3,
+              ),
             ),
           );
         },
@@ -746,7 +749,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -849,7 +852,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -876,7 +879,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
     );
   }
 
-  // Tarjeta de resumen rápido (reservas + residentes + usuarios)
+  // Tarjeta de resumen rápido (reservas + usuarios en línea)
   Widget _buildResumenRapidoCard() {
     return Card(
       elevation: 6,
@@ -894,7 +897,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -903,19 +906,10 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildStatCircle(
-                  '$reservasHoy',
-                  'Reservas\nhoy',
-                  Colors.blue,
-                ),
-                _buildStatCircle(
-                  '$residentesActivos',
-                  'Residentes\nactivos',
-                  Colors.teal,
-                ),
+                _buildStatCircle('$reservasHoy', 'Reservas\ndel día', Colors.blue),
                 _buildStatCircle(
                   '$usuariosActivos',
-                  'Usuarios\nactivos',
+                  'Usuarios\nen línea',
                   Colors.green,
                 ),
               ],

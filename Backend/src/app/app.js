@@ -47,7 +47,11 @@ app.use(
       // Apps móviles nativas (Flutter, etc.) no envían header Origin → permitir
       if (!origin) return callback(null, true);
       // Permitir cualquier localhost (Vite, Flutter Web, etc. usan puertos aleatorios)
-      if (/^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?$/.test(origin)) {
+      if (
+        /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?$/.test(
+          origin,
+        )
+      ) {
         return callback(null, true);
       }
       return callback(new Error("Origen no permitido por CORS"));

@@ -52,10 +52,12 @@ class _LogErroresScreenState extends State<LogErroresScreen> {
         params['nivel'] = filtroNivel;
       }
 
-      final uri = Uri.parse('${LoginServe.baseUrl}/api/log-errores')
-          .replace(queryParameters: params);
-      final resumenUri =
-          Uri.parse('${LoginServe.baseUrl}/api/log-errores/resumen');
+      final uri = Uri.parse(
+        '${LoginServe.baseUrl}/api/log-errores',
+      ).replace(queryParameters: params);
+      final resumenUri = Uri.parse(
+        '${LoginServe.baseUrl}/api/log-errores/resumen',
+      );
 
       final responses = await Future.wait([
         http.get(uri, headers: headers),
@@ -251,10 +253,30 @@ class _LogErroresScreenState extends State<LogErroresScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildResumenItem('Total', registros.length, Icons.list_alt, Colors.white),
-                _buildResumenItem('Errores', totalErrores, Icons.error, Colors.red[200]!),
-                _buildResumenItem('Warnings', totalWarnings, Icons.warning, Colors.orange[200]!),
-                _buildResumenItem('Info', totalInfo, Icons.info, Colors.blue[200]!),
+                _buildResumenItem(
+                  'Total',
+                  registros.length,
+                  Icons.list_alt,
+                  Colors.white,
+                ),
+                _buildResumenItem(
+                  'Errores',
+                  totalErrores,
+                  Icons.error,
+                  Colors.red[200]!,
+                ),
+                _buildResumenItem(
+                  'Warnings',
+                  totalWarnings,
+                  Icons.warning,
+                  Colors.orange[200]!,
+                ),
+                _buildResumenItem(
+                  'Info',
+                  totalInfo,
+                  Icons.info,
+                  Colors.blue[200]!,
+                ),
               ],
             ),
           ),
@@ -315,57 +337,69 @@ class _LogErroresScreenState extends State<LogErroresScreen> {
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : error != null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
-                            const SizedBox(height: 16),
-                            Text(error!, textAlign: TextAlign.center),
-                            const SizedBox(height: 16),
-                            ElevatedButton.icon(
-                              onPressed: _cargarDatos,
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('Reintentar'),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Colors.red[300],
                         ),
-                      )
-                    : filtrados.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.check_circle_outline,
-                                    size: 64, color: Colors.green[300]),
-                                const SizedBox(height: 16),
-                                const Text(
-                                  'No hay registros de errores',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : RefreshIndicator(
-                            onRefresh: _cargarDatos,
-                            child: ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              itemCount: filtrados.length,
-                              itemBuilder: (context, index) {
-                                return _buildLogCard(filtrados[index]);
-                              },
-                            ),
+                        const SizedBox(height: 16),
+                        Text(error!, textAlign: TextAlign.center),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: _cargarDatos,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Reintentar'),
+                        ),
+                      ],
+                    ),
+                  )
+                : filtrados.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline,
+                          size: 64,
+                          color: Colors.green[300],
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'No hay registros de errores',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
                           ),
+                        ),
+                      ],
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _cargarDatos,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      itemCount: filtrados.length,
+                      itemBuilder: (context, index) {
+                        return _buildLogCard(filtrados[index]);
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildResumenItem(String label, int valor, IconData icon, Color color) {
+  Widget _buildResumenItem(
+    String label,
+    int valor,
+    IconData icon,
+    Color color,
+  ) {
     return Column(
       children: [
         Icon(icon, color: color, size: 24),
@@ -411,8 +445,9 @@ class _LogErroresScreenState extends State<LogErroresScreen> {
   Widget _buildLogCard(LogError registro) {
     final color = _colorNivel(registro.nivel);
     final icono = _iconoNivel(registro.nivel);
-    final fechaFormateada = DateFormat('dd/MM/yyyy HH:mm:ss')
-        .format(registro.fechaHora.toLocal());
+    final fechaFormateada = DateFormat(
+      'dd/MM/yyyy HH:mm:ss',
+    ).format(registro.fechaHora.toLocal());
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -459,10 +494,7 @@ class _LogErroresScreenState extends State<LogErroresScreen> {
                   const Spacer(),
                   Text(
                     fechaFormateada,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey[500],
-                    ),
+                    style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                   ),
                 ],
               ),
@@ -484,10 +516,7 @@ class _LogErroresScreenState extends State<LogErroresScreen> {
                   Expanded(
                     child: Text(
                       registro.rutaAfectada,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey[500],
-                      ),
+                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -497,10 +526,7 @@ class _LogErroresScreenState extends State<LogErroresScreen> {
                     const SizedBox(width: 2),
                     Text(
                       registro.username!,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey[500],
-                      ),
+                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                     ),
                   ],
                 ],
@@ -514,8 +540,9 @@ class _LogErroresScreenState extends State<LogErroresScreen> {
 
   void _mostrarDetalle(LogError registro) {
     final color = _colorNivel(registro.nivel);
-    final fechaFormateada = DateFormat('dd/MM/yyyy HH:mm:ss')
-        .format(registro.fechaHora.toLocal());
+    final fechaFormateada = DateFormat(
+      'dd/MM/yyyy HH:mm:ss',
+    ).format(registro.fechaHora.toLocal());
 
     showDialog(
       context: context,
@@ -526,10 +553,7 @@ class _LogErroresScreenState extends State<LogErroresScreen> {
             Icon(_iconoNivel(registro.nivel), color: color),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(
-                'Detalle del Error',
-                style: TextStyle(color: color),
-              ),
+              child: Text('Detalle del Error', style: TextStyle(color: color)),
             ),
           ],
         ),
@@ -620,9 +644,7 @@ class _LogErroresScreenState extends State<LogErroresScreen> {
               ),
             ),
           ),
-          Expanded(
-            child: Text(value, style: const TextStyle(fontSize: 12)),
-          ),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 12))),
         ],
       ),
     );

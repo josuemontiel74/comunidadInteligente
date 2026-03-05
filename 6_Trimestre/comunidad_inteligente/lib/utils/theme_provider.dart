@@ -23,8 +23,9 @@ class ThemeProvider extends ChangeNotifier {
 
   /// Alterna entre modo oscuro y claro
   Future<void> toggleTheme() async {
-    _themeMode =
-        _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    _themeMode = _themeMode == ThemeMode.light
+        ? ThemeMode.dark
+        : ThemeMode.light;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('darkMode', isDarkMode);
     notifyListeners();
@@ -70,9 +71,7 @@ class ThemeProvider extends ChangeNotifier {
       fillColor: Colors.grey.shade50,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
     ),
-    snackBarTheme: const SnackBarThemeData(
-      behavior: SnackBarBehavior.floating,
-    ),
+    snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
   );
 
   static ThemeData get darkTheme => ThemeData(
@@ -93,9 +92,7 @@ class ThemeProvider extends ChangeNotifier {
       foregroundColor: Colors.white,
       elevation: 0,
     ),
-    drawerTheme: const DrawerThemeData(
-      backgroundColor: Color(0xFF1E1E1E),
-    ),
+    drawerTheme: const DrawerThemeData(backgroundColor: Color(0xFF1E1E1E)),
     dialogTheme: DialogThemeData(
       backgroundColor: const Color(0xFF1E1E1E),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -105,8 +102,6 @@ class ThemeProvider extends ChangeNotifier {
       fillColor: const Color(0xFF2C2C2C),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
     ),
-    snackBarTheme: const SnackBarThemeData(
-      behavior: SnackBarBehavior.floating,
-    ),
+    snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
   );
 }
