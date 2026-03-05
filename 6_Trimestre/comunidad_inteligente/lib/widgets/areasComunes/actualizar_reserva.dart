@@ -49,8 +49,8 @@ class _ActualizarState extends State<Actualizar> {
         }
 
         // Debug: Imprimir el JSON para ver la estructura
-        print('=== DEBUG RESERVA JSON ===');
-        print(reservaJson);
+        debugPrint('=== DEBUG RESERVA JSON ===');
+        debugPrint(reservaJson);
 
         // Extraer el tipoDocumentoId directamente del JSON
         String? tipoDocIdFromJson;
@@ -88,7 +88,7 @@ class _ActualizarState extends State<Actualizar> {
           );
         }
 
-        print('tipoDocIdFromJson extraído: $tipoDocIdFromJson');
+        debugPrint('tipoDocIdFromJson extraído: $tipoDocIdFromJson');
 
         setState(() {
           reservas = [Reserva.fromJson(reservaJson)];
@@ -122,7 +122,7 @@ class _ActualizarState extends State<Actualizar> {
 
           // Inicializar tipo de documento - usar el extraído del JSON o del getter
           tipoDocumentoId = tipoDocIdFromJson ?? reservas[0].tipoDocumentoId;
-          print('tipoDocumentoId final: $tipoDocumentoId');
+          debugPrint('tipoDocumentoId final: $tipoDocumentoId');
 
           // Inicializar acepta reglamento
           aceptaReglamento = reservas[0].aceptaReglamento;
@@ -147,12 +147,14 @@ class _ActualizarState extends State<Actualizar> {
   String? _mapTipoDocumento(String nombre) {
     if (nombre.contains('cédula') ||
         nombre.contains('cedula') ||
-        nombre == 'cc')
+        nombre == 'cc') {
       return '1';
+    }
     if (nombre.contains('extranjería') ||
         nombre.contains('extranjeria') ||
-        nombre == 'ce')
+        nombre == 'ce') {
       return '2';
+    }
     if (nombre.contains('pasaporte') || nombre == 'pp') return '3';
     if (nombre == 'pep') return '4';
     if (nombre == 'ppt') return '5';
@@ -293,7 +295,7 @@ class _ActualizarState extends State<Actualizar> {
       datosActualizar['aceptaReglamento'] = aceptaReglamento;
     }
 
-    print('Datos a actualizar: $datosActualizar');
+    debugPrint('Datos a actualizar: $datosActualizar');
 
     final response = await http.patch(
       url,
@@ -428,7 +430,7 @@ class _ActualizarState extends State<Actualizar> {
                                   const SizedBox(height: 12),
 
                                   DropdownButtonFormField<String>(
-                                    value: tipoDocumentoId,
+                                    initialValue: tipoDocumentoId,
                                     decoration: InputDecoration(
                                       labelText: "Tipo documento",
                                       border: border,
@@ -550,7 +552,7 @@ class _ActualizarState extends State<Actualizar> {
                               child: Column(
                                 children: [
                                   DropdownButtonFormField<String>(
-                                    value:
+                                    initialValue:
                                         reservas.isNotEmpty &&
                                             reservas[0].areaComunId != null
                                         ? reservas[0].areaComunId.toString()
@@ -707,8 +709,9 @@ class _ActualizarState extends State<Actualizar> {
                                               );
                                             },
                                       );
-                                      if (picked != null)
+                                      if (picked != null) {
                                         setState(() => horaFin = picked);
+                                      }
                                     },
                                   ),
                                   const SizedBox(height: 12),
@@ -755,7 +758,7 @@ class _ActualizarState extends State<Actualizar> {
                                   const SizedBox(height: 12),
 
                                   DropdownButtonFormField<String>(
-                                    value: reservas.isNotEmpty
+                                    initialValue: reservas.isNotEmpty
                                         ? reservas[0].invitadosExternos
                                               ?.toString()
                                         : null,
@@ -779,7 +782,7 @@ class _ActualizarState extends State<Actualizar> {
 
                                   // Campo deshabilitado - no se puede cambiar
                                   DropdownButtonFormField<String>(
-                                    value: aceptaReglamento?.toString(),
+                                    initialValue: aceptaReglamento?.toString(),
                                     decoration: InputDecoration(
                                       labelText: "Acepta reglamento",
                                       border: border,

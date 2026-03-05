@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -142,6 +143,8 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
       }),
     );
 
+    if (!context.mounted) return;
+
     if (response.statusCode == 200) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -151,6 +154,7 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
         ),
       );
       await Future.delayed(const Duration(seconds: 1));
+      if (!context.mounted) return;
       Navigator.pop(context);
     } else if (response.statusCode == 409) {
       // Conflicto: ya existe una reserva en el mismo horario
@@ -374,7 +378,7 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
 
                             // Torre
                             DropdownButtonFormField<String>(
-                              value: torreSeleccionada,
+                              initialValue: torreSeleccionada,
                               decoration: InputDecoration(
                                 labelText: 'Torre *',
                                 border: border,
@@ -404,7 +408,7 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
 
                             // Apartamento
                             DropdownButtonFormField<String>(
-                              value: apartamentoSeleccionado,
+                              initialValue: apartamentoSeleccionado,
                               decoration: InputDecoration(
                                 labelText: 'Apartamento *',
                                 border: border,
@@ -614,8 +618,9 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
                                         );
                                       },
                                 );
-                                if (picked != null)
+                                if (picked != null) {
                                   setState(() => horaFin = picked);
+                                }
                               },
                             ),
                             const SizedBox(height: 12),

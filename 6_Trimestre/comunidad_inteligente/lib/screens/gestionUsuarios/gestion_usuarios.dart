@@ -1,8 +1,10 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../main.dart';
 import '../../utils/helpers.dart';
+import '../../utils/validaciones.dart';
 
 class GestionUsuarios extends StatefulWidget {
   final bool openCreateDialog;
@@ -63,6 +65,8 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
         headers: headers,
       );
 
+      if (!context.mounted) return;
+
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
         setState(() => isLoading = false);
@@ -96,6 +100,8 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
         headers: headers,
       );
 
+      if (!context.mounted) return;
+
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
         return;
@@ -108,7 +114,7 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
         });
       }
     } catch (e) {
-      print('Error al cargar tipos de documento: $e');
+      debugPrint('Error al cargar tipos de documento: $e');
     }
   }
 
@@ -186,7 +192,7 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, -2),
           ),
@@ -357,6 +363,8 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
         headers: headers,
       );
 
+      if (!context.mounted) return;
+
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
         return;
@@ -408,6 +416,8 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
         headers: headers,
         body: body,
       );
+
+      if (!context.mounted) return;
 
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
@@ -510,7 +520,7 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: filtroRol,
+                        initialValue: filtroRol,
                         decoration: InputDecoration(
                           labelText: 'Rol',
                           border: OutlineInputBorder(
@@ -1026,6 +1036,8 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
         body: json.encode(body),
       );
 
+      if (!context.mounted) return;
+
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
         if (mounted) setState(() => isSubmitting = false);
@@ -1166,15 +1178,7 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'La contraseña es requerida';
-                          }
-                          if (value.length < 6) {
-                            return 'Mínimo 6 caracteres';
-                          }
-                          return null;
-                        },
+                        validator: (v) => validarPassword(v),
                       ),
                       const SizedBox(height: 16),
                       // Rol
@@ -1248,12 +1252,8 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
                           ),
                         ),
                         keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'El documento es requerido';
-                          }
-                          return null;
-                        },
+                        inputFormatters: [getDocumentoFormatter(tipoDocumentoId)],
+                        validator: (v) => validarDocumento(v, tipoDocumentoId),
                       ),
                       const SizedBox(height: 16),
                       // Primer Nombre
@@ -1266,36 +1266,22 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'El primer nombre es requerido';
-                          }
-                          if (value.length < 1 || value.length > 20) {
-                            return 'Entre 1 y 20 caracteres';
-                          }
-                          return null;
-                        },
+                        inputFormatters: [NombreInputFormatter()],
+                        validator: (v) => validarNombre(v),
                       ),
                       const SizedBox(height: 16),
                       // Segundo Nombre
                       TextFormField(
                         controller: segundoNombreController,
                         decoration: InputDecoration(
-                          labelText: 'Segundo Nombre *',
+                          labelText: 'Segundo Nombre',
                           prefixIcon: const Icon(Icons.person),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'El segundo nombre es requerido';
-                          }
-                          if (value.length < 1 || value.length > 45) {
-                            return 'Entre 1 y 45 caracteres';
-                          }
-                          return null;
-                        },
+                        inputFormatters: [NombreInputFormatter()],
+                        validator: (v) => validarNombre(v, obligatorio: false),
                       ),
                       const SizedBox(height: 16),
                       // Primer Apellido
@@ -1308,36 +1294,22 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'El primer apellido es requerido';
-                          }
-                          if (value.length < 1 || value.length > 30) {
-                            return 'Entre 1 y 30 caracteres';
-                          }
-                          return null;
-                        },
+                        inputFormatters: [NombreInputFormatter()],
+                        validator: (v) => validarNombre(v),
                       ),
                       const SizedBox(height: 16),
                       // Segundo Apellido
                       TextFormField(
                         controller: segundoApellidoController,
                         decoration: InputDecoration(
-                          labelText: 'Segundo Apellido *',
+                          labelText: 'Segundo Apellido',
                           prefixIcon: const Icon(Icons.person_outline),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'El segundo apellido es requerido';
-                          }
-                          if (value.length < 1 || value.length > 30) {
-                            return 'Entre 1 y 30 caracteres';
-                          }
-                          return null;
-                        },
+                        inputFormatters: [NombreInputFormatter()],
+                        validator: (v) => validarNombre(v, obligatorio: false),
                       ),
                       const SizedBox(height: 16),
                       // Teléfono
@@ -1351,15 +1323,8 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
                           ),
                         ),
                         keyboardType: TextInputType.phone,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'El teléfono es requerido';
-                          }
-                          if (value.length < 7 || value.length > 10) {
-                            return 'Entre 7 y 10 caracteres';
-                          }
-                          return null;
-                        },
+                        inputFormatters: [TelefonoInputFormatter()],
+                        validator: (v) => validarTelefono(v),
                       ),
                       const SizedBox(height: 16),
                       // Correo
@@ -1373,20 +1338,7 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
                           ),
                         ),
                         keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'El correo es requerido';
-                          }
-                          if (!RegExp(
-                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                          ).hasMatch(value)) {
-                            return 'Correo inválido';
-                          }
-                          if (value.length > 45) {
-                            return 'Máximo 45 caracteres';
-                          }
-                          return null;
-                        },
+                        validator: (v) => validarEmail(v),
                       ),
                     ],
                   ),
@@ -1902,9 +1854,9 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
         return;
       }
 
-      print('=== DEBUG ACTUALIZAR USUARIO ===');
-      print('Username: ${widget.usuario['username']}');
-      print('Body a enviar: $body');
+      debugPrint('=== DEBUG ACTUALIZAR USUARIO ===');
+      debugPrint('Username: ${widget.usuario['username']}');
+      debugPrint('Body a enviar: $body');
 
       final response = await http.patch(
         Uri.parse(
@@ -1917,8 +1869,10 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
         body: json.encode(body),
       );
 
-      print('Status Code: ${response.statusCode}');
-      print('Response Body: ${response.body}');
+      debugPrint('Status Code: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
+
+      if (!context.mounted) return;
 
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
@@ -2050,17 +2004,15 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                           ),
                         ),
                         validator: (value) {
-                          if (value != null &&
-                              value.isNotEmpty &&
-                              value.length < 6) {
-                            return 'Mínimo 6 caracteres';
+                          if (value != null && value.isNotEmpty) {
+                            return validarPassword(value);
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<int>(
-                        value: rolId,
+                        initialValue: rolId,
                         decoration: InputDecoration(
                           labelText: 'Rol',
                           prefixIcon: const Icon(Icons.security),
@@ -2082,7 +2034,7 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<int>(
-                        value: estadoId,
+                        initialValue: estadoId,
                         decoration: InputDecoration(
                           labelText: 'Estado',
                           prefixIcon: const Icon(Icons.toggle_on),
@@ -2109,7 +2061,7 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<int>(
-                        value: tipoDocumentoId,
+                        initialValue: tipoDocumentoId,
                         decoration: InputDecoration(
                           labelText: 'Tipo de Documento',
                           prefixIcon: const Icon(Icons.credit_card),
@@ -2141,6 +2093,8 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                           ),
                         ),
                         keyboardType: TextInputType.number,
+                        inputFormatters: [getDocumentoFormatter(tipoDocumentoId)],
+                        validator: (v) => validarDocumento(v, tipoDocumentoId),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -2152,14 +2106,8 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        validator: (value) {
-                          if (value != null && value.isNotEmpty) {
-                            if (value.length > 20) {
-                              return 'Máximo 20 caracteres';
-                            }
-                          }
-                          return null;
-                        },
+                        inputFormatters: [NombreInputFormatter()],
+                        validator: (v) => validarNombre(v),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -2171,14 +2119,8 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        validator: (value) {
-                          if (value != null && value.isNotEmpty) {
-                            if (value.length > 45) {
-                              return 'Máximo 45 caracteres';
-                            }
-                          }
-                          return null;
-                        },
+                        inputFormatters: [NombreInputFormatter()],
+                        validator: (v) => validarNombre(v, obligatorio: false),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -2190,14 +2132,8 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        validator: (value) {
-                          if (value != null && value.isNotEmpty) {
-                            if (value.length > 30) {
-                              return 'Máximo 30 caracteres';
-                            }
-                          }
-                          return null;
-                        },
+                        inputFormatters: [NombreInputFormatter()],
+                        validator: (v) => validarNombre(v),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -2209,14 +2145,8 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        validator: (value) {
-                          if (value != null && value.isNotEmpty) {
-                            if (value.length > 30) {
-                              return 'Máximo 30 caracteres';
-                            }
-                          }
-                          return null;
-                        },
+                        inputFormatters: [NombreInputFormatter()],
+                        validator: (v) => validarNombre(v, obligatorio: false),
                       ),
                       const SizedBox(height: 24),
                       // Sección: Información de Contacto
@@ -2239,14 +2169,8 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                           ),
                         ),
                         keyboardType: TextInputType.phone,
-                        validator: (value) {
-                          if (value != null && value.isNotEmpty) {
-                            if (value.length < 7 || value.length > 10) {
-                              return 'Entre 7 y 10 caracteres';
-                            }
-                          }
-                          return null;
-                        },
+                        inputFormatters: [TelefonoInputFormatter()],
+                        validator: (v) => validarTelefono(v),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -2259,19 +2183,7 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                           ),
                         ),
                         keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value != null && value.isNotEmpty) {
-                            if (!RegExp(
-                              r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                            ).hasMatch(value)) {
-                              return 'Correo inválido';
-                            }
-                            if (value.length > 45) {
-                              return 'Máximo 45 caracteres';
-                            }
-                          }
-                          return null;
-                        },
+                        validator: (v) => validarEmail(v),
                       ),
                     ],
                   ),

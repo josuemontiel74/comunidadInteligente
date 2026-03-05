@@ -431,7 +431,7 @@ class _CalendarioReservasState extends State<CalendarioReservas> {
           ),
         ),
         const SizedBox(height: 15),
-        ...reservasDelDia.map((reserva) => _buildReservaCard(reserva)).toList(),
+        ...reservasDelDia.map((reserva) => _buildReservaCard(reserva)),
       ],
     );
   }

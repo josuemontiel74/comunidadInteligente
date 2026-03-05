@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../../main.dart';
@@ -207,6 +208,8 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
       body: jsonEncode({'estadoId': 9}),
     );
 
+    if (!context.mounted) return;
+
     // Validar si el token expiró
     if (manejarTokenExpirado(context, response.statusCode, response.body)) {
       return;
@@ -248,6 +251,8 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
           'Cache-Control': 'no-store',
         },
       );
+
+      if (!context.mounted) return;
 
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
@@ -322,7 +327,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
             if (fechaStrB.isEmpty) return -1;
 
             // Parsear fecha sin conversión de timezone (son fechas locales YYYY-MM-DD)
-            DateTime _parsearFechaSinTimezone(String fechaStr) {
+            DateTime parsearFechaSinTimezone(String fechaStr) {
               // Formato: YYYY-MM-DD
               final partes = fechaStr.split('-');
               return DateTime(
@@ -332,11 +337,11 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
               );
             }
 
-            final fechaBaseA = _parsearFechaSinTimezone(fechaStrA);
-            final fechaBaseB = _parsearFechaSinTimezone(fechaStrB);
+            final fechaBaseA = parsearFechaSinTimezone(fechaStrA);
+            final fechaBaseB = parsearFechaSinTimezone(fechaStrB);
 
             // Parsear hora correctamente manejando formato AM/PM
-            int _parsearHora(String horaStr) {
+            int parsearHora(String horaStr) {
               final horaUpper = horaStr.toUpperCase();
               final esPM = horaUpper.contains('PM');
               final esAM = horaUpper.contains('AM');
@@ -354,7 +359,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
               return hora;
             }
 
-            int _parsearMinutos(String horaStr) {
+            int parsearMinutos(String horaStr) {
               final horaLimpia = horaStr.replaceAll(RegExp(r'[^0-9:]'), '');
               final partes = horaLimpia.split(':');
               return partes.length > 1 ? (int.tryParse(partes[1]) ?? 0) : 0;
@@ -364,16 +369,16 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
               fechaBaseA.year,
               fechaBaseA.month,
               fechaBaseA.day,
-              _parsearHora(horaA),
-              _parsearMinutos(horaA),
+              parsearHora(horaA),
+              parsearMinutos(horaA),
             );
 
             final fechaCompletaB = DateTime(
               fechaBaseB.year,
               fechaBaseB.month,
               fechaBaseB.day,
-              _parsearHora(horaB),
-              _parsearMinutos(horaB),
+              parsearHora(horaB),
+              parsearMinutos(horaB),
             );
 
             return fechaCompletaB.compareTo(fechaCompletaA);
@@ -911,7 +916,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: filtroTorre,
+                      initialValue: filtroTorre,
                       decoration: InputDecoration(
                         labelText: 'Torre',
                         border: OutlineInputBorder(
@@ -953,7 +958,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: filtroApartamento,
+                      initialValue: filtroApartamento,
                       decoration: InputDecoration(
                         labelText: 'Apartamento',
                         border: OutlineInputBorder(
@@ -1119,12 +1124,14 @@ class Reserva {
     final nombre = tipodocumento!.toLowerCase();
     if (nombre.contains('cédula') ||
         nombre.contains('cedula') ||
-        nombre == 'cc')
+        nombre == 'cc') {
       return '1';
+    }
     if (nombre.contains('extranjería') ||
         nombre.contains('extranjeria') ||
-        nombre == 'ce')
+        nombre == 'ce') {
       return '2';
+    }
     if (nombre.contains('pasaporte') || nombre == 'pp') return '3';
     if (nombre == 'pep') return '4';
     if (nombre == 'ppt') return '5';

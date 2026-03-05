@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import '../../main.dart';
 import 'package:http/http.dart' as http;
@@ -6,6 +7,8 @@ import '../paqueteria/paqueteria.dart';
 import '../visitas/visitas.dart';
 import '../parqueaderos/parqueaderos.dart' show SeleccionarParqueaderoScreen;
 import '../../utils/helpers.dart';
+import '../../utils/theme_provider.dart';
+import '../../widgets/whatsapp_fab.dart';
 
 class Dashboardvigilante extends StatefulWidget {
   final String nombreUsuario;
@@ -21,6 +24,11 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
   int parqueosCarros = 0;
   int parqueosMotos = 0;
   int parqueosLibres = 0;
+  int visitasHoy = 0;
+  int visitasActivas = 0;
+  int reservasHoy = 0;
+  int usuariosActivos = 0;
+  int residentesActivos = 0;
   bool isLoading = true;
 
   @override
@@ -34,6 +42,8 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
       final response = await http.get(
         Uri.parse('${LoginServe.baseUrl}/api/dashboard/resumen'),
       );
+
+      if (!context.mounted) return;
 
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
@@ -64,6 +74,11 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
             0,
             9999,
           );
+          visitasHoy = datos['visitas']?['hoy'] ?? 0;
+          visitasActivas = datos['visitas']?['activas'] ?? 0;
+          reservasHoy = datos['reservas']?['hoy'] ?? 0;
+          usuariosActivos = datos['usuarios']?['activos'] ?? 0;
+          residentesActivos = datos['residentes']?['activos'] ?? 0;
           isLoading = false;
         });
       } else {
@@ -89,6 +104,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: const WhatsAppFab(),
       endDrawer: Drawer(
         backgroundColor: Colors.white,
         child: Column(
@@ -157,11 +173,41 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                         context,
                         Icons.local_parking,
                         'Consultar Parqueadero',
-                        SeleccionarParqueaderoScreen(token: LoginServe.token),
+                        SeleccionarParqueaderoScreen(token: LoginServe.token, rolId: 3),
                       ),
                     ]),
                   ],
                 ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: ListenableBuilder(
+                listenable: ThemeProvider(),
+                builder: (context, _) {
+                  final isDark = ThemeProvider().isDarkMode;
+                  return SwitchListTile(
+                    title: Text(
+                      'Modo Oscuro',
+                      style: TextStyle(fontSize: 15),
+                    ),
+                    subtitle: Text(
+                      isDark ? 'Activado' : 'Desactivado',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    value: isDark,
+                    onChanged: (_) => ThemeProvider().toggleTheme(),
+                    secondary: Icon(
+                      isDark ? Icons.dark_mode : Icons.light_mode,
+                      color: isDark ? Colors.amber : Colors.grey.shade600,
+                    ),
+                    activeTrackColor: Colors.green.shade200,
+                    activeThumbColor: Colors.green,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  );
+                },
               ),
             ),
             Padding(
@@ -225,7 +271,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.blue.withOpacity(0.3),
+                        color: Colors.blue.withValues(alpha: 0.3),
                         blurRadius: 10,
                         spreadRadius: 2,
                       ),
@@ -421,12 +467,12 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return Container(
+    return SizedBox(
       width: 180,
       height: 220,
       child: Card(
         elevation: 8,
-        shadowColor: color.withOpacity(0.4),
+        shadowColor: color.withValues(alpha: 0.4),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: InkWell(
           onTap: onTap,
@@ -437,7 +483,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [color.withOpacity(0.8), color],
+                colors: [color.withValues(alpha: 0.8), color],
               ),
             ),
             child: Column(
@@ -446,7 +492,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                 Container(
                   padding: EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
+                    color: Colors.white.withValues(alpha: 0.3),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(icon, size: 60, color: Colors.white),
@@ -593,9 +639,27 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                 _buildPaquetesRecibidosCard(),
                 SizedBox(height: 20),
                 _buildParqueaderosLibresCard(),
+                SizedBox(height: 20),
+                _buildVisitasCard(),
+                SizedBox(height: 20),
+                _buildResumenRapidoCard(),
               ],
             ),
           ),
+        if (isWeb) ...[
+          SizedBox(height: 30),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: _buildVisitasCard()),
+                SizedBox(width: 30),
+                Expanded(child: _buildResumenRapidoCard()),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -664,7 +728,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
             context,
             MaterialPageRoute(
               builder: (context) =>
-                  SeleccionarParqueaderoScreen(token: LoginServe.token),
+                  SeleccionarParqueaderoScreen(token: LoginServe.token, rolId: 3),
             ),
           );
         },
@@ -761,6 +825,148 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
             fontSize: 15,
             fontWeight: FontWeight.bold,
             color: Colors.black87,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Tarjeta de visitas del día
+  Widget _buildVisitasCard() {
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Icon(Icons.people_outline, color: Colors.deepPurple, size: 32),
+                SizedBox(width: 12),
+                Text(
+                  'Visitas del Día',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildStatCircle(
+                  '$visitasHoy',
+                  'Registradas',
+                  Colors.deepPurple,
+                ),
+                _buildStatCircle(
+                  '$visitasActivas',
+                  'En curso',
+                  Colors.amber.shade700,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Tarjeta de resumen rápido (reservas + residentes + usuarios)
+  Widget _buildResumenRapidoCard() {
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Icon(Icons.dashboard_outlined, color: Colors.teal, size: 32),
+                SizedBox(width: 12),
+                Text(
+                  'Resumen General',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildStatCircle(
+                  '$reservasHoy',
+                  'Reservas\nhoy',
+                  Colors.blue,
+                ),
+                _buildStatCircle(
+                  '$residentesActivos',
+                  'Residentes\nactivos',
+                  Colors.teal,
+                ),
+                _buildStatCircle(
+                  '$usuariosActivos',
+                  'Usuarios\nactivos',
+                  Colors.green,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Círculo de estadística individual
+  Widget _buildStatCircle(String value, String label, Color color) {
+    return Column(
+      children: [
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [color.withValues(alpha: 0.7), color],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+        SizedBox(height: 8),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey[700],
           ),
         ),
       ],

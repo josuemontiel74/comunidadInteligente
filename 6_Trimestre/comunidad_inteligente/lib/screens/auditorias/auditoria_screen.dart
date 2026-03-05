@@ -63,7 +63,7 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
             Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.indigo.withOpacity(0.1),
+                color: Colors.indigo.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -213,7 +213,7 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _filtroOperacion,
+                  initialValue: _filtroOperacion,
                   decoration: InputDecoration(
                     labelText: 'Operación',
                     prefixIcon: Icon(Icons.filter_list, color: Colors.indigo),
@@ -239,7 +239,7 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
               SizedBox(width: 16),
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _filtroTabla,
+                  initialValue: _filtroTabla,
                   decoration: InputDecoration(
                     labelText: 'Tabla',
                     prefixIcon: Icon(Icons.table_chart, color: Colors.indigo),
@@ -338,8 +338,8 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
           padding: const EdgeInsets.all(16.0),
           child: DataTable(
             columnSpacing: 24,
-            headingRowColor: MaterialStateProperty.all(
-              Colors.indigo.withOpacity(0.1),
+            headingRowColor: WidgetStateProperty.all(
+              Colors.indigo.withValues(alpha: 0.1),
             ),
             columns: const [
               DataColumn(

@@ -7,8 +7,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'utils/api_config.dart';
+import 'utils/theme_provider.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ThemeProvider().init();
   runApp(const MyApp());
 }
 
@@ -41,16 +44,25 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('es', 'ES'), Locale('en', 'US')],
-      locale: const Locale('es', 'ES'),
-      home: const LoginScreen(),
+    return ListenableBuilder(
+      listenable: ThemeProvider(),
+      builder: (context, _) {
+        final themeProvider = ThemeProvider();
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: ThemeProvider.lightTheme,
+          darkTheme: ThemeProvider.darkTheme,
+          themeMode: themeProvider.themeMode,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('es', 'ES'), Locale('en', 'US')],
+          locale: const Locale('es', 'ES'),
+          home: const LoginScreen(),
+        );
+      },
     );
   }
 }
@@ -165,7 +177,7 @@ class _LoginScreenState extends State<LoginScreen>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withValues(alpha: 0.3),
                   width: 2,
                 ),
               ),
@@ -179,7 +191,7 @@ class _LoginScreenState extends State<LoginScreen>
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 25,
                     spreadRadius: 5,
                   ),
@@ -227,7 +239,7 @@ class _LoginScreenState extends State<LoginScreen>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
+            color: Colors.white.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(20),
           ),
           child: const Text(
@@ -251,7 +263,7 @@ class _LoginScreenState extends State<LoginScreen>
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
+            color: Colors.black.withValues(alpha: 0.15),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
@@ -275,7 +287,7 @@ class _LoginScreenState extends State<LoginScreen>
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
@@ -318,12 +330,12 @@ class _LoginScreenState extends State<LoginScreen>
       children: [
         Text(
           '© 2025 Comunidad Inteligente',
-          style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
         ),
         const SizedBox(height: 5),
         Text(
           'Versión 1.0.0',
-          style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11),
         ),
       ],
     );
@@ -419,7 +431,7 @@ class Loginstate extends State<Login> {
         Navigator.of(context, rootNavigator: true).pop();
 
         // Navegar según el rol
-        print('Rol recibido del backend: $rol'); // Debug
+        debugPrint('Rol recibido del backend: $rol'); // Debug
         Widget dashboard;
         final rolLower = rol.toString().toLowerCase().trim();
 
@@ -559,7 +571,7 @@ class Loginstate extends State<Login> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.green.withOpacity(0.1),
+                color: Colors.green.withValues(alpha: 0.1),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -608,7 +620,7 @@ class Loginstate extends State<Login> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.green.withOpacity(0.1),
+                color: Colors.green.withValues(alpha: 0.1),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -677,7 +689,7 @@ class Loginstate extends State<Login> {
                 borderRadius: BorderRadius.circular(16),
               ),
               elevation: 4,
-              shadowColor: Colors.green.withOpacity(0.4),
+              shadowColor: Colors.green.withValues(alpha: 0.4),
             ),
             child: _isLoading
                 ? Row(

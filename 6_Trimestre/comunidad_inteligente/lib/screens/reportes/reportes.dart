@@ -41,8 +41,8 @@ class ReportesApiService {
       }
       return {};
     } catch (e, stackTrace) {
-      print('Error al obtener reporte de parqueaderos: $e');
-      print('Stack trace: $stackTrace');
+      debugPrint('Error al obtener reporte de parqueaderos: $e');
+      debugPrint('Stack trace: $stackTrace');
       return {};
     }
   }
@@ -70,7 +70,7 @@ class ReportesApiService {
       }
       return {};
     } catch (e) {
-      print('Error al obtener reporte de paquetes: $e');
+      debugPrint('Error al obtener reporte de paquetes: $e');
       return {};
     }
   }
@@ -98,7 +98,7 @@ class ReportesApiService {
       }
       return {};
     } catch (e) {
-      print('Error al obtener reporte de reservas: $e');
+      debugPrint('Error al obtener reporte de reservas: $e');
       return {};
     }
   }
@@ -126,7 +126,7 @@ class ReportesApiService {
       }
       return {};
     } catch (e) {
-      print('Error al obtener reporte de visitas: $e');
+      debugPrint('Error al obtener reporte de visitas: $e');
       return {};
     }
   }
@@ -152,7 +152,7 @@ class ReportesApiService {
       }
       return {};
     } catch (e) {
-      print('Error al obtener reporte de ocupación: $e');
+      debugPrint('Error al obtener reporte de ocupación: $e');
       return {};
     }
   }
@@ -172,7 +172,7 @@ class ReportesApiService {
       }
       return {};
     } catch (e) {
-      print('Error al obtener reporte de niños: $e');
+      debugPrint('Error al obtener reporte de niños: $e');
       return {};
     }
   }
@@ -194,7 +194,7 @@ class ReportesApiService {
       }
       return {};
     } catch (e) {
-      print('Error al obtener reporte de población especial: $e');
+      debugPrint('Error al obtener reporte de población especial: $e');
       return {};
     }
   }
@@ -561,7 +561,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
         }
       }
     } catch (e) {
-      print('Error procesando resumenActual: $e');
+      debugPrint('Error procesando resumenActual: $e');
     }
 
     final totalOcupados = ocupadosCarros + ocupadosMotos;
@@ -1296,9 +1296,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1476,7 +1476,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
         }
       }
     } catch (e) {
-      print('Error procesando resumenActual en PDF: $e');
+      debugPrint('Error procesando resumenActual en PDF: $e');
     }
 
     final totalOcupados = ocupadosCarros + ocupadosMotos;
@@ -2040,7 +2040,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                         _buildPDFCelda('${_toInt(torre['totalPersonas'])}'),
                       ],
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
             ] else
@@ -2144,7 +2144,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                         ),
                       ],
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
               if (detalleApartamentos.length > 15)
@@ -2266,7 +2266,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                         ),
                       ],
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
               if (detalleApartamentos.length > 15)
@@ -2350,12 +2350,12 @@ class _ReportesScreenState extends State<ReportesScreen> {
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [color.withOpacity(0.1), color.withOpacity(0.05)],
+          colors: [color.withValues(alpha: 0.1), color.withValues(alpha: 0.05)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -2538,7 +2538,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.teal.withOpacity(0.3),
+                                  color: Colors.teal.withValues(alpha: 0.3),
                                   blurRadius: 4,
                                   offset: const Offset(0, 2),
                                 ),
@@ -2619,7 +2619,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
           width: 60,
           height: 60,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             shape: BoxShape.circle,
             border: Border.all(color: color, width: 2),
           ),
@@ -2652,7 +2652,6 @@ class _ReportesScreenState extends State<ReportesScreen> {
     }
 
     final totalNinos = _toInt(data['totalNinos']);
-    final totalApartamentosConNinos = _toInt(data['totalApartamentosConNinos']);
 
     List detalleApartamentos = [];
     if (data['detalleApartamentos'] is List) {
@@ -2715,7 +2714,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
-                  headingRowColor: MaterialStateProperty.all(
+                  headingRowColor: WidgetStateProperty.all(
                     Colors.pink.shade50,
                   ),
                   columns: const [
@@ -2986,7 +2985,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
-                  headingRowColor: MaterialStateProperty.all(
+                  headingRowColor: WidgetStateProperty.all(
                     Colors.purple.shade50,
                   ),
                   columns: const [

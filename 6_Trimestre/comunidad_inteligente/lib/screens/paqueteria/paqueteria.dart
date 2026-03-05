@@ -1,8 +1,10 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../main.dart';
 import '../../utils/helpers.dart';
+import '../../utils/validaciones.dart';
 
 class ModuloPaqueteria extends StatefulWidget {
   final bool abrirModalRegistro;
@@ -40,7 +42,7 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
       );
     } catch (e) {
       // Si falla, solo imprime en consola
-      print('SnackBar: $mensaje');
+      debugPrint('SnackBar: $mensaje');
     }
   }
 
@@ -52,7 +54,7 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     } catch (e) {
       // Si falla, solo imprime en consola
-      print('SnackBar no disponible');
+      debugPrint('SnackBar no disponible');
     }
   }
 
@@ -87,6 +89,8 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
         Uri.parse('${LoginServe.baseUrl}/api/recepcionPaquetes'),
         headers: headers,
       );
+
+      if (!context.mounted) return;
 
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
@@ -356,6 +360,8 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
         Uri.parse('${LoginServe.baseUrl}/api/recepcionPaquetes/$idPaquete'),
         headers: headers,
       );
+
+      if (!context.mounted) return;
 
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
@@ -805,7 +811,7 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: filtroTorre,
+                        initialValue: filtroTorre,
                         decoration: InputDecoration(
                           labelText: 'Torre',
                           border: OutlineInputBorder(
@@ -847,7 +853,7 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: filtroApartamento,
+                        initialValue: filtroApartamento,
                         decoration: InputDecoration(
                           labelText: 'Apartamento',
                           border: OutlineInputBorder(
@@ -1016,7 +1022,6 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
 
         return Theme(
           data: theme.copyWith(
-            useMaterial3: false,
             timePickerTheme: const TimePickerThemeData(
               hourMinuteShape: RoundedRectangleBorder(), // evita bordes nuevos
               dialBackgroundColor: null,
@@ -1130,6 +1135,8 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
         body: json.encode(body),
       );
 
+      if (!context.mounted) return;
+
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
         return;
@@ -1179,7 +1186,7 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
     try {
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     } catch (e) {
-      print('SnackBar no disponible');
+      debugPrint('SnackBar no disponible');
     }
   }
 
@@ -1232,17 +1239,13 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
                     ),
                     prefixIcon: const Icon(Icons.person),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Este campo es obligatorio';
-                    }
-                    return null;
-                  },
+                  inputFormatters: [NombreInputFormatter()],
+                  validator: (v) => validarNombreCompleto(v),
                 ),
                 const SizedBox(height: 15),
                 // Torre
                 DropdownButtonFormField<String>(
-                  value: torreSeleccionada,
+                  initialValue: torreSeleccionada,
                   decoration: InputDecoration(
                     labelText: 'Torre *',
                     border: OutlineInputBorder(
@@ -1273,7 +1276,7 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
                 const SizedBox(height: 15),
                 // Apartamento
                 DropdownButtonFormField<String>(
-                  value: apartamentoSeleccionado,
+                  initialValue: apartamentoSeleccionado,
                   decoration: InputDecoration(
                     labelText: 'Apartamento *',
                     border: OutlineInputBorder(
@@ -1316,12 +1319,7 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
                     ),
                     prefixIcon: const Icon(Icons.local_shipping),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Este campo es obligatorio';
-                    }
-                    return null;
-                  },
+                  validator: (v) => validarTransportadora(v),
                 ),
                 const SizedBox(height: 15),
                 // Fecha y Hora
@@ -1530,7 +1528,6 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
 
         return Theme(
           data: theme.copyWith(
-            useMaterial3: false,
             timePickerTheme: const TimePickerThemeData(
               hourMinuteShape: RoundedRectangleBorder(), // evita bordes nuevos
               dialBackgroundColor: null,
@@ -1623,7 +1620,7 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
         minute: fechaRecepcion.minute,
       );
     } catch (e) {
-      print('Error parseando fecha: $e');
+      debugPrint('Error parseando fecha: $e');
       fechaSeleccionada = DateTime.now();
       horaSeleccionada = TimeOfDay.now();
     }
@@ -1700,6 +1697,8 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
         body: json.encode(body),
       );
 
+      if (!context.mounted) return;
+
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
         return;
@@ -1748,7 +1747,7 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
     try {
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     } catch (e) {
-      print('SnackBar no disponible');
+      debugPrint('SnackBar no disponible');
     }
   }
 
@@ -1797,17 +1796,13 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
                     ),
                     prefixIcon: const Icon(Icons.person),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Este campo es obligatorio';
-                    }
-                    return null;
-                  },
+                  inputFormatters: [NombreInputFormatter()],
+                  validator: (v) => validarNombreCompleto(v),
                 ),
                 const SizedBox(height: 15),
                 // Torre
                 DropdownButtonFormField<String>(
-                  value: torreSeleccionada,
+                  initialValue: torreSeleccionada,
                   decoration: InputDecoration(
                     labelText: 'Torre *',
                     border: OutlineInputBorder(
@@ -1838,7 +1833,7 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
                 const SizedBox(height: 15),
                 // Apartamento
                 DropdownButtonFormField<String>(
-                  value: apartamentoSeleccionado,
+                  initialValue: apartamentoSeleccionado,
                   decoration: InputDecoration(
                     labelText: 'Apartamento *',
                     border: OutlineInputBorder(
@@ -1881,12 +1876,7 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
                     ),
                     prefixIcon: const Icon(Icons.local_shipping),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Este campo es obligatorio';
-                    }
-                    return null;
-                  },
+                  validator: (v) => validarTransportadora(v),
                 ),
                 const SizedBox(height: 15),
                 // Fecha y Hora

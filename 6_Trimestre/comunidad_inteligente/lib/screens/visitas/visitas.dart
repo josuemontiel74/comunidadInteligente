@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -28,7 +29,7 @@ class VisitasApiService {
       }
       return [];
     } catch (e) {
-      print('Error al obtener visitas: $e');
+      debugPrint('Error al obtener visitas: $e');
       return [];
     }
   }
@@ -51,7 +52,7 @@ class VisitasApiService {
       }
       return null;
     } catch (e) {
-      print('Error al obtener visita: $e');
+      debugPrint('Error al obtener visita: $e');
       return null;
     }
   }
@@ -114,7 +115,7 @@ class VisitasApiService {
 
       return response.statusCode == 200;
     } catch (e) {
-      print('Error al editar visita: $e');
+      debugPrint('Error al editar visita: $e');
       return false;
     }
   }
@@ -151,7 +152,7 @@ class VisitasApiService {
       }
       return [];
     } catch (e) {
-      print('Error al obtener visitantes: $e');
+      debugPrint('Error al obtener visitantes: $e');
       return [];
     }
   }
@@ -173,7 +174,7 @@ class VisitasApiService {
       }
       return null;
     } catch (e) {
-      print('Error al obtener visitante: $e');
+      debugPrint('Error al obtener visitante: $e');
       return null;
     }
   }
@@ -196,7 +197,7 @@ class VisitasApiService {
 
       return response.statusCode == 201 || response.statusCode == 200;
     } catch (e) {
-      print('Error al crear visitante: $e');
+      debugPrint('Error al crear visitante: $e');
       return false;
     }
   }
@@ -220,7 +221,7 @@ class VisitasApiService {
 
       return response.statusCode == 200;
     } catch (e) {
-      print('Error al editar visitante: $e');
+      debugPrint('Error al editar visitante: $e');
       return false;
     }
   }
@@ -239,7 +240,7 @@ class VisitasApiService {
 
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
-      print('Error al eliminar visitante: $e');
+      debugPrint('Error al eliminar visitante: $e');
       return false;
     }
   }
@@ -254,7 +255,7 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.token});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
@@ -326,7 +327,7 @@ class VisitasScreen extends StatefulWidget {
   const VisitasScreen({super.key, required this.token});
 
   @override
-  _VisitasScreenState createState() => _VisitasScreenState();
+  State<VisitasScreen> createState() => _VisitasScreenState();
 }
 
 class _VisitasScreenState extends State<VisitasScreen> {
@@ -527,7 +528,7 @@ class _VisitasScreenState extends State<VisitasScreen> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: filtroTorre,
+                        initialValue: filtroTorre,
                         decoration: InputDecoration(
                           labelText: 'Torre',
                           border: OutlineInputBorder(
@@ -569,7 +570,7 @@ class _VisitasScreenState extends State<VisitasScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: filtroApartamento,
+                        initialValue: filtroApartamento,
                         decoration: InputDecoration(
                           labelText: 'Apartamento',
                           border: OutlineInputBorder(
@@ -677,7 +678,7 @@ class _VisitasScreenState extends State<VisitasScreen> {
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: DataTable(
-                                headingRowColor: MaterialStateProperty.all(
+                                headingRowColor: WidgetStateProperty.all(
                                   Colors.green.shade50,
                                 ),
                                 columns: const [
@@ -984,7 +985,7 @@ class _VisitasScreenState extends State<VisitasScreen> {
         widget.token,
         idVisita,
       );
-      if (success && mounted) {
+      if (success && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Visita finalizada exitosamente')),
         );
@@ -1002,7 +1003,7 @@ class VisitantesScreen extends StatefulWidget {
   const VisitantesScreen({super.key, required this.token});
 
   @override
-  _VisitantesScreenState createState() => _VisitantesScreenState();
+  State<VisitantesScreen> createState() => _VisitantesScreenState();
 }
 
 class _VisitantesScreenState extends State<VisitantesScreen> {
@@ -1189,7 +1190,7 @@ class _VisitantesScreenState extends State<VisitantesScreen> {
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: DataTable(
-                                headingRowColor: MaterialStateProperty.all(
+                                headingRowColor: WidgetStateProperty.all(
                                   Colors.green.shade50,
                                 ),
                                 columns: const [
@@ -1382,7 +1383,7 @@ class _VisitantesScreenState extends State<VisitantesScreen> {
         widget.token,
         numeroDocumento,
       );
-      if (success && mounted) {
+      if (success && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Visitante eliminado exitosamente')),
         );
@@ -1858,7 +1859,9 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
           });
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      // Silently ignored
+    }
   }
 
   @override
@@ -1962,7 +1965,7 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                           Builder(
                             builder: (context) {
                               return DropdownButtonFormField<String>(
-                                value: tiposDocumento.isEmpty
+                                initialValue: tiposDocumento.isEmpty
                                     ? null
                                     : (tipoDocumentoId != null &&
                                               tiposDocumento.any(
@@ -2052,7 +2055,7 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                           ),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
-                            value: torreSeleccionada,
+                            initialValue: torreSeleccionada,
                             decoration: InputDecoration(
                               labelText: 'Torre *',
                               border: border,
@@ -2083,7 +2086,7 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                           ),
                           const SizedBox(height: 12),
                           DropdownButtonFormField<String>(
-                            value: apartamentoSeleccionado,
+                            initialValue: apartamentoSeleccionado,
                             decoration: InputDecoration(
                               labelText: 'Apartamento *',
                               border: border,
@@ -2251,7 +2254,7 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                             ),
                             const SizedBox(height: 16),
                             DropdownButtonFormField<String>(
-                              value: tipoVehiculoId,
+                              initialValue: tipoVehiculoId,
                               decoration: InputDecoration(
                                 labelText: 'Tipo de vehículo *',
                                 border: border,
@@ -2528,7 +2531,9 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
 
     final result = await VisitasApiService.crearVisita(widget.token, data);
 
-    if (result['success'] == true && context.mounted) {
+    if (!context.mounted) return;
+
+    if (result['success'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Visita registrada exitosamente'),
@@ -2536,7 +2541,7 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
         ),
       );
       widget.onSuccess();
-    } else if (context.mounted) {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result['message'] ?? 'Error al registrar la visita'),
@@ -2647,7 +2652,9 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
           });
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      // Silently ignored
+    }
   }
 
   void _inicializarDatos() {
@@ -3067,7 +3074,7 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
     required void Function(String?) onChanged,
   }) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       isExpanded: true,
       decoration: InputDecoration(
         labelText: label,
@@ -3316,7 +3323,9 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
       data,
     );
 
-    if (success && context.mounted) {
+    if (!context.mounted) return;
+
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Visita actualizada exitosamente'),
@@ -3324,7 +3333,7 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
         ),
       );
       widget.onSuccess();
-    } else if (context.mounted) {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Error al actualizar la visita'),
@@ -3405,12 +3414,14 @@ class _CrearVisitanteDialogState extends State<CrearVisitanteDialog> {
       'tipoDocumentoId': 1,
     });
 
-    if (success && context.mounted) {
+    if (!context.mounted) return;
+
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Visitante creado exitosamente')),
       );
       widget.onSuccess();
-    } else if (context.mounted) {
+    } else {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Error al crear visitante')));
@@ -3485,7 +3496,9 @@ class _EditarVisitanteDialogState extends State<EditarVisitanteDialog> {
       },
     );
 
-    if (success && context.mounted) {
+    if (!context.mounted) return;
+
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Visitante actualizado exitosamente')),
       );
