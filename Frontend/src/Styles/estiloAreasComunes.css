@@ -684,7 +684,7 @@
   font-weight: 700;
 }
 .ac-modal-close {
-  background: #2e7d32;
+  background: #e65100;
   border: none;
   color: white;
   width: 32px;
@@ -698,7 +698,7 @@
   transition: background 0.2s;
 }
 .ac-modal-close:hover {
-  background: rgba(255, 255, 255, 0.35);
+  background: #bf360c;
 }
 .ac-modal-body {
   padding: 24px;

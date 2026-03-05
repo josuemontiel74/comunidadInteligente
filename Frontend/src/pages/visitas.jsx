@@ -1356,9 +1356,7 @@ function Visitas() {
                           </button>
                         </li>
                       ))}
-                      <li
-                        className={disabledIf(paginaActual === totalPaginas)}
-                      >
+                      <li className={disabledIf(paginaActual === totalPaginas)}>
                         <button
                           onClick={() =>
                             setPaginaActual((p) =>
@@ -1371,9 +1369,7 @@ function Visitas() {
                           <i className="bi bi-chevron-right"></i>
                         </button>
                       </li>
-                      <li
-                        className={disabledIf(paginaActual === totalPaginas)}
-                      >
+                      <li className={disabledIf(paginaActual === totalPaginas)}>
                         <button
                           onClick={() => setPaginaActual(totalPaginas)}
                           disabled={paginaActual === totalPaginas}
@@ -1594,7 +1590,7 @@ function Visitas() {
               {formData.vieneEnVehiculo === "SI" && (
                 <div className="vis-vehicle-section">
                   <div className="vis-vehicle-title">
-                    <i className="bi bi-car-front"></i> Datos del Vehículo
+                    <i className={`bi ${formData.tipoVehiculoId === "2" ? "bi-scooter" : "bi-car-front"}`}></i> Datos del Vehículo
                   </div>
 
                   <div className="vis-form-group">
@@ -1899,7 +1895,7 @@ function Visitas() {
                 <>
                   <div className="vis-detalle-row">
                     <div className="vis-detalle-icon">
-                      <i className="bi bi-car-front"></i>
+                      <i className={`bi ${modalDetalle.nombreVehiculo === "Moto" ? "bi-scooter" : "bi-car-front"}`}></i>
                     </div>
                     <div className="vis-detalle-content">
                       <div className="vis-detalle-label">Vehículo</div>
