@@ -6,6 +6,7 @@ import {
   validarNombreCompleto,
   validarTransportadora,
   TRANSPORTADORAS_CO,
+  filtrarInputNombre,
 } from "../utils/validaciones.js";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
@@ -1083,9 +1084,7 @@ function Paqueteria() {
                           </button>
                         </li>
                       ))}
-                      <li
-                        className={disabledIf(paginaActual === totalPaginas)}
-                      >
+                      <li className={disabledIf(paginaActual === totalPaginas)}>
                         <button
                           onClick={() =>
                             setPaginaActual((p) =>
@@ -1098,9 +1097,7 @@ function Paqueteria() {
                           <i className="bi bi-chevron-right"></i>
                         </button>
                       </li>
-                      <li
-                        className={disabledIf(paginaActual === totalPaginas)}
-                      >
+                      <li className={disabledIf(paginaActual === totalPaginas)}>
                         <button
                           onClick={() => setPaginaActual(totalPaginas)}
                           disabled={paginaActual === totalPaginas}
@@ -1152,7 +1149,10 @@ function Paqueteria() {
                   className="paq-form-control"
                   value={formCrear.residente}
                   onChange={(e) =>
-                    setFormCrear({ ...formCrear, residente: e.target.value })
+                    setFormCrear({
+                      ...formCrear,
+                      residente: filtrarInputNombre(e.target.value),
+                    })
                   }
                   required
                   placeholder="Nombre completo"
@@ -1357,7 +1357,7 @@ function Paqueteria() {
                   onChange={(e) =>
                     setFormEditar({
                       ...formEditar,
-                      residente: e.target.value,
+                      residente: filtrarInputNombre(e.target.value),
                     })
                   }
                   required

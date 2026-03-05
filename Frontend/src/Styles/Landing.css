@@ -25,8 +25,50 @@
   --ld-text2: #a5c9aa;
   --ld-text3: #74a27c;
   --ld-border: #437044;
+  --ld-primary: #4ade80;
+  --ld-primary-dark: #22c55e;
+  --ld-accent: #4ade80;
   --ld-header-bg: rgba(13, 26, 14, 0.94);
   --ld-header-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* Botones: mantener fondo oscuro para contraste con texto blanco */
+[data-modo="oscuro"] .ld-btn-primary {
+  background: #2d6b35;
+}
+[data-modo="oscuro"] .ld-btn-primary:hover {
+  background: #1f5528;
+}
+[data-modo="oscuro"] .ld-btn-login {
+  background: #2d6b35;
+}
+[data-modo="oscuro"] .ld-btn-login:hover {
+  background: #1f5528;
+}
+
+/* Stats bar: labels y valores plenamente visibles en modo oscuro */
+[data-modo="oscuro"] .ld-stats-bar {
+  background: linear-gradient(135deg, #1b4d22 0%, #2a6e35 100%);
+}
+[data-modo="oscuro"] .ld-stat-value {
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+[data-modo="oscuro"] .ld-stat-label {
+  color: #fff;
+}
+
+/* CTA band: textos más legibles en modo oscuro */
+[data-modo="oscuro"] .ld-cta-band {
+  background: linear-gradient(135deg, #1b4d22 0%, #2a6e35 60%, #358a40 100%);
+}
+[data-modo="oscuro"] .ld-cta-title {
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+}
+[data-modo="oscuro"] .ld-cta-sub {
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
 /* ── Reset / base ───────────────────────────────────────────── */

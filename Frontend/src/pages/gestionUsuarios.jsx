@@ -27,6 +27,8 @@ import {
   validarTelefono,
   validarEmail,
   validarDocumento,
+  filtrarInputDocumento,
+  filtrarInputNombre,
 } from "../utils/validaciones.js";
 import ModalOverlay from "../utils/ModalOverlay.jsx";
 import { verificarTokenVencido, obtenerRolFromToken } from "../utils/auth.js";
@@ -1813,11 +1815,17 @@ function GestionUsuarios() {
                     </label>
                     <input
                       id="gu-c-numDoc"
-                      type="number"
+                      type="text"
                       className="gu-form-control"
                       value={formData.numeroDocumento}
                       onChange={(e) =>
-                        updateField("numeroDocumento", e.target.value)
+                        updateField(
+                          "numeroDocumento",
+                          filtrarInputDocumento(
+                            e.target.value,
+                            formData.tipoDocumentoId === "3",
+                          ),
+                        )
                       }
                       required
                     />
@@ -1835,7 +1843,10 @@ function GestionUsuarios() {
                       className="gu-form-control"
                       value={formData.primerNombre}
                       onChange={(e) =>
-                        updateField("primerNombre", e.target.value)
+                        updateField(
+                          "primerNombre",
+                          filtrarInputNombre(e.target.value),
+                        )
                       }
                       required
                     />
@@ -1853,7 +1864,10 @@ function GestionUsuarios() {
                       className="gu-form-control"
                       value={formData.segundoNombre}
                       onChange={(e) =>
-                        updateField("segundoNombre", e.target.value)
+                        updateField(
+                          "segundoNombre",
+                          filtrarInputNombre(e.target.value),
+                        )
                       }
                     />
                   </div>
@@ -1870,7 +1884,10 @@ function GestionUsuarios() {
                       className="gu-form-control"
                       value={formData.primerApellido}
                       onChange={(e) =>
-                        updateField("primerApellido", e.target.value)
+                        updateField(
+                          "primerApellido",
+                          filtrarInputNombre(e.target.value),
+                        )
                       }
                       required
                     />
@@ -1888,7 +1905,10 @@ function GestionUsuarios() {
                       className="gu-form-control"
                       value={formData.segundoApellido}
                       onChange={(e) =>
-                        updateField("segundoApellido", e.target.value)
+                        updateField(
+                          "segundoApellido",
+                          filtrarInputNombre(e.target.value),
+                        )
                       }
                     />
                   </div>
@@ -2116,7 +2136,10 @@ function GestionUsuarios() {
                       className="gu-form-control"
                       value={formData.primerNombre}
                       onChange={(e) =>
-                        updateField("primerNombre", e.target.value)
+                        updateField(
+                          "primerNombre",
+                          filtrarInputNombre(e.target.value),
+                        )
                       }
                       required
                     />
@@ -2134,7 +2157,10 @@ function GestionUsuarios() {
                       className="gu-form-control"
                       value={formData.segundoNombre}
                       onChange={(e) =>
-                        updateField("segundoNombre", e.target.value)
+                        updateField(
+                          "segundoNombre",
+                          filtrarInputNombre(e.target.value),
+                        )
                       }
                     />
                   </div>
@@ -2151,7 +2177,10 @@ function GestionUsuarios() {
                       className="gu-form-control"
                       value={formData.primerApellido}
                       onChange={(e) =>
-                        updateField("primerApellido", e.target.value)
+                        updateField(
+                          "primerApellido",
+                          filtrarInputNombre(e.target.value),
+                        )
                       }
                       required
                     />
@@ -2169,7 +2198,10 @@ function GestionUsuarios() {
                       className="gu-form-control"
                       value={formData.segundoApellido}
                       onChange={(e) =>
-                        updateField("segundoApellido", e.target.value)
+                        updateField(
+                          "segundoApellido",
+                          filtrarInputNombre(e.target.value),
+                        )
                       }
                     />
                   </div>

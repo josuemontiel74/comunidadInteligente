@@ -15,6 +15,10 @@ import {
 } from "../services/residentes.services.jsx";
 import ModalOverlay from "../utils/ModalOverlay.jsx";
 import { verificarTokenVencido, obtenerRolFromToken } from "../utils/auth.js";
+import {
+  filtrarInputDocumento,
+  filtrarInputNombre,
+} from "../utils/validaciones.js";
 import useLogout from "../utils/useLogout.js";
 
 /* =========================================================
@@ -589,6 +593,20 @@ function Residentes() {
     if (name === "telefono") {
       const soloNumeros = value.replaceAll(/[^\d]/g, "");
       setFormData((f) => ({ ...f, [name]: soloNumeros }));
+      return;
+    }
+    if (name === "numeroDocumento") {
+      const esPasaporte = formData.tipoDocumento === "PP";
+      setFormData((f) => ({
+        ...f,
+        [name]: filtrarInputDocumento(value, esPasaporte),
+      }));
+      return;
+    }
+    if (
+      ["primerNombre", "segundoNombre", "primerApellido", "segundoApellido"].includes(name)
+    ) {
+      setFormData((f) => ({ ...f, [name]: filtrarInputNombre(value) }));
       return;
     }
     setFormData((f) => ({ ...f, [name]: value }));
