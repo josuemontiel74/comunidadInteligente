@@ -795,7 +795,9 @@ class _VisitasScreenState extends State<VisitasScreen> {
                                           decoration: BoxDecoration(
                                             color: esActiva
                                                 ? Colors.green.shade100
-                                                : Theme.of(context).colorScheme.surfaceContainerHighest,
+                                                : Theme.of(context)
+                                                      .colorScheme
+                                                      .surfaceContainerHighest,
                                             borderRadius: BorderRadius.circular(
                                               20,
                                             ),
@@ -807,7 +809,10 @@ class _VisitasScreenState extends State<VisitasScreen> {
                                               fontWeight: FontWeight.bold,
                                               color: esActiva
                                                   ? Colors.green.shade700
-                                                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                                  : Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurface
+                                                        .withValues(alpha: 0.7),
                                             ),
                                           ),
                                         ),
@@ -939,7 +944,9 @@ class _VisitasScreenState extends State<VisitasScreen> {
       },
       selectedColor: Colors.green,
       labelStyle: TextStyle(
-        color: seleccionado ? Colors.white : Theme.of(context).colorScheme.onSurface,
+        color: seleccionado
+            ? Colors.white
+            : Theme.of(context).colorScheme.onSurface,
         fontWeight: seleccionado ? FontWeight.bold : FontWeight.normal,
       ),
     );
@@ -1420,7 +1427,13 @@ class EmptyStateWidget extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 64, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+          Icon(
+            icon,
+            size: 64,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.5),
+          ),
           const SizedBox(height: 16),
           Text(message),
           const SizedBox(height: 16),
@@ -1492,7 +1505,9 @@ class VisitaCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       color: esActiva
                           ? Colors.green.shade700
-                          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                          : Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                 ),
@@ -1503,11 +1518,22 @@ class VisitaCard extends StatelessWidget {
             // Apartamento
             Row(
               children: [
-                Icon(Icons.home, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), size: 18),
+                Icon(
+                  Icons.home,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Apto: ${visita['numeroApartamento']} - Torre: ${visita['nombreTorre'] ?? 'N/A'}',
-                  style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
                 ),
               ],
             ),
@@ -1516,11 +1542,22 @@ class VisitaCard extends StatelessWidget {
             // Documento
             Row(
               children: [
-                Icon(Icons.badge, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), size: 18),
+                Icon(
+                  Icons.badge,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Doc: ${visita['numeroDocumento']}',
-                  style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
                 ),
               ],
             ),
@@ -1529,11 +1566,22 @@ class VisitaCard extends StatelessWidget {
             // Fecha de ingreso
             Row(
               children: [
-                Icon(Icons.access_time, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), size: 18),
+                Icon(
+                  Icons.access_time,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Ingreso: ${_formatearFecha(visita['fechaHoraIngreso'])}',
-                  style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
                 ),
               ],
             ),
@@ -1615,7 +1663,12 @@ class VisitanteCard extends StatelessWidget {
           padding: const EdgeInsets.only(top: 4),
           child: Text(
             'Doc: ${visitante['numeroDocumento']}',
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 14),
+            style: TextStyle(
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.6),
+              fontSize: 14,
+            ),
           ),
         ),
         trailing: Row(
@@ -2357,7 +2410,9 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                                   borderRadius: BorderRadius.circular(14),
                                   color: tipoVehiculoId != null
                                       ? Theme.of(context).cardColor
-                                      : Theme.of(context).colorScheme.surfaceContainerHighest,
+                                      : Theme.of(
+                                          context,
+                                        ).colorScheme.surfaceContainerHighest,
                                 ),
                                 child: Row(
                                   children: [
@@ -2365,7 +2420,9 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                                       Icons.local_parking,
                                       color: tipoVehiculoId != null
                                           ? Colors.green
-                                          : Theme.of(context).colorScheme.outline,
+                                          : Theme.of(
+                                              context,
+                                            ).colorScheme.outline,
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
@@ -2377,7 +2434,10 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                                             "Espacio de parqueadero *",
                                             style: TextStyle(
                                               fontSize: 12,
-                                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withValues(alpha: 0.6),
                                             ),
                                           ),
                                           const SizedBox(height: 4),
@@ -3221,7 +3281,9 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide(
-              color: tipoVehiculoId == null ? Theme.of(context).colorScheme.outline : Colors.green,
+              color: tipoVehiculoId == null
+                  ? Theme.of(context).colorScheme.outline
+                  : Colors.green,
             ),
           ),
           focusedBorder: OutlineInputBorder(
@@ -3242,13 +3304,17 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
                   ? 'Espacio elegido: $codigoParqueadero'
                   : 'Toca para seleccionar',
               style: TextStyle(
-                color: tipoVehiculoId == null ? Theme.of(context).colorScheme.outline : Theme.of(context).colorScheme.onSurface,
+                color: tipoVehiculoId == null
+                    ? Theme.of(context).colorScheme.outline
+                    : Theme.of(context).colorScheme.onSurface,
               ),
             ),
             Icon(
               Icons.arrow_forward_ios,
               size: 16,
-              color: tipoVehiculoId == null ? Theme.of(context).colorScheme.outline : Colors.green,
+              color: tipoVehiculoId == null
+                  ? Theme.of(context).colorScheme.outline
+                  : Colors.green,
             ),
           ],
         ),

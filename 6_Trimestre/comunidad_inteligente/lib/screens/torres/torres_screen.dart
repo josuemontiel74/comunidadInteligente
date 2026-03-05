@@ -16,6 +16,7 @@ class TorresVisualizacion extends StatefulWidget {
 class _TorresVisualizacionState extends State<TorresVisualizacion> {
   bool isLoading = true;
   List<Map<String, dynamic>> apartamentos = [];
+  List<Map<String, dynamic>> _ocupantes = [];
   String? torreSeleccionada;
 
   @override
@@ -42,15 +43,46 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
         final List<dynamic> body = data['body'] ?? data['data'] ?? [];
         setState(() {
           apartamentos = body.cast<Map<String, dynamic>>();
-          isLoading = false;
         });
       } else {
         setState(() => isLoading = false);
+        return;
       }
+
+      // Cargar ocupantes
+      try {
+        final resOcup = await http.get(
+          Uri.parse('${LoginServe.baseUrl}/api/ocupantes'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        );
+        if (resOcup.statusCode == 200) {
+          final dataOcup = json.decode(resOcup.body);
+          final List<dynamic> bodyOcup =
+              dataOcup['body'] ?? dataOcup['data'] ?? dataOcup;
+          setState(() {
+            _ocupantes = bodyOcup.cast<Map<String, dynamic>>();
+          });
+        }
+      } catch (_) {}
+
+      setState(() => isLoading = false);
     } catch (e) {
       debugPrint('Error al cargar apartamentos: $e');
       setState(() => isLoading = false);
     }
+  }
+
+  /// Retorna los ocupantes activos de un apartamento
+  List<Map<String, dynamic>> _getOcupantesDeApartamento(dynamic aptoId) {
+    if (aptoId == null) return [];
+    return _ocupantes
+        .where((o) =>
+            o['apartamentosId'].toString() == aptoId.toString() &&
+            (o['estadoId'] == null || o['estadoId'] != 4))
+        .toList();
   }
 
   /// Obtiene la lista de apartamentos filtrados por torre
@@ -484,6 +516,7 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
               _buildInfoRow('Torre', torreNombre),
               _buildInfoRow('Apartamento', codigo),
               _buildInfoRow('Estado', estadoNombre),
+              ..._buildOcupanteRows(apto['idApartamento']),
             ],
           ),
         ),
@@ -506,9 +539,46 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
             '$label: ',
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
           ),
-          Text(value, style: const TextStyle(fontSize: 13)),
+          Expanded(
+            child: Text(value, style: const TextStyle(fontSize: 13)),
+          ),
         ],
       ),
     );
+  }
+
+  /// Construye filas con los ocupantes del apartamento
+  List<Widget> _buildOcupanteRows(dynamic aptoId) {
+    final ocupantes = _getOcupantesDeApartamento(aptoId);
+    if (ocupantes.isEmpty) return [];
+
+    return [
+      const Divider(height: 12),
+      const Text(
+        'Ocupantes:',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+      ),
+      const SizedBox(height: 4),
+      ...ocupantes.map((o) {
+        final nombre =
+            '${o['primerNombre'] ?? ''} ${o['primerApellido'] ?? ''}'.trim();
+        final tipo = o['tipoOcupacion'] ?? '';
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 2),
+          child: Row(
+            children: [
+              const Icon(Icons.person, size: 14, color: Colors.teal),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  '$nombre${tipo.isNotEmpty ? ' ($tipo)' : ''}',
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+    ];
   }
 }

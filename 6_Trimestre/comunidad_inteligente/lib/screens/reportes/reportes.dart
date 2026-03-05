@@ -868,7 +868,12 @@ class _ReportesScreenState extends State<ReportesScreen> {
             const Divider(height: 24),
             Text(
               'Top 10 horas con mayor ocupación',
-              style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
             ),
             const SizedBox(height: 16),
             // Gráfico de barras horizontales
@@ -906,7 +911,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
                               Container(
                                 height: 32,
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerHighest,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
@@ -940,7 +947,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
                                     fontWeight: FontWeight.bold,
                                     color: porcentaje > 0.3
                                         ? Colors.white
-                                        : Theme.of(context).colorScheme.onSurface,
+                                        : Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
                                   ),
                                 ),
                               ),
@@ -1232,7 +1241,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
                           value: totalReservas > 0
                               ? cantidad / totalReservas
                               : 0,
-                          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
                           valueColor: AlwaysStoppedAnimation(estadoColor),
                         ),
                       ),
@@ -1271,7 +1282,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
                           value: totalReservas > 0
                               ? cantidad / totalReservas
                               : 0,
-                          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
                           valueColor: AlwaysStoppedAnimation(
                             Colors.teal.shade400,
                           ),
@@ -1424,7 +1437,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
         const SizedBox(height: 4),
         LinearProgressIndicator(
           value: porcentaje,
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+          backgroundColor: Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest,
           valueColor: AlwaysStoppedAnimation(color),
           minHeight: 8,
           borderRadius: BorderRadius.circular(4),
@@ -2580,7 +2595,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
                             '$apartamentosOcupados/$totalApartamentos',
                             style: TextStyle(
                               fontSize: 10,
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                           ),
                         ],
@@ -2595,7 +2612,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
                   'Ocupados / Total apartamentos',
                   style: TextStyle(
                     fontSize: 11,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.5),
                     fontStyle: FontStyle.italic,
                   ),
                 ),
@@ -2609,12 +2628,18 @@ class _ReportesScreenState extends State<ReportesScreen> {
                       Icon(
                         Icons.apartment,
                         size: 48,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.3),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'No hay datos de ocupación disponibles',
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.5),
+                        ),
                       ),
                     ],
                   ),
@@ -2656,7 +2681,12 @@ class _ReportesScreenState extends State<ReportesScreen> {
         ),
         Text(
           label,
-          style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
+          style: TextStyle(
+            fontSize: 11,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
         ),
       ],
     );
@@ -2804,12 +2834,18 @@ class _ReportesScreenState extends State<ReportesScreen> {
                       Icon(
                         Icons.child_care,
                         size: 48,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.3),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'No hay datos de niños disponibles',
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.5),
+                        ),
                       ),
                     ],
                   ),
@@ -2914,7 +2950,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
                           '(60+ años)',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                       ],
@@ -2958,7 +2996,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
                           'Discapacidad',
                           style: TextStyle(
                             fontSize: 13,
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -3086,12 +3126,18 @@ class _ReportesScreenState extends State<ReportesScreen> {
                       Icon(
                         Icons.accessibility,
                         size: 48,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.3),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'No hay datos de población especial disponibles',
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.5),
+                        ),
                       ),
                     ],
                   ),

@@ -43,6 +43,7 @@ dependencies:
   intl: any
   url_launcher: ^6.3.2
   font_awesome_flutter: ^10.8.0
+  image_picker: ^1.1.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

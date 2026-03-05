@@ -325,7 +325,12 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
             const SizedBox(height: 8),
             Text(
               'Esta acción no se puede deshacer.',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 13),
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
+                fontSize: 13,
+              ),
             ),
           ],
         ),
@@ -474,7 +479,9 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                       'Torre ${_convertirTorreIdALetra(paquete['apartamento']?['torresId'])} - Apto ${paquete['apartamento']?['numeroApartamento']?.toString() ?? ''}',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -501,7 +508,9 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                         paquete['empresaMensajeria']?.toString() ?? '',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ),
@@ -530,7 +539,9 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                       ),
                       style: TextStyle(
                         fontSize: 14,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -919,7 +930,12 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                 ? Center(
                     child: Text(
                       'No hay paquetes registrados',
-                      style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.5),
+                      ),
                     ),
                   )
                 : MediaQuery.of(context).size.width < 600
@@ -986,7 +1002,9 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
       },
       selectedColor: Colors.blue,
       labelStyle: TextStyle(
-        color: seleccionado ? Colors.white : Theme.of(context).colorScheme.onSurface,
+        color: seleccionado
+            ? Colors.white
+            : Theme.of(context).colorScheme.onSurface,
         fontWeight: seleccionado ? FontWeight.bold : FontWeight.normal,
       ),
     );
@@ -2169,7 +2187,10 @@ class DetallesPaquete extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             valor,
-            style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
+            style: TextStyle(
+              fontSize: 15,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
         ],
       ),

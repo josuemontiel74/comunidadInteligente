@@ -57,7 +57,11 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
             SizedBox(height: 12),
             Text(
               'ID del Registro (Clave Primaria):',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
             ),
             SizedBox(height: 8),
             Container(
@@ -125,7 +129,11 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
                     SizedBox(height: 12),
                     Text(
                       'El servidor está teniendo problemas.\nPor favor, contacta al administrador.',
-                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+                      style: TextStyle(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.5),
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     SizedBox(height: 16),
@@ -159,11 +167,22 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.history, size: 80, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+          Icon(
+            Icons.history,
+            size: 80,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.5),
+          ),
           SizedBox(height: 16),
           Text(
             'No hay registros de auditoría',
-            style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+            style: TextStyle(
+              fontSize: 18,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
           ),
         ],
       ),
@@ -289,11 +308,22 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: 80, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+            Icon(
+              Icons.search_off,
+              size: 80,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
             SizedBox(height: 16),
             Text(
               'No se encontraron registros',
-              style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+              style: TextStyle(
+                fontSize: 18,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
             ),
           ],
         ),

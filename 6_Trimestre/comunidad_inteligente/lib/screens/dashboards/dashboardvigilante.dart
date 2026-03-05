@@ -8,6 +8,7 @@ import '../visitas/visitas.dart';
 import '../parqueaderos/parqueaderos.dart' show SeleccionarParqueaderoScreen;
 import '../../utils/helpers.dart';
 import '../../utils/theme_provider.dart';
+import '../../utils/user_photo_service.dart';
 import '../../widgets/whatsapp_fab.dart';
 
 class Dashboardvigilante extends StatefulWidget {
@@ -30,11 +31,19 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
   int usuariosActivos = 0;
   int residentesActivos = 0;
   bool isLoading = true;
+  String? _fotoBase64;
 
   @override
   void initState() {
     super.initState();
     _cargarDatos();
+    _cargarFotoPerfil();
+  }
+
+  Future<void> _cargarFotoPerfil() async {
+    final foto = await UserPhotoService.getPhoto(
+        LoginServe.usernameActual ?? widget.nombreUsuario);
+    if (mounted && foto != null) setState(() => _fotoBase64 = foto);
   }
 
   Future<void> _cargarDatos() async {
@@ -128,7 +137,12 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                   CircleAvatar(
                     radius: 40,
                     backgroundColor: Colors.white,
-                    child: Icon(Icons.security, size: 50, color: Colors.blue),
+                    backgroundImage: _fotoBase64 != null
+                        ? MemoryImage(base64Decode(_fotoBase64!))
+                        : null,
+                    child: _fotoBase64 == null
+                        ? Icon(Icons.security, size: 50, color: Colors.blue)
+                        : null,
                   ),
                   SizedBox(height: 15),
                   Text(
@@ -155,9 +169,14 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                 builder: (context, _) {
                   final darkMode = ThemeProvider().isDarkMode;
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: darkMode ? Colors.grey.shade800 : Colors.grey.shade100,
+                      color: darkMode
+                          ? Colors.grey.shade800
+                          : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -321,7 +340,17 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
               bottom: 0,
               child: Center(
                 child: IconButton(
-                  icon: Icon(Icons.person, color: Colors.blue, size: 32),
+                  icon: CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Colors.white,
+                    backgroundImage: _fotoBase64 != null
+                        ? MemoryImage(base64Decode(_fotoBase64!))
+                        : null,
+                    child: _fotoBase64 == null
+                        ? const Icon(Icons.person,
+                            color: Colors.blue, size: 18)
+                        : null,
+                  ),
                   onPressed: () {
                     _mostrarPerfilUsuario(context);
                   },

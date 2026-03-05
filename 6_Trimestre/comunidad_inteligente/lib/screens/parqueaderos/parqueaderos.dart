@@ -222,7 +222,9 @@ class _SeleccionarParqueaderoScreenState
                         Icon(
                           Icons.local_parking,
                           size: 64,
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.4),
                         ),
                         const SizedBox(height: 16),
                         Text(
@@ -374,7 +376,9 @@ class _SeleccionarParqueaderoScreenState
                 tipoVehiculo,
                 style: TextStyle(
                   fontSize: isMobile ? 11 : 12,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
               SizedBox(height: isMobile ? 4 : 6),
@@ -405,7 +409,9 @@ class _SeleccionarParqueaderoScreenState
                     icon: Icon(
                       Icons.settings,
                       size: 18,
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                     padding: EdgeInsets.zero,
                     tooltip: 'Cambiar estado',
@@ -418,7 +424,13 @@ class _SeleccionarParqueaderoScreenState
                 SizedBox(
                   height: 28,
                   child: IconButton(
-                    icon: Icon(Icons.lock, size: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)),
+                    icon: Icon(
+                      Icons.lock,
+                      size: 18,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.4),
+                    ),
                     padding: EdgeInsets.zero,
                     tooltip: 'Tiene visita activa',
                     onPressed: () => _mostrarMensajeOcupado(),

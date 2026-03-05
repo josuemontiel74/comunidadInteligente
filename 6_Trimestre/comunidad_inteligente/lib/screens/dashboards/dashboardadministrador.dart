@@ -13,6 +13,7 @@ import '../residentes/residentes.dart';
 import '../torres/torres_screen.dart';
 import '../../utils/helpers.dart';
 import '../../utils/theme_provider.dart';
+import '../../utils/user_photo_service.dart';
 import '../../widgets/whatsapp_fab.dart';
 
 class Dashboardadministrador extends StatefulWidget {
@@ -39,11 +40,19 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
   int usuariosActivos = 0;
   int residentesActivos = 0;
   bool isLoading = true;
+  String? _fotoBase64;
 
   @override
   void initState() {
     super.initState();
     _cargarDatos();
+    _cargarFotoPerfil();
+  }
+
+  Future<void> _cargarFotoPerfil() async {
+    final foto = await UserPhotoService.getPhoto(
+        LoginServe.usernameActual ?? widget.nombreUsuario);
+    if (mounted && foto != null) setState(() => _fotoBase64 = foto);
   }
 
   Future<void> _cargarDatos() async {
@@ -131,11 +140,16 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
                   CircleAvatar(
                     radius: 40,
                     backgroundColor: Colors.white,
-                    child: Icon(
-                      Icons.manage_accounts,
-                      size: 50,
-                      color: Colors.orange,
-                    ),
+                    backgroundImage: _fotoBase64 != null
+                        ? MemoryImage(base64Decode(_fotoBase64!))
+                        : null,
+                    child: _fotoBase64 == null
+                        ? Icon(
+                            Icons.manage_accounts,
+                            size: 50,
+                            color: Colors.orange,
+                          )
+                        : null,
                   ),
                   SizedBox(height: 15),
                   Text(
@@ -162,9 +176,14 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
                 builder: (context, _) {
                   final darkMode = ThemeProvider().isDarkMode;
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: darkMode ? Colors.grey.shade800 : Colors.grey.shade100,
+                      color: darkMode
+                          ? Colors.grey.shade800
+                          : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -375,7 +394,17 @@ class _DashboardadministradorState extends State<Dashboardadministrador> {
               bottom: 0,
               child: Center(
                 child: IconButton(
-                  icon: Icon(Icons.person, color: Colors.orange, size: 32),
+                  icon: CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Colors.white,
+                    backgroundImage: _fotoBase64 != null
+                        ? MemoryImage(base64Decode(_fotoBase64!))
+                        : null,
+                    child: _fotoBase64 == null
+                        ? const Icon(Icons.person,
+                            color: Colors.orange, size: 18)
+                        : null,
+                  ),
                   onPressed: () {
                     _mostrarPerfilUsuario(context);
                   },

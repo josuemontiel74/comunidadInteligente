@@ -55,33 +55,15 @@ class DetallesReserva extends StatelessWidget {
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    _buildDetalle(
-                      'ID Reserva',
-                      '#${reserva.idReservas ?? "N/A"}',
-                    ),
-                    _buildDetalle(
-                      'Área Común',
-                      obtenerNombreAreaComun(reserva.areaComun),
-                    ),
-                    _buildDetalle('Fecha', reserva.fechaReserva ?? 'N/A'),
-                    _buildDetalle(
-                      'Horario',
-                      '${reserva.horaInicio ?? ""} - ${reserva.horaFin ?? ""}',
-                    ),
-                    _buildDetalle('Motivo', reserva.motivoReserva ?? 'N/A'),
-                    _buildDetalle(
-                      'Cantidad de Asistentes',
-                      '${reserva.cantidadAsistentes ?? 0}',
-                    ),
-                    _buildDetalle(
-                      'Invitados Externos',
-                      reserva.invitadosExternos == 1 ? 'Sí' : 'No',
-                    ),
-                    _buildDetalle(
-                      'Apartamento',
-                      reserva.numeroApartamento ?? 'N/A',
-                    ),
-                    _buildDetalle('Estado', reserva.nombreEstado ?? 'N/A'),
+                    _buildDetalle(context, 'ID Reserva', '#${reserva.idReservas ?? "N/A"}'),
+                    _buildDetalle(context, 'Área Común', obtenerNombreAreaComun(reserva.areaComun)),
+                    _buildDetalle(context, 'Fecha', reserva.fechaReserva ?? 'N/A'),
+                    _buildDetalle(context, 'Horario', '${reserva.horaInicio ?? ""} - ${reserva.horaFin ?? ""}'),
+                    _buildDetalle(context, 'Motivo', reserva.motivoReserva ?? 'N/A'),
+                    _buildDetalle(context, 'Cantidad de Asistentes', '${reserva.cantidadAsistentes ?? 0}'),
+                    _buildDetalle(context, 'Invitados Externos', reserva.invitadosExternos == 1 ? 'Sí' : 'No'),
+                    _buildDetalle(context, 'Apartamento', reserva.numeroApartamento ?? 'N/A'),
+                    _buildDetalle(context, 'Estado', reserva.nombreEstado ?? 'N/A'),
                     const Divider(height: 30),
                     const Text(
                       'Solicitante',
@@ -92,20 +74,11 @@ class DetallesReserva extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    _buildDetalle('Nombre', reserva.nombreSolicitante ?? 'N/A'),
-                    _buildDetalle(
-                      'Documento',
-                      '${reserva.tipodocumento ?? ""} ${reserva.documentoSolicitante ?? ""}',
-                    ),
-                    _buildDetalle('Correo', reserva.correoSolicitante ?? 'N/A'),
-                    _buildDetalle(
-                      'Teléfono',
-                      reserva.telefonoSolicitante ?? 'N/A',
-                    ),
-                    _buildDetalle(
-                      'Acepta Reglamento',
-                      reserva.aceptaReglamento == 1 ? 'Sí' : 'No',
-                    ),
+                    _buildDetalle(context, 'Nombre', reserva.nombreSolicitante ?? 'N/A'),
+                    _buildDetalle(context, 'Documento', '${reserva.tipodocumento ?? ""} ${reserva.documentoSolicitante ?? ""}'),
+                    _buildDetalle(context, 'Correo', reserva.correoSolicitante ?? 'N/A'),
+                    _buildDetalle(context, 'Teléfono', reserva.telefonoSolicitante ?? 'N/A'),
+                    _buildDetalle(context, 'Acepta Reglamento', reserva.aceptaReglamento == 1 ? 'Sí' : 'No'),
                   ],
                 ),
               ),
@@ -116,7 +89,7 @@ class DetallesReserva extends StatelessWidget {
     );
   }
 
-  Widget _buildDetalle(String titulo, String valor) {
+  Widget _buildDetalle(BuildContext context, String titulo, String valor) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
@@ -129,7 +102,10 @@ class DetallesReserva extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             valor,
-            style: const TextStyle(fontSize: 15, color: Colors.black87),
+            style: TextStyle(
+              fontSize: 15,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
         ],
       ),

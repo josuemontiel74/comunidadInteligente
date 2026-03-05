@@ -18,6 +18,8 @@ void main() async {
 class LoginServe {
   static String baseUrl = ApiConfig.baseUrl;
   static String? token;
+  static String? rolActual;      // rol del usuario logueado: 'superAdministrador', 'administrador', 'vigilante'
+  static String? usernameActual; // username del usuario logueado
 
   static Future<http.Response> postLogin(
     String username,
@@ -394,6 +396,9 @@ class Loginstate extends State<Login> {
         LoginServe.token = responseBody['token'];
         // El rol está dentro de "usuario.rol" en la respuesta del backend
         final rol = responseBody['usuario']?['rol'] ?? 'superadmin';
+        // Guardar username y rol actuales
+        LoginServe.rolActual = rol.toString().toLowerCase().trim();
+        LoginServe.usernameActual = username;
 
         showDialog(
           context: context,

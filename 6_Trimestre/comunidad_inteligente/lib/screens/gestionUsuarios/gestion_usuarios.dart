@@ -2,9 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:image_picker/image_picker.dart';
 import '../../main.dart';
 import '../../utils/helpers.dart';
 import '../../utils/validaciones.dart';
+import '../../utils/user_photo_service.dart';
 
 class GestionUsuarios extends StatefulWidget {
   final bool openCreateDialog;
@@ -19,10 +22,13 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
   List<dynamic> tiposDocumento = [];
   bool isLoading = true;
   bool vistaGrid = false;
-  String filtroEstado = 'todos'; // 'todos', 'activo', 'inactivo'
+  String filtroEstado = 'todos'; // 'todos', 'activo', 'inactivo', 'enlinea'
   String filtroRol = 'todos';
   String busquedaNombre = '';
   final TextEditingController _searchController = TextEditingController();
+
+  // Usuarios en línea (solo superadmin)
+  List<String> _usuariosEnLinea = [];
 
   // Paginación
   int paginaActual = 1;
@@ -40,6 +46,11 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
   void initState() {
     super.initState();
     _inicializarDatos();
+    // Cargar usuarios en línea solo si es superadmin
+    final rol = LoginServe.rolActual ?? '';
+    if (rol.contains('superadmin')) {
+      _cargarUsuariosEnLinea();
+    }
     if (widget.openCreateDialog) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _mostrarFormularioCrear();
@@ -49,6 +60,29 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
 
   Future<void> _inicializarDatos() async {
     await Future.wait([_cargarUsuarios(), _cargarTiposDocumento()]);
+  }
+
+  Future<void> _cargarUsuariosEnLinea() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${LoginServe.baseUrl}/api/usuario/en-linea'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${LoginServe.token}',
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final enLinea = data['enLinea'] as Map<String, dynamic>? ?? {};
+        if (mounted) {
+          setState(() {
+            _usuariosEnLinea = enLinea.keys.where((k) => enLinea[k] == true).toList();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error al cargar usuarios en línea: $e');
+    }
   }
 
   Future<void> _cargarUsuarios() async {
@@ -122,9 +156,14 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
     var usuariosFiltradosList = usuarios.where((usuario) {
       // Filtro por estado
       if (filtroEstado != 'todos') {
-        final estadoId = usuario['estadoId'];
-        if (filtroEstado == 'activo' && estadoId != 1) return false;
-        if (filtroEstado == 'inactivo' && estadoId != 2) return false;
+        // Filtro especial: En línea
+        if (filtroEstado == 'enlinea') {
+          if (!_usuariosEnLinea.contains(usuario['username'])) return false;
+        } else {
+          final estadoId = usuario['estadoId'];
+          if (filtroEstado == 'activo' && estadoId != 1) return false;
+          if (filtroEstado == 'inactivo' && estadoId != 2) return false;
+        }
       }
 
       // Filtro por rol
@@ -574,6 +613,11 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
                       _buildChipFiltro('Activos', 'activo'),
                       const SizedBox(width: 10),
                       _buildChipFiltro('Inactivos', 'inactivo'),
+                      // Chip "En línea" solo visible para superadmin
+                      if ((LoginServe.rolActual ?? '').contains('superadmin')) ...[
+                        const SizedBox(width: 10),
+                        _buildChipFiltroColor('En línea', 'enlinea', Colors.green),
+                      ],
                     ],
                   ),
                 ),
@@ -588,7 +632,12 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
                 ? Center(
                     child: Text(
                       'No hay usuarios registrados',
-                      style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.5),
+                      ),
                     ),
                   )
                 : Column(
@@ -627,6 +676,44 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
         });
       },
       selectedColor: Colors.purple,
+      labelStyle: TextStyle(
+        color: seleccionado
+            ? Colors.white
+            : Theme.of(context).colorScheme.onSurface,
+        fontWeight: seleccionado ? FontWeight.bold : FontWeight.normal,
+      ),
+    );
+  }
+
+  Widget _buildChipFiltroColor(String label, String valor, Color color) {
+    final bool seleccionado = filtroEstado == valor;
+    return FilterChip(
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (seleccionado || valor == 'enlinea')
+            Container(
+              width: 8,
+              height: 8,
+              margin: const EdgeInsets.only(right: 4),
+              decoration: BoxDecoration(
+                color: seleccionado ? Colors.white : color,
+                shape: BoxShape.circle,
+              ),
+            ),
+          Text(label),
+        ],
+      ),
+      selected: seleccionado,
+      onSelected: (bool selected) {
+        setState(() {
+          filtroEstado = valor;
+          paginaActual = 1;
+        });
+        // Refrescar usuarios en línea al seleccionar el filtro
+        if (valor == 'enlinea') _cargarUsuariosEnLinea();
+      },
+      selectedColor: color,
       labelStyle: TextStyle(
         color: seleccionado ? Colors.white : Theme.of(context).colorScheme.onSurface,
         fontWeight: seleccionado ? FontWeight.bold : FontWeight.normal,
@@ -771,7 +858,12 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
                 const SizedBox(width: 12),
                 Text(
                   usuario['username'] ?? 'N/A',
-                  style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
                 ),
               ],
             ),
@@ -795,7 +887,12 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
                 Expanded(
                   child: Text(
                     _obtenerNumeroDocumento(usuario),
-                    style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
                   ),
                 ),
               ],
@@ -819,7 +916,12 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
                 const SizedBox(width: 12),
                 Text(
                   _obtenerNombreRol(usuario),
-                  style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
                 ),
               ],
             ),
@@ -924,6 +1026,20 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
   int? rolId;
   bool obscurePassword = true;
   bool isSubmitting = false;
+  Uint8List? _fotoBytes;
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _seleccionarFoto() async {
+    final XFile? picked = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 75,
+    );
+    if (picked == null) return;
+    final bytes = await picked.readAsBytes();
+    if (mounted) setState(() => _fotoBytes = bytes);
+  }
 
   @override
   void dispose() {
@@ -1046,6 +1162,20 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
       }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        // Guardar foto si se seleccionó una
+        if (_fotoBytes != null) {
+          try {
+            final responseData = json.decode(response.body);
+            final newUsername = responseData['body']?['username'] ??
+                responseData['username'];
+            if (newUsername != null) {
+              await UserPhotoService.savePhoto(
+                newUsername.toString(),
+                base64Encode(_fotoBytes!),
+              );
+            }
+          } catch (_) {}
+        }
         if (mounted) {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1154,6 +1284,51 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
                                 ),
                               ),
                             ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Foto de perfil
+                      Align(
+                        alignment: Alignment.center,
+                        child: Column(
+                          children: [
+                            const Text(
+                              'Foto de Perfil (opcional)',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.purple,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            GestureDetector(
+                              onTap: _seleccionarFoto,
+                              child: CircleAvatar(
+                                radius: 40,
+                                backgroundColor: Colors.purple.shade100,
+                                backgroundImage: _fotoBytes != null
+                                    ? MemoryImage(_fotoBytes!)
+                                    : null,
+                                child: _fotoBytes == null
+                                    ? Icon(
+                                        Icons.add_a_photo,
+                                        size: 32,
+                                        color: Colors.purple.shade700,
+                                      )
+                                    : null,
+                              ),
+                            ),
+                            if (_fotoBytes != null)
+                              TextButton.icon(
+                                onPressed: () =>
+                                    setState(() => _fotoBytes = null),
+                                icon: const Icon(Icons.delete,
+                                    size: 16, color: Colors.red),
+                                label: const Text('Quitar foto',
+                                    style: TextStyle(
+                                        color: Colors.red, fontSize: 12)),
+                              ),
                           ],
                         ),
                       ),
@@ -1398,7 +1573,7 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
 }
 
 // DIALOG DETALLES USUARIO
-class DetallesUsuarioDialog extends StatelessWidget {
+class DetallesUsuarioDialog extends StatefulWidget {
   final dynamic usuario;
   final List<dynamic> roles;
 
@@ -1408,9 +1583,50 @@ class DetallesUsuarioDialog extends StatelessWidget {
     required this.roles,
   });
 
+  @override
+  State<DetallesUsuarioDialog> createState() => _DetallesUsuarioDialogState();
+}
+
+class _DetallesUsuarioDialogState extends State<DetallesUsuarioDialog> {
+  String? _fotoBase64;
+  final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarFoto();
+  }
+
+  Future<void> _cargarFoto() async {
+    final username = widget.usuario['username']?.toString() ?? '';
+    final foto = await UserPhotoService.getPhoto(username);
+    if (mounted && foto != null) {
+      setState(() => _fotoBase64 = foto);
+    }
+  }
+
+  Future<void> _cambiarFoto() async {
+    try {
+      final XFile? picked = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 75,
+      );
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      final b64 = base64Encode(bytes);
+      final username = widget.usuario['username']?.toString() ?? '';
+      await UserPhotoService.savePhoto(username, b64);
+      if (mounted) setState(() => _fotoBase64 = b64);
+    } catch (e) {
+      debugPrint('Error al seleccionar foto: $e');
+    }
+  }
+
   String _obtenerNombreRol(int? rolId) {
     if (rolId == null) return 'Sin rol';
-    final rol = roles.firstWhere(
+    final rol = widget.roles.firstWhere(
       (r) => r['idRol'] == rolId,
       orElse: () => {'nombreRol': 'Desconocido'},
     );
@@ -1419,8 +1635,8 @@ class DetallesUsuarioDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final persona = usuario['Persona'] ?? usuario['persona'] ?? {};
-    final bool esActivo = usuario['estadoId'] == 1;
+    final persona = widget.usuario['Persona'] ?? widget.usuario['persona'] ?? {};
+    final bool esActivo = widget.usuario['estadoId'] == 1;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -1432,7 +1648,7 @@ class DetallesUsuarioDialog extends StatelessWidget {
         ),
         child: Column(
           children: [
-            // Header
+            // Header con foto
             Container(
               padding: const EdgeInsets.all(16),
               decoration: const BoxDecoration(
@@ -1444,7 +1660,35 @@ class DetallesUsuarioDialog extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.person, color: Colors.white, size: 28),
+                  GestureDetector(
+                    onTap: _cambiarFoto,
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 28,
+                          backgroundColor: Colors.white,
+                          backgroundImage: _fotoBase64 != null
+                              ? MemoryImage(base64Decode(_fotoBase64!))
+                              : null,
+                          child: _fotoBase64 == null
+                              ? const Icon(Icons.person, color: Colors.purple, size: 32)
+                              : null,
+                        ),
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.camera_alt, size: 14, color: Colors.purple),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
@@ -1507,13 +1751,13 @@ class DetallesUsuarioDialog extends StatelessWidget {
                     _buildDetalleItem(
                       context,
                       'Username',
-                      usuario['username'] ?? 'N/A',
+                      widget.usuario['username'] ?? 'N/A',
                       Icons.person,
                     ),
                     _buildDetalleItem(
                       context,
                       'Rol',
-                      _obtenerNombreRol(usuario['rolesId']),
+                      _obtenerNombreRol(widget.usuario['rolesId']),
                       Icons.security,
                     ),
                     const SizedBox(height: 20),
@@ -1611,7 +1855,12 @@ class DetallesUsuarioDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildDetalleItem(BuildContext context, String label, String valor, IconData icono) {
+  Widget _buildDetalleItem(
+    BuildContext context,
+    String label,
+    String valor,
+    IconData icono,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -1623,7 +1872,13 @@ class DetallesUsuarioDialog extends StatelessWidget {
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icono, size: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
+            child: Icon(
+              icono,
+              size: 18,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1632,7 +1887,12 @@ class DetallesUsuarioDialog extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -1759,7 +2019,12 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
             const SizedBox(height: 8),
             Text(
               'Los cambios se guardarán permanentemente.',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5), fontSize: 13),
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
+                fontSize: 13,
+              ),
             ),
           ],
         ),
@@ -1987,7 +2252,9 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           filled: true,
-                          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          fillColor: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
                           helperText: 'El username no se puede modificar',
                         ),
                       ),

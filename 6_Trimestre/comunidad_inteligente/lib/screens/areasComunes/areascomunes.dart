@@ -171,7 +171,12 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
             const SizedBox(height: 8),
             Text(
               'La reserva será marcada como completada.',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5), fontSize: 13),
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
+                fontSize: 13,
+              ),
             ),
           ],
         ),
@@ -459,7 +464,9 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                       ),
                       decoration: BoxDecoration(
                         color: estaFinalizada
-                            ? Theme.of(context).colorScheme.surfaceContainerHighest
+                            ? Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest
                             : Colors.orange.shade100,
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -743,7 +750,9 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                     ),
                     decoration: BoxDecoration(
                       color: estaFinalizada
-                          ? Theme.of(context).colorScheme.surfaceContainerHighest
+                          ? Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest
                           : Colors.orange.shade100,
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -1034,7 +1043,12 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
               ? Center(
                   child: Text(
                     'No hay reservas registradas',
-                    style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.5),
+                    ),
                   ),
                 )
               : MediaQuery.of(context).size.width < 600
@@ -1100,7 +1114,9 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
       },
       selectedColor: Colors.orange,
       labelStyle: TextStyle(
-        color: seleccionado ? Colors.white : Theme.of(context).colorScheme.onSurface,
+        color: seleccionado
+            ? Colors.white
+            : Theme.of(context).colorScheme.onSurface,
         fontWeight: seleccionado ? FontWeight.bold : FontWeight.normal,
       ),
     );

@@ -678,7 +678,12 @@ class _ResidentesState extends State<Residentes> {
                 ? Center(
                     child: Text(
                       'No se encontraron residentes',
-                      style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.5),
+                      ),
                     ),
                   )
                 : Column(
@@ -841,7 +846,11 @@ class _ResidentesState extends State<Residentes> {
                       ? () => _finalizarOcupante(ocupante['idOcupante'])
                       : null,
                   icon: Icon(esActivo ? Icons.block : Icons.check_circle),
-                  color: esActivo ? Colors.red : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                  color: esActivo
+                      ? Colors.red
+                      : Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.5),
                   tooltip: esActivo ? 'Finalizar' : 'Finalizado',
                 ),
               ],
@@ -857,19 +866,31 @@ class _ResidentesState extends State<Residentes> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
+          Icon(
+            icon,
+            size: 18,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
           const SizedBox(width: 8),
           Text(
             '$label: ',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
           Expanded(
             child: Text(
               value?.toString() ?? 'N/A',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8)),
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.8),
+              ),
             ),
           ),
         ],
@@ -1054,7 +1075,11 @@ class _ResidentesState extends State<Residentes> {
                       IconButton(
                         icon: Icon(
                           esActivo ? Icons.block : Icons.check_circle,
-                          color: esActivo ? Colors.red : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                          color: esActivo
+                              ? Colors.red
+                              : Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
                         tooltip: esActivo ? 'Finalizar' : 'Finalizado',
                         onPressed: esActivo
@@ -1709,7 +1734,9 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
                       'Especifique las características de las ${personasACargoController.text} persona(s) a cargo',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -1905,7 +1932,12 @@ class _EditarResidenteDialogState extends State<EditarResidenteDialog> {
             const SizedBox(height: 8),
             Text(
               'Los cambios se guardarán permanentemente.',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5), fontSize: 13),
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
+                fontSize: 13,
+              ),
             ),
           ],
         ),
@@ -2531,7 +2563,10 @@ class VerDetalleResidenteDialog extends StatelessWidget {
                                   'ID: ${ocupante['idOcupante']}',
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.6),
                                   ),
                                 ),
                               ],

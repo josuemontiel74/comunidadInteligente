@@ -17,6 +17,7 @@ import '../log_errores/log_errores_screen.dart';
 import '../torres/torres_screen.dart';
 import '../../utils/helpers.dart';
 import '../../utils/theme_provider.dart';
+import '../../utils/user_photo_service.dart';
 import '../../widgets/whatsapp_fab.dart';
 
 class Dashboardsuperadmin extends StatefulWidget {
@@ -40,6 +41,7 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
   int usuariosActivos = 0;
   int residentesActivos = 0;
   bool isLoading = true;
+  String? _fotoBase64;
 
   // Usuarios en línea
   List<String> usuariosEnLinea = [];
@@ -50,8 +52,15 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
     super.initState();
     _cargarDatos();
     _cargarUsuariosEnLinea();
+    _cargarFotoPerfil();
     // Auto-refresh cada 30 segundos
     _iniciarAutoRefreshEnLinea();
+  }
+
+  Future<void> _cargarFotoPerfil() async {
+    final foto = await UserPhotoService.getPhoto(
+        LoginServe.usernameActual ?? widget.nombreUsuario);
+    if (mounted && foto != null) setState(() => _fotoBase64 = foto);
   }
 
   void _iniciarAutoRefreshEnLinea() {
@@ -173,11 +182,16 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                   CircleAvatar(
                     radius: 40,
                     backgroundColor: Colors.white,
-                    child: Icon(
-                      Icons.admin_panel_settings,
-                      size: 50,
-                      color: Colors.green,
-                    ),
+                    backgroundImage: _fotoBase64 != null
+                        ? MemoryImage(base64Decode(_fotoBase64!))
+                        : null,
+                    child: _fotoBase64 == null
+                        ? Icon(
+                            Icons.admin_panel_settings,
+                            size: 50,
+                            color: Colors.green,
+                          )
+                        : null,
                   ),
                   SizedBox(height: 15),
                   Text(
@@ -204,9 +218,14 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                 builder: (context, _) {
                   final darkMode = ThemeProvider().isDarkMode;
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: darkMode ? Colors.grey.shade800 : Colors.grey.shade100,
+                      color: darkMode
+                          ? Colors.grey.shade800
+                          : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -451,7 +470,17 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
               bottom: 0,
               child: Center(
                 child: IconButton(
-                  icon: Icon(Icons.person, color: Colors.green, size: 32),
+                  icon: CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Colors.white,
+                    backgroundImage: _fotoBase64 != null
+                        ? MemoryImage(base64Decode(_fotoBase64!))
+                        : null,
+                    child: _fotoBase64 == null
+                        ? const Icon(Icons.person,
+                            color: Colors.green, size: 18)
+                        : null,
+                  ),
                   onPressed: () {
                     _mostrarPerfilUsuario(context);
                   },
@@ -965,9 +994,7 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: _buildUsuariosEnLineaCard()),
-              ],
+              children: [Expanded(child: _buildUsuariosEnLineaCard())],
             ),
           ),
         ],
@@ -1412,7 +1439,11 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.broadcast_on_personal, color: Colors.purple, size: 32),
+                  Icon(
+                    Icons.broadcast_on_personal,
+                    color: Colors.purple,
+                    size: 32,
+                  ),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -1441,7 +1472,9 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                 totalEnLinea == 1 ? 'usuario conectado' : 'usuarios conectados',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
               SizedBox(height: 16),
@@ -1471,7 +1504,9 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                                     usuariosEnLinea[index],
                                     style: TextStyle(
                                       fontSize: 15,
-                                      color: Theme.of(context).colorScheme.onSurface,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
                                     ),
                                   ),
                                 ),
@@ -1486,14 +1521,18 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                           Icon(
                             Icons.wifi_off,
                             size: 40,
-                            color: isDark ? Colors.grey.shade600 : Colors.grey.shade400,
+                            color: isDark
+                                ? Colors.grey.shade600
+                                : Colors.grey.shade400,
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Ningún usuario en línea',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.5),
                             ),
                           ),
                         ],
