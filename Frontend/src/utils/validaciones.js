@@ -46,6 +46,43 @@ const tieneSentido = (str) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// FILTROS DE ENTRADA EN TIEMPO REAL (para usar en onChange / onInput)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Filtra caracteres no permitidos en un campo de número de documento.
+ *  - esPasaporte = true  → permite dígitos + máximo 2 letras (mayúsculas).
+ *  - esPasaporte = false → solo dígitos.
+ * Devuelve el valor filtrado para asignar al estado del input.
+ */
+export const filtrarInputDocumento = (valor, esPasaporte = false) => {
+  if (esPasaporte) {
+    // Solo alfanuméricos
+    const limpio = valor.replace(/[^a-zA-Z0-9]/g, "");
+    let letrasCount = 0;
+    let resultado = "";
+    for (const ch of limpio) {
+      if (/[a-zA-Z]/.test(ch)) {
+        letrasCount++;
+        if (letrasCount <= 2) resultado += ch.toUpperCase();
+      } else {
+        resultado += ch;
+      }
+    }
+    return resultado;
+  }
+  // Solo dígitos
+  return valor.replace(/\D/g, "");
+};
+
+/**
+ * Filtra caracteres no permitidos en un campo de nombre / apellido.
+ * Solo permite letras (incl. tildes y ñ), espacios, apóstrofos y guiones.
+ */
+export const filtrarInputNombre = (valor) =>
+  valor.replace(/[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]/g, "");
+
+// ─────────────────────────────────────────────────────────────────────────────
 // NOMBRES / APELLIDOS
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -124,10 +161,10 @@ export const validarEmail = (str) => {
 /**
  * Tipos de documento y sus reglas:
  *  CC  (1) → solo dígitos, 6-10 caracteres
- *  CE  (2) → alfanumérico, máx 3 letras en total
- *  PA  (3) → alfanumérico, máx 3 letras iniciales
- *  PP  (4) → alfanumérico, máx 3 letras
- *  PPT (5) → alfanumérico, máx 3 letras
+ *  CE  (2) → solo dígitos, 4-20 caracteres
+ *  PA  (3) → Pasaporte: alfanumérico, máx 2 letras, 4-20 caracteres
+ *  PEP (4) → solo dígitos, 4-20 caracteres
+ *  PPT (5) → solo dígitos, 4-20 caracteres
  *
  * @param {string} str        Valor del documento
  * @param {number|string} tipoId  Valor del tipoDocumentoId
@@ -147,21 +184,30 @@ export const validarDocumento = (str, tipoId, tipoNombre = "") => {
     return null;
   }
 
-  // CE, Pasaporte, PP, PPT: alfanumérico, máx 3 letras
-  if ([2, 3, 4, 5].includes(id)) {
+  // Pasaporte (id 3): alfanumérico, máximo 2 letras
+  if (id === 3) {
     if (!/^[a-zA-Z0-9]+$/.test(s))
       return `El documento (${etiqueta}) solo puede contener letras y números, sin caracteres especiales.`;
     const letras = (s.match(/[a-zA-Z]/g) || []).length;
-    if (letras > 3)
-      return `El documento (${etiqueta}) no puede tener más de 3 letras. Los documentos como pasaporte o CE suelen comenzar con 1-3 letras seguidas de números.`;
+    if (letras > 2)
+      return `El pasaporte no puede tener más de 2 letras. Formato esperado: hasta 2 letras seguidas de números (ej: AB1234567).`;
     if (s.length < 4 || s.length > 20)
       return `El documento (${etiqueta}) debe tener entre 4 y 20 caracteres.`;
     return null;
   }
 
-  // Caso genérico
-  if (!/^[a-zA-Z0-9]+$/.test(s))
-    return "El número de documento no puede contener caracteres especiales.";
+  // CE, PEP, PPT (ids 2, 4, 5): solo dígitos
+  if ([2, 4, 5].includes(id)) {
+    if (!/^\d+$/.test(s))
+      return `El documento (${etiqueta}) debe contener solo dígitos, sin letras ni caracteres especiales.`;
+    if (s.length < 4 || s.length > 20)
+      return `El documento (${etiqueta}) debe tener entre 4 y 20 caracteres.`;
+    return null;
+  }
+
+  // Caso genérico: solo dígitos
+  if (!/^\d+$/.test(s))
+    return "El número de documento debe contener solo dígitos, sin letras ni caracteres especiales.";
   return null;
 };
 

@@ -6,6 +6,8 @@ import {
   validarTelefono,
   validarEmail,
   validarDocumento,
+  filtrarInputDocumento,
+  filtrarInputNombre,
 } from "../utils/validaciones.js";
 import {
   obtenerReservasAreas,
@@ -426,6 +428,22 @@ function AreasComunes() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    if (name === "documentoSolicitante") {
+      const esPasaporte =
+        String(reserva.tipoDocumentoId) === "3";
+      setReserva((prev) => ({
+        ...prev,
+        [name]: filtrarInputDocumento(value, esPasaporte),
+      }));
+      return;
+    }
+    if (name === "nombreSolicitante") {
+      setReserva((prev) => ({
+        ...prev,
+        [name]: filtrarInputNombre(value),
+      }));
+      return;
+    }
     setReserva((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -743,7 +761,8 @@ function AreasComunes() {
 
     const cells = [];
     // Celdas vacías antes del día 1
-    for (let i = 0; i < startDay; i++) cells.push({ day: null, id: `empty-${i}` });
+    for (let i = 0; i < startDay; i++)
+      cells.push({ day: null, id: `empty-${i}` });
     // Días del mes
     for (let d = 1; d <= diasEnMes; d++) cells.push({ day: d, id: `day-${d}` });
     return cells;
@@ -1856,10 +1875,7 @@ function AreasComunes() {
               {buildCalendarGrid().map((cell) => {
                 if (!cell.day) {
                   return (
-                    <div
-                      key={cell.id}
-                      className="ac-calendar-day empty"
-                    />
+                    <div key={cell.id} className="ac-calendar-day empty" />
                   );
                 }
                 const reservasDia = reservasDelDia(cell.day);

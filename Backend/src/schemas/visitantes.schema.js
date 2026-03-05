@@ -1,10 +1,27 @@
 import Joi from "joi";
 
+/**
+ * Validación condicional de documento según tipo:
+ *   - tipoDocumentoId 3 (Pasaporte): alfanumérico, máx 2 letras.
+ *   - Resto: solo dígitos.
+ */
+const validarDocSegunTipo = (value, helpers) => {
+  const tipoId = helpers.state.ancestors[0]?.tipoDocumentoId;
+  if (Number(tipoId) === 3) {
+    if (!/^[A-Za-z]{0,2}\d+$/.test(value))
+      return helpers.message(
+        "El pasaporte debe tener máximo 2 letras seguidas de dígitos.",
+      );
+  } else if (!/^\d+$/.test(value)) {
+    return helpers.message(
+      "El número de documento debe contener solo dígitos.",
+    );
+  }
+  return value;
+};
+
 export const crearVisitanteSchema = Joi.object({
-  numeroDocumento: Joi.string()
-    .max(20)
-    .required()
-    .pattern(/^[a-zA-Z0-9]+$/),
+  numeroDocumento: Joi.string().max(20).required().custom(validarDocSegunTipo),
   nombreVisitante: Joi.string()
     .min(2)
     .max(100)
@@ -20,7 +37,7 @@ export const crearVisitanteSchema = Joi.object({
 export const actualizarVisitanteSchema = Joi.object({
   numeroDocumento: Joi.string()
     .max(20)
-    .pattern(/^[a-zA-Z0-9]+$/)
+    .custom(validarDocSegunTipo)
     .optional(),
   nombreVisitante: Joi.string()
     .min(2)

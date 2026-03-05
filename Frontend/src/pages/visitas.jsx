@@ -4,7 +4,11 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "../Styles/estiloVisitas.css";
 import Swal from "sweetalert2";
-import { validarNombreCompleto } from "../utils/validaciones.js";
+import {
+  validarNombreCompleto,
+  filtrarInputDocumento,
+  filtrarInputNombre,
+} from "../utils/validaciones.js";
 import {
   obtenerVisitasJoin,
   crearVisita,
@@ -1157,7 +1161,7 @@ function Visitas() {
                             {v.matricula ? (
                               <span>
                                 <i
-                                  className={`bi ${v.nombreVehiculo?.toLowerCase() === "moto" ? "bi-scooter" : "bi-car-front"} text-success me-1`}
+                                  className={`${v.nombreVehiculo?.toLowerCase() === "moto" ? "fa-solid fa-motorcycle" : "bi bi-car-front"} text-success me-1`}
                                 ></i>
                                 {v.matricula}
                               </span>
@@ -1268,7 +1272,7 @@ function Visitas() {
                               <i
                                 className={
                                   v.nombreVehiculo?.toLowerCase() === "moto"
-                                    ? "bi bi-scooter"
+                                    ? "fa-solid fa-motorcycle"
                                     : "bi bi-car-front"
                                 }
                               ></i>
@@ -1461,7 +1465,13 @@ function Visitas() {
                     className="vis-form-control"
                     value={formData.numeroDocumento}
                     onChange={(e) =>
-                      handleChange("numeroDocumento", e.target.value)
+                      handleChange(
+                        "numeroDocumento",
+                        filtrarInputDocumento(
+                          e.target.value,
+                          formData.tipoDocumentoId === "3",
+                        ),
+                      )
                     }
                     placeholder="Ej: 12345678"
                     minLength={8}
@@ -1481,7 +1491,10 @@ function Visitas() {
                   className="vis-form-control"
                   value={formData.nombreVisitante}
                   onChange={(e) =>
-                    handleChange("nombreVisitante", e.target.value)
+                    handleChange(
+                      "nombreVisitante",
+                      filtrarInputNombre(e.target.value),
+                    )
                   }
                   placeholder="Ej: Juan Carlos Rodriguez Gonzalez"
                   minLength={10}
@@ -1591,7 +1604,7 @@ function Visitas() {
                 <div className="vis-vehicle-section">
                   <div className="vis-vehicle-title">
                     <i
-                      className={`bi ${String(formData.tipoVehiculoId) === "2" ? "bi-scooter" : "bi-car-front"}`}
+                      className={String(formData.tipoVehiculoId) === "2" ? "fa-solid fa-motorcycle" : "bi bi-car-front"}
                     ></i>{" "}
                     Datos del Vehículo
                   </div>
@@ -1899,7 +1912,7 @@ function Visitas() {
                   <div className="vis-detalle-row">
                     <div className="vis-detalle-icon">
                       <i
-                        className={`bi ${modalDetalle.nombreVehiculo?.toLowerCase() === "moto" ? "bi-scooter" : "bi-car-front"}`}
+                        className={modalDetalle.nombreVehiculo?.toLowerCase() === "moto" ? "fa-solid fa-motorcycle" : "bi bi-car-front"}
                       ></i>
                     </div>
                     <div className="vis-detalle-content">

@@ -1,9 +1,24 @@
 import Joi from "joi";
 
+const validarDocSegunTipo = (value, helpers) => {
+  const tipoId = helpers.state.ancestors[0]?.tipoDocumentoId;
+  if (Number(tipoId) === 3) {
+    if (!/^[A-Za-z]{0,2}\d+$/.test(value))
+      return helpers.message(
+        "El pasaporte debe tener máximo 2 letras seguidas de dígitos.",
+      );
+  } else if (!/^\d+$/.test(value)) {
+    return helpers.message(
+      "El número de documento debe contener solo dígitos.",
+    );
+  }
+  return value;
+};
+
 export const createUserSchema = Joi.object({
   tipoDocumentoId: Joi.number().integer().required(),
   username: Joi.string().alphanum().min(3).max(30).optional(),
-  numeroDocumento: Joi.string().required(),
+  numeroDocumento: Joi.string().required().custom(validarDocSegunTipo),
   rolesId: Joi.number().integer().required(),
   password: Joi.string().min(6).required(),
   estadoId: Joi.number().default(1),
@@ -34,7 +49,7 @@ export const createUserSchema = Joi.object({
 export const updateUserSchema = Joi.object({
   tipoDocumentoId: Joi.number().integer().optional(),
   username: Joi.string().alphanum().min(3).max(30).optional(),
-  numeroDocumento: Joi.string(),
+  numeroDocumento: Joi.string().custom(validarDocSegunTipo),
   rolesId: Joi.number().integer(),
   password: Joi.string().min(6),
   estadoId: Joi.number().integer(),
