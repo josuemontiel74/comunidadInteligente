@@ -3,12 +3,13 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../parqueaderos/parqueaderos.dart' show SeleccionarParqueaderoScreen;
 import '../../utils/helpers.dart';
+import '../../utils/api_config.dart';
 
 // ============================================================================
 // API SERVICE
 // ============================================================================
 class VisitasApiService {
-  static const String _baseUrl = 'http://localhost:3001/api';
+  static const String _baseUrl = ApiConfig.apiUrl;
 
   static Future<List<dynamic>> obtenerVisitas(String token) async {
     try {
@@ -1830,7 +1831,7 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
   Future<void> _cargarTiposDocumento() async {
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:3001/api/documento'),
+        Uri.parse('${ApiConfig.apiUrl}/documento'),
         headers: {'Authorization': 'Bearer ${widget.token}'},
       );
 
@@ -2619,7 +2620,7 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
   Future<void> _cargarTiposDocumento() async {
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:3001/api/documento'),
+        Uri.parse('${ApiConfig.apiUrl}/documento'),
         headers: {'Authorization': 'Bearer ${widget.token}'},
       );
 

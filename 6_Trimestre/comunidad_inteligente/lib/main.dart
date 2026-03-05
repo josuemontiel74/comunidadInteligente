@@ -6,13 +6,14 @@ import 'screens/dashboards/dashboardvigilante.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'utils/api_config.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
 class LoginServe {
-  static String baseUrl = 'http://localhost:3001';
+  static String baseUrl = ApiConfig.baseUrl;
   static String? token;
 
   static Future<http.Response> postLogin(

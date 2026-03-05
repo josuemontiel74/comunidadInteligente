@@ -4,12 +4,13 @@ import 'dart:convert';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import '../../utils/api_config.dart';
 
 // ============================================================================
 // REPORTES API SERVICE
 // ============================================================================
 class ReportesApiService {
-  static const String _baseUrl = 'http://localhost:3001/api';
+  static const String _baseUrl = ApiConfig.apiUrl;
 
   // Helper para formatear fecha como YYYY-MM-DD
   static String _formatearFecha(DateTime fecha) {
