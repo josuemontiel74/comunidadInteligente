@@ -133,7 +133,8 @@ export default function CalendarioReservas() {
     const diasEnMes = new Date(year, month + 1, 0).getDate();
 
     const cells = [];
-    for (let i = 0; i < primerIndice; i++) cells.push({ day: null, iso: null, id: `empty-${i}` });
+    for (let i = 0; i < primerIndice; i++)
+      cells.push({ day: null, iso: null, id: `empty-${i}` });
     for (let d = 1; d <= diasEnMes; d++) {
       const yyyy = String(year);
       const mm = String(month + 1).padStart(2, "0");
@@ -597,10 +598,7 @@ export default function CalendarioReservas() {
                       {mesObj.dias.map((cell) => {
                         if (!cell.day)
                           return (
-                            <div
-                              key={cell.id}
-                              style={{ minHeight: 36 }}
-                            ></div>
+                            <div key={cell.id} style={{ minHeight: 36 }}></div>
                           );
                         const reservado = reservasSet.has(cell.iso);
                         const esPasado = cell.iso < hoyStr;

@@ -1604,7 +1604,11 @@ function Visitas() {
                 <div className="vis-vehicle-section">
                   <div className="vis-vehicle-title">
                     <i
-                      className={String(formData.tipoVehiculoId) === "2" ? "fa-solid fa-motorcycle" : "bi bi-car-front"}
+                      className={
+                        String(formData.tipoVehiculoId) === "2"
+                          ? "fa-solid fa-motorcycle"
+                          : "bi bi-car-front"
+                      }
                     ></i>{" "}
                     Datos del Vehículo
                   </div>
@@ -1912,7 +1916,11 @@ function Visitas() {
                   <div className="vis-detalle-row">
                     <div className="vis-detalle-icon">
                       <i
-                        className={modalDetalle.nombreVehiculo?.toLowerCase() === "moto" ? "fa-solid fa-motorcycle" : "bi bi-car-front"}
+                        className={
+                          modalDetalle.nombreVehiculo?.toLowerCase() === "moto"
+                            ? "fa-solid fa-motorcycle"
+                            : "bi bi-car-front"
+                        }
                       ></i>
                     </div>
                     <div className="vis-detalle-content">

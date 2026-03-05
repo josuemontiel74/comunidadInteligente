@@ -36,10 +36,7 @@ export const crearSolicitanteSchema = Joi.object({
 });
 
 export const actualizarSolicitanteSchema = Joi.object({
-  nombreSolicitante: Joi.string()
-    .max(100)
-    .optional()
-    .pattern(NOMBRE_PATTERN),
+  nombreSolicitante: Joi.string().max(100).optional().pattern(NOMBRE_PATTERN),
   telefonoSolicitante: Joi.string().max(20).optional(),
   correoSolicitante: Joi.string().email().optional(),
   tipoDocumentoId: Joi.number().integer().optional(),

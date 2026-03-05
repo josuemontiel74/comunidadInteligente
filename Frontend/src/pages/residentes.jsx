@@ -604,7 +604,12 @@ function Residentes() {
       return;
     }
     if (
-      ["primerNombre", "segundoNombre", "primerApellido", "segundoApellido"].includes(name)
+      [
+        "primerNombre",
+        "segundoNombre",
+        "primerApellido",
+        "segundoApellido",
+      ].includes(name)
     ) {
       setFormData((f) => ({ ...f, [name]: filtrarInputNombre(value) }));
       return;

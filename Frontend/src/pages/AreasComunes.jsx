@@ -429,8 +429,7 @@ function AreasComunes() {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     if (name === "documentoSolicitante") {
-      const esPasaporte =
-        String(reserva.tipoDocumentoId) === "3";
+      const esPasaporte = String(reserva.tipoDocumentoId) === "3";
       setReserva((prev) => ({
         ...prev,
         [name]: filtrarInputDocumento(value, esPasaporte),

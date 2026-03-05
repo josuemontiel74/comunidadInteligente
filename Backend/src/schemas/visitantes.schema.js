@@ -35,10 +35,7 @@ export const crearVisitanteSchema = Joi.object({
 });
 
 export const actualizarVisitanteSchema = Joi.object({
-  numeroDocumento: Joi.string()
-    .max(20)
-    .custom(validarDocSegunTipo)
-    .optional(),
+  numeroDocumento: Joi.string().max(20).custom(validarDocSegunTipo).optional(),
   nombreVisitante: Joi.string()
     .min(2)
     .max(100)
