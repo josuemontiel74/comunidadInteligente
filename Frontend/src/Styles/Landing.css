@@ -1,8 +1,4 @@
-/* ============================================================
-   LANDING – Comunidad Inteligente · Conjunto Azahar
-   ============================================================ */
 
-/* ── Variables ─────────────────────────────────────────────── */
 :root {
   --ld-bg: #f5f7f2;
   --ld-surface: #ffffff;
@@ -71,7 +67,6 @@
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
-/* ── Reset / base ───────────────────────────────────────────── */
 .ld-root {
   font-family: "Inter", "Segoe UI", system-ui, sans-serif;
   background: var(--ld-bg);
@@ -94,7 +89,6 @@
   padding: 0 24px;
 }
 
-/* ── HEADER ─────────────────────────────────────────────────── */
 .ld-header {
   position: fixed;
   top: 0;
@@ -205,7 +199,6 @@
   box-shadow: 0 4px 14px rgba(82, 168, 90, 0.4);
 }
 
-/* ── HERO ────────────────────────────────────────────────────── */
 .ld-hero {
   position: relative;
   min-height: 100vh;
@@ -311,7 +304,6 @@
   white-space: nowrap;
 }
 
-/* ── Botones globales ────────────────────────────────────────── */
 .ld-btn-primary {
   display: inline-flex;
   align-items: center;
@@ -360,7 +352,6 @@
   color: #fff;
 }
 
-/* ── Section commons ─────────────────────────────────────────── */
 .ld-section-tag {
   display: inline-block;
   padding: 5px 14px;
@@ -395,7 +386,6 @@
   margin-bottom: 36px;
 }
 
-/* ── ABOUT ───────────────────────────────────────────────────── */
 .ld-about {
   padding: clamp(48px, 7vw, 72px) 0;
   background: var(--ld-surface);
@@ -519,7 +509,6 @@
   flex-shrink: 0;
 }
 
-/* ── FEATURES ────────────────────────────────────────────────── */
 .ld-features {
   padding: clamp(48px, 7vw, 72px) 0;
   background: var(--ld-bg);
@@ -574,7 +563,6 @@
   line-height: 1.7;
 }
 
-/* ── CTA BAND ────────────────────────────────────────────────── */
 .ld-cta-band {
   background: linear-gradient(135deg, #357a3d 0%, #52a85a 60%, #6abf6a 100%);
   padding: clamp(36px, 5vw, 56px) 24px;
@@ -609,7 +597,6 @@
   color: #357a3d;
 }
 
-/* ── DOWNLOADS ───────────────────────────────────────────────── */
 .ld-downloads {
   padding: clamp(48px, 7vw, 72px) 0;
   background: var(--ld-surface);
@@ -737,7 +724,6 @@
   border-color: #3a3868;
 }
 
-/* ── FOOTER ──────────────────────────────────────────────────── */
 .ld-footer {
   background: var(--ld-surface2);
   border-top: 1px solid var(--ld-border);
@@ -780,7 +766,6 @@
   text-align: right;
 }
 
-/* ── RESPONSIVE ───────────────────────────────────────────────── */
 @media (max-width: 1024px) {
   .ld-features-grid {
     grid-template-columns: repeat(2, 1fr);

@@ -160,7 +160,6 @@ function Dashboard() {
 
   return (
     <div className={`adm-dashboard${saliendo ? " adm-saliendo" : ""}`}>
-      {/* ====== OFFCANVAS MENU ====== */}
       <button
         type="button"
         className={`adm-overlay ${menuOpen ? "active" : ""}`}
@@ -272,7 +271,6 @@ function Dashboard() {
         </div>
       </aside>
 
-      {/* ====== CONTENIDO PRINCIPAL ====== */}
       <div className="adm-main">
         <header className="adm-header">
           <div className="adm-profile-btn-wrap">

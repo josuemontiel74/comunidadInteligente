@@ -1,8 +1,4 @@
-/* ============================================
-   LOG DE ERRORES  Tema Oscuro / Acento Rojo
-   ============================================ */
 
-/* ── MODO CLARO (default) ── */
 :root {
   --le-bg: #f5f5f5;
   --le-surface: #ffffff;
@@ -20,7 +16,6 @@
   --le-row-hover: #fee2e2;
 }
 
-/* ── MODO OSCURO ── */
 [data-modo="oscuro"] {
   --le-bg: #0f0f0f;
   --le-surface: #1a1a1a;
@@ -840,12 +835,10 @@
   }
 }
 
-/* ── DRAWER MODO OSCURO ── */
 [data-modo="oscuro"] .le-drawer {
   background: linear-gradient(180deg, #290000, #591414, #821414) !important;
 }
 
-/* ── STAT CARDS / TABLA: sombra en modo oscuro ── */
 [data-modo="oscuro"] .le-stat-card {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
@@ -853,7 +846,6 @@
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 
-/* ── ICONOS / BOTONES EN ROJO: modo oscuro ── */
 [data-modo="oscuro"] .le-card-icon {
   color: #f87171;
 }
@@ -866,7 +858,6 @@
   color: #f87171;
 }
 
-/* ── BADGES: modo oscuro ── */
 [data-modo="oscuro"] .le-badge-error {
   background: #3a2020;
   color: #f87171;

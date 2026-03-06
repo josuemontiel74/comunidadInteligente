@@ -20,7 +20,7 @@ import ModalOverlay from "../utils/ModalOverlay.jsx";
 import { verificarTokenVencido, obtenerRolFromToken } from "../utils/auth.js";
 import useLogout from "../utils/useLogout.js";
 
-// ── Torres y apartamentos (idéntico a Flutter) ──
+// Torres y apartamentos (idéntico a Flutter) 
 const TORRES = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 
 const getApartamentosPorTorre = (torre) => {
@@ -43,7 +43,7 @@ const obtenerApartamentoId = (torre, apartamento) => {
   return letraIndex * 5 + pos;
 };
 
-// ── Formatear fechas a Colombia UTC-5 ──
+// Formatear fechas a Colombia UTC-5 
 const formatearFecha = (fechaStr) => {
   if (!fechaStr) return "N/A";
   try {
@@ -170,7 +170,7 @@ function Paqueteria() {
   const tokenLocal = localStorage.getItem("token");
   const rolesId = tokenLocal ? obtenerRolFromToken(tokenLocal) : null;
 
-  // ── Verificar sesión ──
+  // Verificar sesión 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token || verificarTokenVencido(token)) {
@@ -208,7 +208,7 @@ function Paqueteria() {
     }
   }, [location.state]);
 
-  // ── Cargar paquetes ──
+  // Cargar paquetes 
   const cargarPaquetes = useCallback(async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -256,7 +256,7 @@ function Paqueteria() {
     return () => clearInterval(interval);
   }, [cargarPaquetes]);
 
-  // ── Filtrado + ordenamiento (igual que Flutter) ──
+  // Filtrado + ordenamiento (igual que Flutter) 
   const paquetesFiltrados = paquetes
     .filter((p) => {
       const nombre = (p.nombreDestinatario || "").toLowerCase();
@@ -288,7 +288,7 @@ function Paqueteria() {
       return new Date(b.fechaRecepcion || 0) - new Date(a.fechaRecepcion || 0);
     });
 
-  // ── Paginación ──
+  // Paginación 
   const totalPaginas = Math.ceil(paquetesFiltrados.length / itemsPorPagina);
   const indiceInicio = (paginaActual - 1) * itemsPorPagina;
   const indiceFin = indiceInicio + itemsPorPagina;
@@ -325,7 +325,7 @@ function Paqueteria() {
     (p) => (p.nombreEstado || "").toLowerCase() === "entregado",
   ).length;
 
-  // ── Helpers de respuesta CRUD ──
+  // Helpers de respuesta CRUD 
   const manejarSesionExpiradaPaq = () => {
     Swal.fire({
       icon: "warning",
@@ -360,7 +360,7 @@ function Paqueteria() {
     }
   };
 
-  // ── CRUD: Crear ──
+  // CRUD: Crear 
   const handleSubmitCrear = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
@@ -413,7 +413,7 @@ function Paqueteria() {
     }
   };
 
-  // ── CRUD: Editar ──
+  // CRUD: Editar 
   const abrirEditar = (paq) => {
     const torreLetra = (paq.nombreTorre || "").replace(/^Torre\s*/i, "").trim();
     setFormEditar({
@@ -485,7 +485,7 @@ function Paqueteria() {
     }
   };
 
-  // ── CRUD: Entregar (DELETE) ──
+  // CRUD: Entregar (DELETE) 
   const marcarEntregado = (paq) => {
     Swal.fire({
       title: "¿Marcar como entregado?",
@@ -528,7 +528,7 @@ function Paqueteria() {
 
   const cerrarSesion = useLogout();
 
-  // ── Loading ──
+  // Loading 
   if (loading && paquetes.length === 0) {
     return (
       <div className="paq-loading-screen">
@@ -544,7 +544,6 @@ function Paqueteria() {
 
   return (
     <div className="paq-dashboard">
-      {/* ====== OVERLAY & DRAWER ====== */}
       <button
         type="button"
         className={`paq-overlay ${menuOpen ? "active" : ""}`}
@@ -681,7 +680,6 @@ function Paqueteria() {
         </div>
       </aside>
 
-      {/* ====== CONTENIDO PRINCIPAL ====== */}
       <div className="paq-main">
         {/* Header tipo AppBar (como Flutter) */}
         <header className="paq-header">
@@ -1115,7 +1113,6 @@ function Paqueteria() {
         )}
       </div>
 
-      {/* ====== MODAL CREAR PAQUETE ====== */}
       <ModalOverlay
         isOpen={modalCrear}
         onClose={() => setModalCrear(false)}
@@ -1312,7 +1309,6 @@ function Paqueteria() {
         </div>
       </ModalOverlay>
 
-      {/* ====== MODAL EDITAR PAQUETE ====== */}
       <ModalOverlay
         isOpen={modalEditar && !!paqueteEditar}
         onClose={() => {
@@ -1515,7 +1511,6 @@ function Paqueteria() {
         </div>
       </ModalOverlay>
 
-      {/* ====== MODAL DETALLES ====== */}
       {modalDetalle && (
         <ModalOverlay
           isOpen

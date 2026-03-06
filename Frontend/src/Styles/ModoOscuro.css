@@ -6,7 +6,6 @@
    Calendario, Visitas y cualquier módulo Bootstrap genérico.
    ============================================================ */
 
-/* ── Transición suave al alternar ─────────────────────────────── */
 *,
 *::before,
 *::after {
@@ -17,7 +16,6 @@
     box-shadow 0.2s ease !important;
 }
 
-/* ── Fondo global y wrappers ──────────────────────────────────── */
 [data-modo="oscuro"] body,
 [data-modo="oscuro"] html {
   background-color: #0f172a !important;
@@ -35,7 +33,6 @@
   background: #0f172a !important;
 }
 
-/* ── HEADER ───────────────────────────────────────────────────── */
 [data-modo="oscuro"] .adm-header,
 [data-modo="oscuro"] .sa-header,
 [data-modo="oscuro"] .vi-header {
@@ -68,7 +65,6 @@
   border-color: #1e293b !important;
 }
 
-/* ── SECCIÓN BIENVENIDA ───────────────────────────────────────── */
 [data-modo="oscuro"] .adm-welcome-title,
 [data-modo="oscuro"] .sa-welcome-title,
 [data-modo="oscuro"] .vi-welcome-title {
@@ -81,7 +77,6 @@
   color: #94a3b8 !important;
 }
 
-/* ── TARJETAS DE ESTADÍSTICAS ─────────────────────────────────── */
 [data-modo="oscuro"] .adm-stat-card,
 [data-modo="oscuro"] .sa-stat-card,
 [data-modo="oscuro"] .vi-stat-card {
@@ -144,7 +139,6 @@
   color: #94a3b8 !important;
 }
 
-/* ── POPUP DE PERFIL ──────────────────────────────────────────── */
 [data-modo="oscuro"] .adm-profile-popup,
 [data-modo="oscuro"] .sa-profile-popup,
 [data-modo="oscuro"] .vi-profile-popup {
@@ -167,7 +161,6 @@
   border-color: #475569 !important;
 }
 
-/* ── LISTA DE USUARIOS EN LÍNEA (Solo SA) ─────────────────────── */
 [data-modo="oscuro"] .sa-online-users-list {
   background: #0f172a !important;
 }
@@ -186,7 +179,6 @@
   color: #94a3b8 !important;
 }
 
-/* ── USER MENU (header dropdown) ─────────────────────────────── */
 [data-modo="oscuro"] .adm-user-menu,
 [data-modo="oscuro"] .sa-user-menu,
 [data-modo="oscuro"] .vi-user-menu {
@@ -195,7 +187,6 @@
   color: #f1f5f9 !important;
 }
 
-/* ── BOTÓN MODO OSCURO (luna / sol) ──────────────────────────── */
 
 /* Sol: amarillo cálido en modo oscuro */
 [data-modo="oscuro"] .mo-btn i {
@@ -294,7 +285,6 @@
   border-color: #1e293b !important;
 }
 
-/* ── TARJETAS DE CONTENIDO de módulos ────────────────────────── */
 /* Cubre: gu-card, parq-card, paq-card, res-card, ac-card,
           rpt-card, aud-card y cualquier -card nuevo */
 [data-modo="oscuro"] [class$="-card"],
@@ -327,7 +317,6 @@
   border: 1px solid #334155 !important;
 }
 
-/* ── TÍTULOS DE SECCIONES ─────────────────────────────────────── */
 [data-modo="oscuro"] [class$="-title"],
 [data-modo="oscuro"] [class$="-subtitle"],
 [data-modo="oscuro"] [class$="-welcome-title"],
@@ -343,7 +332,6 @@
   color: #94a3b8 !important;
 }
 
-/* ── BOOTSTRAP – elementos genéricos ─────────────────────────── */
 
 /* Fondo general del body */
 [data-modo="oscuro"] body {
@@ -520,7 +508,6 @@
   color: #8492a6 !important;
 }
 
-/* ── SCROLLBAR en modo oscuro ────────────────────────────────── */
 [data-modo="oscuro"] ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -542,7 +529,6 @@
    Áreas Comunes, Reportes, Auditorías y resto de módulos.
    ============================================================ */
 
-/* ── Wrappers de dashboard de módulos ─────────────────────────── */
 [data-modo="oscuro"] .gu-dashboard,
 [data-modo="oscuro"] .parq-dashboard,
 [data-modo="oscuro"] .paq-dashboard,
@@ -554,7 +540,6 @@
   background: #0f172a !important;
 }
 
-/* ── TOOLBARS – cuadros blancos de filtros ─────────────────────── */
 [data-modo="oscuro"] .paq-toolbar,
 [data-modo="oscuro"] .gu-toolbar,
 [data-modo="oscuro"] .parq-toolbar,
@@ -568,7 +553,6 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
 }
 
-/* ── STAT BOXES – cajas de contadores ─────────────────────────── */
 [data-modo="oscuro"] .paq-stat-box,
 [data-modo="oscuro"] .gu-stat-box,
 [data-modo="oscuro"] .parq-stat-box,
@@ -588,7 +572,6 @@
   color: #f1f5f9 !important;
 }
 
-/* ── CONTENEDORES DE TABLA ────────────────────────────────────── */
 [data-modo="oscuro"] .paq-table-container,
 [data-modo="oscuro"] .gu-table-container,
 [data-modo="oscuro"] .parq-table-container,
@@ -602,7 +585,6 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
 }
 
-/* ── TABLAS – fondo ───────────────────────────────────────────── */
 [data-modo="oscuro"] .paq-table,
 [data-modo="oscuro"] .gu-table,
 [data-modo="oscuro"] .parq-table,
@@ -659,7 +641,6 @@
   background: #2d3f55 !important;
 }
 
-/* ── CHIPS / FILTROS INACTIVOS ──────────────────────────────── */
 [data-modo="oscuro"] .paq-chip:not(.active),
 [data-modo="oscuro"] .gu-chip:not(.active),
 [data-modo="oscuro"] .parq-chip:not(.active),
@@ -679,7 +660,6 @@
   color: #e2e8f0 !important;
 }
 
-/* ── TOGGLE DE VISTA (lista / tarjetas) ──────────────────────── */
 [data-modo="oscuro"] .gu-view-toggle {
   background: #263248 !important;
 }
@@ -691,7 +671,6 @@
   color: #e2e8f0 !important;
 }
 
-/* ── TEXTOS SECUNDARIOS (labels, resultados) ─────────────────── */
 [data-modo="oscuro"] .gu-results-info,
 [data-modo="oscuro"] .gu-filter-label,
 [data-modo="oscuro"] .parq-filter-label,
@@ -705,7 +684,6 @@
   color: #94a3b8 !important;
 }
 
-/* ── BADGES de estado – contraste adecuado ───────────────────── */
 [data-modo="oscuro"] .gu-badge-activo {
   background: #223e39 !important;
   color: #4ade80 !important;
@@ -727,7 +705,6 @@
   color: #4ade80 !important;
 }
 
-/* ── CARDS MOBILE – detalles internos ────────────────────────── */
 [data-modo="oscuro"] .paq-card-name {
   color: #f1f5f9 !important;
 }
@@ -739,7 +716,6 @@
   border-top-color: #334155 !important;
 }
 
-/* ── LINKS en tablas ─────────────────────────────────────────── */
 [data-modo="oscuro"] .gu-table a,
 [data-modo="oscuro"] .parq-table a,
 [data-modo="oscuro"] .paq-table a {
@@ -751,7 +727,6 @@
    toggle residentes, labels fechas reportes, botones header rpt.
    ============================================================ */
 
-/* ── PARQUEADEROS – tarjetas de plazas ───────────────────────── */
 [data-modo="oscuro"] .parq-card {
   background: #1e293b !important;
   border-color: #334155 !important;
@@ -810,7 +785,6 @@
   color: white !important;
 }
 
-/* ── GESTIÓN USUARIOS – vista cuadrícula (cards) ─────────────── */
 [data-modo="oscuro"] .gu-card {
   background: #1e293b !important;
   border-color: #334155 !important;
@@ -867,7 +841,6 @@
   background: rgba(29, 78, 216, 0.25) !important;
 }
 
-/* ── RESIDENTES – toggle lista/cuadrícula ────────────────────── */
 [data-modo="oscuro"] .res-view-toggle {
   background: #263248 !important;
   border: 1px solid #334155 !important;
@@ -959,7 +932,6 @@
   border-color: #2dd4bf !important;
 }
 
-/* ── REPORTES – botones de header (atrás, hamburguesa, actualizar) */
 [data-modo="oscuro"] .rpt-header-btn {
   background: #1e293b !important;
   border-color: #475569 !important;
@@ -996,7 +968,6 @@
   color: #94a3b8 !important;
 }
 
-/* ── AUDITORÍAS – fondo blanco del área de filtros ───────────── */
 [data-modo="oscuro"] .aud-filters {
   background: #1e293b !important;
 }
@@ -1019,7 +990,6 @@
   color: #818cf8 !important;
 }
 
-/* ── RESIDENTES – toggle lista/cuadrícula (botón activo) ─── */
 [data-modo="oscuro"] .res-view-btn.active {
   background: linear-gradient(135deg, #0a7a70, #0d9488) !important;
   color: white !important;
@@ -1134,7 +1104,6 @@
   color: #fca5a5 !important;
 }
 
-/* ── Iconos SVG de SweetAlert2 ── */
 
 /* Icono WARNING (triángulo naranja) */
 [data-modo="oscuro"] .swal2-icon.swal2-warning {

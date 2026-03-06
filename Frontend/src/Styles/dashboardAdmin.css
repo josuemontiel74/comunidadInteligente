@@ -1,6 +1,3 @@
-/* ============================================================
-   Dashboard Admin – Tema Amarillo / Ámbar
-   ============================================================ */
 
 html,
 body {
@@ -34,7 +31,6 @@ body {
   max-width: 100vw;
 }
 
-/* ── OVERLAY ─────────────────────────────────────────── */
 .adm-overlay {
   position: fixed;
   inset: 0;
@@ -49,7 +45,6 @@ body {
   pointer-events: all;
 }
 
-/* ── DRAWER ──────────────────────────────────────────── */
 .adm-drawer {
   position: fixed;
   top: 0;
@@ -176,12 +171,10 @@ body {
   background: rgba(255, 255, 255, 0.25);
 }
 
-/* ── MAIN AREA ───────────────────────────────────────── */
 .adm-main {
   min-height: 100vh;
 }
 
-/* ── HEADER ──────────────────────────────────────────── */
 .adm-header {
   display: flex;
   align-items: center;
@@ -212,6 +205,15 @@ body {
 .adm-header-btn i {
   font-size: 28px;
   color: #374151;
+}
+.adm-header-btn.dap-header-btn i {
+  color: #fff;
+}
+.adm-header-btn.dap-header-btn:hover {
+  background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+}
+.adm-header-btn.dap-header-btn:hover i {
+  color: #ffffff;
 }
 /* Wrapper con dot de estado amarillo */
 .adm-profile-btn-wrap {
@@ -317,7 +319,6 @@ body {
   }
 }
 
-/* ── WELCOME ─────────────────────────────────────────── */
 .adm-welcome {
   text-align: center;
   padding: 30px 20px 10px;
@@ -341,7 +342,6 @@ body {
   padding: 0 8px;
 }
 
-/* ── MODULE CARDS ────────────────────────────────────── */
 .adm-modules-grid {
   display: flex;
   flex-wrap: wrap;
@@ -408,7 +408,6 @@ body {
   line-height: 1.3;
 }
 
-/* ── STATS ───────────────────────────────────────────── */
 .adm-stats-section {
   padding: 20px 24px 40px;
   box-sizing: border-box;
@@ -557,7 +556,6 @@ body {
   text-align: center;
 }
 
-/* ── RESPONSIVE ──────────────────────────────────────── */
 @media (max-width: 900px) {
   .adm-modules-grid {
     padding: 20px 16px;
@@ -702,7 +700,6 @@ body {
   }
 }
 
-/* ── ANIMACIONES ──────────────────────────────────── */
 @keyframes adm-fadeInUp {
   from {
     opacity: 0;
@@ -739,7 +736,6 @@ body {
   pointer-events: none;
 }
 
-/* ── DRAWER MODO OSCURO ── */
 [data-modo="oscuro"] .adm-drawer {
   background: linear-gradient(180deg, #662d0a, #985304, #ac6f08) !important;
 }

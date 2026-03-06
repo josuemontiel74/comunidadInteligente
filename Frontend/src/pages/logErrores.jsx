@@ -36,7 +36,7 @@ function LogErrores() {
 
   // Token helpers (importados de utils/auth.js)
 
-  // ── Verificar sesión ──
+  // Verificar sesión 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token || verificarTokenVencido(token)) {
@@ -77,7 +77,7 @@ function LogErrores() {
     }
   }, [navigate]);
 
-  // ── Cargar datos ──
+  // Cargar datos 
   const cargarDatos = useCallback(async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -107,7 +107,7 @@ function LogErrores() {
     cargarDatos();
   }, [cargarDatos]);
 
-  // ── Formatear fecha Colombia ──
+  // Formatear fecha Colombia 
   const formatearFecha = (fechaStr) => {
     if (!fechaStr) return "N/A";
     try {
@@ -127,7 +127,7 @@ function LogErrores() {
     }
   };
 
-  // ── Badge + colores por nivel ──
+  // Badge + colores por nivel 
   const getBadgeClass = (nivel) => {
     const n = (nivel || "").toUpperCase();
     if (n === "ERROR") return "le-badge le-badge-error";
@@ -154,7 +154,7 @@ function LogErrores() {
     return "bi-bug-fill";
   };
 
-  // ── Estadísticas del resumen ──
+  // Estadísticas del resumen 
   const getCount = (nivel) => {
     const r = resumen.find(
       (x) => (x.nivel || "").toUpperCase() === nivel.toUpperCase(),
@@ -162,7 +162,7 @@ function LogErrores() {
     return r ? Number(r.total) : 0;
   };
 
-  // ── Filtro local (búsqueda por texto) ──
+  // Filtro local (búsqueda por texto) 
   const registrosFiltrados = registros.filter((r) => {
     if (!busqueda) return true;
     const q = busqueda.toLowerCase();
@@ -173,7 +173,7 @@ function LogErrores() {
     );
   });
 
-  // ── Paginación ──
+  // Paginación 
   const totalPaginas = Math.ceil(
     registrosFiltrados.length / registrosPorPagina,
   );
@@ -194,7 +194,7 @@ function LogErrores() {
     return paginas;
   };
 
-  // ── Limpiar registros antiguos ──
+  // Limpiar registros antiguos 
   const handleLimpiar = () => {
     Swal.fire({
       title: "Limpiar Log de Errores",
@@ -238,10 +238,10 @@ function LogErrores() {
     });
   };
 
-  // ── Cerrar sesión ──
+  // Cerrar sesión 
   const cerrarSesion = useLogout();
 
-  // ── Loading ──
+  // Loading 
   if (loading && registros.length === 0) {
     return (
       <div className="le-loading-screen">

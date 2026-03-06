@@ -1,4 +1,4 @@
-Ôªøimport "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "../Styles/residentes.css";
 
@@ -34,7 +34,7 @@ const obtenerToken = () => {
   );
 };
 
-// verificarTokenVencido ‚Äî importado desde ../utils/auth.js
+// verificarTokenVencido ó importado desde ../utils/auth.js
 
 const obtenerUsuarioDelToken = () => {
   try {
@@ -47,7 +47,7 @@ const obtenerUsuarioDelToken = () => {
   }
 };
 
-// obtenerRolFromToken ‚Äî importado desde ../utils/auth.js
+// obtenerRolFromToken ó importado desde ../utils/auth.js
 
 const mapTipoDocumento = (id) =>
   ({ 1: "CC", 2: "CE", 3: "PP", 4: "PEP", 5: "PPT" })[id] || "CC";
@@ -68,13 +68,13 @@ const mapTorre = (id) =>
   })[id] || "";
 const campoAmigable = (field) => {
   const map = {
-    numeroDocumento: "N√∫mero de documento",
+    numeroDocumento: "N˙mero de documento",
     primerNombre: "Primer nombre",
     primerApellido: "Primer apellido",
-    correoElectronico: "Correo electr√≥nico",
-    telefono: "Tel√©fono",
+    correoElectronico: "Correo electrÛnico",
+    telefono: "TelÈfono",
     apartamentosId: "Apartamento",
-    tipoOcupacion: "Tipo de ocupaci√≥n",
+    tipoOcupacion: "Tipo de ocupaciÛn",
     fechaInicio: "Fecha de inicio",
     personasACargo: "Personas a cargo",
   };
@@ -82,10 +82,10 @@ const campoAmigable = (field) => {
 };
 
 const traducirMensajeBackend = (errData) => {
-  if (!errData) return "Datos inv√°lidos o incompletos.";
+  if (!errData) return "Datos inv·lidos o incompletos.";
   if (typeof errData === "string") {
     if (/required|cannot be null/i.test(errData))
-      return "Falta informaci√≥n obligatoria en el formulario.";
+      return "Falta informaciÛn obligatoria en el formulario.";
     if (/unique|exists|ya existe/i.test(errData))
       return "Ya existe un registro con esos datos.";
     return errData;
@@ -108,7 +108,7 @@ const getUserProfilePhoto = () => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     // Prioridad 1: foto guardada en la BD (viene en el objeto user del login)
     if (user.fotoPerfil) return user.fotoPerfil;
-    // Prioridad 2: cach√© local de fotos
+    // Prioridad 2: cachÈ local de fotos
     const photosStr = localStorage.getItem("gu_user_photos");
     if (!photosStr) return null;
     const photos = JSON.parse(photosStr);
@@ -167,13 +167,13 @@ function validarNombreResidente(nombre, label) {
     };
   if (/\d/.test(nombre))
     return {
-      titulo: `${label.charAt(0).toUpperCase() + label.slice(1)} inv√°lido`,
-      msg: `El ${label} no puede contener n√∫meros.`,
+      titulo: `${label.charAt(0).toUpperCase() + label.slice(1)} inv·lido`,
+      msg: `El ${label} no puede contener n˙meros.`,
     };
   if (/^(.)\1+$/.test(nombre.trim()))
     return {
-      titulo: `${label.charAt(0).toUpperCase() + label.slice(1)} inv√°lido`,
-      msg: `"${nombre.trim()}" no es v√°lido. No puede estar formado por el mismo car√°cter repetido.`,
+      titulo: `${label.charAt(0).toUpperCase() + label.slice(1)} inv·lido`,
+      msg: `"${nombre.trim()}" no es v·lido. No puede estar formado por el mismo car·cter repetido.`,
     };
   return null;
 }
@@ -182,37 +182,37 @@ function validarDocumentoResidente(fd, editIndex) {
   if (editIndex === null && !fd.numeroDocumento.trim())
     return {
       titulo: "Campo obligatorio",
-      msg: "El n√∫mero de documento es obligatorio para crear un nuevo residente.",
+      msg: "El n˙mero de documento es obligatorio para crear un nuevo residente.",
     };
   if (!fd.numeroDocumento.trim()) return null;
   const doc = fd.numeroDocumento.trim();
   if (!/^[a-zA-Z0-9-]+$/.test(doc))
     return {
-      titulo: "Documento inv√°lido",
-      msg: "El n√∫mero de documento solo puede contener letras, n√∫meros o guiones. No se permiten caracteres especiales.",
+      titulo: "Documento inv·lido",
+      msg: "El n˙mero de documento solo puede contener letras, n˙meros o guiones. No se permiten caracteres especiales.",
     };
   if (!/\d/.test(doc))
     return {
-      titulo: "Documento inv√°lido",
-      msg: "El n√∫mero de documento no puede estar compuesto √∫nicamente por letras. Debe incluir al menos un d√≠gito.",
+      titulo: "Documento inv·lido",
+      msg: "El n˙mero de documento no puede estar compuesto ˙nicamente por letras. Debe incluir al menos un dÌgito.",
     };
   const letras = (doc.match(/[a-zA-Z]/g) || []).length;
   const digitos = (doc.match(/\d/g) || []).length;
   const tiposMixtos = ["CE", "PP", "PEP", "PPT"];
   if (tiposMixtos.includes(fd.tipoDocumento) && letras > digitos)
     return {
-      titulo: "Documento inv√°lido",
-      msg: `El ${fd.tipoDocumento} tiene m√°s letras (${letras}) que d√≠gitos (${digitos}). Los documentos deben ser principalmente num√©ricos.`,
+      titulo: "Documento inv·lido",
+      msg: `El ${fd.tipoDocumento} tiene m·s letras (${letras}) que dÌgitos (${digitos}). Los documentos deben ser principalmente numÈricos.`,
     };
   if (fd.tipoDocumento === "CC" && !/^\d+$/.test(doc))
     return {
-      titulo: "Documento inv√°lido",
-      msg: "La C√©dula de Ciudadan√≠a (CC) debe contener solo d√≠gitos, sin letras ni guiones.",
+      titulo: "Documento inv·lido",
+      msg: "La CÈdula de CiudadanÌa (CC) debe contener solo dÌgitos, sin letras ni guiones.",
     };
   if (fd.tipoDocumento === "CC" && (doc.length < 5 || doc.length > 10))
     return {
-      titulo: "Documento inv√°lido",
-      msg: "La CC debe tener entre 5 y 10 d√≠gitos.",
+      titulo: "Documento inv·lido",
+      msg: "La CC debe tener entre 5 y 10 dÌgitos.",
     };
   return null;
 }
@@ -237,18 +237,18 @@ function validarDatosResidente(fd, editIndex) {
     };
   if (fd.telefono && !/^\d{7,15}$/.test(fd.telefono))
     return {
-      titulo: "Tel√©fono inv√°lido",
-      msg: "El tel√©fono debe contener solo d√≠gitos y tener entre 7 y 15 cifras.",
+      titulo: "TelÈfono inv·lido",
+      msg: "El telÈfono debe contener solo dÌgitos y tener entre 7 y 15 cifras.",
     };
   if (fd.telefono && /^(\d)\1+$/.test(fd.telefono))
     return {
-      titulo: "Tel√©fono inv√°lido",
-      msg: `El tel√©fono "${fd.telefono}" no es v√°lido porque todos sus d√≠gitos son iguales. Ingrese un n√∫mero real.`,
+      titulo: "TelÈfono inv·lido",
+      msg: `El telÈfono "${fd.telefono}" no es v·lido porque todos sus dÌgitos son iguales. Ingrese un n˙mero real.`,
     };
   return validarDocumentoResidente(fd, editIndex);
 }
 
-/** Filtra, ordena y devuelve los residentes seg√∫n los criterios activos */
+/** Filtra, ordena y devuelve los residentes seg˙n los criterios activos */
 function filtrarYOrdenarResidentes(
   residentes,
   { filtroEstado, filtroTorre, filtroTipoOcupacion, busqueda, ordenFecha },
@@ -354,7 +354,7 @@ PaginacionResidentes.propTypes = {
 };
 
 /** Helper para mostrar booleans como texto */
-const boolDisplay = (val) => (val === 1 ? "S√≠" : "No");
+const boolDisplay = (val) => (val === 1 ? "SÌ" : "No");
 
 /* =========================================================
    COMPONENTE PRINCIPAL
@@ -415,8 +415,8 @@ function Residentes() {
     if (!token || verificarTokenVencido(token)) {
       Swal.fire({
         icon: "warning",
-        title: "Sesi√≥n expirada",
-        text: "La sesi√≥n expir√≥. Vuelva a iniciar sesi√≥n.",
+        title: "SesiÛn expirada",
+        text: "La sesiÛn expirÛ. Vuelva a iniciar sesiÛn.",
         timer: 3500,
         showConfirmButton: false,
         timerProgressBar: true,
@@ -446,9 +446,9 @@ function Residentes() {
 
   /* ---- menu title ---- */
   const getMenuTitle = () => {
-    if (rolesId === 1) return "Men√∫ Super Admin";
-    if (rolesId === 2) return "Men√∫ Admin";
-    return "Men√∫ Vigilante";
+    if (rolesId === 1) return "Men˙ Super Admin";
+    if (rolesId === 2) return "Men˙ Admin";
+    return "Men˙ Vigilante";
   };
 
   /* ---- API calls ---- */
@@ -462,7 +462,7 @@ function Residentes() {
         Swal.fire({
           icon: "warning",
           title: "No autorizado",
-          text: "Token inv√°lido o expirado.",
+          text: "Token inv·lido o expirado.",
         }).then(() => {
           localStorage.removeItem("token");
           navegacion("/");
@@ -479,7 +479,7 @@ function Residentes() {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: "Error de conexi√≥n al cargar residentes.",
+        text: "Error de conexiÛn al cargar residentes.",
         iconColor: "#0d9488",
       });
     } finally {
@@ -518,7 +518,7 @@ function Residentes() {
         numero: a.numeroApartamento,
       }));
     }
-    // Al crear: solo apartamentos libres para el tipo de ocupaci√≥n elegido
+    // Al crear: solo apartamentos libres para el tipo de ocupaciÛn elegido
     const tipo = (formData.tipoOcupacion || "").toLowerCase();
     return aptosEnTorre
       .filter(
@@ -653,9 +653,9 @@ function Residentes() {
         icon: "info",
         iconColor: "#0d9488",
         title: "Residente ya existe",
-        html: `<b>${existente.nombreCompleto}</b> ya se encuentra <b>activo/a</b> en Torre ${existente.torre} - Apto ${existente.apartamentosId}.<br/><br/>¬øDesea editar su informaci√≥n en lugar de crear un nuevo registro?`,
+        html: `<b>${existente.nombreCompleto}</b> ya se encuentra <b>activo/a</b> en Torre ${existente.torre} - Apto ${existente.apartamentosId}.<br/><br/>øDesea editar su informaciÛn en lugar de crear un nuevo registro?`,
         showCancelButton: true,
-        confirmButtonText: "S√≠, editar",
+        confirmButtonText: "SÌ, editar",
         cancelButtonText: "Cancelar",
         confirmButtonColor: "#0d9488",
       });
@@ -665,7 +665,7 @@ function Residentes() {
       }
       return true;
     }
-    return false; // finalizado ‚Üí se puede re-registrar
+    return false; // finalizado ? se puede re-registrar
   };
 
   /** Parsea respuesta fetch como JSON o texto */
@@ -684,10 +684,10 @@ function Residentes() {
     return true;
   };
 
-  /** Ejecuta la actualizaci√≥n de un ocupante existente */
+  /** Ejecuta la actualizaciÛn de un ocupante existente */
   const ejecutarActualizacion = async (idOcupante, datos, token) => {
     const confirm = await Swal.fire({
-      title: "¬øGuardar cambios?",
+      title: "øGuardar cambios?",
       icon: "question",
       iconColor: "#0d9488",
       showCancelButton: true,
@@ -714,7 +714,7 @@ function Residentes() {
     return true;
   };
 
-  /** Ejecuta la creaci√≥n de un nuevo ocupante */
+  /** Ejecuta la creaciÛn de un nuevo ocupante */
   const ejecutarCreacion = async (datos, token) => {
     const res = await crearOcupante(datos, token);
     if (esTokenExpirado(res)) return false;
@@ -746,7 +746,7 @@ function Residentes() {
     try {
       const apartamentoId = Number.parseInt(formData.apto, 10);
       if (Number.isNaN(apartamentoId) || apartamentoId <= 0)
-        return Swal.fire("Error", "Apartamento inv√°lido", "error");
+        return Swal.fire("Error", "Apartamento inv·lido", "error");
 
       const ocupanteData = {
         apartamentosId: apartamentoId,
@@ -782,7 +782,7 @@ function Residentes() {
         cerrarModal();
       }
     } catch {
-      Swal.fire("Error", "Error de conexi√≥n. Intente de nuevo.", "error");
+      Swal.fire("Error", "Error de conexiÛn. Intente de nuevo.", "error");
     }
   };
 
@@ -791,12 +791,12 @@ function Residentes() {
   const ejecutarFinalizar = async (r) => {
     if (!r) return;
     const result = await Swal.fire({
-      title: "¬øFinalizar este residente?",
-      text: "Esta acci√≥n finalizar√° la ocupaci√≥n.",
+      title: "øFinalizar este residente?",
+      text: "Esta acciÛn finalizar· la ocupaciÛn.",
       icon: "warning",
       iconColor: "#dc2626",
       showCancelButton: true,
-      confirmButtonText: "S√≠, finalizar",
+      confirmButtonText: "SÌ, finalizar",
       cancelButtonText: "Cancelar",
       confirmButtonColor: "#dc2626",
     });
@@ -828,7 +828,7 @@ function Residentes() {
       });
       await cargarResidentes();
     } catch {
-      Swal.fire("Error", "Error de conexi√≥n.", "error");
+      Swal.fire("Error", "Error de conexiÛn.", "error");
     }
   };
 
@@ -866,7 +866,7 @@ function Residentes() {
           if (e.key === "Escape") setMenuOpen(false);
         }}
         tabIndex={0}
-        aria-label="Cerrar men√∫"
+        aria-label="Cerrar men˙"
       />
 
       {/* DRAWER */}
@@ -888,7 +888,7 @@ function Residentes() {
         </div>
         <div className="res-drawer-body">
           <div className="res-menu-section">
-            <h6 className="res-menu-section-title">Navegaci√≥n</h6>
+            <h6 className="res-menu-section-title">NavegaciÛn</h6>
             <Link
               className="res-menu-item"
               to={
@@ -913,14 +913,14 @@ function Residentes() {
           </div>
 
           <div className="res-menu-section">
-            <h6 className="res-menu-section-title">M√≥dulos</h6>
+            <h6 className="res-menu-section-title">MÛdulos</h6>
             <Link
               className="res-menu-item"
               to="/Paqueteria"
               onClick={() => setMenuOpen(false)}
             >
               <i className="bi bi-box-seam"></i>
-              <span>Paqueter√≠a</span>
+              <span>PaqueterÌa</span>
               <i className="bi bi-chevron-right res-menu-arrow"></i>
             </Link>
             <Link
@@ -948,7 +948,7 @@ function Residentes() {
                 onClick={() => setMenuOpen(false)}
               >
                 <i className="bi bi-calendar-event"></i>
-                <span>√Åreas Comunes</span>
+                <span>¡reas Comunes</span>
                 <i className="bi bi-chevron-right res-menu-arrow"></i>
               </Link>
             )}
@@ -971,7 +971,7 @@ function Residentes() {
                   onClick={() => setMenuOpen(false)}
                 >
                   <i className="bi bi-person-gear"></i>
-                  <span>Gesti√≥n Usuarios</span>
+                  <span>GestiÛn Usuarios</span>
                   <i className="bi bi-chevron-right res-menu-arrow"></i>
                 </Link>
                 <Link
@@ -980,7 +980,7 @@ function Residentes() {
                   onClick={() => setMenuOpen(false)}
                 >
                   <i className="bi bi-journal-text"></i>
-                  <span>Auditor√≠as</span>
+                  <span>AuditorÌas</span>
                   <i className="bi bi-chevron-right res-menu-arrow"></i>
                 </Link>
                 <Link
@@ -998,7 +998,7 @@ function Residentes() {
         </div>
         <div className="res-drawer-footer">
           <button className="res-logout-btn" onClick={cerrarSesion}>
-            <i className="bi bi-box-arrow-right"></i> Cerrar sesi√≥n
+            <i className="bi bi-box-arrow-right"></i> Cerrar sesiÛn
           </button>
         </div>
       </aside>
@@ -1019,7 +1019,7 @@ function Residentes() {
             <i className="bi bi-arrow-left"></i>
           </button>
           <div className="res-header-center">
-            <h1 className="res-header-title">Gesti√≥n de Residentes</h1>
+            <h1 className="res-header-title">GestiÛn de Residentes</h1>
           </div>
           <div className="res-header-actions">
             <button
@@ -1032,7 +1032,7 @@ function Residentes() {
             <button
               className="res-header-btn"
               onClick={() => setMenuOpen(!menuOpen)}
-              title="Men√∫"
+              title="Men˙"
             >
               <i className="bi bi-list"></i>
             </button>
@@ -1078,7 +1078,7 @@ function Residentes() {
                 abrirModal();
               }}
             >
-              <i className="bi bi-person-plus-fill"></i> A√±adir Residente
+              <i className="bi bi-person-plus-fill"></i> AÒadir Residente
             </button>
             <div className="res-view-toggle">
               <button
@@ -1091,7 +1091,7 @@ function Residentes() {
               <button
                 className={`res-view-btn ${vistaCuadricula ? "active" : ""}`}
                 onClick={() => setVistaCuadricula(true)}
-                title="Vista cuadr√≠cula"
+                title="Vista cuadrÌcula"
               >
                 <i className="bi bi-grid-3x3-gap-fill"></i>
               </button>
@@ -1145,7 +1145,7 @@ function Residentes() {
               value={filtroTipoOcupacion}
               onChange={(e) => setFiltroTipoOcupacion(e.target.value)}
             >
-              <option value="todos">Tipo de ocupaci√≥n</option>
+              <option value="todos">Tipo de ocupaciÛn</option>
               <option value="propietario">Propietario</option>
               <option value="arrendatario">Arrendatario</option>
             </select>
@@ -1154,8 +1154,8 @@ function Residentes() {
               value={ordenFecha}
               onChange={(e) => setOrdenFecha(e.target.value)}
             >
-              <option value="recientes">M√°s recientes</option>
-              <option value="antiguos">M√°s antiguos</option>
+              <option value="recientes">M·s recientes</option>
+              <option value="antiguos">M·s antiguos</option>
             </select>
           </div>
 
@@ -1175,9 +1175,9 @@ function Residentes() {
                       <th>Nombre</th>
                       <th>Documento</th>
                       <th>Torre-Apto</th>
-                      <th>Ocupaci√≥n</th>
+                      <th>OcupaciÛn</th>
                       <th>F. Inicio</th>
-                      <th>Tel√©fono</th>
+                      <th>TelÈfono</th>
                       <th>Estado</th>
                       <th>Acciones</th>
                     </tr>
@@ -1292,7 +1292,7 @@ function Residentes() {
                         </span>
                       </div>
                       <div className="res-card-row">
-                        <span className="label">Ocupaci√≥n</span>
+                        <span className="label">OcupaciÛn</span>
                         <span className="value">{r.tipoOcupacion}</span>
                       </div>
                       <div className="res-card-row">
@@ -1300,7 +1300,7 @@ function Residentes() {
                         <span className="value">{r.fechaInicio || "-"}</span>
                       </div>
                       <div className="res-card-row">
-                        <span className="label">Tel√©fono</span>
+                        <span className="label">TelÈfono</span>
                         <span className="value">{r.telefono || "-"}</span>
                       </div>
                       <div className="res-card-row">
@@ -1312,7 +1312,7 @@ function Residentes() {
                       <span
                         className={`res-card-condition ${r.tieneNinos === 1 ? "active" : "inactive"}`}
                       >
-                        <i className="bi bi-emoji-smile"></i> Ni√±os
+                        <i className="bi bi-emoji-smile"></i> NiÒos
                       </span>
                       <span
                         className={`res-card-condition ${r.tieneAdultoMayor === 1 ? "active" : "inactive"}`}
@@ -1369,7 +1369,6 @@ function Residentes() {
         </div>
       </main>
 
-      {/* ===== MODAL CREAR / EDITAR ===== */}
       <ModalOverlay
         isOpen={modalAbierto}
         onClose={() => cerrarModal()}
@@ -1392,7 +1391,7 @@ function Residentes() {
             <div className="res-modal-body">
               {/* SECCION: Informacion de Ocupacion */}
               <p className="res-modal-section-title">
-                <i className="bi bi-house-door"></i> Informaci√≥n de la Ocupaci√≥n
+                <i className="bi bi-house-door"></i> InformaciÛn de la OcupaciÛn
               </p>
               <div className="res-form-row triple">
                 <div className="res-form-group">
@@ -1432,7 +1431,7 @@ function Residentes() {
                   </select>
                 </div>
                 <div className="res-form-group">
-                  <label htmlFor="res-tipoOcupacion">Tipo Ocupaci√≥n *</label>
+                  <label htmlFor="res-tipoOcupacion">Tipo OcupaciÛn *</label>
                   <select
                     id="res-tipoOcupacion"
                     name="tipoOcupacion"
@@ -1459,7 +1458,7 @@ function Residentes() {
                 </div>
                 <div className="res-form-group">
                   <label htmlFor="res-personasACargo">
-                    ¬øCu√°ntas personas vivir√°n con usted?
+                    øCu·ntas personas vivir·n con usted?
                   </label>
                   <input
                     id="res-personasACargo"
@@ -1475,7 +1474,7 @@ function Residentes() {
 
               {/* SECCION: Informacion Personal */}
               <p className="res-modal-section-title">
-                <i className="bi bi-person-vcard"></i> Informaci√≥n Personal
+                <i className="bi bi-person-vcard"></i> InformaciÛn Personal
               </p>
               <div className="res-form-row triple">
                 <div className="res-form-group">
@@ -1499,7 +1498,7 @@ function Residentes() {
                   style={{ gridColumn: "span 2" }}
                 >
                   <label htmlFor="res-numeroDocumento">
-                    N√∫mero de Documento *
+                    N˙mero de Documento *
                   </label>
                   <input
                     id="res-numeroDocumento"
@@ -1565,7 +1564,7 @@ function Residentes() {
               </p>
               <div className="res-form-row">
                 <div className="res-form-group">
-                  <label htmlFor="res-correo">Correo Electr√≥nico</label>
+                  <label htmlFor="res-correo">Correo ElectrÛnico</label>
                   <input
                     id="res-correo"
                     type="email"
@@ -1575,7 +1574,7 @@ function Residentes() {
                   />
                 </div>
                 <div className="res-form-group">
-                  <label htmlFor="res-telefono">Tel√©fono</label>
+                  <label htmlFor="res-telefono">TelÈfono</label>
                   <input
                     id="res-telefono"
                     type="tel"
@@ -1590,9 +1589,9 @@ function Residentes() {
                 </div>
               </div>
 
-              {/* SECCION: Informaci√≥n Adicional */}
+              {/* SECCION: InformaciÛn Adicional */}
               <p className="res-modal-section-title">
-                <i className="bi bi-info-circle"></i> Informaci√≥n Adicional
+                <i className="bi bi-info-circle"></i> InformaciÛn Adicional
               </p>
               <p
                 style={{
@@ -1602,7 +1601,7 @@ function Residentes() {
                   fontStyle: "italic",
                 }}
               >
-                ¬øCuenta con alguno de estos en su n√∫cleo familiar?
+                øCuenta con alguno de estos en su n˙cleo familiar?
               </p>
               <div className="res-form-row triple">
                 <div className="res-form-check">
@@ -1618,7 +1617,7 @@ function Residentes() {
                     }
                   />
                   <label htmlFor="tieneNinos">
-                    <i className="bi bi-emoji-smile"></i> Ni√±os
+                    <i className="bi bi-emoji-smile"></i> NiÒos
                   </label>
                 </div>
                 <div className="res-form-check">
@@ -1671,7 +1670,6 @@ function Residentes() {
         </div>
       </ModalOverlay>
 
-      {/* ===== MODAL TORRES ===== */}
       <ModalOverlay
         isOpen={modalTorres}
         onClose={() => setModalTorres(false)}
@@ -1698,7 +1696,7 @@ function Residentes() {
                       torreSeleccionada - 1
                     ]
                   }
-                  {" ‚Äî Apartamentos"}
+                  {" ó Apartamentos"}
                 </h3>
               </>
             )}
@@ -1712,7 +1710,7 @@ function Residentes() {
 
           <div className="res-modal-body">
             {torreSeleccionada === null ? (
-              /* ---- Vista: selecci√≥n de torre ---- */
+              /* ---- Vista: selecciÛn de torre ---- */
               <div className="res-torres-grid">
                 {Array.from({ length: 10 }, (_, i) => i + 1).map((tid) => {
                   const letra = [
@@ -1864,7 +1862,7 @@ function Residentes() {
                                 {Number(oc.tieneNinos) === 1 && (
                                   <span
                                     className="res-apto-tag"
-                                    title="Tiene ni√±os"
+                                    title="Tiene niÒos"
                                   >
                                     <i className="bi bi-emoji-smile"></i>
                                   </span>
@@ -1899,7 +1897,6 @@ function Residentes() {
         </div>
       </ModalOverlay>
 
-      {/* ===== MODAL DETALLES ===== */}
       {showModalDetalles && residenteSeleccionado && (
         <ModalOverlay
           isOpen
@@ -1926,7 +1923,7 @@ function Residentes() {
               {/* Seccion Personal */}
               <div className="res-detail-section">
                 <p className="res-detail-section-title">
-                  <i className="bi bi-person"></i> Informaci√≥n Personal
+                  <i className="bi bi-person"></i> InformaciÛn Personal
                 </p>
                 <div className="res-detail-row">
                   <span className="res-detail-label">
@@ -1947,7 +1944,7 @@ function Residentes() {
                 </div>
                 <div className="res-detail-row">
                   <span className="res-detail-label">
-                    <i className="bi bi-telephone"></i> Tel√©fono
+                    <i className="bi bi-telephone"></i> TelÈfono
                   </span>
                   <span className="res-detail-value">
                     {residenteSeleccionado.telefono || "No registrado"}
@@ -1966,7 +1963,7 @@ function Residentes() {
               {/* Seccion Residencia */}
               <div className="res-detail-section">
                 <p className="res-detail-section-title">
-                  <i className="bi bi-house-door"></i> Informaci√≥n de Residencia
+                  <i className="bi bi-house-door"></i> InformaciÛn de Residencia
                 </p>
                 <div className="res-detail-row">
                   <span className="res-detail-label">
@@ -1980,7 +1977,7 @@ function Residentes() {
                 </div>
                 <div className="res-detail-row">
                   <span className="res-detail-label">
-                    <i className="bi bi-key"></i> Tipo de Ocupaci√≥n
+                    <i className="bi bi-key"></i> Tipo de OcupaciÛn
                   </span>
                   <span className="res-detail-value">
                     {residenteSeleccionado.tipoOcupacion}
@@ -2021,7 +2018,7 @@ function Residentes() {
               {/* Seccion Familiar */}
               <div className="res-detail-section">
                 <p className="res-detail-section-title">
-                  <i className="bi bi-people"></i> Informaci√≥n Familiar
+                  <i className="bi bi-people"></i> InformaciÛn Familiar
                 </p>
                 <div className="res-detail-row">
                   <span className="res-detail-label">
@@ -2033,7 +2030,7 @@ function Residentes() {
                 </div>
                 <div className="res-detail-row">
                   <span className="res-detail-label">
-                    <i className="bi bi-emoji-smile"></i> Ni√±os
+                    <i className="bi bi-emoji-smile"></i> NiÒos
                   </span>
                   <span className="res-detail-value">
                     {boolDisplay(residenteSeleccionado.tieneNinos)}

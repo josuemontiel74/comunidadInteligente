@@ -1,6 +1,3 @@
-﻿/* ======================================================
-   GESTION DE RESIDENTES - Tema Turquesa
-   ====================================================== */
 
 /* ====== RESET & LAYOUT ====== */
 .res-dashboard {
@@ -909,9 +906,6 @@
   }
 }
 
-/* ===================================================
-   BOTÓN VISUALIZAR TORRES
-   =================================================== */
 .res-btn-torres {
   display: flex;
   align-items: center;
@@ -938,9 +932,6 @@
   font-size: 1rem;
 }
 
-/* ===================================================
-   MODAL TORRES — overlay dedicado con blur fuerte
-   =================================================== */
 .res-torres-overlay {
   background: rgba(0, 0, 0, 0.75) !important;
   backdrop-filter: blur(5px);
@@ -948,17 +939,11 @@
   z-index: 1200 !important;
 }
 
-/* ===================================================
-   MODAL TORRES — caja más ancha
-   =================================================== */
 .res-torres-modal {
   max-width: 900px !important;
   width: 95vw !important;
 }
 
-/* ===================================================
-   GRID DE TORRES (10 tarjetas)
-   =================================================== */
 .res-torres-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -1007,9 +992,6 @@
   color: #0d9488;
 }
 
-/* ===================================================
-   GRID DE APARTAMENTOS (dentro de torre)
-   =================================================== */
 .res-aptos-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -1082,9 +1064,6 @@
   font-size: 0.8rem;
 }
 
-/* ===================================================
-   BOTÓN VOLVER EN MODAL TORRES
-   =================================================== */
 .res-torres-back {
   background: #1a5d52;
   border: 1.5px solid rgba(255, 255, 255, 0.85);
@@ -1113,9 +1092,6 @@
   font-size: 0.95rem;
 }
 
-/* ===================================================
-   DARK MODE — Torres Modal
-   =================================================== */
 [data-modo="oscuro"] .res-torre-card,
 [data-modo="oscuro"] .res-apto-card {
   background: #1e293b;
@@ -1156,9 +1132,6 @@
   }
 }
 
-/* =========================================================
-   DARK MODE – Modal de torres
-   ========================================================= */
 [data-modo="oscuro"] .res-modal-overlay .res-modal {
   background: #1e293b;
   color: #e2e8f0;
@@ -1185,9 +1158,6 @@
   color: #94a3b8;
 }
 
-/* =========================================================
-   BADGE LIBRE – Apartamento disponible
-   ========================================================= */
 .res-apto-libre {
   display: inline-block;
   background: #d4f1e4;
@@ -1240,8 +1210,8 @@
 }
 
 /* =====================================================
-   DARK MODE — Modal Crear/Editar + Modal Detalles
-   (Ampliación — el overlay ya estaba en dark mode)
+   DARK MODE � Modal Crear/Editar + Modal Detalles
+   (Ampliaci�n � el overlay ya estaba en dark mode)
    ===================================================== */
 
 /* Formulario crear/editar */
@@ -1308,7 +1278,7 @@
   color: #e2e8f0 !important;
 }
 
-/* ── DRAWER MODO OSCURO ── */
+/* -- DRAWER MODO OSCURO -- */
 [data-modo="oscuro"] .res-drawer {
   background: linear-gradient(180deg, #09685f, #0e8174, #209486) !important;
 }

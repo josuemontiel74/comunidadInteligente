@@ -1,8 +1,4 @@
-/* ============================================================
-   Dashboard Super Admin – Estilo inspirado en Flutter
-   ============================================================ */
 
-/* ── Reset & base ─────────────────────────────────────────── */
 html,
 body {
   margin: 0;
@@ -17,7 +13,6 @@ body {
   height: 100%;
 }
 
-/* ── Loading screen ───────────────────────────────────────── */
 .sa-loading-screen {
   display: flex;
   flex-direction: column;
@@ -27,7 +22,6 @@ body {
   background: #f5f7fa;
 }
 
-/* ── Dashboard wrapper ────────────────────────────────────── */
 .sa-dashboard {
   min-height: 100vh;
   background: #f5f7fa;
@@ -36,9 +30,6 @@ body {
   max-width: 100vw;
 }
 
-/* ============================================================
-   OVERLAY (backdrop del drawer)
-   ============================================================ */
 .sa-overlay {
   position: fixed;
   inset: 0;
@@ -53,9 +44,6 @@ body {
   pointer-events: all;
 }
 
-/* ============================================================
-   DRAWER (menú hamburguesa – sale desde la derecha como Flutter)
-   ============================================================ */
 .sa-drawer {
   position: fixed;
   top: 0;
@@ -189,18 +177,12 @@ body {
   background: rgba(255, 255, 255, 0.25);
 }
 
-/* ============================================================
-   MAIN CONTENT
-   ============================================================ */
 .sa-main {
   width: 100%;
   min-height: 100vh;
   padding-bottom: 60px;
 }
 
-/* ============================================================
-   HEADER / AppBar (como Flutter)
-   ============================================================ */
 .sa-header {
   display: flex;
   align-items: center;
@@ -338,9 +320,6 @@ body {
   }
 }
 
-/* =====
-   WELCOME SECTION
-   ============================================================ */
 .sa-welcome {
   text-align: center;
   padding: 30px 20px 10px;
@@ -364,9 +343,6 @@ body {
   padding: 0 8px;
 }
 
-/* =====
-   MODULE CARDS (tarjetas con gradiente e iconos como Flutter)
-   ============================================================ */
 .sa-modules-grid {
   display: flex;
   flex-wrap: wrap;
@@ -435,9 +411,6 @@ body {
   line-height: 1.3;
 }
 
-/* =====
-   STATISTICS SECTION
-   ============================================================ */
 .sa-stats-section {
   padding: 20px 24px 40px;
   box-sizing: border-box;
@@ -659,9 +632,6 @@ body {
   font-size: 14px;
 }
 
-/* ============================================================
-   RESPONSIVE – Mobile first approach
-   ============================================================ */
 
 /* Tablets y pantallas medianas */
 @media (max-width: 900px) {
@@ -814,7 +784,6 @@ body {
   }
 }
 
-/* ── ANIMACIONES ──────────────────────────────────── */
 @keyframes sa-fadeInUp {
   from {
     opacity: 0;
@@ -851,7 +820,6 @@ body {
   pointer-events: none;
 }
 
-/* ── DRAWER MODO OSCURO ── */
 [data-modo="oscuro"] .sa-drawer {
   background: linear-gradient(180deg, #0f4724, #0f7234, #188a42) !important;
 }

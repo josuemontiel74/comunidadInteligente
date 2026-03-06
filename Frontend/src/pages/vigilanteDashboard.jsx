@@ -117,7 +117,6 @@ function Dashboard() {
 
   return (
     <div className={`vi-dashboard${saliendo ? " vi-saliendo" : ""}`}>
-      {/* ====== OFFCANVAS MENU ====== */}
       <button
         type="button"
         className={`vi-overlay ${menuOpen ? "active" : ""}`}
@@ -202,7 +201,6 @@ function Dashboard() {
         </div>
       </aside>
 
-      {/* ====== CONTENIDO PRINCIPAL ====== */}
       <div className="vi-main">
         <header className="vi-header">
           <div className="vi-profile-btn-wrap">

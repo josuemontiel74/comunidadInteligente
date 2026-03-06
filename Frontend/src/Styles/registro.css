@@ -71,7 +71,6 @@
   background: #0e3802;
 }
 
-/* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .registro-box {
     max-width: 95vw;

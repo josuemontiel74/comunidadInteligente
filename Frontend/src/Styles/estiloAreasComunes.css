@@ -1,4 +1,3 @@
-/* ══════════════════════════════════════════
    ÁREAS COMUNES — Tema Naranja
    ══════════════════════════════════════════ */
 
@@ -995,7 +994,6 @@ select.ac-form-control {
 
 /* ====== RESPONSIVE ====== */
 
-/* ── Desktop (≥ 801px): mostrar tabla, ocultar cards ── */
 @media (min-width: 801px) {
   .ac-cards-container {
     display: none !important;
@@ -1005,7 +1003,6 @@ select.ac-form-control {
   }
 }
 
-/* ── Móvil (≤ 800px): ocultar tabla, mostrar cards ── */
 @media (max-width: 800px) {
   .ac-table-container {
     display: none !important;
@@ -1235,7 +1232,6 @@ select.ac-form-control {
   }
 }
 
-/* ── Extra small (≤ 480px) ── */
 @media (max-width: 480px) {
   .ac-header {
     padding: 10px 12px;
@@ -1335,7 +1331,6 @@ select.ac-form-control {
   }
 }
 
-/* ═══════════════════════════════════════════════════
    BOTÓN IMPRIMIR RECIBO
    ═══════════════════════════════════════════════════ */
 .ac-btn-imprimir {
@@ -1369,7 +1364,6 @@ select.ac-form-control {
   font-size: 17px;
 }
 
-/* ═══════════════════════════════════════════════════
    BOTÓN GESTIONAR ÁREAS
    ═══════════════════════════════════════════════════ */
 .ac-btn-gestionar-areas {
@@ -1396,7 +1390,6 @@ select.ac-form-control {
   font-size: 16px;
 }
 
-/* ═══════════════════════════════════════════════════
    MODAL GESTIONAR ÁREAS
    ═══════════════════════════════════════════════════ */
 .ac-modal-areas {
@@ -1611,7 +1604,6 @@ select.ac-form-control {
   color: #7589a0 !important;
 }
 
-/* ── DRAWER MODO OSCURO ── */
 [data-modo="oscuro"] .ac-drawer {
   background: linear-gradient(180deg, #a13900, #ac5700, #b06200) !important;
 }

@@ -3,9 +3,9 @@ import PropTypes from "prop-types";
 import ModalOverlay from "../utils/ModalOverlay.jsx";
 import "../Styles/DescargaAppMovil.css";
 
-// ─── Ruta del APK (coloca aquí el nombre del archivo cuando lo tengas) ────────
-// El archivo debe estar en /Frontend/public/  → se servirá como /comunidadInteligente.apk
-const APK_URL = "/comunidadInteligente.apk";
+// ─ Ruta del APK (coloca aquí el nombre del archivo cuando lo tengas) 
+// El archivo debe estar en /Frontend/public/  → se servirá como /tuComunidadInteligente.apk
+const APK_URL = "/tuComunidadInteligente.apk";
 const DISMISS_KEY = "dap_movil_dismissido";
 
 const detectarMovil = () =>
@@ -42,7 +42,7 @@ export default function DescargaAppMovil({ btnClass = "" }) {
     // Crear enlace temporal y simular click
     const a = document.createElement("a");
     a.href = APK_URL;
-    a.download = "ComunidadInteligente.apk";
+    a.download = "tuComunidadInteligente.apk";
     document.body.appendChild(a);
     a.click();
     a.remove();

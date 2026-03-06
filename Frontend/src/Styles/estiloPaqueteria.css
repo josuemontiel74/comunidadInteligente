@@ -1,6 +1,3 @@
-/* ============================================
-   PAQUETERIA - Tema Azul (Flutter replica)
-   ============================================ */
 
 /* Loading screen */
 .paq-loading-screen {
@@ -1015,7 +1012,6 @@
   background: rgba(59, 130, 246, 0.12) !important;
 }
 
-/* ── DRAWER MODO OSCURO ── */
 [data-modo="oscuro"] .paq-drawer {
   background: linear-gradient(180deg, #152d7a, #1a45a5, #295bac) !important;
 }
