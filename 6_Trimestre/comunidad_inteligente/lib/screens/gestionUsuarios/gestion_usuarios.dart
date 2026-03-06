@@ -111,8 +111,7 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
 
       if (response.statusCode == 200) {
         final datos = json.decode(response.body);
-        final lista =
-            List<dynamic>.from(datos['body'] ?? datos['data'] ?? []);
+        final lista = List<dynamic>.from(datos['body'] ?? datos['data'] ?? []);
         setState(() {
           usuarios = lista;
           isLoading = false;
@@ -382,6 +381,39 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
   }
 
   Future<void> _inactivarUsuario(String username) async {
+    // Protección: no permitir que el superadmin se ininactive a sí mismo
+    if (username == LoginServe.usernameActual) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: const [
+              Icon(Icons.block, color: Colors.red),
+              SizedBox(width: 8),
+              Text('Acción no permitida'),
+            ],
+          ),
+          content: const Text(
+            'No puedes inactivar tu propia cuenta mientras la estás usando. Debe ser otra persona quien lo haga.',
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Entendido'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -757,7 +789,11 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
       scrollDirection: Axis.horizontal,
       child: SingleChildScrollView(
         child: DataTable(
-          headingRowColor: WidgetStateProperty.all(Colors.purple.shade100),
+          headingRowColor: WidgetStateProperty.all(
+            Theme.of(context).brightness == Brightness.dark
+                ? Colors.purple.shade800
+                : Colors.purple.shade100,
+          ),
           columns: const [
             DataColumn(label: Text('Username')),
             DataColumn(label: Text('Nombre Completo')),
@@ -1195,7 +1231,8 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
               // Persistir en BD
               await http.put(
                 Uri.parse(
-                    '${LoginServe.baseUrl}/api/usuario/${Uri.encodeComponent(newUsername.toString())}/foto'),
+                  '${LoginServe.baseUrl}/api/usuario/${Uri.encodeComponent(newUsername.toString())}/foto',
+                ),
                 headers: {
                   'Content-Type': 'application/json',
                   'Authorization': 'Bearer ${LoginServe.token}',
@@ -1670,7 +1707,8 @@ class _DetallesUsuarioDialogState extends State<DetallesUsuarioDialog> {
       try {
         await http.put(
           Uri.parse(
-              '${LoginServe.baseUrl}/api/usuario/${Uri.encodeComponent(username)}/foto'),
+            '${LoginServe.baseUrl}/api/usuario/${Uri.encodeComponent(username)}/foto',
+          ),
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ${LoginServe.token}',
@@ -2018,6 +2056,15 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
   bool obscurePassword = true;
   bool isSubmitting = false;
 
+  /// Convierte un valor dinámico a int de forma segura
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -2037,9 +2084,16 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
     telefonoController.text = (persona['telefono'] ?? '').toString();
     correoController.text = persona['correoElectronico'] ?? '';
 
-    tipoDocumentoId = persona['tipoDocumentoId'];
-    rolId = widget.usuario['rolesId'];
-    estadoId = widget.usuario['estadoId'];
+    tipoDocumentoId = _toInt(persona['tipoDocumentoId']);
+    rolId = _toInt(widget.usuario['rolesId']);
+    estadoId = _toInt(widget.usuario['estadoId']);
+
+    debugPrint('=== EDITAR USUARIO initState ===');
+    debugPrint(
+      'rolId: $rolId (tipo: ${widget.usuario['rolesId'].runtimeType})',
+    );
+    debugPrint('estadoId: $estadoId');
+    debugPrint('tipoDocumentoId: $tipoDocumentoId');
   }
 
   @override
@@ -2122,6 +2176,18 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
           widget.usuario['Persona'] ?? widget.usuario['persona'] ?? {};
       final body = <String, dynamic>{};
 
+      // Guardar el estado del form para capturar valores de los dropdowns
+      _formKey.currentState!.save();
+
+      debugPrint('=== DEBUG ACTUALIZAR USUARIO ===');
+      debugPrint('Username: ${widget.usuario['username']}');
+      debugPrint(
+        'rolId actual: $rolId | original: ${widget.usuario['rolesId']} (tipo: ${widget.usuario['rolesId'].runtimeType})',
+      );
+      debugPrint(
+        'estadoId actual: $estadoId | original: ${widget.usuario['estadoId']}',
+      );
+
       // Campos de cuenta
       if (usernameController.text.trim() != widget.usuario['username']) {
         body['username'] = usernameController.text.trim();
@@ -2129,10 +2195,10 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
       if (passwordController.text.isNotEmpty) {
         body['password'] = passwordController.text;
       }
-      if (rolId != widget.usuario['rolesId']) {
+      if (rolId != _toInt(widget.usuario['rolesId'])) {
         body['rolesId'] = rolId;
       }
-      if (estadoId != widget.usuario['estadoId']) {
+      if (estadoId != _toInt(widget.usuario['estadoId'])) {
         body['estadoId'] = estadoId;
       }
 
@@ -2144,7 +2210,7 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
         body['numeroDocumento'] = numeroDocumentoController.text.trim();
         hayaCambioenPersona = true;
       }
-      if (tipoDocumentoId != persona['tipoDocumentoId']) {
+      if (tipoDocumentoId != _toInt(persona['tipoDocumentoId'])) {
         body['tipoDocumentoId'] = tipoDocumentoId;
         hayaCambioenPersona = true;
       }
@@ -2197,8 +2263,6 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
         return;
       }
 
-      debugPrint('=== DEBUG ACTUALIZAR USUARIO ===');
-      debugPrint('Username: ${widget.usuario['username']}');
       debugPrint('Body a enviar: $body');
 
       final response = await http.patch(
@@ -2368,14 +2432,21 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                         isExpanded: true,
                         items: widget.roles.map((rol) {
                           return DropdownMenuItem<int>(
-                            value: rol['idRol'],
+                            value: rol['idRol'] as int,
                             child: Text(
                               rol['nombreRol'] ?? '',
                               overflow: TextOverflow.ellipsis,
                             ),
                           );
                         }).toList(),
-                        onChanged: (value) => setState(() => rolId = value),
+                        onChanged: (value) {
+                          debugPrint('Rol dropdown onChanged: $rolId → $value');
+                          setState(() => rolId = value);
+                        },
+                        onSaved: (value) {
+                          debugPrint('Rol dropdown onSaved: $value');
+                          rolId = value;
+                        },
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<int>(
@@ -2392,7 +2463,16 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                           DropdownMenuItem(value: 1, child: Text('Activo')),
                           DropdownMenuItem(value: 2, child: Text('Inactivo')),
                         ],
-                        onChanged: (value) => setState(() => estadoId = value),
+                        onChanged: (value) {
+                          debugPrint(
+                            'Estado dropdown onChanged: $estadoId → $value',
+                          );
+                          setState(() => estadoId = value);
+                        },
+                        onSaved: (value) {
+                          debugPrint('Estado dropdown onSaved: $value');
+                          estadoId = value;
+                        },
                       ),
                       const SizedBox(height: 24),
                       // Sección: Información Personal
@@ -2417,7 +2497,7 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                         isExpanded: true,
                         items: widget.tiposDocumento.map((tipo) {
                           return DropdownMenuItem<int>(
-                            value: tipo['idTipoDocumento'],
+                            value: _toInt(tipo['idTipoDocumento']),
                             child: Text(
                               tipo['nombreDocumento'] ?? '',
                               overflow: TextOverflow.ellipsis,
@@ -2426,6 +2506,7 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                         }).toList(),
                         onChanged: (value) =>
                             setState(() => tipoDocumentoId = value),
+                        onSaved: (value) => tipoDocumentoId = value,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(

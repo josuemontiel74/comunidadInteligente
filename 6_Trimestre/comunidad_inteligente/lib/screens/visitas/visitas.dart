@@ -1,16 +1,15 @@
 // ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../parqueaderos/parqueaderos.dart' show SeleccionarParqueaderoScreen;
 import '../../utils/helpers.dart';
 import '../../utils/api_config.dart';
+import '../../utils/validaciones.dart';
 
-// ============================================================================
-// API SERVICE
-// ============================================================================
 class VisitasApiService {
-  static const String _baseUrl = ApiConfig.apiUrl;
+  static String get _baseUrl => ApiConfig.apiUrl;
 
   static Future<List<dynamic>> obtenerVisitas(String token) async {
     try {
@@ -79,9 +78,12 @@ class VisitasApiService {
         // Intentar parsear el error del backend
         try {
           final errorData = json.decode(response.body);
+          final msg = errorData['message'];
           return {
             'success': false,
-            'message': errorData['message'] ?? 'Error desconocido del servidor',
+            'message': msg is String
+                ? msg
+                : (msg?.toString() ?? 'Error desconocido del servidor'),
           };
         } catch (e) {
           return {
@@ -92,7 +94,10 @@ class VisitasApiService {
         }
       }
     } catch (e) {
-      return {'success': false, 'message': 'Error de conexión: $e'};
+      return {
+        'success': false,
+        'message': 'Error de conexión: ${e.toString()}',
+      };
     }
   }
 
@@ -246,9 +251,6 @@ class VisitasApiService {
   }
 }
 
-// ============================================================================
-// HOMESCREEN
-// ============================================================================
 class HomeScreen extends StatefulWidget {
   final String? token;
 
@@ -291,9 +293,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ============================================================================
-// TOKEN ERROR WIDGET
-// ============================================================================
 class TokenErrorWidget extends StatelessWidget {
   const TokenErrorWidget({super.key});
 
@@ -319,9 +318,6 @@ class TokenErrorWidget extends StatelessWidget {
   }
 }
 
-// ============================================================================
-// VISITAS SCREEN
-// ============================================================================
 class VisitasScreen extends StatefulWidget {
   final String token;
   const VisitasScreen({super.key, required this.token});
@@ -680,7 +676,10 @@ class _VisitasScreenState extends State<VisitasScreen> {
                               padding: const EdgeInsets.all(16),
                               child: DataTable(
                                 headingRowColor: WidgetStateProperty.all(
-                                  Colors.green.shade50,
+                                  Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.green.shade800
+                                      : Colors.green.shade50,
                                 ),
                                 columns: const [
                                   DataColumn(
@@ -1003,9 +1002,6 @@ class _VisitasScreenState extends State<VisitasScreen> {
   }
 }
 
-// ============================================================================
-// VISITANTES SCREEN
-// ============================================================================
 class VisitantesScreen extends StatefulWidget {
   final String token;
   const VisitantesScreen({super.key, required this.token});
@@ -1200,7 +1196,10 @@ class _VisitantesScreenState extends State<VisitantesScreen> {
                               padding: const EdgeInsets.all(16),
                               child: DataTable(
                                 headingRowColor: WidgetStateProperty.all(
-                                  Colors.green.shade50,
+                                  Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.green.shade800
+                                      : Colors.green.shade50,
                                 ),
                                 columns: const [
                                   DataColumn(
@@ -1401,10 +1400,6 @@ class _VisitantesScreenState extends State<VisitantesScreen> {
     }
   }
 }
-
-// ============================================================================
-// WIDGETS REUTILIZABLES
-// ============================================================================
 
 // Empty State Widget
 class EmptyStateWidget extends StatelessWidget {
@@ -1692,10 +1687,6 @@ class VisitanteCard extends StatelessWidget {
     );
   }
 }
-
-// ============================================================================
-// DIALOGS
-// ============================================================================
 
 // Confirmar Dialog
 class ConfirmarDialog extends StatelessWidget {
@@ -1988,34 +1979,6 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          TextFormField(
-                            controller: numeroDocumentoController,
-                            decoration: InputDecoration(
-                              labelText: "Número de documento *",
-                              border: border,
-                              prefixIcon: const Icon(
-                                Icons.badge,
-                                color: Colors.green,
-                              ),
-                              helperText:
-                                  'Solo letras y números, máx 20 caracteres',
-                            ),
-                            keyboardType: TextInputType.text,
-                            maxLength: 20,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'El documento es requerido';
-                              }
-                              if (!RegExp(r'^[a-zA-Z0-9]+$').hasMatch(value)) {
-                                return 'Solo se permiten letras y números';
-                              }
-                              if (value.length > 20) {
-                                return 'Máximo 20 caracteres';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 12),
                           Builder(
                             builder: (context) {
                               return DropdownButtonFormField<String>(
@@ -2056,6 +2019,8 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                                 onChanged: (value) {
                                   setState(() {
                                     tipoDocumentoId = value;
+                                    // Limpiar documento al cambiar tipo
+                                    numeroDocumentoController.clear();
                                   });
                                 },
                                 validator: (value) {
@@ -2064,6 +2029,40 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                                   }
                                   return null;
                                 },
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            key: ValueKey('doc_$tipoDocumentoId'),
+                            controller: numeroDocumentoController,
+                            decoration: InputDecoration(
+                              labelText: "Número de documento *",
+                              border: border,
+                              prefixIcon: const Icon(
+                                Icons.badge,
+                                color: Colors.green,
+                              ),
+                              helperText:
+                                  int.tryParse(tipoDocumentoId ?? '') == 2
+                                  ? 'Alfanumérico, máx 2 letras (Pasaporte)'
+                                  : 'Solo números',
+                            ),
+                            keyboardType:
+                                int.tryParse(tipoDocumentoId ?? '') == 2
+                                ? TextInputType.text
+                                : TextInputType.number,
+                            maxLength: 20,
+                            inputFormatters: [
+                              getDocumentoFormatter(
+                                int.tryParse(tipoDocumentoId ?? ''),
+                              ),
+                              LengthLimitingTextInputFormatter(20),
+                            ],
+                            validator: (value) {
+                              return validarDocumento(
+                                value,
+                                int.tryParse(tipoDocumentoId ?? ''),
                               );
                             },
                           ),
@@ -2080,6 +2079,7 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                               helperText: 'Mín 10 caracteres, máx 100',
                             ),
                             maxLength: 100,
+                            inputFormatters: [NombreInputFormatter()],
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'El nombre es requerido';
@@ -2330,6 +2330,8 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                               onChanged: (value) {
                                 setState(() {
                                   tipoVehiculoId = value;
+                                  // Reset parqueadero al cambiar tipo de vehículo
+                                  codigoParqueadero = null;
                                 });
                               },
                               validator: (value) {
@@ -2354,6 +2356,12 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                               ),
                               textCapitalization: TextCapitalization.characters,
                               maxLength: 10,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                  RegExp(r'[a-zA-Z0-9]'),
+                                ),
+                                LengthLimitingTextInputFormatter(10),
+                              ],
                               validator: (value) {
                                 if (traeVehiculo &&
                                     (value == null || value.isEmpty)) {
@@ -2561,10 +2569,8 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
     // Construir fecha y hora en formato 24h: "2025-10-03 14:30"
     final fecha = fechaHoraIngreso!;
     final hora = horaIngreso!;
-    // Convertir a formato 24 horas
-    final hora24 = hora.period == DayPeriod.pm && hora.hour != 12
-        ? hora.hour + 12
-        : (hora.period == DayPeriod.am && hora.hour == 12 ? 0 : hora.hour);
+    // TimeOfDay.hour ya está en formato 24 horas (0-23)
+    final hora24 = hora.hour;
 
     final fechaHoraFormateada =
         "${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')} "
@@ -2583,18 +2589,19 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
 
     // Agregar campos opcionales de vehículo si trae vehículo
     if (traeVehiculo) {
-      data['matricula'] = matriculaController.text;
+      data['matricula'] = matriculaController.text.trim().toUpperCase();
       data['tipoVehiculoId'] = int.parse(tipoVehiculoId!);
       data['codigoParqueadero'] = codigoParqueadero;
     }
 
-    Navigator.pop(context);
+    debugPrint('Datos visita a enviar: $data');
 
     final result = await VisitasApiService.crearVisita(widget.token, data);
 
     if (!context.mounted) return;
 
     if (result['success'] == true) {
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Visita registrada exitosamente'),
@@ -2605,7 +2612,9 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result['message'] ?? 'Error al registrar la visita'),
+          content: Text(
+            result['message']?.toString() ?? 'Error al registrar la visita',
+          ),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 5),
         ),
@@ -2852,27 +2861,6 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
                   children: [
                     _buildSeccionTitulo('Información del Visitante'),
                     const SizedBox(height: 12),
-                    _buildCampoTexto(
-                      controller: numeroDocumentoController,
-                      label: 'Número de Documento *',
-                      icono: Icons.badge,
-                      keyboardType: TextInputType.text,
-                      maxLength: 20,
-                      helperText: 'Solo letras y números, máx 20 caracteres',
-                      customValidator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'El documento es requerido';
-                        }
-                        if (!RegExp(r'^[a-zA-Z0-9]+$').hasMatch(value)) {
-                          return 'Solo se permiten letras y números';
-                        }
-                        if (value.length > 20) {
-                          return 'Máximo 20 caracteres';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 12),
                     _buildDropdown(
                       label: 'Tipo de Documento *',
                       value: tiposDocumento.isEmpty
@@ -2894,8 +2882,38 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
                                 child: Text(tipo['nombreDocumento'] ?? ''),
                               );
                             }).toList(),
-                      onChanged: (value) =>
-                          setState(() => tipoDocumentoId = value),
+                      onChanged: (value) {
+                        setState(() {
+                          tipoDocumentoId = value;
+                          // Limpiar documento al cambiar tipo
+                          numeroDocumentoController.clear();
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _buildCampoTexto(
+                      controller: numeroDocumentoController,
+                      label: 'Número de Documento *',
+                      icono: Icons.badge,
+                      keyboardType: int.tryParse(tipoDocumentoId ?? '') == 2
+                          ? TextInputType.text
+                          : TextInputType.number,
+                      maxLength: 20,
+                      helperText: int.tryParse(tipoDocumentoId ?? '') == 2
+                          ? 'Alfanumérico, máx 2 letras (Pasaporte)'
+                          : 'Solo números',
+                      inputFormatters: [
+                        getDocumentoFormatter(
+                          int.tryParse(tipoDocumentoId ?? ''),
+                        ),
+                        LengthLimitingTextInputFormatter(20),
+                      ],
+                      customValidator: (value) {
+                        return validarDocumento(
+                          value,
+                          int.tryParse(tipoDocumentoId ?? ''),
+                        );
+                      },
                     ),
                     const SizedBox(height: 12),
                     _buildCampoTexto(
@@ -2904,6 +2922,7 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
                       icono: Icons.person,
                       maxLength: 100,
                       helperText: 'Mín 10 caracteres, máx 100',
+                      inputFormatters: [NombreInputFormatter()],
                       customValidator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'El nombre es requerido';
@@ -3026,6 +3045,13 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
                         icono: Icons.local_parking,
                         maxLength: 10,
                         helperText: 'Solo letras y números, 6-10 caracteres',
+                        textCapitalization: TextCapitalization.characters,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'[a-zA-Z0-9]'),
+                          ),
+                          LengthLimitingTextInputFormatter(10),
+                        ],
                         customValidator: (value) {
                           if (traeVehiculo &&
                               (value == null || value.isEmpty)) {
@@ -3097,12 +3123,16 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
     bool requerido = true,
     String? helperText,
     String? Function(String?)? customValidator,
+    List<TextInputFormatter>? inputFormatters,
+    TextCapitalization textCapitalization = TextCapitalization.none,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLineas,
       maxLength: maxLength,
+      inputFormatters: inputFormatters,
+      textCapitalization: textCapitalization,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icono, color: Colors.green),
@@ -3350,10 +3380,8 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
     // Construir fecha y hora en formato 24h: "2025-10-03 14:30"
     final fecha = fechaHoraIngreso!;
     final hora = horaIngreso!;
-    // Convertir a formato 24 horas
-    final hora24 = hora.period == DayPeriod.pm && hora.hour != 12
-        ? hora.hour + 12
-        : (hora.period == DayPeriod.am && hora.hour == 12 ? 0 : hora.hour);
+    // TimeOfDay.hour ya está en formato 24 horas (0-23)
+    final hora24 = hora.hour;
 
     final fechaHoraFormateada =
         "${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')} "
@@ -3371,7 +3399,7 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
     };
 
     if (traeVehiculo) {
-      data['matricula'] = matriculaController.text;
+      data['matricula'] = matriculaController.text.trim().toUpperCase();
       data['tipoVehiculoId'] = int.parse(tipoVehiculoId!);
       data['codigoParqueadero'] = codigoParqueadero;
     } else {
@@ -3380,6 +3408,8 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
       data['tipoVehiculoId'] = null;
       data['codigoParqueadero'] = null;
     }
+
+    debugPrint('Datos visita editar a enviar: $data');
 
     Navigator.pop(context);
 
@@ -3514,6 +3544,7 @@ class EditarVisitanteDialog extends StatefulWidget {
 
 class _EditarVisitanteDialogState extends State<EditarVisitanteDialog> {
   late final TextEditingController nombreController;
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -3533,9 +3564,18 @@ class _EditarVisitanteDialogState extends State<EditarVisitanteDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Editar Visitante'),
-      content: TextField(
-        controller: nombreController,
-        decoration: const InputDecoration(labelText: 'Nombre'),
+      content: Form(
+        key: _formKey,
+        child: TextFormField(
+          controller: nombreController,
+          decoration: const InputDecoration(
+            labelText: 'Nombre',
+            helperText: 'Solo letras, espacios y guiones',
+          ),
+          maxLength: 100,
+          inputFormatters: [NombreInputFormatter()],
+          validator: (value) => validarNombreCompleto(value),
+        ),
       ),
       actions: [
         TextButton(
@@ -3543,7 +3583,11 @@ class _EditarVisitanteDialogState extends State<EditarVisitanteDialog> {
           child: const Text('Cancelar'),
         ),
         ElevatedButton(
-          onPressed: _editarVisitante,
+          onPressed: () {
+            if (_formKey.currentState!.validate()) {
+              _editarVisitante();
+            }
+          },
           child: const Text('Guardar'),
         ),
       ],

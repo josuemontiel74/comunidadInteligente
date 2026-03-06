@@ -2,7 +2,7 @@ import apartamentosModel from "../models/apartamentos.model.js";
 import torresModel from "../models/torres.model.js";
 import estadosModel from "../models/estados.model.js";
 
-// ── Valida que el número de apartamento siga la convención de la torre ──────
+// Valida que el número de apartamento siga la convención de la torre 
 // Torre A(1) → 101-199, Torre B(2) → 201-299, ... Torre J(10) → 1001-1099
 const validarNumeroApartamentoPorTorre = (torresId, numeroApartamento) => {
   const torre = Number.parseInt(torresId, 10);
