@@ -6,11 +6,8 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import '../../utils/api_config.dart';
 
-// ============================================================================
-// REPORTES API SERVICE
-// ============================================================================
 class ReportesApiService {
-  static const String _baseUrl = ApiConfig.apiUrl;
+  static String get _baseUrl => ApiConfig.apiUrl;
 
   // Helper para formatear fecha como YYYY-MM-DD
   static String _formatearFecha(DateTime fecha) {
@@ -131,10 +128,6 @@ class ReportesApiService {
     }
   }
 
-  // ============================================================================
-  // REPORTES DE RESIDENTES
-  // ============================================================================
-
   /// Obtiene estadísticas de ocupación por torre
   static Future<Map<String, dynamic>> obtenerReporteOcupacion(
     String token,
@@ -200,9 +193,6 @@ class ReportesApiService {
   }
 }
 
-// ============================================================================
-// PANTALLA PRINCIPAL DE REPORTES
-// ============================================================================
 class ReportesScreen extends StatefulWidget {
   final String token;
 
@@ -428,9 +418,6 @@ class _ReportesScreenState extends State<ReportesScreen> {
                         const SizedBox(height: 24),
                         _buildReporteReservas(),
                         const SizedBox(height: 32),
-                        // ============================================
-                        // SECCIÓN DE REPORTES DE RESIDENTES
-                        // ============================================
                         _buildSeccionTitulo(
                           'Reportes de Residentes',
                           Icons.people,
@@ -1862,9 +1849,6 @@ class _ReportesScreenState extends State<ReportesScreen> {
             ),
           ),
 
-          // ============================================================
-          // REPORTES DE RESIDENTES
-          // ============================================================
           pw.SizedBox(height: 32),
           pw.Container(
             padding: const pw.EdgeInsets.all(12),
@@ -1966,10 +1950,6 @@ class _ReportesScreenState extends State<ReportesScreen> {
   String _formatearFecha(DateTime fecha) {
     return '${fecha.day.toString().padLeft(2, '0')}/${fecha.month.toString().padLeft(2, '0')}/${fecha.year}';
   }
-
-  // ============================================================================
-  // MÉTODOS PDF PARA REPORTES DE RESIDENTES
-  // ============================================================================
 
   /// Genera contenido PDF para ocupación por torres
   List<pw.Widget> _buildPDFOcupacionTorres() {
@@ -2375,10 +2355,6 @@ class _ReportesScreenState extends State<ReportesScreen> {
     );
   }
 
-  // ============================================================================
-  // WIDGETS DE REPORTES DE RESIDENTES
-  // ============================================================================
-
   /// Widget para crear título de sección con ícono
   Widget _buildSeccionTitulo(String titulo, IconData icono, Color color) {
     return Container(
@@ -2764,7 +2740,11 @@ class _ReportesScreenState extends State<ReportesScreen> {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
-                  headingRowColor: WidgetStateProperty.all(Colors.pink.shade50),
+                  headingRowColor: WidgetStateProperty.all(
+                    Theme.of(context).brightness == Brightness.dark
+                        ? Colors.pink.shade800
+                        : Colors.pink.shade50,
+                  ),
                   columns: const [
                     DataColumn(
                       label: Text(
@@ -3044,7 +3024,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
                   headingRowColor: WidgetStateProperty.all(
-                    Colors.purple.shade50,
+                    Theme.of(context).brightness == Brightness.dark
+                        ? Colors.purple.shade800
+                        : Colors.purple.shade50,
                   ),
                   columns: const [
                     DataColumn(

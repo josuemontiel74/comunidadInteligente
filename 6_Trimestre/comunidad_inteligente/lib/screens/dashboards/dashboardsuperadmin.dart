@@ -570,7 +570,6 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
     );
   }
 
-  // Vista Web: Grid con todas las tarjetas visibles
   Widget _buildWebView(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 40),
@@ -716,6 +715,21 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
       ),
       _buildModuleCard(
         context,
+        icon: Icons.bar_chart,
+        title: 'Reportes',
+        color: Colors.deepPurple,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  ReportesScreen(token: LoginServe.token ?? ''),
+            ),
+          );
+        },
+      ),
+      _buildModuleCard(
+        context,
         icon: Icons.apartment,
         title: 'Visualizar Torres',
         color: Colors.teal,
@@ -743,7 +757,6 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
     ];
   }
 
-  // Tarjeta individual de módulo
   Widget _buildModuleCard(
     BuildContext context, {
     required IconData icon,
@@ -896,7 +909,12 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
         ).showSnackBar(SnackBar(content: Text('Módulo en construcción')));
       },
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      hoverColor: Colors.green.shade50,
+      hoverColor: Theme.of(context).brightness == Brightness.dark
+          ? Colors.green.shade900.withValues(alpha: 0.3)
+          : Colors.green.shade50,
+      splashColor: Theme.of(context).brightness == Brightness.dark
+          ? Colors.green.shade800.withValues(alpha: 0.3)
+          : null,
     );
   }
 
@@ -907,6 +925,7 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
     String title,
     Widget destino,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ListTile(
       leading: Icon(icon, color: Colors.green.shade600, size: 24),
       title: Text(
@@ -929,7 +948,10 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
         );
       },
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      hoverColor: Colors.green.shade50,
+      hoverColor: isDark
+          ? Colors.green.shade900.withValues(alpha: 0.3)
+          : Colors.green.shade50,
+      splashColor: isDark ? Colors.green.shade800.withValues(alpha: 0.3) : null,
     );
   }
 
@@ -950,7 +972,6 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
         ),
         SizedBox(height: 30),
         if (isWeb)
-          // Vista web: gráficos lado a lado
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Row(
@@ -1006,7 +1027,6 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
     );
   }
 
-  // Tarjeta de paquetes entregados
   Widget _buildPaquetesEntregadosCard() {
     // Usar datos dinámicos
     int totalPaquetes = paquetesEntregados + paquetesPendientes;
@@ -1126,7 +1146,6 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
     );
   }
 
-  // Tarjeta de parqueaderos ocupados con gráfico de torta
   Widget _buildParqueaderosCard() {
     // Usar datos dinámicos
     int totalOcupados = parqueosCarros + parqueosMotos;
@@ -1303,7 +1322,6 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
     );
   }
 
-  // Tarjeta de visitas del día
   Widget _buildVisitasCard() {
     return Card(
       elevation: 6,
@@ -1348,7 +1366,6 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
     );
   }
 
-  // Tarjeta de reservas del día
   Widget _buildResumenRapidoCard() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
@@ -1423,7 +1440,6 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
     );
   }
 
-  // Tarjeta de usuarios en línea
   Widget _buildUsuariosEnLineaCard() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
