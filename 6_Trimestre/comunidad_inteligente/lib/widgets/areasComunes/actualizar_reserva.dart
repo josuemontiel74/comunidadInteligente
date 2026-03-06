@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import '../../main.dart';
 import '../../screens/areasComunes/areascomunes.dart';
+import '../../utils/validaciones.dart';
 
 class Actualizar extends StatefulWidget {
   const Actualizar({super.key, required this.token, required this.idReservas});
@@ -22,6 +24,36 @@ class _ActualizarState extends State<Actualizar> {
   void initState() {
     super.initState();
     cargarReservasId(widget.idReservas);
+    _cargarAreasDisponibles();
+  }
+
+  Future<void> _cargarAreasDisponibles() async {
+    try {
+      final headers = <String, String>{'Content-Type': 'application/json'};
+      if (widget.token != null) {
+        headers['Authorization'] = 'Bearer ${widget.token}';
+      }
+
+      final response = await http.get(
+        Uri.parse('${LoginServe.baseUrl}/api/areaComunes'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final areas = data['data'] ?? [];
+
+        setState(() {
+          // Para edición, mostrar todas las áreas (no solo disponibles)
+          areasDisponibles = List.from(areas);
+          cargandoAreas = false;
+        });
+      } else {
+        setState(() => cargandoAreas = false);
+      }
+    } catch (e) {
+      setState(() => cargandoAreas = false);
+    }
   }
 
   Future<void> cargarReservasId(int? idReservas) async {
@@ -50,7 +82,7 @@ class _ActualizarState extends State<Actualizar> {
 
         // Debug: Imprimir el JSON para ver la estructura
         debugPrint('=== DEBUG RESERVA JSON ===');
-        debugPrint(reservaJson);
+        debugPrint(reservaJson.toString());
 
         // Extraer el tipoDocumentoId directamente del JSON
         String? tipoDocIdFromJson;
@@ -127,6 +159,22 @@ class _ActualizarState extends State<Actualizar> {
           // Inicializar acepta reglamento
           aceptaReglamento = reservas[0].aceptaReglamento;
 
+          // Inicializar área común
+          if (reservas[0].areaComunId != null) {
+            areaComunId = reservas[0].areaComunId.toString();
+          }
+
+          // Inicializar torre y apartamento desde los datos
+          if (reservas[0].numeroApartamento != null) {
+            apartamentoSeleccionado = reservas[0].numeroApartamento;
+            torreSeleccionada = _obtenerTorrePorApartamento(
+              reservas[0].numeroApartamento,
+            );
+            debugPrint(
+              'Torre: $torreSeleccionada, Apto: $apartamentoSeleccionado',
+            );
+          }
+
           isLoading = false;
         });
       } else {
@@ -171,11 +219,51 @@ class _ActualizarState extends State<Actualizar> {
   String? motivoReserva;
   String? cantidadAsistentes;
   String? invitadosExternos;
-  String? numeroApartamento;
+  String? torreSeleccionada;
+  String? apartamentoSeleccionado;
   TimeOfDay? horaInicio;
   TimeOfDay? horaFin;
   DateTime? fechaReserva;
   int? aceptaReglamento;
+  List<dynamic> areasDisponibles = [];
+  bool cargandoAreas = true;
+
+  final List<String> torres = [
+    'A',
+    'B',
+    'C',
+    'D',
+    'E',
+    'F',
+    'G',
+    'H',
+    'I',
+    'J',
+  ];
+
+  Map<String, List<String>> apartamentosPorTorre = {
+    'A': ['101', '102', '103', '104', '105'],
+    'B': ['201', '202', '203', '204', '205'],
+    'C': ['301', '302', '303', '304', '305'],
+    'D': ['401', '402', '403', '404', '405'],
+    'E': ['501', '502', '503', '504', '505'],
+    'F': ['601', '602', '603', '604', '605'],
+    'G': ['701', '702', '703', '704', '705'],
+    'H': ['801', '802', '803', '804', '805'],
+    'I': ['901', '902', '903', '904', '905'],
+    'J': ['1001', '1002', '1003', '1004', '1005'],
+  };
+
+  // Mapeo inverso: número de apartamento → torre
+  String? _obtenerTorrePorApartamento(String? numApto) {
+    if (numApto == null || numApto.isEmpty) return null;
+    for (final entry in apartamentosPorTorre.entries) {
+      if (entry.value.contains(numApto)) {
+        return entry.key;
+      }
+    }
+    return null;
+  }
 
   // ignore: non_constant_identifier_names
   Future<void> Actualizar() async {
@@ -242,11 +330,9 @@ class _ActualizarState extends State<Actualizar> {
         documentoSolicitante!.trim().isNotEmpty) {
       datosActualizar['documentoSolicitante'] = documentoSolicitante;
     }
-    if (numeroApartamento != null && numeroApartamento!.trim().isNotEmpty) {
-      final apartamentoNum = int.tryParse(numeroApartamento!);
-      if (apartamentoNum != null) {
-        datosActualizar['numeroApartamento'] = apartamentoNum;
-      }
+    if (apartamentoSeleccionado != null &&
+        apartamentoSeleccionado!.trim().isNotEmpty) {
+      datosActualizar['numeroApartamento'] = apartamentoSeleccionado;
     }
     if (fechaReserva != null) {
       datosActualizar['fechaReserva'] =
@@ -268,7 +354,10 @@ class _ActualizarState extends State<Actualizar> {
       datosActualizar['correoSolicitante'] = correoSolicitante;
     }
     if (tipoDocumentoId != null) {
-      datosActualizar['tipoDocumentoId'] = tipoDocumentoId;
+      final tipoDocNum = int.tryParse(tipoDocumentoId!);
+      if (tipoDocNum != null) {
+        datosActualizar['tipoDocumentoId'] = tipoDocNum;
+      }
     }
     if (areaComunId != null) {
       final areaComunNum = int.tryParse(areaComunId!);
@@ -297,36 +386,54 @@ class _ActualizarState extends State<Actualizar> {
 
     debugPrint('Datos a actualizar: $datosActualizar');
 
-    final response = await http.patch(
-      url,
-      headers: {
-        'Authorization': 'Bearer ${widget.token}',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode(datosActualizar),
-    );
-
-    if (!mounted) return; // Verificar si el widget sigue montado
-
-    if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Reserva actualizada correctamente"),
-          backgroundColor: Colors.green,
-          showCloseIcon: true,
-        ),
+    try {
+      final response = await http.patch(
+        url,
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(datosActualizar),
       );
-      Navigator.pop(context); // Cerrar modal de actualización
-      Navigator.pop(context); // Volver a la pantalla anterior
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "Error al actualizar la reserva (${response.statusCode})",
+
+      debugPrint('=== RESPUESTA PATCH ===');
+      debugPrint('Status: ${response.statusCode}');
+      debugPrint('Body: ${response.body}');
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Reserva actualizada correctamente"),
+            backgroundColor: Colors.green,
+            showCloseIcon: true,
           ),
-          backgroundColor: Colors.red,
-        ),
-      );
+        );
+        Navigator.pop(context); // Cerrar modal y volver a la lista
+      } else {
+        // Intentar extraer mensaje del servidor
+        String errorMsg =
+            'Error al actualizar la reserva (${response.statusCode})';
+        try {
+          final errorData = jsonDecode(response.body);
+          if (errorData['message'] is String) {
+            errorMsg = errorData['message'];
+          }
+        } catch (_) {}
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error de conexión: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -338,7 +445,7 @@ class _ActualizarState extends State<Actualizar> {
     );
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           // Header personalizado con botón cerrar
@@ -414,14 +521,11 @@ class _ActualizarState extends State<Actualizar> {
                                       labelText: "Nombre solicitante",
                                       border: border,
                                     ),
+                                    inputFormatters: [NombreInputFormatter()],
                                     validator: (value) {
                                       if (value != null &&
                                           value.trim().isNotEmpty) {
-                                        if (!RegExp(
-                                          r'^[a-zA-Z\sÁÉÍÓÚáéíóúÑñ]+$',
-                                        ).hasMatch(value)) {
-                                          return 'El nombre solo puede contener letras';
-                                        }
+                                        return validarNombreCompleto(value);
                                       }
                                       return null;
                                     },
@@ -468,6 +572,36 @@ class _ActualizarState extends State<Actualizar> {
                                   ),
                                   const SizedBox(height: 12),
 
+                                  // Documento del solicitante
+                                  TextFormField(
+                                    initialValue: reservas.isNotEmpty
+                                        ? reservas[0].documentoSolicitante
+                                        : '',
+                                    decoration: InputDecoration(
+                                      labelText: "Número de documento",
+                                      border: border,
+                                    ),
+                                    keyboardType: TextInputType.text,
+                                    inputFormatters: [
+                                      getDocumentoFormatter(
+                                        tipoDocumentoId == '3' ? 2 : 1,
+                                      ),
+                                    ],
+                                    validator: (value) {
+                                      if (value != null &&
+                                          value.trim().isNotEmpty) {
+                                        return validarDocumento(
+                                          value,
+                                          tipoDocumentoId == '3' ? 2 : 1,
+                                        );
+                                      }
+                                      return null;
+                                    },
+                                    onSaved: (val) =>
+                                        documentoSolicitante = val,
+                                  ),
+                                  const SizedBox(height: 12),
+
                                   TextFormField(
                                     initialValue: reservas.isNotEmpty
                                         ? reservas[0].telefonoSolicitante
@@ -477,14 +611,11 @@ class _ActualizarState extends State<Actualizar> {
                                       border: border,
                                     ),
                                     keyboardType: TextInputType.phone,
+                                    inputFormatters: [TelefonoInputFormatter()],
                                     validator: (value) {
                                       if (value != null &&
                                           value.trim().isNotEmpty) {
-                                        if (!RegExp(
-                                          r'^[0-9]{10}$',
-                                        ).hasMatch(value)) {
-                                          return 'El teléfono debe tener exactamente 10 dígitos';
-                                        }
+                                        return validarTelefono(value);
                                       }
                                       return null;
                                     },
@@ -516,15 +647,73 @@ class _ActualizarState extends State<Actualizar> {
                                   ),
                                   const SizedBox(height: 12),
 
-                                  TextFormField(
-                                    initialValue: reservas.isNotEmpty
-                                        ? reservas[0].numeroApartamento
-                                        : '',
+                                  // Torre
+                                  DropdownButtonFormField<String>(
+                                    initialValue: torreSeleccionada,
                                     decoration: InputDecoration(
-                                      labelText: "Número apartamento",
+                                      labelText: 'Torre *',
                                       border: border,
+                                      prefixIcon: const Icon(
+                                        Icons.apartment,
+                                        color: Colors.orange,
+                                      ),
                                     ),
-                                    onSaved: (val) => numeroApartamento = val,
+                                    items: torres.map((torre) {
+                                      return DropdownMenuItem(
+                                        value: torre,
+                                        child: Text('Torre $torre'),
+                                      );
+                                    }).toList(),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        torreSeleccionada = value;
+                                        apartamentoSeleccionado = null;
+                                      });
+                                    },
+                                    validator: (value) {
+                                      if (value == null) {
+                                        return 'Seleccione una torre';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 12),
+
+                                  // Apartamento
+                                  DropdownButtonFormField<String>(
+                                    key: ValueKey('apto_$torreSeleccionada'),
+                                    initialValue: apartamentoSeleccionado,
+                                    decoration: InputDecoration(
+                                      labelText: 'Apartamento *',
+                                      border: border,
+                                      prefixIcon: const Icon(
+                                        Icons.home,
+                                        color: Colors.orange,
+                                      ),
+                                    ),
+                                    items: torreSeleccionada != null
+                                        ? apartamentosPorTorre[torreSeleccionada]!
+                                              .map((apt) {
+                                                return DropdownMenuItem(
+                                                  value: apt,
+                                                  child: Text(
+                                                    'Apartamento $apt',
+                                                  ),
+                                                );
+                                              })
+                                              .toList()
+                                        : [],
+                                    onChanged: (value) {
+                                      setState(() {
+                                        apartamentoSeleccionado = value;
+                                      });
+                                    },
+                                    validator: (value) {
+                                      if (value == null) {
+                                        return 'Seleccione un apartamento';
+                                      }
+                                      return null;
+                                    },
                                   ),
                                 ],
                               ),
@@ -552,30 +741,37 @@ class _ActualizarState extends State<Actualizar> {
                               child: Column(
                                 children: [
                                   DropdownButtonFormField<String>(
-                                    initialValue:
-                                        reservas.isNotEmpty &&
-                                            reservas[0].areaComunId != null
-                                        ? reservas[0].areaComunId.toString()
-                                        : null,
+                                    initialValue: cargandoAreas
+                                        ? null
+                                        : (areasDisponibles.any(
+                                                (a) =>
+                                                    a['areaComunId']
+                                                        .toString() ==
+                                                    areaComunId,
+                                              )
+                                              ? areaComunId
+                                              : null),
                                     decoration: InputDecoration(
                                       labelText: "Área común",
                                       border: border,
                                     ),
-                                    items: const [
-                                      DropdownMenuItem(
-                                        value: "1",
-                                        child: Text("Salón comunal 1"),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: "2",
-                                        child: Text("Salón comunal 2"),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: "3",
-                                        child: Text("Zona BBQ"),
-                                      ),
-                                    ],
-                                    onChanged: (v) => areaComunId = v,
+                                    items: cargandoAreas
+                                        ? []
+                                        : areasDisponibles
+                                              .map<DropdownMenuItem<String>>((
+                                                area,
+                                              ) {
+                                                return DropdownMenuItem(
+                                                  value: area['areaComunId']
+                                                      .toString(),
+                                                  child: Text(
+                                                    area['nombreArea'] ?? '',
+                                                  ),
+                                                );
+                                              })
+                                              .toList(),
+                                    onChanged: (v) =>
+                                        setState(() => areaComunId = v),
                                   ),
                                   const SizedBox(height: 12),
                                   // Fecha
@@ -724,6 +920,13 @@ class _ActualizarState extends State<Actualizar> {
                                       labelText: "Motivo reserva",
                                       border: border,
                                     ),
+                                    maxLength: 255,
+                                    validator: (value) {
+                                      if (value != null && value.length > 255) {
+                                        return 'Máximo 255 caracteres';
+                                      }
+                                      return null;
+                                    },
                                     onSaved: (val) => motivoReserva = val,
                                   ),
                                   const SizedBox(height: 12),
@@ -738,6 +941,10 @@ class _ActualizarState extends State<Actualizar> {
                                       labelText: "Cantidad asistentes",
                                       border: border,
                                     ),
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                      LengthLimitingTextInputFormatter(3),
+                                    ],
                                     validator: (value) {
                                       if (value != null && value.isNotEmpty) {
                                         final numero = int.tryParse(value);

@@ -107,7 +107,7 @@ function buildTicketHtml({
 </body></html>`;
 }
 
-// ── Mapeos de rol (fuera del componente para reducir complejidad) ──
+// Mapeos de rol (fuera del componente para reducir complejidad) 
 const ROL_LABEL = { 1: "SuperAdmin", 2: "Admin" };
 const ROL_DASHBOARD = { 1: "/Superadmin", 2: "/Admin" };
 const mapRolLabel = (id) => ROL_LABEL[id] || "Vigilante";
@@ -128,7 +128,7 @@ function AreasComunes() {
   const navegacion = useNavigate();
   const location = useLocation();
 
-  // ─── Sesión ───
+  // ─ Sesión ─
   useEffect(() => {
     const tk = localStorage.getItem("token");
     if (!tk) {
@@ -149,7 +149,7 @@ function AreasComunes() {
 
   const cerrarSesion = useLogout();
 
-  // ─── Token helpers ───
+  // ─ Token helpers ─
   const obtenerToken = () => {
     const token =
       localStorage.getItem("token") ||
@@ -180,7 +180,7 @@ function AreasComunes() {
   const rolUsuario = mapRolLabel(rolesId);
   const dashboardPath = mapDashboardPath(rolesId);
 
-  // ─── Estado UI ───
+  // ─ Estado UI ─
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [showModalDetalles, setShowModalDetalles] = useState(false);
@@ -190,7 +190,7 @@ function AreasComunes() {
   const [editIndex, setEditIndex] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // ─── Datos ───
+  // ─ Datos ─
   const [reservas, setReservas] = useState([]);
   const [apartamentos, setApartamentos] = useState([]);
   const [areasComunes, setAreasComunes] = useState([]);
@@ -202,7 +202,7 @@ function AreasComunes() {
     { tipoDocumentoId: 5, nombre: "PPT" },
   ]);
 
-  // ─── Formulario ───
+  // ─ Formulario ─
   const reservaVacia = {
     torre: "",
     apartamentoId: "",
@@ -222,19 +222,19 @@ function AreasComunes() {
   };
   const [reserva, setReserva] = useState({ ...reservaVacia });
 
-  // ─── Filtros + Paginación ───
+  // ─ Filtros + Paginación ─
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todas"); // todas | activas | finalizadas
   const [paginaActual, setPaginaActual] = useState(1);
   const reservasPorPagina = 5;
 
-  // ─── Calendario ───
+  // ─ Calendario ─
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [selectedDay, setSelectedDay] = useState(null);
   const [calendarData, setCalendarData] = useState([]);
 
-  // ─── Responsive (manejado por CSS media queries) ───
+  // ─ Responsive (manejado por CSS media queries) ─
 
   // ════════════════════════════════════════════════════════
   // DATA FETCHING
@@ -610,10 +610,15 @@ function AreasComunes() {
   };
 
   const editarReserva = (r) => {
+    // Buscar el torresId numérico desde la lista de apartamentos cargados
+    // El select de Torre usa torresId (número) como value, no la letra del nombre
+    const aptoEncontrado = apartamentos.find(
+      (a) => String(a.idApartamento) === String(r.apartamentoId),
+    );
+    const torresId = aptoEncontrado?.torresId ?? "";
+
     setReserva({
-      torre: r.nombreTorre
-        ? r.nombreTorre.charAt(r.nombreTorre.length - 1)
-        : "",
+      torre: torresId,
       apartamentoId: r.apartamentoId,
       areaComunId: r.areaComunId,
       fechaReserva: r.fechaReserva,

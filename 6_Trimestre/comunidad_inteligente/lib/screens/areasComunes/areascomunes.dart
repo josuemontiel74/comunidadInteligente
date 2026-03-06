@@ -8,10 +8,16 @@ import '../../widgets/areasComunes/registrar_reserva.dart';
 import '../../widgets/areasComunes/actualizar_reserva.dart';
 import '../../widgets/areasComunes/calendario_reservas.dart';
 import '../../utils/helpers.dart';
+import 'gestion_areas.dart';
 
 class Areascomunes extends StatelessWidget {
   const Areascomunes({super.key, required this.token});
   final String? token;
+
+  bool get _esSuperAdmin {
+    final rol = LoginServe.rolActual?.toLowerCase() ?? '';
+    return rol == 'superadmin' || rol == 'superadministrador';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +27,17 @@ class Areascomunes extends StatelessWidget {
         foregroundColor: Colors.white,
         title: const Text('Gestión de Áreas Comunes'),
         elevation: 3,
+        actions: [
+          if (_esSuperAdmin)
+            IconButton(
+              icon: const Icon(Icons.settings, color: Colors.white),
+              tooltip: 'Habilitar / Deshabilitar Áreas',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => GestionAreas(token: token)),
+              ),
+            ),
+        ],
       ),
       body: MostrarAreasComunes(token: token),
     );
@@ -199,45 +216,60 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
 
     if (confirmar != true) return;
 
-    final url = Uri.parse(
-      '${LoginServe.baseUrl}/api/reservas-areas/$idReservas',
-    );
-
-    final response = await http.patch(
-      url,
-      headers: {
-        'Authorization': 'Bearer ${widget.token}',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({'estadoId': 9}),
-    );
-
-    if (!context.mounted) return;
-
-    // Validar si el token expiró
-    if (manejarTokenExpirado(context, response.statusCode, response.body)) {
-      return;
-    }
-
-    if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Reserva finalizada correctamente"),
-          backgroundColor: Colors.green,
-          showCloseIcon: true,
-        ),
+    try {
+      final url = Uri.parse(
+        '${LoginServe.baseUrl}/api/reservas-areas/$idReservas',
       );
-      // Recargar las reservas después de finalizar
-      await cargarReservas();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "Error al finalizar la reserva (${response.statusCode})",
+
+      final response = await http.patch(
+        url,
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'estadoId': 9}),
+      );
+
+      if (!context.mounted) return;
+
+      // Validar si el token expiró
+      if (manejarTokenExpirado(context, response.statusCode, response.body)) {
+        return;
+      }
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Reserva finalizada correctamente"),
+            backgroundColor: Colors.green,
+            showCloseIcon: true,
           ),
-          backgroundColor: Colors.red,
-        ),
-      );
+        );
+        // Recargar las reservas después de finalizar
+        await cargarReservas();
+      } else {
+        // Intentar extraer mensaje del servidor
+        String errorMsg =
+            'Error al finalizar la reserva (${response.statusCode})';
+        try {
+          final errorData = jsonDecode(response.body);
+          if (errorData['message'] is String) {
+            errorMsg = errorData['message'];
+          }
+        } catch (_) {}
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error de conexión: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -622,29 +654,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                       Flexible(
                         child: ElevatedButton.icon(
                           onPressed: () async {
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Confirmar'),
-                                content: const Text(
-                                  '¿Deseas finalizar esta reserva?',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, false),
-                                    child: const Text('Cancelar'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, true),
-                                    child: const Text('Sí'),
-                                  ),
-                                ],
-                              ),
-                            );
-
-                            if (confirm == true && r.idReservas != null) {
+                            if (r.idReservas != null) {
                               await finalizarReserva(r.idReservas!);
                             }
                           },
@@ -680,7 +690,11 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
       scrollDirection: Axis.horizontal,
       child: SingleChildScrollView(
         child: DataTable(
-          headingRowColor: WidgetStateProperty.all(Colors.orange.shade50),
+          headingRowColor: WidgetStateProperty.all(
+            Theme.of(context).brightness == Brightness.dark
+                ? Colors.orange.shade800
+                : Colors.orange.shade50,
+          ),
           columns: const [
             DataColumn(
               label: Text(
@@ -791,29 +805,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                           icon: const Icon(Icons.check_circle),
                           color: Colors.green,
                           onPressed: () async {
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Confirmar'),
-                                content: const Text(
-                                  '¿Deseas finalizar esta reserva?',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, false),
-                                    child: const Text('Cancelar'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, true),
-                                    child: const Text('Sí'),
-                                  ),
-                                ],
-                              ),
-                            );
-
-                            if (confirm == true && r.idReservas != null) {
+                            if (r.idReservas != null) {
                               await finalizarReserva(r.idReservas!);
                             }
                           },

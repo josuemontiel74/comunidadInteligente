@@ -625,7 +625,11 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
       scrollDirection: Axis.horizontal,
       child: SingleChildScrollView(
         child: DataTable(
-          headingRowColor: WidgetStateProperty.all(Colors.blue.shade50),
+          headingRowColor: WidgetStateProperty.all(
+            Theme.of(context).brightness == Brightness.dark
+                ? Colors.blue.shade800
+                : Colors.blue.shade50,
+          ),
           columns: const [
             DataColumn(
               label: Text(
@@ -1328,17 +1332,48 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
                   },
                 ),
                 const SizedBox(height: 15),
-                // Transportadora
-                TextFormField(
-                  controller: transportadoraController,
-                  decoration: InputDecoration(
-                    labelText: 'Transportadora *',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    prefixIcon: const Icon(Icons.local_shipping),
-                  ),
-                  validator: (v) => validarTransportadora(v),
+                // Transportadora (Autocomplete)
+                Autocomplete<String>(
+                  optionsBuilder: (TextEditingValue textEditingValue) {
+                    if (textEditingValue.text.isEmpty) {
+                      return transportadorasCo.map(
+                        (t) => t[0].toUpperCase() + t.substring(1),
+                      );
+                    }
+                    return transportadorasCo
+                        .where(
+                          (t) => t.toLowerCase().contains(
+                            textEditingValue.text.toLowerCase(),
+                          ),
+                        )
+                        .map((t) => t[0].toUpperCase() + t.substring(1));
+                  },
+                  onSelected: (String selection) {
+                    transportadoraController.text = selection;
+                  },
+                  fieldViewBuilder:
+                      (context, controller, focusNode, onFieldSubmitted) {
+                        if (controller.text.isEmpty &&
+                            transportadoraController.text.isNotEmpty) {
+                          controller.text = transportadoraController.text;
+                        }
+                        return TextFormField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          decoration: InputDecoration(
+                            labelText: 'Transportadora *',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            prefixIcon: const Icon(Icons.local_shipping),
+                            hintText: 'Escriba o seleccione',
+                          ),
+                          validator: (v) => validarTransportadora(v),
+                          onChanged: (v) {
+                            transportadoraController.text = v;
+                          },
+                        );
+                      },
                 ),
                 const SizedBox(height: 15),
                 // Fecha y Hora
@@ -1466,13 +1501,21 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
                 TextFormField(
                   controller: observacionesController,
                   maxLines: 3,
+                  maxLength: 255,
                   decoration: InputDecoration(
                     labelText: 'Observaciones',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                     prefixIcon: const Icon(Icons.note),
+                    helperText: 'Máximo 255 caracteres (opcional)',
                   ),
+                  validator: (value) {
+                    if (value != null && value.length > 255) {
+                      return 'Máximo 255 caracteres';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 25),
                 // Botón de registro
@@ -1885,17 +1928,47 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
                   },
                 ),
                 const SizedBox(height: 15),
-                // Transportadora
-                TextFormField(
-                  controller: transportadoraController,
-                  decoration: InputDecoration(
-                    labelText: 'Transportadora *',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    prefixIcon: const Icon(Icons.local_shipping),
+                // Transportadora (Autocomplete)
+                Autocomplete<String>(
+                  optionsBuilder: (TextEditingValue textEditingValue) {
+                    if (textEditingValue.text.isEmpty) {
+                      return transportadorasCo.map(
+                        (t) => t[0].toUpperCase() + t.substring(1),
+                      );
+                    }
+                    return transportadorasCo
+                        .where(
+                          (t) => t.toLowerCase().contains(
+                            textEditingValue.text.toLowerCase(),
+                          ),
+                        )
+                        .map((t) => t[0].toUpperCase() + t.substring(1));
+                  },
+                  initialValue: TextEditingValue(
+                    text: transportadoraController.text,
                   ),
-                  validator: (v) => validarTransportadora(v),
+                  onSelected: (String selection) {
+                    transportadoraController.text = selection;
+                  },
+                  fieldViewBuilder:
+                      (context, controller, focusNode, onFieldSubmitted) {
+                        return TextFormField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          decoration: InputDecoration(
+                            labelText: 'Transportadora *',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            prefixIcon: const Icon(Icons.local_shipping),
+                            hintText: 'Escriba o seleccione',
+                          ),
+                          validator: (v) => validarTransportadora(v),
+                          onChanged: (v) {
+                            transportadoraController.text = v;
+                          },
+                        );
+                      },
                 ),
                 const SizedBox(height: 15),
                 // Fecha y Hora
@@ -2023,13 +2096,21 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
                 TextFormField(
                   controller: observacionesController,
                   maxLines: 3,
+                  maxLength: 255,
                   decoration: InputDecoration(
                     labelText: 'Observaciones',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                     prefixIcon: const Icon(Icons.note),
+                    helperText: 'Máximo 255 caracteres (opcional)',
                   ),
+                  validator: (value) {
+                    if (value != null && value.length > 255) {
+                      return 'Máximo 255 caracteres';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 25),
                 // Botón de actualización

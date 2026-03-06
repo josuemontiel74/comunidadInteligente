@@ -11,7 +11,7 @@ import { registrarAuditoria } from "../services/auditorias.service.js";
 import { registrarFallo } from "../services/logger.service.js";
 import { ESTADO_RESERVA } from "../utils/constantes.js";
 
-// ── Helpers para calcular estados de reservas ─────────────────────────────────
+// Helpers para calcular estados de reservas ─
 
 /** Extrae la parte de fecha (YYYY-MM-DD) desde distintos formatos */
 const resolverFechaReservaStr = (fechaReserva) => {
@@ -55,10 +55,8 @@ const calcularNuevoEstado = (reserva, fechaHoy, horaActual) => {
   return null;
 };
 
-// ============================================================
 // Función auxiliar: actualizar estados de reservas automáticamente
 // Estados: 7=Pendiente, 8=En curso, 9=Finalizada
-// ============================================================
 const actualizarEstadosReservas = async () => {
   try {
     const ahora = dayjs();
@@ -80,10 +78,8 @@ const actualizarEstadosReservas = async () => {
   }
 };
 
-// ============================================================
 // GET /api/reservas-areas
 // Listar todas las reservas (versión unificada - antes "mostrarAreasComunesVersionMovil")
-// ============================================================
 export const listarReservasAreas = async (req, res) => {
   try {
     await actualizarEstadosReservas();
@@ -156,10 +152,8 @@ export const listarReservasAreas = async (req, res) => {
   }
 };
 
-// ============================================================
 // GET /api/reservas-areas/:idReservas
 // Buscar reserva por ID (versión unificada - antes "buscar")
-// ============================================================
 export const obtenerReservaPorId = async (req, res) => {
   try {
     const mostrarAreasComunes = await reservasAreasModel.findOne({
@@ -172,6 +166,7 @@ export const obtenerReservaPorId = async (req, res) => {
         ["motivoReserva", "motivoReserva"],
         ["cantidadAsistentes", "cantidadAsistentes"],
         ["invitadosExternos", "invitadosExternos"],
+        ["aceptaReglamento", "aceptaReglamento"],
       ],
       include: [
         {
@@ -231,11 +226,9 @@ export const obtenerReservaPorId = async (req, res) => {
   }
 };
 
-// ============================================================
 // POST /api/reservas-areas
 // Crear reserva (versión unificada - antes "crearReservasParaMovil")
 // Soporta tanto apartamentoId como numeroApartamento
-// ============================================================
 export const crearReserva = async (req, res) => {
   try {
     const dataReserva = req.body;
@@ -357,11 +350,9 @@ export const crearReserva = async (req, res) => {
   }
 };
 
-// ============================================================
 // PATCH /api/reservas-areas/:idReservas
 // Actualizar reserva (versión unificada - antes "ActualizarReservaAreaParaMovil")
 // Incluye: validación de conflictos, resolución de apartamento, manejo de solicitante
-// ============================================================
 export const actualizarReserva = async (req, res) => {
   try {
     const data = req.body;
@@ -373,25 +364,31 @@ export const actualizarReserva = async (req, res) => {
         .json({ ok: false, message: "Falta idReservas en la URL" });
     }
 
-    // Verificar conflicto de horario (excluyendo la reserva actual)
-    const verificarReserva = await reservasAreasModel.findOne({
-      where: {
-        areaComunId: data.areaComunId,
-        fechaReserva: data.fechaReserva,
-        idReservas: { [Op.ne]: idReservas },
-        [Op.and]: [
-          { horaInicio: { [Op.lt]: data.horaFin } },
-          { horaFin: { [Op.gt]: data.horaInicio } },
-        ],
-      },
-    });
+    // Verificar conflicto de horario únicamente si se están modificando campos de horario/área
+    // (cuando solo se actualiza estadoId, como en 'finalizar', se omite esta validación)
+    const cambiandoHorario =
+      data.areaComunId || data.fechaReserva || data.horaInicio || data.horaFin;
 
-    if (verificarReserva != null) {
-      return res.status(409).json({
-        ok: false,
-        message:
-          "Lo sentimos, el área ya está reservada en la fecha y horario indicados.",
+    if (cambiandoHorario) {
+      const verificarReserva = await reservasAreasModel.findOne({
+        where: {
+          areaComunId: data.areaComunId,
+          fechaReserva: data.fechaReserva,
+          idReservas: { [Op.ne]: idReservas },
+          [Op.and]: [
+            { horaInicio: { [Op.lt]: data.horaFin } },
+            { horaFin: { [Op.gt]: data.horaInicio } },
+          ],
+        },
       });
+
+      if (verificarReserva != null) {
+        return res.status(409).json({
+          ok: false,
+          message:
+            "Lo sentimos, el área ya está reservada en la fecha y horario indicados.",
+        });
+      }
     }
 
     const reservaExistente = await reservasAreasModel.findOne({
@@ -412,7 +409,6 @@ export const actualizarReserva = async (req, res) => {
     } else if (data.numeroApartamento) {
       const apartamento = await Apartamento.findOne({
         where: { numeroApartamento: data.numeroApartamento },
-        attributes: ["idApartamento"],
       });
       if (!apartamento) {
         return res.status(400).json({
@@ -420,7 +416,11 @@ export const actualizarReserva = async (req, res) => {
           message: `No se encuentra el apartamento con número ${data.numeroApartamento}`,
         });
       }
-      apartamentoId = apartamento.idApartamento;
+      // El modelo Apartamento define la PK como 'IdApartamento' (I mayúscula)
+      apartamentoId = apartamento.IdApartamento;
+      console.log(
+        `[PATCH reservas-areas] Apartamento encontrado: num=${data.numeroApartamento} → id=${apartamentoId}`,
+      );
     }
 
     // Validar fecha
@@ -511,10 +511,8 @@ export const actualizarReserva = async (req, res) => {
   }
 };
 
-// ============================================================
 // DELETE /api/reservas-areas/:idReservas
 // Eliminar (finalizar) reserva
-// ============================================================
 export const eliminarReservaArea = async (req, res) => {
   try {
     const { idReservas } = req.params;
@@ -558,10 +556,8 @@ export const eliminarReservaArea = async (req, res) => {
   }
 };
 
-// ============================================================
 // POST /api/reportes/:por
 // Reportes de áreas comunes
-// ============================================================
 export const reportes = async (req, res) => {
   try {
     const reportPor = Number.parseInt(req.params.por, 10);
@@ -635,10 +631,8 @@ export const reportes = async (req, res) => {
   }
 };
 
-// ============================================================
 // GET /api/calendariodereservas
 // Calendario de reservas del mes actual
-// ============================================================
 export const calendariosReservas = async (req, res) => {
   try {
     const caledarioreservas = await reservasAreasModel.findAll({
