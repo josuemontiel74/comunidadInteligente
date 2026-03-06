@@ -1,4 +1,3 @@
-/// Funciones auxiliares compartidas en toda la aplicación
 library;
 
 import 'package:flutter/material.dart';

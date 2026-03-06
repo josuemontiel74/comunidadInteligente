@@ -27,7 +27,6 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
   int parqueosLibres = 0;
   int visitasHoy = 0;
   int visitasActivas = 0;
-  int reservasHoy = 0;
   int usuariosActivos = 0;
   int residentesActivos = 0;
   bool isLoading = true;
@@ -86,7 +85,6 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
           );
           visitasHoy = datos['visitas']?['hoy'] ?? 0;
           visitasActivas = datos['visitas']?['activas'] ?? 0;
-          reservasHoy = datos['reservas']?['hoy'] ?? 0;
           usuariosActivos = datos['usuarios']?['activos'] ?? 0;
           residentesActivos = datos['residentes']?['activos'] ?? 0;
           isLoading = false;
@@ -509,6 +507,23 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
           );
         },
       ),
+      _buildModuleCard(
+        context,
+        icon: Icons.local_parking,
+        title: 'Parqueaderos',
+        color: Colors.red,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SeleccionarParqueaderoScreen(
+                token: LoginServe.token,
+                rolId: 3,
+              ),
+            ),
+          );
+        },
+      ),
     ];
   }
 
@@ -645,6 +660,7 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
     String title,
     Widget destino,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ListTile(
       leading: Icon(icon, color: Colors.blue.shade600, size: 24),
       title: Text(
@@ -667,7 +683,10 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
         );
       },
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      hoverColor: Colors.blue.shade50,
+      hoverColor: isDark
+          ? Colors.blue.shade900.withValues(alpha: 0.3)
+          : Colors.blue.shade50,
+      splashColor: isDark ? Colors.blue.shade800.withValues(alpha: 0.3) : null,
     );
   }
 
@@ -689,12 +708,27 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
         if (isWeb)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
               children: [
-                Expanded(child: _buildPaquetesRecibidosCard()),
-                SizedBox(width: 30),
-                Expanded(child: _buildParqueaderosLibresCard()),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: _buildPaquetesRecibidosCard()),
+                    SizedBox(width: 30),
+                    Expanded(child: _buildParqueaderosLibresCard()),
+                  ],
+                ),
+                SizedBox(height: 30),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: _buildVisitasCard()),
+                    SizedBox(width: 30),
+                    Expanded(
+                      child: SizedBox(),
+                    ), // Espacio vacío para mantener layout
+                  ],
+                ),
               ],
             ),
           )
@@ -708,25 +742,9 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                 _buildParqueaderosLibresCard(),
                 SizedBox(height: 20),
                 _buildVisitasCard(),
-                SizedBox(height: 20),
-                _buildResumenRapidoCard(),
               ],
             ),
           ),
-        if (isWeb) ...[
-          SizedBox(height: 30),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: _buildVisitasCard()),
-                SizedBox(width: 30),
-                Expanded(child: _buildResumenRapidoCard()),
-              ],
-            ),
-          ),
-        ],
       ],
     );
   }
@@ -787,7 +805,6 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
     );
   }
 
-  // Tarjeta de parqueaderos con gráfico de torta
   Widget _buildParqueaderosLibresCard() {
     int totalOcupados = parqueosCarros + parqueosMotos;
     int totalParqueos = totalOcupados + parqueosLibres;
@@ -906,7 +923,6 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
     );
   }
 
-  // Tarjeta de visitas del día
   Widget _buildVisitasCard() {
     return Card(
       elevation: 6,
@@ -944,64 +960,6 @@ class _DashboardvigilanteState extends State<Dashboardvigilante> {
                   Colors.amber.shade700,
                 ),
               ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Tarjeta de reservas del día
-  Widget _buildResumenRapidoCard() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Card(
-      elevation: 6,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Icon(Icons.calendar_today, color: Colors.blue, size: 32),
-                SizedBox(width: 12),
-                Text(
-                  'Reservas del Día',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 30),
-            Container(
-              padding: EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.blue.shade900.withValues(alpha: 0.3)
-                    : Colors.blue.shade50,
-                shape: BoxShape.circle,
-              ),
-              child: Text(
-                '$reservasHoy',
-                style: TextStyle(
-                  fontSize: 56,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
-                ),
-              ),
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Reservas registradas hoy',
-              style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.7),
-              ),
             ),
           ],
         ),

@@ -686,7 +686,6 @@ class _LogErroresScreenState extends State<LogErroresScreen> {
   }
 }
 
-// ── Modelos ──
 
 class LogError {
   final int idLog;

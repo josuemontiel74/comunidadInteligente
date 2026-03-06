@@ -1,12 +1,6 @@
-/// Utilidades de validación para formularios - Versión móvil
-/// Portadas desde la versión web (validaciones.js)
 library;
 
 import 'package:flutter/services.dart';
-
-// ══════════════════════════════════════════════════════════════════
-// CONSTANTES
-// ══════════════════════════════════════════════════════════════════
 
 /// Patrón para nombres: letras (con tildes/ñ), espacios, apóstrofos, guiones
 final RegExp _nombrePattern = RegExp(r"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'\-]+$");
@@ -57,10 +51,6 @@ const List<String> transportadorasCo = [
   'personal',
   'particular',
 ];
-
-// ══════════════════════════════════════════════════════════════════
-// INPUT FORMATTERS (filtros en tiempo real)
-// ══════════════════════════════════════════════════════════════════
 
 /// Filtro de entrada para nombres: solo letras, espacios, apóstrofos y guiones
 class NombreInputFormatter extends TextInputFormatter {
@@ -148,10 +138,6 @@ TextInputFormatter getDocumentoFormatter(int? tipoDocId) {
   if (tipoDocId == 2) return PasaporteInputFormatter();
   return DocumentoNumericoInputFormatter();
 }
-
-// ══════════════════════════════════════════════════════════════════
-// VALIDATORS (para Form / TextFormField)
-// ══════════════════════════════════════════════════════════════════
 
 /// Verifica que un texto tenga "sentido" (al menos 15% vocales)
 bool _tieneSentido(String str) {

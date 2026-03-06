@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import '../../main.dart';
 import '../../utils/helpers.dart';
@@ -95,6 +96,7 @@ class _ResidentesState extends State<Residentes> {
           builder: (context) => CrearResidenteDialog(
             apartamentos: apartamentos,
             tiposDocumento: tiposDocumento,
+            ocupantes: ocupantes,
             onCreated: _cargarOcupantes,
           ),
         );
@@ -445,6 +447,7 @@ class _ResidentesState extends State<Residentes> {
                   builder: (context) => CrearResidenteDialog(
                     apartamentos: apartamentos,
                     tiposDocumento: tiposDocumento,
+                    ocupantes: ocupantes,
                     onCreated: _cargarOcupantes,
                   ),
                 );
@@ -903,7 +906,11 @@ class _ResidentesState extends State<Residentes> {
       scrollDirection: Axis.horizontal,
       child: SingleChildScrollView(
         child: DataTable(
-          headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
+          headingRowColor: WidgetStateProperty.all(
+            Theme.of(context).brightness == Brightness.dark
+                ? Colors.teal.shade800
+                : Colors.teal.shade50,
+          ),
           columns: const [
             DataColumn(
               label: Text(
@@ -1098,19 +1105,18 @@ class _ResidentesState extends State<Residentes> {
   }
 }
 
-// ============================================================================
-// DIÁLOGO CREAR RESIDENTE
-// ============================================================================
 
 class CrearResidenteDialog extends StatefulWidget {
   final List<dynamic> apartamentos;
   final List<dynamic> tiposDocumento;
+  final List<dynamic> ocupantes;
   final VoidCallback onCreated;
 
   const CrearResidenteDialog({
     super.key,
     required this.apartamentos,
     required this.tiposDocumento,
+    required this.ocupantes,
     required this.onCreated,
   });
 
@@ -1179,6 +1185,33 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
 
   Future<void> _crearResidente() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (apartamentoId != null) {
+      final ocupanteExistente = widget.ocupantes.any(
+        (ocupante) =>
+            ocupante['apartamentosId'] == apartamentoId &&
+            ocupante['tipoOcupacion'] == tipoOcupacion &&
+            ocupante['estadoId'] == 5,
+      ); // 5 = Activo
+
+      if (ocupanteExistente) {
+        final tipo = tipoOcupacion == 'propietario'
+            ? 'propietario'
+            : 'arrendatario';
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'El apartamento ya tiene un $tipo activo. Finalice el proceso actual antes de registrar uno nuevo.',
+              ),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+        return;
+      }
+    }
 
     // Mostrar alerta de confirmación
     final confirmar = await showDialog<bool>(
@@ -1548,6 +1581,10 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(3),
+                    ],
                     validator: (value) {
                       if (value != null && value.isNotEmpty) {
                         final num = int.tryParse(value);
@@ -1820,9 +1857,6 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
   }
 }
 
-// ============================================================================
-// DIÁLOGO EDITAR RESIDENTE
-// ============================================================================
 
 class EditarResidenteDialog extends StatefulWidget {
   final dynamic ocupante;
@@ -2210,6 +2244,10 @@ class _EditarResidenteDialogState extends State<EditarResidenteDialog> {
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(3),
+                    ],
                     validator: (value) {
                       if (value != null && value.isNotEmpty) {
                         final num = int.tryParse(value);

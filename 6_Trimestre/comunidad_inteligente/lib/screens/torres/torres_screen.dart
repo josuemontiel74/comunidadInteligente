@@ -87,6 +87,11 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
         .toList();
   }
 
+  /// Extrae el id del apartamento (maneja 'IdApartamento' e 'idApartamento')
+  dynamic _getAptoId(Map<String, dynamic> apto) {
+    return apto['IdApartamento'] ?? apto['idApartamento'];
+  }
+
   /// Obtiene la lista de apartamentos filtrados por torre
   List<Map<String, dynamic>> _getApartamentosPorTorre(int torreId) {
     return apartamentos.where((a) => a['torresId'] == torreId).toList()..sort(
@@ -226,7 +231,6 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
     );
   }
 
-  /// Tarjeta resumen de una torre
   Widget _buildTorreCard(int torreId) {
     final torreLetra = String.fromCharCode('A'.codeUnitAt(0) + torreId - 1);
     final aptosEnTorre = _getApartamentosPorTorre(torreId);
@@ -421,7 +425,6 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
     );
   }
 
-  /// Tarjeta visual de un apartamento
   Widget _buildApartamentoCard(Map<String, dynamic> apto) {
     final codigo = apto['numeroApartamento'] ?? 'N/A';
     final estado = apto['estado'];
@@ -435,7 +438,7 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
       estadoNombre = 'Ocupado';
     }
     final color = estaOcupado ? Colors.teal : Colors.grey[400]!;
-    final ocupantes = _getOcupantesDeApartamento(apto['idApartamento']);
+    final ocupantes = _getOcupantesDeApartamento(_getAptoId(apto));
     final primerOcupante = ocupantes.isNotEmpty ? ocupantes.first : null;
 
     return Card(
@@ -466,7 +469,7 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
                   color: color,
                 ),
               ),
-              if (primerOcupante != null) ...[  
+              if (primerOcupante != null) ...[
                 const SizedBox(height: 2),
                 Text(
                   '${primerOcupante['primerNombre'] ?? ''} ${primerOcupante['primerApellido'] ?? ''}'
@@ -477,16 +480,16 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
                   textAlign: TextAlign.center,
                 ),
                 _buildTipoBadgeSmall(
-                    primerOcupante['tipoOcupacion']?.toString() ?? ''),
+                  primerOcupante['tipoOcupacion']?.toString() ?? '',
+                ),
               ] else
                 Text(
                   estadoNombre,
                   style: TextStyle(
                     fontSize: 9,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.7),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
             ],
@@ -557,7 +560,7 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
               _buildInfoRow('Torre', torreNombre),
               _buildInfoRow('Apartamento', codigo),
               _buildInfoRow('Estado', estadoNombre),
-              ..._buildOcupanteRows(apto['idApartamento']),
+              ..._buildOcupanteRows(_getAptoId(apto)),
             ],
           ),
         ),
@@ -596,8 +599,10 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
           children: [
             Icon(Icons.home_outlined, size: 14, color: Colors.grey),
             SizedBox(width: 6),
-            Text('Sin ocupantes registrados',
-                style: TextStyle(fontSize: 12, color: Colors.grey)),
+            Text(
+              'Sin ocupantes registrados',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
           ],
         ),
       ];
@@ -608,12 +613,15 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
       const Text(
         'Ocupantes',
         style: TextStyle(
-            fontWeight: FontWeight.bold, fontSize: 13, color: Colors.teal),
+          fontWeight: FontWeight.bold,
+          fontSize: 13,
+          color: Colors.teal,
+        ),
       ),
       const SizedBox(height: 8),
       ...ocupantes.map((o) {
-        final nombre =
-            '${o['primerNombre'] ?? ''} ${o['primerApellido'] ?? ''}'.trim();
+        final nombre = '${o['primerNombre'] ?? ''} ${o['primerApellido'] ?? ''}'
+            .trim();
         final tipo = o['tipoOcupacion']?.toString() ?? '';
         final esProp = tipo.toLowerCase() == 'propietario';
         final tieneNinos = o['tieneNinos'] == 1 || o['tieneNinos'] == true;
@@ -629,8 +637,7 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
           decoration: BoxDecoration(
             color: esProp ? Colors.teal.shade50 : Colors.orange.shade50,
             border: Border.all(
-              color:
-                  esProp ? Colors.teal.shade200 : Colors.orange.shade200,
+              color: esProp ? Colors.teal.shade200 : Colors.orange.shade200,
             ),
             borderRadius: BorderRadius.circular(8),
           ),
@@ -639,20 +646,26 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.person,
-                      size: 16,
-                      color: esProp ? Colors.teal : Colors.orange),
+                  Icon(
+                    Icons.person,
+                    size: 16,
+                    color: esProp ? Colors.teal : Colors.orange,
+                  ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       nombre.isNotEmpty ? nombre : 'Sin nombre',
                       style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 13),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 2),
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: esProp
                           ? Colors.teal.shade100
@@ -678,9 +691,10 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
                   children: [
                     const Icon(Icons.group, size: 13, color: Colors.grey),
                     const SizedBox(width: 4),
-                    Text('Personas a cargo: $personasACargo',
-                        style: const TextStyle(
-                            fontSize: 11, color: Colors.grey)),
+                    Text(
+                      'Personas a cargo: $personasACargo',
+                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                    ),
                   ],
                 ),
               ],
@@ -690,14 +704,23 @@ class _TorresVisualizacionState extends State<TorresVisualizacion> {
                   spacing: 6,
                   children: [
                     if (tieneNinos)
-                      _buildTag(Icons.child_care, 'Niños',
-                          Colors.blue.shade200),
+                      _buildTag(
+                        Icons.child_care,
+                        'Niños',
+                        Colors.blue.shade200,
+                      ),
                     if (tieneAdulto)
-                      _buildTag(Icons.elderly, 'Adulto mayor',
-                          Colors.purple.shade200),
+                      _buildTag(
+                        Icons.elderly,
+                        'Adulto mayor',
+                        Colors.purple.shade200,
+                      ),
                     if (tieneDisca)
-                      _buildTag(Icons.accessible, 'Discapacidad',
-                          Colors.red.shade200),
+                      _buildTag(
+                        Icons.accessible,
+                        'Discapacidad',
+                        Colors.red.shade200,
+                      ),
                   ],
                 ),
               ],

@@ -1,4 +1,3 @@
-/// Proveedor de temas para modo oscuro/claro
 library;
 
 import 'package:flutter/material.dart';
@@ -13,7 +12,6 @@ class ThemeProvider extends ChangeNotifier {
   ThemeMode get themeMode => _themeMode;
   bool get isDarkMode => _themeMode == ThemeMode.dark;
 
-  /// Inicializa leyendo la preferencia guardada
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     final isDark = prefs.getBool('darkMode') ?? false;
@@ -21,7 +19,6 @@ class ThemeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Alterna entre modo oscuro y claro
   Future<void> toggleTheme() async {
     _themeMode = _themeMode == ThemeMode.light
         ? ThemeMode.dark
@@ -31,17 +28,12 @@ class ThemeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Establece un modo específico
   Future<void> setThemeMode(ThemeMode mode) async {
     _themeMode = mode;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('darkMode', isDarkMode);
     notifyListeners();
   }
-
-  // ══════════════════════════════════════════════════════════════════
-  // TEMAS
-  // ══════════════════════════════════════════════════════════════════
 
   static ThemeData get lightTheme => ThemeData(
     brightness: Brightness.light,
