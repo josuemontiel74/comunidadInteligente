@@ -14,9 +14,6 @@ import {
 
 const router = Router();
 
-// ============================================================================
-// REPORTES GENERALES
-// ============================================================================
 router.get(
   "/parqueaderos",
   validarJWT,
@@ -43,9 +40,6 @@ router.get(
   obtenerReporteConsolidado,
 );
 
-// ============================================================================
-// REPORTES DE RESIDENTES
-// ============================================================================
 router.get(
   "/residentes/ocupacion",
   validarJWT,
@@ -65,14 +59,8 @@ router.get(
   obtenerReportePoblacionEspecial,
 );
 
-// ============================================================================
-// REPORTE DE USUARIOS (solo superadmin — datos sensibles)
-// ============================================================================
 router.get("/usuarios", validarJWT, validarRol(1), obtenerReporteUsuarios);
 
-// ============================================================================
-// REPORTE DE USUARIOS (solo superadmin — datos sensibles)
-// ============================================================================
 router.get("/usuarios", validarJWT, validarRol(1), obtenerReporteUsuarios);
 
 export default router;

@@ -25,7 +25,7 @@ const extractUserKey = (req, res) => {
   return ipKeyGenerator(req, res);
 };
 
-// ── Rate limiting general: 2 000 req / 15 min por usuario (o IP) ─────────────
+// Rate limiting general: 2 000 req / 15 min por usuario (o IP) ─
 // Dimensionado para ~20 trabajadores simultáneos en la misma red,
 // cada uno con ~100 req/min de margen operativo.
 export const limiterGeneral = rateLimit({
@@ -41,7 +41,7 @@ export const limiterGeneral = rateLimit({
   },
 });
 
-// ── Rate limiting en login: 100 intentos / 15 min por IP ─────────────────────
+// Rate limiting en login: 100 intentos / 15 min por IP ─
 // Permite que múltiples usuarios inicien/cierren sesión desde la misma red
 // sin bloquear la IP compartida.
 export const limiterLogin = rateLimit({

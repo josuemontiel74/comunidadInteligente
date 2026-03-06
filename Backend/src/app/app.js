@@ -30,7 +30,7 @@ import logErroresRoutes from "../routers/logErrores.router.js";
 
 const app = express();
 
-// ── Seguridad: cabeceras HTTP seguras ──────────────────────────────────────
+// Seguridad: cabeceras HTTP seguras 
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },

@@ -1,8 +1,5 @@
 import { sequelize } from "../config/connect.db.js";
 
-// ============================================================================
-// REPORTE DE PARQUEADEROS
-// ============================================================================
 export const obtenerReporteParqueaderos = async (req, res) => {
   try {
     const { fechaInicio, fechaFin } = req.query;
@@ -117,9 +114,6 @@ export const obtenerReporteParqueaderos = async (req, res) => {
   }
 };
 
-// ============================================================================
-// REPORTE DE VISITAS
-// ============================================================================
 export const obtenerReporteVisitas = async (req, res) => {
   try {
     const { fechaInicio, fechaFin } = req.query;
@@ -182,9 +176,6 @@ export const obtenerReporteVisitas = async (req, res) => {
   }
 };
 
-// ============================================================================
-// REPORTE DE PAQUETES
-// ============================================================================
 export const obtenerReportePaquetes = async (req, res) => {
   try {
     const { fechaInicio, fechaFin } = req.query;
@@ -234,9 +225,6 @@ export const obtenerReportePaquetes = async (req, res) => {
   }
 };
 
-// ============================================================================
-// REPORTE DE RESERVAS
-// ============================================================================
 export const obtenerReporteReservas = async (req, res) => {
   try {
     const { fechaInicio, fechaFin } = req.query;
@@ -304,9 +292,6 @@ export const obtenerReporteReservas = async (req, res) => {
   }
 };
 
-// ============================================================================
-// REPORTE CONSOLIDADO
-// ============================================================================
 export const obtenerReporteConsolidado = async (req, res) => {
   try {
     const { fechaInicio, fechaFin } = req.query;
@@ -402,9 +387,6 @@ export const obtenerReporteConsolidado = async (req, res) => {
   }
 };
 
-// ============================================================================
-// REPORTE DE RESIDENTES - APARTAMENTOS Y TORRES MÁS HABITADAS
-// ============================================================================
 export const obtenerReporteOcupacion = async (req, res) => {
   try {
     // Resumen general de ocupación
@@ -500,9 +482,6 @@ export const obtenerReporteOcupacion = async (req, res) => {
   }
 };
 
-// ============================================================================
-// REPORTE DE RESIDENTES - TORRES CON MÁS NIÑOS
-// ============================================================================
 export const obtenerReporteNinos = async (req, res) => {
   try {
     // Resumen total de niños
@@ -571,9 +550,6 @@ export const obtenerReporteNinos = async (req, res) => {
   }
 };
 
-// ============================================================================
-// REPORTE DE RESIDENTES - TORRES CON ADULTOS MAYORES Y DISCAPACIDAD
-// ============================================================================
 export const obtenerReportePoblacionEspecial = async (req, res) => {
   try {
     // Resumen total de población especial
@@ -707,9 +683,6 @@ export const obtenerReportePoblacionEspecial = async (req, res) => {
   }
 };
 
-// ============================================================================
-// REPORTE DE USUARIOS (actividad, inactividad, módulos más usados)
-// ============================================================================
 export const obtenerReporteUsuarios = async (req, res) => {
   try {
     const { fechaInicio, fechaFin } = req.query;
