@@ -113,8 +113,30 @@ comunidadInteligente/
 - Backup automatizado disponible en `Backend/backups/`
 
 ### Pendiente
-- Despliegue del backend en la nube (Render, Railway, AWS, etc.)
-- Reescritura y actualización de la documentación técnica
+- Despliegue del backend y base de datos en **VPS Hostinger**
+- Configurar `productionUrl` en `ApiConfig` con la IP/dominio del VPS para que la app móvil se conecte automáticamente
+
+---
+
+## Descarga e instalación de la App Móvil
+
+La aplicación móvil ya está disponible para descarga directa desde la aplicación web:
+
+1. Abrir la plataforma web desde el navegador
+2. Ir a la sección **Descargar App** (disponible en la landing page y en el dashboard)
+3. Descargar e instalar el APK en el dispositivo Android
+
+### Uso en red local (desarrollo)
+Mientras el backend no esté desplegado en el VPS, la app funciona en red local:
+
+1. Asegurarse de que el celular y la PC con el backend estén en la **misma red WiFi**
+2. Ejecutar el backend en la PC (`npm start`)
+3. En la app, tocar el **icono de engranaje** en la pantalla de login
+4. Ingresar la IP local de la PC (ejemplo: `192.168.1.6`) y guardar
+5. Iniciar sesión normalmente
+
+### Uso en producción (VPS Hostinger)
+Una vez desplegado, la app se conectará automáticamente al servidor en la nube sin necesidad de configurar nada.
 
 ---
 
