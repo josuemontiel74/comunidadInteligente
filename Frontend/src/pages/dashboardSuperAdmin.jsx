@@ -1,491 +1,746 @@
 import React, { useEffect, useRef, useState } from "react";
-import Swal from 'sweetalert2';
-import { Link, useNavigate } from "react-router-dom";
-import Chart from "chart.js/auto";
+import { Link } from "react-router-dom";
 import "../Styles/dashboardSuperAdmin.css";
 import logo from "../../img/logo.png";
-import paquetesImg from "../../img/paquetes.jpeg";
-import visitasImg from "../../img/visitas.jpg";
-import areasImg from "../../img/areascomunes.jpg";
-import gestionImg from "../../img/gestion.webp";
-import residentesImg from "../../img/residentes.jpg";
-import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap-icons/font/bootstrap-icons.css';
-import { visitasDia } from "../services/visitas.services";
-import { paquetesDia } from "../services/paqueteria.services";
-import { obtenerParqueaderos } from "../services/parqueadero.services.jsx";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
+import {
+  obtenerUsuariosEnLinea,
+  logoutUsuario,
+} from "../services/gestionUsuarios.jsx";
+import DescargaAppMovil from "./DescargaAppMovil.jsx";
+import ModoOscuro from "./ModoOscuro.jsx";
+import WhatsAppModal from "./WhatsAppModal.jsx";
+import useDarkMode from "../utils/useDarkMode.js";
+import useSessionCheck from "../utils/useSessionCheck.js";
+import useDashboardData from "../utils/useDashboardData.js";
+import {
+  donutParqueaderosConfig,
+  barChartConfig,
+  useChart,
+} from "../utils/chartConfigs.js";
 
-const API_URL = 'http://localhost:3001';
+/** Calcula porcentaje como string. Retorna "0" si total es 0 */
+const calcPctStr = (val, total) =>
+  total > 0 ? ((val / total) * 100).toFixed(0) : "0";
+
+/** Construye la lista de módulos del dashboard según permisos */
+function buildModulos(showAreasComunes, showUserManagement) {
+  const base = [
+    {
+      icon: "bi-box-seam-fill",
+      title: "Gestión de Paquetería",
+      color: "#3b82f6",
+      to: "/Paqueteria",
+    },
+    {
+      icon: "bi-people-fill",
+      title: "Gestión de Visitas",
+      color: "#22c55e",
+      to: "/visitas",
+    },
+    {
+      icon: "bi-p-circle-fill",
+      title: "Parqueaderos",
+      color: "#ef4444",
+      to: "/parqueaderos",
+    },
+  ];
+  if (showAreasComunes) {
+    base.push({
+      icon: "bi-building",
+      title: "Áreas Comunes",
+      color: "#f97316",
+      to: "/AreasComunes",
+    });
+  }
+  if (showUserManagement) {
+    base.push({
+      icon: "bi-shield-lock-fill",
+      title: "Gestión de Usuarios",
+      color: "#a855f7",
+      to: "/GestionUsuario",
+    });
+  }
+  base.push(
+    {
+      icon: "bi-house-door-fill",
+      title: "Gestión de Residentes",
+      color: "#14b8a6",
+      to: "/Residentes",
+    },
+    {
+      icon: "bi-file-earmark-bar-graph-fill",
+      title: "Reportes",
+      color: "#6366f1",
+      to: "/Reportes",
+    },
+  );
+  if (showUserManagement) {
+    base.push(
+      {
+        icon: "bi-journal-text",
+        title: "Auditorías",
+        color: "#4f46e5",
+        to: "/Auditorias",
+      },
+      {
+        icon: "bi-bug-fill",
+        title: "Log de Errores",
+        color: "#b91c1c",
+        to: "/LogErrores",
+      },
+    );
+  }
+  return base;
+}
+
+/** Helper: extrae permisos del token para reducir complejidad del componente */
+function getTokenPermissions() {
+  const token = localStorage.getItem("token");
+  if (!token) return { showUserManagement: false, showAreasComunes: false };
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    const valido = Date.now() < payload.exp * 1000;
+    const rolesId = payload.rolesId ?? null;
+    return {
+      showUserManagement: valido && rolesId === 1,
+      showAreasComunes: valido && rolesId !== 3,
+    };
+  } catch {
+    return {
+      showUserManagement: false,
+      showAreasComunes: false,
+    };
+  }
+}
 
 function Dashboard() {
-  const navigator = useNavigate();
-  
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    
-    if (!token) {
-      Swal.fire({ 
-        icon: 'warning', 
-        title: 'Sesión expirada', 
-        text: 'La sesión expiró. Vuelva a iniciar sesión.', 
-        timer: 2000, 
-        showConfirmButton: false, 
-        timerProgressBar: true 
-      }).then(() => {
-        localStorage.clear();
-        navigator('/');
-      });
-    }
-  }, [navigator]);
-
-  const chartRef = useRef(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [usuario, setUsuario] = useState(null);
-  const [totalVisitas, setTotalVisitas] = useState(0);
-  const [totalPaquetes, setTotalPaquetes] = useState(0);
-  const [parqueaderos, setParqueaderos] = useState([]);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [saliendo, setSaliendo] = useState(false);
+  const [usuariosEnLinea, setUsuariosEnLinea] = useState([]);
+  const [totalEnLinea, setTotalEnLinea] = useState(0);
 
-  // Obtener parqueaderos
-  useEffect(() => {
-    async function fetchParqueaderos() {
-      const token = localStorage.getItem("token");
-      if (!token) return;
+  const oscuro = useDarkMode();
+  const { loading, usuario, fotoUsuario } = useSessionCheck();
+  const {
+    dataLoading,
+    setDataLoading,
+    cargarDatos: cargarDatosBase,
+    paquetesEntregados,
+    paquetesPendientes,
+    parqueosCarros,
+    parqueosMotos,
+    parqueosLibres,
+    visitasHoy,
+    visitasActivas,
+    reservasHoy,
+    residentesActivos,
+  } = useDashboardData(!loading);
 
-      try {
-        const res = await obtenerParqueaderos(token);
-        const data = await res.json();
-        console.log("🚗 Parqueaderos:", data);
-        setParqueaderos(data.body);
-      } catch (error) {
-        console.error("❌ Error cargando parqueaderos:", error);
-      }
-    }
+  // Token / roles (extraído a helper externo para reducir complejidad cognitiva)
+  const { showUserManagement, showAreasComunes } = getTokenPermissions();
 
-    fetchParqueaderos();
-  }, []);
+  // Canvas refs
+  const parqueoCanvasRef = useRef(null);
+  const paquetesCanvasRef = useRef(null);
+  const visitasCanvasRef = useRef(null);
 
-  const espaciosLibres = parqueaderos.filter((p) => p.estadoId === 4).length;
-  const espaciosOcupados = parqueaderos.filter((p) => p.estadoId === 3).length;
-
-  // Visitas del día
-  useEffect(() => {
-    async function fetchVisitas() {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      try {
-        console.log("👥 Fetching visitas del día...");
-        const res = await visitasDia(token);
-        const data = await res.json();
-        console.log("👥 Respuesta visitas:", data);
-        
-        // Intentar múltiples formas de acceder al dato
-        const visitas = data.visitasDia || data.total || data.count || data.data?.visitasDia || 0;
-        setTotalVisitas(visitas);
-        console.log("✅ Visitas seteadas:", visitas);
-      } catch (error) {
-        console.error("❌ Error cargando visitas del día:", error);
-        setTotalVisitas(0);
-      }
-    }
-    fetchVisitas();
-  }, []);
-
-  // Paquetes del día
-  useEffect(() => {
-    async function fetchPaquetesDia() {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-      
-      try {
-        console.log("📦 Fetching paquetes del día...");
-        const res = await paquetesDia(token);
-        const data = await res.json();
-        console.log("📦 Respuesta paquetes:", data);
-        
-        // Intentar múltiples formas de acceder al dato
-        const paquetes = data.paqueteDia || data.total || data.count || data.data?.paqueteDia || 0;
-        setTotalPaquetes(paquetes);
-        console.log("✅ Paquetes seteados:", paquetes);
-      } catch (error) {
-        console.error("❌ Error cargando paquetes del día:", error);
-        setTotalPaquetes(0);
-      }
-    }
-    fetchPaquetesDia();
-  }, []);
-
-  const cerrarSesión = (e) => {
-    e.preventDefault();
-    localStorage.clear();
-    navigator("/");
-  };
-
-  const GestionUsuarios = () => {
-    navigator("/GestionUsuario");
-  };
-
-  const AreasComunes = () => {
-    navigator("/AreasComunes");
-  };
-
-  // Token / roles helpers
-  const verificarTokenVencidoLocal = (token) => {
+  // Cargar usuarios en línea junto con datos base
+  const cargarDatos = async () => {
+    await cargarDatosBase();
     try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      const exp = payload.exp * 1000;
-      return Date.now() >= exp;
-    } catch (err) {
-      return true;
-    }
-  };
-
-  const tokenLocal = localStorage.getItem('token');
-  const tokenValidoLocal = tokenLocal && !verificarTokenVencidoLocal(tokenLocal);
-  
-  const obtenerRolFromToken = (token) => {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload.rolesId;
-    } catch (err) {
-      return null;
-    }
-  };
-  
-  const rolesIdLocal = tokenLocal ? obtenerRolFromToken(tokenLocal) : null;
-  const showUserManagementLocal = tokenValidoLocal && rolesIdLocal === 1; // solo SuperAdmin
-  const showAreasComunesLocal = tokenValidoLocal && rolesIdLocal !== 3; // ocultar para Vigilante
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userGuardado = localStorage.getItem("user");
-
-    if (!token) {
-      navigator("/");
-      return;
-    }
-
-    if (userGuardado) {
-      try {
-        const usuarioParsed = JSON.parse(userGuardado);
-        console.log("=== USUARIO DESDE LOCALSTORAGE ===");
-        console.log("Usuario completo:", usuarioParsed);
-        console.log("Username:", usuarioParsed.username);
-
-        setUsuario(usuarioParsed);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error parseando usuario:", error);
-        localStorage.clear();
-        navigator("/");
+      const token = localStorage.getItem("token");
+      if (token) {
+        const enLineaData = await obtenerUsuariosEnLinea(token);
+        const nombres = Object.keys(enLineaData);
+        setUsuariosEnLinea(nombres);
+        setTotalEnLinea(nombres.length);
       }
-    } else {
-      fetch(`${API_URL}/api/usuario`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "Cache-Control": "no-cache",
-        },
-      })
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error("No autorizado");
-          }
-          return res.json();
-        })
-        .then((data) => {
-          console.log("=== USUARIO DESDE API ===");
-          console.log("Data completo:", data);
-          console.log("Data.usuario:", data.usuario);
-          console.log("========================");
-
-          setUsuario(data.usuario);
-          localStorage.setItem("user", JSON.stringify(data.usuario));
-          setLoading(false);
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-          localStorage.clear();
-          navigator("/");
-        });
+    } catch (error) {
+      console.warn("Error obteniendo usuarios en línea:", error);
     }
-  }, [navigator]);
+  };
 
+  // Carga inicial + auto-refresh cada 30s para usuarios en línea
   useEffect(() => {
     if (loading) return;
 
-    const ctx = document.getElementById("parqueoChart");
-    if (!ctx) return;
-
-    if (chartRef.current) {
-      chartRef.current.destroy();
-    }
-
-    chartRef.current = new Chart(ctx, {
-      type: "doughnut",
-      data: {
-        labels: ["Ocupados", "Disponibles"],
-        datasets: [
-          {
-            data: [espaciosOcupados, espaciosLibres],
-            backgroundColor: ["#dc3545", "#198754"],
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: "bottom" },
-        },
-      },
-    });
-
-    return () => {
-      if (chartRef.current) {
-        chartRef.current.destroy();
+    const fetchEnLinea = () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        obtenerUsuariosEnLinea(token)
+          .then((data) => {
+            const nombres = Object.keys(data);
+            setUsuariosEnLinea(nombres);
+            setTotalEnLinea(nombres.length);
+          })
+          .catch(() => {});
       }
     };
-  }, [parqueaderos, loading, espaciosOcupados, espaciosLibres]);
+
+    // Carga inmediata al montar / volver al dashboard
+    fetchEnLinea();
+
+    const interval = setInterval(fetchEnLinea, 30000);
+    return () => clearInterval(interval);
+  }, [loading]);
+
+  // Gráficos
+  const ready = !loading && !dataLoading;
+  useChart(
+    parqueoCanvasRef,
+    ready
+      ? donutParqueaderosConfig(
+          {
+            carros: parqueosCarros,
+            motos: parqueosMotos,
+            libres: parqueosLibres,
+          },
+          oscuro,
+        )
+      : null,
+    [ready, parqueosCarros, parqueosMotos, parqueosLibres, oscuro],
+  );
+  useChart(
+    paquetesCanvasRef,
+    ready
+      ? barChartConfig(
+          ["Entregados", "Pendientes"],
+          [paquetesEntregados, paquetesPendientes],
+          ["rgba(34, 197, 94, 0.85)", "rgba(249, 115, 22, 0.85)"],
+          "paquetes",
+          oscuro,
+        )
+      : null,
+    [ready, paquetesEntregados, paquetesPendientes, oscuro],
+  );
+  useChart(
+    visitasCanvasRef,
+    ready
+      ? barChartConfig(
+          ["Hoy", "Activas"],
+          [visitasHoy, visitasActivas],
+          ["rgba(34, 197, 94, 0.85)", "rgba(59, 130, 246, 0.85)"],
+          "visitas",
+          oscuro,
+        )
+      : null,
+    [ready, visitasHoy, visitasActivas, oscuro],
+  );
+
+  const cerrarSesion = async (e) => {
+    e.preventDefault();
+    setSaliendo(true);
+    setTimeout(async () => {
+      const token = localStorage.getItem("token");
+      if (token) await logoutUsuario(token);
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      globalThis.location.replace("/login");
+    }, 380);
+  };
 
   if (loading) {
-    return <h2 className="text-center text-success mt-5">Verificando sesión...</h2>;
+    return (
+      <div className="sa-loading-screen">
+        <output className="spinner-border text-success">
+          <span className="visually-hidden">Cargando...</span>
+        </output>
+        <p className="mt-3 text-success fw-semibold">Verificando sesión...</p>
+      </div>
+    );
   }
 
+  const totalPaquetes = paquetesEntregados + paquetesPendientes;
+  const porcentajeEntregados = calcPctStr(paquetesEntregados, totalPaquetes);
+  const totalParqueos = parqueosCarros + parqueosMotos + parqueosLibres;
+  const modulos = buildModulos(showAreasComunes, showUserManagement);
+
   return (
-    <div className="main-dashboard dashboard-container d-flex">
-      <aside id="menuTrabajador" className="worker-menu bg-success text-white">
-        <div className="p-3 d-flex flex-column h-100">
-          <div className="d-flex align-items-center gap-3 mb-4">
-            <div className="user-circle bg-white d-flex align-items-center justify-content-center"
-              style={{ width: "50px", height: "50px", borderRadius: "50%" }}>
-              <span className="fw-bold text-success">
-                {usuario?.username?.substring(0, 2).toUpperCase() || "US"}
-              </span>
-            </div>
-            <div className="d-flex flex-column">
-              <span className="fw-semibold text-white">
-                {usuario?.username || usuario?.nombre || usuario?.user || "Usuario"}
-              </span>
-              <span className="fw-semibold text-white">Super Admin</span>
-              <span className="small text-white-50">Sesión activa</span>
-            </div>
+    <div className={`sa-dashboard${saliendo ? " sa-saliendo" : ""}`}>
+      <button
+        type="button"
+        className={`sa-overlay ${menuOpen ? "active" : ""}`}
+        onClick={() => setMenuOpen(false)}
+        aria-label="Cerrar menú"
+      />
+      <aside className={`sa-drawer ${menuOpen ? "open" : ""}`}>
+        <div className="sa-drawer-header">
+          <div className="sa-drawer-avatar">
+            {fotoUsuario ? (
+              <img
+                src={fotoUsuario}
+                alt="Perfil"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  borderRadius: "50%",
+                }}
+              />
+            ) : (
+              <i className="bi bi-shield-lock-fill"></i>
+            )}
           </div>
-
-          <h5 className="mb-3 mx-4">Menú Super Admin</h5>
-
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión de Paquetes</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link className="nav-link text-white" to="/Paqueteria" state={{ abrirModal: true }}>
-                  Registrar Paquete
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/Paqueteria">
-                  Historial de Paquetes
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión de Visitas</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link className="nav-link text-white" to="/visitas" state={{ abrirModal: true }}>
-                  Crear Visita
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/visitas">
-                  Consultar Visitas
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/parqueaderos">
-                  Consultar Parqueaderos
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {showAreasComunesLocal && (
-            <div className="mb-4">
-              <h6 className="text-uppercase fw-bold">Gestión de Áreas Comunes</h6>
-              <ul className="nav flex-column mt-2 gap-2">
-                <li>
-                  <Link className="nav-link text-white" to="/AreasComunes">
-                    Registrar Reserva
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          )}
-
-          {showUserManagementLocal && (
-            <div className="mb-4">
-              <h6 className="text-uppercase fw-bold">Gestión de Usuarios</h6>
-              <ul className="nav flex-column mt-2 gap-2">
-                <li>
-                  <Link className="nav-link text-white" to="/GestionUsuario" state={{ abrirModal: true }}>
-                    Registrar Usuario
-                  </Link>
-                </li>
-                <li>
-                  <Link className="nav-link text-white" to="/GestionUsuario">
-                    Consultar Usuarios
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          )}
-
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión Residentes</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link className="nav-link text-white" to="/Residentes" state={{ abrirModal: true }}>
-                  Crear Residente
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/Residentes">
-                  Consultar Residente
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div className="mt-auto text-center logout-container">
-            <button onClick={cerrarSesión} className="btn btn-light w-100">
-              Cerrar sesión
-            </button>
-          </div>
+          <h4 className="sa-drawer-title">Menú Super Admin</h4>
+          <span className="sa-drawer-user">
+            {usuario?.username || usuario?.nombre || "Usuario"}
+          </span>
         </div>
-      </aside>
-
-      <div className="main-content flex-grow-1">
-        <div className="container-md d-flex align-items-center justify-content-between px-3 py-2">
-          <div className="logo-container text-center flex-grow-1">
-            <Link to="/Superadmin">
-              <img src={logo} alt="Logo del sistema" className="logo-img" />
+        <div className="sa-drawer-body">
+          <div className="sa-menu-section">
+            <h6 className="sa-menu-section-title">Navegación</h6>
+            <Link
+              className="sa-menu-item active"
+              to="/Superadmin"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-speedometer2"></i>
+              <span>Dashboard</span>
+              <i className="bi bi-chevron-right sa-menu-arrow"></i>
             </Link>
           </div>
-          <div className="position-relative">
-            <div
-              className="btn btn-outline-success d-flex align-items-center gap-2"
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              style={{ cursor: "pointer" }}
+          <div className="sa-menu-section">
+            <h6 className="sa-menu-section-title">Módulos</h6>
+            <Link
+              className="sa-menu-item"
+              to="/Paqueteria"
+              onClick={() => setMenuOpen(false)}
             >
-              {usuario?.username || usuario?.nombre || "Usuario"}
-            </div>
-            {showUserMenu && (
-              <div className="user-menu text-center">
-                <p>
-                  Usuario: <strong>{usuario?.username || usuario?.nombre || "Usuario"}</strong>
-                </p>
-                <p>
-                  Rol: <strong>Super Admin</strong>
-                </p>
-                <hr />
-                <div className="text-center">
-                  <button onClick={cerrarSesión} className="btn btn-danger d-block mx-auto">
-                    Cerrar sesión
-                  </button>
-                </div>
-              </div>
+              <i className="bi bi-box-seam"></i>
+              <span>Paquetería</span>
+              <i className="bi bi-chevron-right sa-menu-arrow"></i>
+            </Link>
+            <Link
+              className="sa-menu-item"
+              to="/visitas"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-people"></i>
+              <span>Visitas</span>
+              <i className="bi bi-chevron-right sa-menu-arrow"></i>
+            </Link>
+            <Link
+              className="sa-menu-item"
+              to="/parqueaderos"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-p-circle"></i>
+              <span>Parqueaderos</span>
+              <i className="bi bi-chevron-right sa-menu-arrow"></i>
+            </Link>
+            {showAreasComunes && (
+              <Link
+                className="sa-menu-item"
+                to="/AreasComunes"
+                onClick={() => setMenuOpen(false)}
+              >
+                <i className="bi bi-calendar2-event"></i>
+                <span>Áreas Comunes</span>
+                <i className="bi bi-chevron-right sa-menu-arrow"></i>
+              </Link>
+            )}
+            <Link
+              className="sa-menu-item"
+              to="/Residentes"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-house-door"></i>
+              <span>Residentes</span>
+              <i className="bi bi-chevron-right sa-menu-arrow"></i>
+            </Link>
+            <Link
+              className="sa-menu-item"
+              to="/Reportes"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-graph-up-arrow"></i>
+              <span>Reportes</span>
+              <i className="bi bi-chevron-right sa-menu-arrow"></i>
+            </Link>
+            {showUserManagement && (
+              <>
+                <Link
+                  className="sa-menu-item"
+                  to="/Auditorias"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-journal-text"></i>
+                  <span>Auditorías</span>
+                  <i className="bi bi-chevron-right sa-menu-arrow"></i>
+                </Link>
+                <Link
+                  className="sa-menu-item"
+                  to="/LogErrores"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-bug"></i>
+                  <span>Log de Errores</span>
+                  <i className="bi bi-chevron-right sa-menu-arrow"></i>
+                </Link>
+                <Link
+                  className="sa-menu-item"
+                  to="/GestionUsuario"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-person-gear"></i>
+                  <span>Gestión Usuarios</span>
+                  <i className="bi bi-chevron-right sa-menu-arrow"></i>
+                </Link>
+              </>
             )}
           </div>
         </div>
-
-        <div className="text-center mt-3 my-4">
-          <h2 className="fw-bold">Bienvenido, {usuario?.username}</h2>
-          <p>Selecciona el módulo que deseas gestionar en la plataforma</p>
+        <div className="sa-drawer-footer">
+          <button className="sa-logout-btn" onClick={cerrarSesion}>
+            <i className="bi bi-box-arrow-right"></i> Cerrar Sesión
+          </button>
         </div>
+      </aside>
 
-        <div className="d-flex flex-wrap justify-content-center gap-4 my-4">
-          <div className="module-card">
-            <img src={paquetesImg} alt="Paquetería" />
-            <h5>Gestión de Paquetería</h5>
-            <Link to="/Paqueteria" className="btn btn-success">
-              ➜
-            </Link>
+      <div className="sa-main">
+        <header className="sa-header">
+          <div className="sa-profile-btn-wrap">
+            <button
+              className="sa-header-btn"
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              title="Ver perfil"
+              style={{ overflow: "hidden" }}
+            >
+              {fotoUsuario ? (
+                <img
+                  src={fotoUsuario}
+                  alt="Perfil"
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    objectFit: "cover",
+                    borderRadius: "50%",
+                  }}
+                />
+              ) : (
+                <i className="bi bi-person-circle"></i>
+              )}
+            </button>
+            <span
+              className="sa-profile-status-dot"
+              title="Super Administrador activo"
+            ></span>
           </div>
-          <div className="module-card">
-            <img src={visitasImg} alt="Visitas" />
-            <h5>Gestión de Visitas</h5>
-            <Link to="/visitas" className="btn btn-success">
-              ➜
-            </Link>
-          </div>
-          {showAreasComunesLocal && (
-            <div className="module-card">
-              <img src={areasImg} alt="Áreas Comunes" />
-              <h5>Áreas Comunes</h5>
-              <button onClick={AreasComunes} className="btn btn-success">
-                ➜
+
+          {showUserMenu && (
+            <div className="sa-profile-popup">
+              <div className="sa-profile-popup-header">
+                {fotoUsuario ? (
+                  <img
+                    src={fotoUsuario}
+                    alt="Perfil"
+                    style={{
+                      width: "60px",
+                      height: "60px",
+                      objectFit: "cover",
+                      borderRadius: "50%",
+                    }}
+                  />
+                ) : (
+                  <i className="bi bi-person-circle sa-profile-icon"></i>
+                )}
+              </div>
+              <p>
+                <strong>Nombre:</strong>{" "}
+                {usuario?.username || usuario?.nombre || "Usuario"}
+              </p>
+              <p>
+                <strong>Rol:</strong> Super Administrador
+              </p>
+              <p className="text-success">
+                <strong>Estado:</strong> Activo
+              </p>
+              <button
+                className="btn btn-sm btn-outline-secondary w-100 mt-2"
+                onClick={() => setShowUserMenu(false)}
+              >
+                Cerrar
               </button>
             </div>
           )}
-          {showUserManagementLocal && (
-            <div className="module-card">
-              <img src={gestionImg} alt="Usuarios" />
-              <h5>Gestión De Usuarios</h5>
-              <button onClick={GestionUsuarios} className="btn btn-success">
-                ➜
-              </button>
+
+          <Link
+            to="/Superadmin"
+            className="sa-logo-wrapper"
+            title="Ir al Dashboard"
+          >
+            <div className="sa-logo-circle">
+              <img src={logo} alt="Logo" className="sa-logo-img" />
             </div>
-          )}
-          <div className="module-card">
-            <img src={residentesImg} alt="Residentes" />
-            <h5>Gestión Residentes</h5>
-            <Link to="/Residentes" className="btn btn-success">
-              ➜
-            </Link>
+          </Link>
+
+          <div className="sa-header-actions">
+            <DescargaAppMovil btnClass="sa-header-btn" />
+            <ModoOscuro btnClass="sa-header-btn" />
+            <button
+              className="sa-header-btn"
+              onClick={() => {
+                setDataLoading(true);
+                cargarDatos();
+              }}
+              disabled={dataLoading}
+              title="Actualizar datos"
+            >
+              <i
+                className={`bi ${dataLoading ? "bi-hourglass-split" : "bi-arrow-clockwise"}`}
+              ></i>
+            </button>
+            <button
+              className="sa-header-btn sa-hamburger"
+              onClick={() => setMenuOpen(true)}
+              title="Abrir menú"
+            >
+              <i className="bi bi-list"></i>
+            </button>
           </div>
-          <div className="module-card">
-            <i className="bi bi-file-earmark-text" style={{ fontSize: "80px" }}></i>
-            <h5>Gestión de Reportes</h5>
-            <Link to="/Reportes" className="btn btn-success">
-              ➜
-            </Link>
-          </div>
+        </header>
+
+        <div className="sa-welcome">
+          <h2 className="sa-welcome-title">
+            Bienvenido, {usuario?.username || usuario?.nombre || "Usuario"}
+          </h2>
+          <p className="sa-welcome-sub">
+            Selecciona el módulo que deseas gestionar en la plataforma
+          </p>
         </div>
 
-        <div className="d-flex flex-wrap justify-content-center gap-4 my-4">
-          <div className="dashboard-card">
-            <h5>Visitas del Día</h5>
-            <div className="stat-number">{totalVisitas}</div>
-            <p>Ingresos registrados hoy.</p>
-            <Link to="/visitas" className="btn btn-success">
-              Ver Registro
+        <div className="sa-modules-grid">
+          {modulos.map((mod) => (
+            <Link
+              to={mod.to}
+              key={mod.to}
+              className="sa-module-card"
+              style={{
+                background: `linear-gradient(135deg, ${mod.color}cc, ${mod.color})`,
+              }}
+            >
+              <div className="sa-module-icon-wrap">
+                <i className={`bi ${mod.icon}`}></i>
+              </div>
+              <span className="sa-module-title">{mod.title}</span>
             </Link>
-          </div>
+          ))}
+        </div>
 
-          <div className="dashboard-card">
-            <h5>Parqueaderos Ocupados</h5>
-            <div className="chart-container">
-              <canvas id="parqueoChart"></canvas>
+        <div className="sa-stats-section">
+          <h3 className="sa-stats-title">Estadísticas del Día</h3>
+          <div className="sa-stats-grid">
+            {/* Paquetes */}
+            <div className="sa-stat-card">
+              <div className="sa-stat-card-header">
+                <i
+                  className="bi bi-box-seam-fill"
+                  style={{ color: "#3b82f6", fontSize: "28px" }}
+                ></i>
+                <h5>Paquetes Entregados Hoy</h5>
+              </div>
+              <div className="sa-bar-chart-container">
+                <canvas ref={paquetesCanvasRef}></canvas>
+              </div>
+              <div className="sa-stat-summary">
+                <div className="sa-stat-summary-item">
+                  <span
+                    className="sa-stat-big-number"
+                    style={{ color: "#22c55e" }}
+                  >
+                    {paquetesEntregados}
+                  </span>
+                  <span className="sa-stat-label">Entregados</span>
+                </div>
+                <div className="sa-stat-divider"></div>
+                <div className="sa-stat-summary-item">
+                  <span
+                    className="sa-stat-big-number"
+                    style={{ color: "#3b82f6" }}
+                  >
+                    {porcentajeEntregados}%
+                  </span>
+                  <span className="sa-stat-label">Eficiencia</span>
+                </div>
+              </div>
             </div>
-            <Link to="/parqueaderos" className="btn btn-success">
-              Ver Estado
+
+            {/* Parqueaderos */}
+            <Link to="/parqueaderos" className="sa-stat-card sa-stat-card-link">
+              <div className="sa-stat-card-header">
+                <i
+                  className="bi bi-p-circle-fill"
+                  style={{ color: "#a855f7", fontSize: "28px" }}
+                ></i>
+                <h5>Parqueaderos Visitantes</h5>
+                <i
+                  className="bi bi-chevron-right"
+                  style={{ color: "#9ca3af", marginLeft: "auto" }}
+                ></i>
+              </div>
+              <div className="sa-donut-chart-container">
+                <canvas ref={parqueoCanvasRef}></canvas>
+              </div>
+              <div className="sa-legend">
+                {[
+                  { label: "Carros", value: parqueosCarros, color: "#0d9488" },
+                  { label: "Motos", value: parqueosMotos, color: "#f97316" },
+                  { label: "Libres", value: parqueosLibres, color: "#d1d5db" },
+                ].map((item) => (
+                  <div className="sa-legend-item" key={item.label}>
+                    <span
+                      className="sa-legend-dot"
+                      style={{ backgroundColor: item.color }}
+                    ></span>
+                    <span className="sa-legend-label">{item.label}</span>
+                    <span className="sa-legend-value">
+                      {item.value} ({calcPctStr(item.value, totalParqueos)}%)
+                    </span>
+                  </div>
+                ))}
+              </div>
             </Link>
-          </div>
-          
-          <div className="dashboard-card">
-            <h5>Paquetes Recibidos</h5>
-            <div className="stat-number">{totalPaquetes}</div>
-            <p>Total de paquetes que llegaron al conjunto hoy.</p>
-            <Link to="/Paqueteria" className="btn btn-success">
-              Ver Detalles
+
+            {/* Visitas del Día */}
+            <Link to="/visitas" className="sa-stat-card sa-stat-card-link">
+              <div className="sa-stat-card-header">
+                <i
+                  className="bi bi-people-fill"
+                  style={{ color: "#22c55e", fontSize: "28px" }}
+                ></i>
+                <h5>Visitas del Día</h5>
+                <i
+                  className="bi bi-chevron-right"
+                  style={{ color: "#9ca3af", marginLeft: "auto" }}
+                ></i>
+              </div>
+              <div className="sa-bar-chart-container">
+                <canvas ref={visitasCanvasRef}></canvas>
+              </div>
+              <div className="sa-stat-summary">
+                <div className="sa-stat-summary-item">
+                  <span
+                    className="sa-stat-big-number"
+                    style={{ color: "#22c55e" }}
+                  >
+                    {visitasHoy}
+                  </span>
+                  <span className="sa-stat-label">Registradas Hoy</span>
+                </div>
+                <div className="sa-stat-divider"></div>
+                <div className="sa-stat-summary-item">
+                  <span
+                    className="sa-stat-big-number"
+                    style={{ color: "#3b82f6" }}
+                  >
+                    {visitasActivas}
+                  </span>
+                  <span className="sa-stat-label">Activas Ahora</span>
+                </div>
+              </div>
             </Link>
+
+            {/* Reservas del Día */}
+            <Link to="/AreasComunes" className="sa-stat-card sa-stat-card-link">
+              <div className="sa-stat-card-header">
+                <i
+                  className="bi bi-calendar-event-fill"
+                  style={{ color: "#f97316", fontSize: "28px" }}
+                ></i>
+                <h5>Reservas del Día</h5>
+                <i
+                  className="bi bi-chevron-right"
+                  style={{ color: "#9ca3af", marginLeft: "auto" }}
+                ></i>
+              </div>
+              <div className="sa-info-card-body">
+                <div className="sa-info-big-value" style={{ color: "#f97316" }}>
+                  {reservasHoy}
+                </div>
+                <span className="sa-info-sub-label">
+                  Áreas comunes reservadas hoy
+                </span>
+              </div>
+              <div className="sa-stat-summary">
+                <div className="sa-stat-summary-item">
+                  <span
+                    className="sa-stat-big-number"
+                    style={{ color: "#f97316" }}
+                  >
+                    {reservasHoy}
+                  </span>
+                  <span className="sa-stat-label">Total Hoy</span>
+                </div>
+                <div className="sa-stat-divider"></div>
+                <div className="sa-stat-summary-item">
+                  <span
+                    className="sa-stat-big-number"
+                    style={{ color: "#14b8a6" }}
+                  >
+                    {residentesActivos}
+                  </span>
+                  <span className="sa-stat-label">Residentes</span>
+                </div>
+              </div>
+            </Link>
+
+            {/* Usuarios en Línea */}
+            {showUserManagement && (
+              <Link
+                to="/GestionUsuario"
+                className="sa-stat-card sa-stat-card-link"
+              >
+                <div className="sa-stat-card-header">
+                  <i
+                    className="bi bi-broadcast"
+                    style={{ color: "#a855f7", fontSize: "28px" }}
+                  ></i>
+                  <h5>Usuarios en Línea</h5>
+                  <i
+                    className="bi bi-chevron-right"
+                    style={{ color: "#9ca3af", marginLeft: "auto" }}
+                  ></i>
+                </div>
+                <div className="sa-online-header">
+                  <span
+                    className="sa-online-count"
+                    style={{ color: "#a855f7" }}
+                  >
+                    {totalEnLinea}
+                  </span>
+                  <span className="sa-online-label">
+                    {totalEnLinea === 1
+                      ? "usuario conectado"
+                      : "usuarios conectados"}
+                  </span>
+                </div>
+                <div className="sa-online-users-list">
+                  {usuariosEnLinea.length > 0 ? (
+                    usuariosEnLinea.map((username) => (
+                      <div key={username} className="sa-online-user-item">
+                        <span className="sa-online-dot"></span>
+                        <span className="sa-online-username">{username}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="sa-online-empty">
+                      <i
+                        className="bi bi-wifi-off"
+                        style={{ fontSize: "24px", color: "#d1d5db" }}
+                      ></i>
+                      <span>Ningún usuario en línea</span>
+                    </div>
+                  )}
+                </div>
+              </Link>
+            )}
           </div>
         </div>
       </div>
+      <WhatsAppModal />
     </div>
   );
 }

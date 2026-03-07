@@ -1,148 +1,209 @@
 import "bootstrap/dist/css/bootstrap.min.css";
-
-import "../Styles/AreasComunes.css";
-import logo from "../../img/logo.png";
+import "bootstrap-icons/font/bootstrap-icons.css";
+import "../Styles/estiloAreasComunes.css";
+import {
+  validarNombreCompleto,
+  validarTelefono,
+  validarEmail,
+  validarDocumento,
+  filtrarInputDocumento,
+  filtrarInputNombre,
+} from "../utils/validaciones.js";
 import {
   obtenerReservasAreas,
   obtenerApartamentos,
-  crearReserva_v2,
-  actualizarReserva_v2,
-  eliminarReserva_v2,
+  obtenerAreas,
+  crearReserva,
+  actualizarReserva,
+  eliminarReserva as eliminarReservaService,
+  obtenerCalendarioReservas,
+  actualizarAreaComun,
 } from "../services/areasComunes.services.jsx";
-import React, { useState, useEffect } from "react";
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
+import ModalOverlay from "../utils/ModalOverlay.jsx";
+import { verificarTokenVencido, obtenerRolFromToken } from "../utils/auth.js";
+import useLogout from "../utils/useLogout.js";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 
+/** Genera el HTML de ticket térmico para impresión de recibo de reserva */
+function buildTicketHtml({
+  id,
+  nombre,
+  doc,
+  tel,
+  area,
+  apto,
+  torre,
+  fecha,
+  hi,
+  hf,
+  asistentes,
+  motivo,
+  estado,
+  fechaImpresion,
+}) {
+  return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Recibo Reserva #${id}</title>
+<style>
+  @page { margin: 0; size: 80mm auto; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Courier New', monospace;
+    width: 80mm;
+    padding: 4mm;
+    background: #fff;
+    color: #000;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .ticket-center { text-align: center; }
+  .ticket-title { font-size: 16px; font-weight: bold; margin: 4px 0 2px; }
+  .ticket-subtitle { font-size: 10px; color: #555; margin-bottom: 6px; }
+  .ticket-divider { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+  .ticket-section-title { font-size: 11px; font-weight: bold; text-transform: uppercase; background: #f0f0f0; padding: 2px 4px; margin: 4px 0; }
+  .ticket-row { display: flex; justify-content: space-between; padding: 1px 0; font-size: 11px; }
+  .ticket-row .label { font-weight: bold; flex-shrink: 0; }
+  .ticket-row .value { text-align: right; word-break: break-word; max-width: 55%; }
+  .ticket-id { font-size: 18px; font-weight: bold; letter-spacing: 2px; }
+  .ticket-footer { text-align: center; font-size: 9px; color: #777; margin-top: 8px; padding-top: 4px; }
+  .ticket-barcode { text-align: center; font-size: 24px; letter-spacing: 4px; font-family: 'Libre Barcode 39', cursive, monospace; margin: 6px 0; }
+  @media print { body { width: 80mm; } }
+</style></head>
+<body>
+  <div class="ticket-center">
+    <div class="ticket-title">AZAHAR</div>
+    <div class="ticket-subtitle">Conjunto Residencial</div>
+    <div class="ticket-subtitle">NIT: 900.XXX.XXX-X</div>
+  </div>
+  <hr class="ticket-divider">
+  <div class="ticket-center">
+    <div style="font-size:11px;font-weight:bold;">COMPROBANTE DE RESERVA</div>
+    <div class="ticket-id">#${id}</div>
+  </div>
+  <hr class="ticket-divider">
+  <div class="ticket-section-title">SOLICITANTE</div>
+  <div class="ticket-row"><span class="label">Nombre:</span><span class="value">${nombre}</span></div>
+  <div class="ticket-row"><span class="label">Doc:</span><span class="value">${doc}</span></div>
+  <div class="ticket-row"><span class="label">Tel:</span><span class="value">${tel}</span></div>
+  <hr class="ticket-divider">
+  <div class="ticket-section-title">RESERVA</div>
+  <div class="ticket-row"><span class="label">Área:</span><span class="value">${area}</span></div>
+  <div class="ticket-row"><span class="label">Apto:</span><span class="value">${apto}${torre ? " - " + torre : ""}</span></div>
+  <div class="ticket-row"><span class="label">Fecha:</span><span class="value">${fecha}</span></div>
+  <div class="ticket-row"><span class="label">Hora:</span><span class="value">${hi} - ${hf}</span></div>
+  <div class="ticket-row"><span class="label">Asist.:</span><span class="value">${asistentes}</span></div>
+  <div class="ticket-row"><span class="label">Motivo:</span><span class="value">${motivo}</span></div>
+  <div class="ticket-row"><span class="label">Estado:</span><span class="value">${estado}</span></div>
+  <hr class="ticket-divider">
+  <div class="ticket-center ticket-barcode">*${String(id).padStart(6, "0")}*</div>
+  <hr class="ticket-divider">
+  <div class="ticket-footer">
+    Impreso: ${fechaImpresion}<br>
+    Este documento es un comprobante de su reserva.<br>
+    Conserve este recibo para cualquier reclamo.<br>
+    ¡Gracias por usar nuestros servicios!
+  </div>
+</body></html>`;
+}
+
+// Mapeos de rol (fuera del componente para reducir complejidad) 
+const ROL_LABEL = { 1: "SuperAdmin", 2: "Admin" };
+const ROL_DASHBOARD = { 1: "/Superadmin", 2: "/Admin" };
+const mapRolLabel = (id) => ROL_LABEL[id] || "Vigilante";
+const mapDashboardPath = (id) => ROL_DASHBOARD[id] || "/Vigilante";
+
+/** Resuelve el texto del botón submit del formulario de reserva */
+function obtenerLabelSubmitReserva(isLoading, isEditing) {
+  if (isLoading) return isEditing ? "Guardando..." : "Registrando...";
+  return isEditing ? "Guardar Cambios" : "Registrar Reserva";
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ÁREAS COMUNES — Gestión de Reservas
+   Tema naranja · Layout responsivo (tabla desktop / cards móvil)
+   ═══════════════════════════════════════════════════════════ */
+
 function AreasComunes() {
   const navegacion = useNavigate();
+  const location = useLocation();
+
+  // ─ Sesión ─
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      Swal.fire({ icon: 'warning', title: 'Sesión expirada', text: 'La sesión expiró. Vuelva a iniciar sesión.', timer: 3500, showConfirmButton: false, timerProgressBar: true }).then(() => {
-        localStorage.clear();
-        navegacion('/');
+    const tk = localStorage.getItem("token");
+    if (!tk) {
+      Swal.fire({
+        icon: "warning",
+        title: "Sesión expirada",
+        text: "La sesión expiró. Vuelva a iniciar sesión.",
+        timer: 3500,
+        showConfirmButton: false,
+        timerProgressBar: true,
+      }).then(() => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navegacion("/");
       });
     }
   }, [navegacion]);
-  const cerrarSesión = (e) => {
-    e.preventDefault();
-    localStorage.clear();
-    navegacion("/");
-  };
-  const gestionUsuarios = (e) => {
-    e.preventDefault();
-    navegacion("/GestionUsuario");
-  }
-  const location = useLocation();
 
-  const [modalAbierto, setModalAbierto] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [menuAbierto, setMenuAbierto] = useState(false);
-  const [showModalDetalles, setShowModalDetalles] = useState(false);
-  const [registroSeleccionado, setRegistroSeleccionado] = useState(null);
-  const [editIndex, setEditIndex] = useState(null);
+  const cerrarSesion = useLogout();
 
-  const [reservas, setReservas] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [apartamentos, setApartamentos] = useState([]);
-  const [areasComunes, setAreasComunes] = useState([]);
-  const [tiposDocumento, setTiposDocumento] = useState([]);
-  const [verificadorRol, setVerificadorRol] = useState(null);
-
-  // Funciones de manejo de token y usuario (igual que en paquetería)
+  // ─ Token helpers ─
   const obtenerToken = () => {
     const token =
       localStorage.getItem("token") ||
       localStorage.getItem("authToken") ||
       sessionStorage.getItem("token") ||
       sessionStorage.getItem("authToken");
-
-    // Si no hay token válido, usar token de desarrollo
     if (!token) {
-      console.warn(
-        "No se encontró token de autenticación, usando token de desarrollo"
-      );
       return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Impvc3VlMjAyMyIsInJvbGVzSWQiOjEsImlhdCI6MTc1OTUxNTQwMCwiZXhwIjoxNzU5NTE5MDAwfQ.wKzrnUttdHRGkHnnZL1LR1amxt2ZQ4PZR85khZauShQ";
     }
-
     return token;
   };
-
   const token = obtenerToken();
 
-  // Función para verificar si el token está vencido
-  const verificarTokenVencido = (token) => {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      const fechaExpiracion = payload.exp * 1000; // Convertir a milisegundos
-      return Date.now() >= fechaExpiracion;
-    } catch (error) {
-      console.error("Error al verificar expiración del token:", error);
-      return true; // Considerar vencido si hay error
-    }
-  };
+  // Token helpers (importados de utils/auth.js)
 
   const obtenerUsuarioDelToken = () => {
     try {
-      if (verificarTokenVencido(token)) {
-        console.warn("Token vencido, usando usuario por defecto...");
-        return "josue2023";
-      }
-
+      if (verificarTokenVencido(token)) return "josue2023";
       const payload = JSON.parse(atob(token.split(".")[1]));
       return payload.username || "Usuario";
-    } catch (error) {
-      console.error("Error al decodificar el token:", error);
+    } catch {
       return "Usuario";
     }
   };
-  //obtener rol 
-const obtenerRolDelToken = () => {
-  try {
-    if (verificarTokenVencido(token)) {
-      console.warn("Token vencido, usando rol por defecto...");
-      return "RolDesconocido";
-    }
 
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.rolesId || "RolNoDefinido";
-  } catch (error) {
-    console.error("Error al decodificar el token:", error);
-    return "RolNoDefinido";
-  }
-};
-if(verificarTokenVencido(token)){
-  
-}
-  const rolesId = obtenerRolDelToken(); 
-  let rolUsuario;
-useEffect(() => {
-  const rolesId = obtenerRolDelToken();
-  setVerificadorRol(rolesId);
-}, [token]);
-switch (rolesId) {
-  case 1:
-    rolUsuario = "superAdmin";
-    break;
-  case 2:
-    rolUsuario = "admin";
-    break;
-  case 3:
-    rolUsuario = "vigilante";
-    break;
-  default:
-    rolUsuario = "RolNoDefinido";
-}
-
+  const rolesId = obtenerRolFromToken(token);
   const nombreUsuario = obtenerUsuarioDelToken();
-  const tokenValido = token && !verificarTokenVencido(token);
-  const showUserManagement = tokenValido && rolesId === 1; // solo SuperAdmin gestiona usuarios
-  const showAreasComunes = tokenValido && rolesId !== 3; // ocultar áreas comunes para Vigilante
+  const rolUsuario = mapRolLabel(rolesId);
+  const dashboardPath = mapDashboardPath(rolesId);
 
-  // Estado único y completo para el formulario de reserva
-  const [reserva, setReserva] = useState({
+  // ─ Estado UI ─
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [showModalDetalles, setShowModalDetalles] = useState(false);
+  const [showCalendario, setShowCalendario] = useState(false);
+  const [showModalAreas, setShowModalAreas] = useState(false);
+  const [registroSeleccionado, setRegistroSeleccionado] = useState(null);
+  const [editIndex, setEditIndex] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // ─ Datos ─
+  const [reservas, setReservas] = useState([]);
+  const [apartamentos, setApartamentos] = useState([]);
+  const [areasComunes, setAreasComunes] = useState([]);
+  const [tiposDocumento] = useState([
+    { tipoDocumentoId: 1, nombre: "CC" },
+    { tipoDocumentoId: 2, nombre: "CE" },
+    { tipoDocumentoId: 3, nombre: "PA" },
+    { tipoDocumentoId: 4, nombre: "PP" },
+    { tipoDocumentoId: 5, nombre: "PPT" },
+  ]);
+
+  // ─ Formulario ─
+  const reservaVacia = {
     torre: "",
     apartamentoId: "",
     areaComunId: "",
@@ -158,666 +219,424 @@ switch (rolesId) {
     nombreSolicitante: "",
     telefonoSolicitante: "",
     correoSolicitante: "",
-  });
+  };
+  const [reserva, setReserva] = useState({ ...reservaVacia });
 
+  // ─ Filtros + Paginación ─
   const [busqueda, setBusqueda] = useState("");
-  const [filtroEstado, setFiltroEstado] = useState(""); // "" = todas, "registrada", "finalizada"
+  const [filtroEstado, setFiltroEstado] = useState("todas"); // todas | activas | finalizadas
   const [paginaActual, setPaginaActual] = useState(1);
   const reservasPorPagina = 5;
 
-  // Función para obtener apartamentos filtrados por torre
-  const apartamentosFiltrados = apartamentos.filter((apt) => {
-    if (!reserva.torre) return false;
+  // ─ Calendario ─
+  const [calMonth, setCalMonth] = useState(new Date().getMonth());
+  const [calYear, setCalYear] = useState(new Date().getFullYear());
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [calendarData, setCalendarData] = useState([]);
 
-    const numeroApto = parseInt(apt.numeroApartamento);
-    const torreLetra = reserva.torre;
+  // ─ Responsive (manejado por CSS media queries) ─
 
-    // Mapear letras a números: A=1, B=2, C=3, etc.
-    const torreNumero = torreLetra.charCodeAt(0) - 64; // A=1, B=2, C=3...
+  // ════════════════════════════════════════════════════════
+  // DATA FETCHING
+  // ════════════════════════════════════════════════════════
 
-    // Definir rangos por torre
-    switch (torreLetra) {
-      case "A":
-        return numeroApto >= 101 && numeroApto <= 109;
-      case "B":
-        return numeroApto >= 201 && numeroApto <= 209;
-      case "C":
-        return numeroApto >= 301 && numeroApto <= 309;
-      case "D":
-        return numeroApto >= 401 && numeroApto <= 409;
-      case "E":
-        return numeroApto >= 501 && numeroApto <= 509;
-      case "F":
-        return numeroApto >= 601 && numeroApto <= 609;
-      case "G":
-        return numeroApto >= 701 && numeroApto <= 709;
-      case "H":
-        return numeroApto >= 801 && numeroApto <= 809;
-      case "I":
-        return numeroApto >= 901 && numeroApto <= 909;
-      case "J":
-        return numeroApto >= 1001 && numeroApto <= 1009;
-      default:
-        return false;
-    }
-  });
-
-  // Función para manejar cambio de torre
-  const handleTorreChange = (e) => {
-    const nuevaTorre = e.target.value;
-    setReserva((prev) => ({ ...prev, torre: nuevaTorre, apartamentoId: "" }));
-  };
-
-  // Funciones para conectar con el backend
-  const obtenerReservas = async () => {
+  const obtenerReservas = useCallback(async () => {
     try {
       setLoading(true);
       const response = await obtenerReservasAreas(token);
       if (response.ok) {
         const data = await response.json();
-        console.log("=== DEBUG: Reservas obtenidas ===");
-        console.log("Total reservas:", data.body?.length || 0);
-        const estadosCount = {};
-        data.body?.forEach((r) => {
-          estadosCount[r.nombreEstado] = (estadosCount[r.nombreEstado] || 0) + 1;
-        });
-        console.log("Estados actuales:", estadosCount);
-        setReservas(data.body || []);
+        const raw = data.mostrarAreasComunes || data.body || [];
+        const planas = raw.map((r) => ({
+          idReservas: r.idReservas,
+          apartamentoId: r.apartamentoId,
+          fechaReserva: r.fechaReserva,
+          horaInicio: r.horaInicio,
+          horaFin: r.horaFin,
+          motivoReserva: r.motivoReserva,
+          cantidadAsistentes: r.cantidadAsistentes,
+          invitadosExternos: r.invitadosExternos,
+          areaComunId: r.areaComun?.areaComunId ?? r.areaComunId,
+          nombreArea: r.areaComun?.nombreArea ?? r.nombreArea,
+          nombreEstado: r.estado?.nombreEstado ?? r.nombreEstado,
+          numeroApartamento:
+            r.apartamento?.numeroApartamento ?? r.numeroApartamento,
+          nombreTorre: r.apartamento?.torre?.nombreTorre ?? r.nombreTorre,
+          documentoSolicitante:
+            r.Solicitante?.documentoSolicitante ?? r.documentoSolicitante,
+          nombreSolicitante:
+            r.Solicitante?.nombreSolicitante ?? r.nombreSolicitante,
+          correoSolicitante:
+            r.Solicitante?.correoSolicitante ?? r.correoSolicitante,
+          telefonoSolicitante:
+            r.Solicitante?.telefonoSolicitante ?? r.telefonoSolicitante,
+          tipoDocumentoId: r.Solicitante?.tipoDocumentoId ?? r.tipoDocumentoId,
+        }));
+        setReservas(planas);
       } else {
-        console.error("Error al obtener reservas:", response.statusText);
-        Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+        Swal.fire("Error", "Error al obtener reservas.", "error");
       }
-    } catch (error) {
-      console.error("Error en la conexión:", error);
-      Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+    } catch {
+      Swal.fire("Error", "Error de conexión con el servidor.", "error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
-  /**
-   * Genera un ticket HTML estilizado y lo convierte a PDF.
-   * - Crea un elemento con id `ticketReserva` y clases CSS definidas en AreasComunes.css
-   * - Captura con html2canvas y lo inserta en jsPDF
-   * - Fuerza que quepa en una sola página A4 y descarga con nombre `reserva-YYYY-MM-DD.pdf`
-   */
-  const generarTicketPDF = async (reserva) => {
+  const obtenerDatosIniciales = useCallback(async () => {
+    // Apartamentos
     try {
-      if (!reserva) {
-        console.warn('generarTicketPDF: no hay datos de reserva');
-        return;
-      }
-
-      // Preparar datos
-      const fechaReserva = reserva.fechaReserva || new Date().toISOString().split('T')[0];
-      // Normalizar y formatear horas a formato 12h AM/PM
-      const normalizeTime = (t) => {
-        if (!t) return '';
-        // Acepta "HH:MM" o "HH:MM:SS" o "HH:MM:SS.sss"
-        const parts = t.split(':');
-        const hh = parseInt(parts[0], 10);
-        const mm = parts[1] || '00';
-        if (isNaN(hh)) return t;
-        const ampm = hh >= 12 ? 'PM' : 'AM';
-        const h12 = hh % 12 === 0 ? 12 : hh % 12;
-        return `${h12}:${String(mm).padStart(2, '0')} ${ampm}`;
-      };
-
-      const rawHoraInicio = reserva.horaInicio ? reserva.horaInicio.replace(/:00$/, '') : (reserva.horaInicio || '');
-      const rawHoraFin = reserva.horaFin ? reserva.horaFin.replace(/:00$/, '') : (reserva.horaFin || '');
-      const horaInicio = normalizeTime(rawHoraInicio);
-      const horaFin = normalizeTime(rawHoraFin);
-      const nombre = reserva.nombreSolicitante || reserva.nombre || '';
-      const correo = reserva.correoSolicitante || reserva.correo || '';
-      const telefono = reserva.telefonoSolicitante || reserva.telefono || '';
-      // Buscar campo de cantidad/asistentes en el objeto reserva (varias posibles claves)
-      const posiblesClavesCantidad = ['cantidadAsistentes','cantidad','asistentes','numeroAsistentes','cantidad_asistentes'];
-      let cantidadValor = '';
-      let cantidadLabel = 'Cantidad asistentes';
-      for (const k of posiblesClavesCantidad) {
-        if (Object.prototype.hasOwnProperty.call(reserva, k) && reserva[k] !== undefined && reserva[k] !== null && String(reserva[k]).trim() !== '') {
-          cantidadValor = reserva[k];
-          if (k.toLowerCase().includes('asist')) cantidadLabel = 'Asistentes';
-          else if (k.toLowerCase().includes('cantidad')) cantidadLabel = 'Cantidad asistentes';
-          else cantidadLabel = k;
-          break;
-        }
-      }
-
-      // Si ya existe un ticket en el DOM, removerlo
-      const existente = document.getElementById('ticketReserva');
-      if (existente) existente.remove();
-
-      // Crear el contenedor del ticket (usar clases, evitar estilos inline innecesarios)
-      const ticket = document.createElement('div');
-      ticket.id = 'ticketReserva';
-      ticket.className = 'ticket-hidden';
-
-      ticket.innerHTML = `
-        <div class="ticket-inner">
-          <div class="ticket-header">
-            <img src="${logo}" class="ticket-logo" alt="logo" />
-            <h2 class="ticket-title">Conjunto Residencial Azaharr</h2>
-          </div>
-          <hr class="ticket-sep" />
-          <div class="ticket-body">
-            <div class="ticket-row"><div class="field-label">Nombre</div><div class="field-value">${nombre}</div></div>
-            <div class="ticket-row"><div class="field-label">Correo</div><div class="field-value">${correo}</div></div>
-            <div class="ticket-row"><div class="field-label">Teléfono</div><div class="field-value">${telefono}</div></div>
-            <div class="ticket-row"><div class="field-label">Fecha de reserva</div><div class="field-value">${fechaReserva}</div></div>
-            <div class="ticket-row"><div class="field-label">Hora inicio</div><div class="field-value">${horaInicio}</div></div>
-            <div class="ticket-row"><div class="field-label">Hora fin</div><div class="field-value">${horaFin}</div></div>
-            <div class="ticket-row"><div class="field-label">${cantidadLabel}</div><div class="field-value">${cantidadValor}</div></div>
-          </div>
-        </div>
-      `;
-
-      // Añadir al DOM (fuera de vista) para capturar con html2canvas
-      document.body.appendChild(ticket);
-
-      // Pequeña espera para que estilos se apliquen
-      await new Promise(r => setTimeout(r, 150));
-
-      // Capturar como canvas
-      const canvas = await html2canvas(ticket, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
-      const imgData = canvas.toDataURL('image/png');
-
-      // Crear PDF y ajustar tamaño para una sola página
-      const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 10; // mm
-      const pdfWidth = pageWidth - margin * 2;
-
-      const imgProps = pdf.getImageProperties(imgData);
-      let imgWidth = pdfWidth;
-      let imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-
-      // Si la imagen es demasiado alta, escalar para que quepa en la página
-      const maxHeight = pageHeight - margin * 2;
-      if (imgHeight > maxHeight) {
-        const scale = maxHeight / imgHeight;
-        imgHeight = imgHeight * scale;
-        imgWidth = imgWidth * scale;
-      }
-
-      const x = (pageWidth - imgWidth) / 2;
-      const y = margin;
-      pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
-
-      // Descargar con nombre usando la fecha de la reserva
-      const fileName = `reserva-${fechaReserva}.pdf`;
-      pdf.save(fileName);
-
-      // Limpiar DOM
-      ticket.remove();
-    } catch (err) {
-      console.error('Error en generarTicketPDF:', err);
+      const resp = await obtenerApartamentos(token);
+      if (resp.ok) {
+        const d = await resp.json();
+        const lista = (d.body || []).map((a) => ({
+          ...a,
+          idApartamento: a.IdApartamento || a.idApartamento,
+        }));
+        setApartamentos(lista);
+      } else throw new Error("Error en la respuesta del servidor");
+    } catch {
+      setApartamentos([]);
     }
-  };
 
-  const obtenerDatosIniciales = async () => {
+    // Áreas comunes (desde API)
     try {
-      // Obtener apartamentos
-      try {
-        const apartamentosResponse = await obtenerApartamentos(token);
-        if (apartamentosResponse.ok) {
-          const apartamentosData = await apartamentosResponse.json();
-          setApartamentos(apartamentosData.body || []);
-        } else {
-          throw new Error("Endpoint no disponible");
+      const resp = await obtenerAreas(token);
+      if (resp.ok) {
+        const d = await resp.json();
+        const areas = d.data || d.body || d.mostrarAreasComunes || [];
+        if (areas.length > 0) {
+          setAreasComunes(
+            areas.map((a) => ({
+              idAreaComun: a.areaComunId || a.idAreaComun,
+              nombreArea: a.nombreArea,
+              estadoId: a.estadoId,
+              nombreEstado: a.estado?.nombreEstado || a.nombreEstado || "",
+              descripcion: a.descripcion || "",
+              capacidad: a.capacidad || 0,
+            })),
+          );
+          return;
         }
-      } catch (error) {
-        console.log("Usando datos de prueba para apartamentos");
-        // Datos de prueba para apartamentos por torres
-        const apartamentosPrueba = [
-          // Torre A (101-109)
-          { idApartamento: 1, numeroApartamento: 101, torresId: 1 },
-          { idApartamento: 2, numeroApartamento: 102, torresId: 1 },
-          { idApartamento: 3, numeroApartamento: 103, torresId: 1 },
-          { idApartamento: 4, numeroApartamento: 104, torresId: 1 },
-          { idApartamento: 5, numeroApartamento: 105, torresId: 1 },
-          { idApartamento: 6, numeroApartamento: 106, torresId: 1 },
-          { idApartamento: 7, numeroApartamento: 107, torresId: 1 },
-          { idApartamento: 8, numeroApartamento: 108, torresId: 1 },
-          { idApartamento: 9, numeroApartamento: 109, torresId: 1 },
-          // Torre B (201-209)
-          { idApartamento: 10, numeroApartamento: 201, torresId: 2 },
-          { idApartamento: 11, numeroApartamento: 202, torresId: 2 },
-          { idApartamento: 12, numeroApartamento: 203, torresId: 2 },
-          { idApartamento: 13, numeroApartamento: 204, torresId: 2 },
-          { idApartamento: 14, numeroApartamento: 205, torresId: 2 },
-          { idApartamento: 15, numeroApartamento: 206, torresId: 2 },
-          { idApartamento: 16, numeroApartamento: 207, torresId: 2 },
-          { idApartamento: 17, numeroApartamento: 208, torresId: 2 },
-          { idApartamento: 18, numeroApartamento: 209, torresId: 2 },
-          // Torre C (301-309)
-          { idApartamento: 19, numeroApartamento: 301, torresId: 3 },
-          { idApartamento: 20, numeroApartamento: 302, torresId: 3 },
-          { idApartamento: 21, numeroApartamento: 303, torresId: 3 },
-          { idApartamento: 22, numeroApartamento: 304, torresId: 3 },
-          { idApartamento: 23, numeroApartamento: 305, torresId: 3 },
-          { idApartamento: 24, numeroApartamento: 306, torresId: 3 },
-          { idApartamento: 25, numeroApartamento: 307, torresId: 3 },
-          { idApartamento: 26, numeroApartamento: 308, torresId: 3 },
-          { idApartamento: 27, numeroApartamento: 309, torresId: 3 },
-          // Torre D (401-409)
-          { idApartamento: 28, numeroApartamento: 401, torresId: 4 },
-          { idApartamento: 29, numeroApartamento: 402, torresId: 4 },
-          { idApartamento: 30, numeroApartamento: 403, torresId: 4 },
-          { idApartamento: 31, numeroApartamento: 404, torresId: 4 },
-          { idApartamento: 32, numeroApartamento: 405, torresId: 4 },
-          { idApartamento: 33, numeroApartamento: 406, torresId: 4 },
-          { idApartamento: 34, numeroApartamento: 407, torresId: 4 },
-          { idApartamento: 35, numeroApartamento: 408, torresId: 4 },
-          { idApartamento: 36, numeroApartamento: 409, torresId: 4 },
-          // Torre E (501-509)
-          { idApartamento: 37, numeroApartamento: 501, torresId: 5 },
-          { idApartamento: 38, numeroApartamento: 502, torresId: 5 },
-          { idApartamento: 39, numeroApartamento: 503, torresId: 5 },
-          { idApartamento: 40, numeroApartamento: 504, torresId: 5 },
-          { idApartamento: 41, numeroApartamento: 505, torresId: 5 },
-          { idApartamento: 42, numeroApartamento: 506, torresId: 5 },
-          { idApartamento: 43, numeroApartamento: 507, torresId: 5 },
-          { idApartamento: 44, numeroApartamento: 508, torresId: 5 },
-          { idApartamento: 45, numeroApartamento: 509, torresId: 5 },
-          // Torre F (601-609)
-          { idApartamento: 46, numeroApartamento: 601, torresId: 6 },
-          { idApartamento: 47, numeroApartamento: 602, torresId: 6 },
-          { idApartamento: 48, numeroApartamento: 603, torresId: 6 },
-          { idApartamento: 49, numeroApartamento: 604, torresId: 6 },
-          { idApartamento: 50, numeroApartamento: 605, torresId: 6 },
-          { idApartamento: 51, numeroApartamento: 606, torresId: 6 },
-          { idApartamento: 52, numeroApartamento: 607, torresId: 6 },
-          { idApartamento: 53, numeroApartamento: 608, torresId: 6 },
-          { idApartamento: 54, numeroApartamento: 609, torresId: 6 },
-          // Torre G (701-709)
-          { idApartamento: 55, numeroApartamento: 701, torresId: 7 },
-          { idApartamento: 56, numeroApartamento: 702, torresId: 7 },
-          { idApartamento: 57, numeroApartamento: 703, torresId: 7 },
-          { idApartamento: 58, numeroApartamento: 704, torresId: 7 },
-          { idApartamento: 59, numeroApartamento: 705, torresId: 7 },
-          { idApartamento: 60, numeroApartamento: 706, torresId: 7 },
-          { idApartamento: 61, numeroApartamento: 707, torresId: 7 },
-          { idApartamento: 62, numeroApartamento: 708, torresId: 7 },
-          { idApartamento: 63, numeroApartamento: 709, torresId: 7 },
-          // Torre H (801-809)
-          { idApartamento: 64, numeroApartamento: 801, torresId: 8 },
-          { idApartamento: 65, numeroApartamento: 802, torresId: 8 },
-          { idApartamento: 66, numeroApartamento: 803, torresId: 8 },
-          { idApartamento: 67, numeroApartamento: 804, torresId: 8 },
-          { idApartamento: 68, numeroApartamento: 805, torresId: 8 },
-          { idApartamento: 69, numeroApartamento: 806, torresId: 8 },
-          { idApartamento: 70, numeroApartamento: 807, torresId: 8 },
-          { idApartamento: 71, numeroApartamento: 808, torresId: 8 },
-          { idApartamento: 72, numeroApartamento: 809, torresId: 8 },
-          // Torre I (901-909)
-          { idApartamento: 73, numeroApartamento: 901, torresId: 9 },
-          { idApartamento: 74, numeroApartamento: 902, torresId: 9 },
-          { idApartamento: 75, numeroApartamento: 903, torresId: 9 },
-          { idApartamento: 76, numeroApartamento: 904, torresId: 9 },
-          { idApartamento: 77, numeroApartamento: 905, torresId: 9 },
-          { idApartamento: 78, numeroApartamento: 906, torresId: 9 },
-          { idApartamento: 79, numeroApartamento: 907, torresId: 9 },
-          { idApartamento: 80, numeroApartamento: 908, torresId: 9 },
-          { idApartamento: 81, numeroApartamento: 909, torresId: 9 },
-          // Torre J (1001-1009)
-          { idApartamento: 82, numeroApartamento: 1001, torresId: 10 },
-          { idApartamento: 83, numeroApartamento: 1002, torresId: 10 },
-          { idApartamento: 84, numeroApartamento: 1003, torresId: 10 },
-          { idApartamento: 85, numeroApartamento: 1004, torresId: 10 },
-          { idApartamento: 86, numeroApartamento: 1005, torresId: 10 },
-          { idApartamento: 87, numeroApartamento: 1006, torresId: 10 },
-          { idApartamento: 88, numeroApartamento: 1007, torresId: 10 },
-          { idApartamento: 89, numeroApartamento: 1008, torresId: 10 },
-          { idApartamento: 90, numeroApartamento: 1009, torresId: 10 },
-        ];
-        setApartamentos(apartamentosPrueba);
       }
-
-      // Obtener áreas comunes (usando los IDs de las reservas existentes)
-      setAreasComunes([
-        { idAreaComun: 1, nombreArea: "Salón Comunal 1" },
-        { idAreaComun: 2, nombreArea: "Salón Comunal 2" },
-        { idAreaComun: 3, nombreArea: "Zona BBQ" },
-      ]);
-
-      // Tipos de documento
-      setTiposDocumento([
-        { tipoDocumentoId: 1, nombre: "CC" },
-        { tipoDocumentoId: 2, nombre: "CE" },
-        { tipoDocumentoId: 3, nombre: "PA" },
-        { tipoDocumentoId: 4, nombre: "PP" },
-        { tipoDocumentoId: 5, nombre: "PPT" },
-      ]);
     } catch (error) {
-      console.error("Error al obtener datos iniciales:", error);
+      console.error("Error cargando áreas comunes:", error);
     }
-  };
+    // Fallback
+    setAreasComunes([
+      {
+        idAreaComun: 1,
+        nombreArea: "Salón Comunal 1",
+        estadoId: 4,
+        nombreEstado: "disponible",
+        capacidad: 50,
+      },
+      {
+        idAreaComun: 2,
+        nombreArea: "Salón Comunal 2",
+        estadoId: 4,
+        nombreEstado: "disponible",
+        capacidad: 40,
+      },
+      {
+        idAreaComun: 3,
+        nombreArea: "Zona BBQ",
+        estadoId: 4,
+        nombreEstado: "disponible",
+        capacidad: 25,
+      },
+    ]);
+  }, [token]);
+
+  const cargarCalendario = useCallback(async () => {
+    try {
+      const resp = await obtenerCalendarioReservas(token);
+      if (resp.ok) {
+        const d = await resp.json();
+        setCalendarData(d.body || d.mostrarCalendario || d.reservas || []);
+      }
+    } catch (error) {
+      console.error("Error cargando calendario:", error);
+    }
+  }, [token]);
 
   useEffect(() => {
     obtenerReservas();
     obtenerDatosIniciales();
-  }, []);
+    const intervalo = setInterval(obtenerReservas, 30000);
+    return () => clearInterval(intervalo);
+  }, [obtenerReservas, obtenerDatosIniciales]);
 
   useEffect(() => {
     if (location.state?.abrirModal) abrirModal(location.state?.prefill || null);
-  }, [location.state]);
+  }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ════════════════════════════════════════════════════════
+  // FILTRADO POR TORRE
+  // ════════════════════════════════════════════════════════
+
+  // Extraer torres únicas de los apartamentos cargados
+  const torresDisponibles = React.useMemo(() => {
+    const mapa = new Map();
+    apartamentos.forEach((apt) => {
+      const id = apt.torresId;
+      if (id && !mapa.has(id)) {
+        mapa.set(
+          id,
+          apt.torres?.nombreTorre || apt.torre?.nombreTorre || `Torre ${id}`,
+        );
+      }
+    });
+    return Array.from(mapa.entries())
+      .map(([id, nombre]) => ({ id, nombre }))
+      .sort((a, b) => a.id - b.id);
+  }, [apartamentos]);
+
+  const apartamentosFiltrados = apartamentos.filter((apt) => {
+    if (!reserva.torre) return false;
+    return String(apt.torresId) === String(reserva.torre);
+  });
+
+  const handleTorreChange = (e) => {
+    setReserva((prev) => ({
+      ...prev,
+      torre: e.target.value,
+      apartamentoId: "",
+    }));
+  };
+
+  // ════════════════════════════════════════════════════════
+  // MODAL HANDLERS
+  // ════════════════════════════════════════════════════════
 
   const abrirModal = (prefill = null) => {
     setReserva({
-      torre: "",
-      apartamentoId: "",
+      ...reservaVacia,
       areaComunId: prefill?.areaComunId || "",
       fechaReserva: prefill?.fechaReserva || "",
       horaInicio: prefill?.horaInicio || "",
       horaFin: prefill?.horaFin || "",
-      motivoReserva: "",
-      cantidadAsistentes: "",
-      invitadosExternos: false,
-      aceptaReglamento: false,
-      documentoSolicitante: "",
-      tipoDocumentoId: "",
-      nombreSolicitante: "",
-      telefonoSolicitante: "",
-      correoSolicitante: "",
     });
+    setEditIndex(null);
     setModalAbierto(true);
   };
+
   const cerrarModal = () => {
     setModalAbierto(false);
     setEditIndex(null);
   };
-  const toggleMenu = () => setMenuAbierto(!menuAbierto);
 
-  // Handler genérico para actualizar cualquier campo del estado `reserva`
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    if (name === "documentoSolicitante") {
+      const esPasaporte = String(reserva.tipoDocumentoId) === "3";
+      setReserva((prev) => ({
+        ...prev,
+        [name]: filtrarInputDocumento(value, esPasaporte),
+      }));
+      return;
+    }
+    if (name === "nombreSolicitante") {
+      setReserva((prev) => ({
+        ...prev,
+        [name]: filtrarInputNombre(value),
+      }));
+      return;
+    }
     setReserva((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === "checkbox" ? checked : value,
     }));
+  };
+
+  // ════════════════════════════════════════════════════════
+  // CRUD OPERATIONS
+  // ════════════════════════════════════════════════════════
+
+  const validarFechasReserva = (r) => {
+    const hoy = new Date();
+    const fechaRes = new Date(r.fechaReserva);
+    const hoyLimpio = new Date(
+      hoy.getFullYear(),
+      hoy.getMonth(),
+      hoy.getDate(),
+    );
+    const fechaLimpia = new Date(
+      fechaRes.getFullYear(),
+      fechaRes.getMonth(),
+      fechaRes.getDate(),
+    );
+    if (fechaLimpia < hoyLimpio) return "No puedes reservar en fechas pasadas";
+    const dosMeses = new Date();
+    dosMeses.setMonth(dosMeses.getMonth() + 2);
+    if (fechaRes > dosMeses)
+      return "No puedes reservar con más de 2 meses de anticipación";
+    if (r.horaInicio >= r.horaFin)
+      return "La hora de inicio debe ser menor que la hora de fin";
+    return null;
+  };
+
+  const validarSolicitanteReserva = (r) => {
+    const tipoDocObj = tiposDocumento.find(
+      (t) => String(t.tipoDocumentoId) === String(r.tipoDocumentoId),
+    );
+    const tipoDocNombre = tipoDocObj ? tipoDocObj.nombre : "";
+    const errDoc = validarDocumento(
+      r.documentoSolicitante,
+      r.tipoDocumentoId,
+      tipoDocNombre,
+    );
+    if (errDoc) return { titulo: "Documento inválido", msg: errDoc };
+    const errNom = validarNombreCompleto(r.nombreSolicitante);
+    if (errNom) return { titulo: "Nombre inválido", msg: errNom };
+    const errTel = validarTelefono(r.telefonoSolicitante);
+    if (errTel) return { titulo: "Teléfono inválido", msg: errTel };
+    const errEmail = validarEmail(r.correoSolicitante);
+    if (errEmail) return { titulo: "Correo inválido", msg: errEmail };
+    return null;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log("=== DEBUG: Iniciando envío de formulario ===");
-    console.log("Reserva (estado) actual:", reserva);
-
-    // Validaciones
     if (!reserva.aceptaReglamento) {
       Swal.fire("Error", "Debe aceptar el reglamento para continuar", "error");
       return;
     }
-
-    // Validación de fecha (no puede ser en el pasado)
-    const hoy = new Date();
-    const fechaReserva = new Date(reserva.fechaReserva);
-    const hoyFormateado = new Date(
-      hoy.getFullYear(),
-      hoy.getMonth(),
-      hoy.getDate()
-    );
-    const fechaReservaFormateada = new Date(
-      fechaReserva.getFullYear(),
-      fechaReserva.getMonth(),
-      fechaReserva.getDate()
-    );
-
-    if (fechaReservaFormateada < hoyFormateado) {
-      Swal.fire("Error", "No puedes reservar en fechas pasadas", "error");
+    const errFechas = validarFechasReserva(reserva);
+    if (errFechas) {
+      Swal.fire("Error", errFechas, "error");
       return;
     }
-
-    // Validación de fecha (no más de 2 meses)
-    const dosMesesDespues = new Date();
-    dosMesesDespues.setMonth(dosMesesDespues.getMonth() + 2);
-    if (fechaReserva > dosMesesDespues) {
-      Swal.fire(
-        "Error",
-        "No puedes reservar con más de 2 meses de anticipación",
-        "error"
-      );
-      return;
-    }
-
-    // Validación hora inicio < hora fin
-    if (reserva.horaInicio >= reserva.horaFin) {
-      Swal.fire(
-        "Error",
-        "La hora de inicio debe ser menor que la hora de fin",
-        "error"
-      );
+    const errSolicitante = validarSolicitanteReserva(reserva);
+    if (errSolicitante) {
+      Swal.fire(errSolicitante.titulo, errSolicitante.msg, "error");
       return;
     }
 
     try {
       setLoading(true);
-
-      // Crear objeto para enviar al backend usando el estado único `reserva`
       const reservaData = {
-        apartamentoId: parseInt(reserva.apartamentoId),
-        areaComunId: parseInt(reserva.areaComunId),
+        apartamentoId: Number.parseInt(reserva.apartamentoId),
+        areaComunId: Number.parseInt(reserva.areaComunId),
         fechaReserva: reserva.fechaReserva,
         horaInicio: reserva.horaInicio + ":00",
         horaFin: reserva.horaFin + ":00",
         motivoReserva: reserva.motivoReserva,
         cantidadAsistentes: reserva.cantidadAsistentes,
-        invitadosExternos: !!reserva.invitadosExternos, // Enviar como boolean
-        aceptaReglamento: !!reserva.aceptaReglamento, // Enviar como boolean
+        invitadosExternos: !!reserva.invitadosExternos,
+        aceptaReglamento: !!reserva.aceptaReglamento,
         documentoSolicitante: reserva.documentoSolicitante,
-        tipoDocumentoId: parseInt(reserva.tipoDocumentoId),
+        tipoDocumentoId: Number.parseInt(reserva.tipoDocumentoId),
         nombreSolicitante: reserva.nombreSolicitante,
         telefonoSolicitante: reserva.telefonoSolicitante,
         correoSolicitante: reserva.correoSolicitante,
       };
 
-      console.log("=== DEBUG: Datos a enviar al backend ===");
-      console.log(JSON.stringify(reservaData, null, 2));
-      console.log("Token:", token.substring(0, 50) + "...");
-
       const isEditing = editIndex !== null;
-      console.log(`=== DEBUG: ${isEditing ? "EDITANDO" : "CREANDO"} RESERVA ===`);
-      let response;
-      if (isEditing) {
-        response = await actualizarReserva_v2(editIndex, reservaData, token);
-      } else {
-        response = await crearReserva_v2(reservaData, token);
-      }
-
-      console.log("=== DEBUG: Respuesta del servidor ===");
-      console.log("Status:", response.status);
-      console.log("OK:", response.ok);
+      const response = isEditing
+        ? await actualizarReserva(editIndex, reservaData, token)
+        : await crearReserva(reservaData, token);
 
       if (response.ok) {
-        const responseData = await response.json();
-        console.log("Respuesta exitosa:", responseData);
-          const mensaje = editIndex !== null ? "Actualizado correctamente" : "Registrado correctamente";
-          Swal.fire({ icon: 'success', title: mensaje, timer: 3500, showConfirmButton: false });
-
-        setReserva({
-          torre: "",
-          apartamentoId: "",
-          areaComunId: "",
-          fechaReserva: "",
-          horaInicio: "",
-          horaFin: "",
-          motivoReserva: "",
-          cantidadAsistentes: "",
-          invitadosExternos: false,
-          aceptaReglamento: false,
-          documentoSolicitante: "",
-          tipoDocumentoId: "",
-          nombreSolicitante: "",
-          telefonoSolicitante: "",
-          correoSolicitante: "",
-        });
-
-        cerrarModal();
-        obtenerReservas();
-        // Generar y descargar ticket PDF automáticamente solo cuando se creó (no en edición)
-        if (!isEditing) {
-          try {
-            // Usar el objeto local `reservaData` (valores del formulario) para generar el PDF
-            await generarTicketPDF(reservaData);
-          } catch (err) {
-            console.warn('No fue posible generar el PDF automáticamente:', err);
-          }
-        }
-      } else {
-        // Manejo explícito para conflicto (409) u otros errores
-        if (response.status === 409) {
-          try {
-            const errorData = await response.json();
-            const mensaje409 =
-              errorData?.message || errorData?.mensaje || errorData?.error || errorData?.body?.message || JSON.stringify(errorData);
-            Swal.fire({ icon: 'error', title: 'Lo siento', text: mensaje409 || 'El área ya está reservada en la fecha y horario indicados.', confirmButtonText: 'Entendido' });
-          } catch (e) {
-            const texto = await response.text().catch(() => null);
-            Swal.fire({ icon: 'error', title: 'Lo siento', text: texto || 'El área ya está reservada en la fecha y horario indicados.', confirmButtonText: 'Entendido' });
-          }
-          return;
-        }
-
-        let mensajeError = `Error ${response.status}`;
-        try {
-          const errorData = await response.json();
-          console.error("Error del servidor:", errorData);
-
-          mensajeError =
-            errorData?.message ||
-            errorData?.mensaje ||
-            errorData?.error ||
-            errorData?.body?.message ||
-            mensajeError;
-        } catch (parseError) {
-          console.error("No se pudo parsear el body de error:", parseError);
-          try {
-            const texto = await response.text();
-            if (texto) mensajeError = texto;
-          } catch (e) {
-            /* ignorar */
-          }
-        }
-
         Swal.fire({
-          icon: 'error',
-          title: 'Lo siento',
-          text: mensajeError || 'Error en la operación. Comuníquese con el área de sistemas.',
-          confirmButtonText: 'Entendido',
+          icon: "success",
+          title: isEditing
+            ? "Actualizado correctamente"
+            : "Registrado correctamente",
+          timer: 3500,
+          showConfirmButton: false,
         });
+        cerrarModal();
+        await obtenerReservas();
+      } else if (response.status === 409) {
+        let msg = "El área ya está reservada en la fecha y horario indicados.";
+        try {
+          const errData = await response.json();
+          msg = errData?.message || errData?.mensaje || errData?.error || msg;
+        } catch (error) {
+          console.warn("Error parseando respuesta de error:", error);
+        }
+        Swal.fire({ icon: "error", title: "Conflicto", text: msg });
+      } else {
+        let msg = `Error ${response.status}`;
+        try {
+          const errData = await response.json();
+          msg = errData?.message || errData?.mensaje || errData?.error || msg;
+        } catch (error) {
+          console.warn("Error parseando respuesta de error:", error);
+        }
+        Swal.fire({ icon: "error", title: "Error", text: msg });
       }
-    } catch (error) {
-      console.error("Error de conexión:", error);
-      Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
+    } catch {
+      Swal.fire("Error", "Error de conexión con el servidor.", "error");
     } finally {
       setLoading(false);
     }
   };
 
   const finalizarRegistro = async (idReserva) => {
-    Swal.fire({
+    const result = await Swal.fire({
       title: "¿Deseas finalizar esta reserva?",
       text: "No podrás revertir esta acción",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
+      confirmButtonColor: "#e65100",
+      cancelButtonColor: "#757575",
       confirmButtonText: "Sí, finalizar",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          setLoading(true);
-          // Finalizar la reserva usando DELETE
-          const response = await eliminarReserva_v2(idReserva, token);
-
-          if (response.ok) {
-            const responseData = await response.text();
-            console.log("=== DEBUG: DELETE EXITOSO ===");
-            console.log("Respuesta del DELETE:", responseData);
-            console.log("Reserva finalizada ID:", idReserva);
-
-            Swal.fire({ icon: 'success', title: 'Finalizado correctamente', timer: 3500, showConfirmButton: false });
-
-            console.log(
-              "=== DEBUG: Recargando reservas después del DELETE ==="
-            );
-            obtenerReservas(); 
-          } else {
-            const errorData = await response.text();
-            console.error("Error al finalizar reserva:", errorData);
-            Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
-          }
-        } catch (error) {
-          console.error("Error al finalizar reserva:", error);
-          Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
-        } finally {
-          setLoading(false);
-        }
-      }
-    });
-  };
-
-  const editarReserva = (reserva) => {
-  
-    setReserva({
-      torre: reserva.nombreTorre
-        ? reserva.nombreTorre.charAt(reserva.nombreTorre.length - 1)
-        : "",
-      apartamentoId: reserva.apartamentoId,
-      areaComunId: reserva.areaComunId,
-      fechaReserva: reserva.fechaReserva,
-      horaInicio: reserva.horaInicio?.substring(0, 5) || "", 
-      horaFin: reserva.horaFin?.substring(0, 5) || "", 
-      motivoReserva: reserva.motivoReserva,
-      cantidadAsistentes: reserva.cantidadAsistentes,
-      invitadosExternos:
-        reserva.invitadosExternos === 1 || reserva.invitadosExternos === true,
-      aceptaReglamento:
-        reserva.aceptaReglamento === 1 || reserva.aceptaReglamento === true,
-      documentoSolicitante: reserva.documentoSolicitante,
-      tipoDocumentoId: reserva.tipoDocumentoId,
-      nombreSolicitante: reserva.nombreSolicitante,
-      telefonoSolicitante: reserva.telefonoSolicitante,
-      correoSolicitante: reserva.correoSolicitante,
-    });
-    setEditIndex(reserva.idReservas); 
-    setModalAbierto(true);
-  };
-
-  const eliminarReserva = async (idReserva) => {
-    Swal.fire({
-      title: "¿Estás seguro?",
-      text: "Esta acción eliminará permanentemente la reserva",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "Sí, eliminar",
       cancelButtonText: "Cancelar",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          setLoading(true);
-          const response = await eliminarReserva_v2(idReserva, token);
-
-          if (response.ok) {
-            Swal.fire({ icon: 'success', title: 'Eliminado correctamente', timer: 3500, showConfirmButton: false });
-            obtenerReservas(); 
-          } else {
-            const errorData = await response.text();
-            console.error("Error al eliminar reserva:", errorData);
-            Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
-          }
-        } catch (error) {
-          console.error("Error al eliminar reserva:", error);
-          Swal.fire({ icon: 'error', title: 'Lo siento', text: 'Error de conexión. Comuníquese con el área de sistemas.', confirmButtonText: 'Entendido' });
-        } finally {
-          setLoading(false);
-        }
-      }
     });
+    if (!result.isConfirmed) return;
+
+    try {
+      setLoading(true);
+      const response = await eliminarReservaService(idReserva, token);
+      if (response.ok) {
+        Swal.fire({
+          icon: "success",
+          title: "Finalizado correctamente",
+          timer: 3500,
+          showConfirmButton: false,
+        });
+        await obtenerReservas();
+      } else {
+        Swal.fire("Error", "No se pudo finalizar la reserva.", "error");
+      }
+    } catch {
+      Swal.fire("Error", "Error de conexión con el servidor.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const editarReserva = (r) => {
+    // Buscar el torresId numérico desde la lista de apartamentos cargados
+    // El select de Torre usa torresId (número) como value, no la letra del nombre
+    const aptoEncontrado = apartamentos.find(
+      (a) => String(a.idApartamento) === String(r.apartamentoId),
+    );
+    const torresId = aptoEncontrado?.torresId ?? "";
+
+    setReserva({
+      torre: torresId,
+      apartamentoId: r.apartamentoId,
+      areaComunId: r.areaComunId,
+      fechaReserva: r.fechaReserva,
+      horaInicio: r.horaInicio?.substring(0, 5) || "",
+      horaFin: r.horaFin?.substring(0, 5) || "",
+      motivoReserva: r.motivoReserva,
+      cantidadAsistentes: r.cantidadAsistentes,
+      invitadosExternos:
+        r.invitadosExternos === 1 || r.invitadosExternos === true,
+      aceptaReglamento: true,
+      documentoSolicitante: r.documentoSolicitante,
+      tipoDocumentoId: r.tipoDocumentoId || "",
+      nombreSolicitante: r.nombreSolicitante,
+      telefonoSolicitante: r.telefonoSolicitante,
+      correoSolicitante: r.correoSolicitante,
+    });
+    setEditIndex(r.idReservas);
+    setModalAbierto(true);
   };
 
   const verDetalles = (registro) => {
@@ -825,876 +644,1392 @@ switch (rolesId) {
     setShowModalDetalles(true);
   };
 
- 
+  // ════════════════════════════════════════════════════════
+  // GESTIÓN DE ÁREAS COMUNES (SuperAdmin)
+  // ════════════════════════════════════════════════════════
+
+  const toggleEstadoArea = async (area) => {
+    const estaDisponible = area.estadoId === 4;
+    const nuevoEstado = estaDisponible ? 18 : 4; // 4=disponible, 18=No disponible
+    const accion = estaDisponible ? "inhabilitar" : "habilitar";
+
+    const result = await Swal.fire({
+      title: `¿${estaDisponible ? "Inhabilitar" : "Habilitar"} ${area.nombreArea}?`,
+      text: estaDisponible
+        ? "El área no estará disponible para nuevas reservas."
+        : "El área volverá a estar disponible para reservas.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: estaDisponible ? "#d32f2f" : "#2e7d32",
+      cancelButtonColor: "#757575",
+      confirmButtonText: estaDisponible ? "Sí, inhabilitar" : "Sí, habilitar",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const resp = await actualizarAreaComun(
+        area.idAreaComun,
+        { estadoId: nuevoEstado },
+        token,
+      );
+      if (resp.ok) {
+        Swal.fire({
+          icon: "success",
+          title: `Área ${accion === "inhabilitar" ? "inhabilitada" : "habilitada"}`,
+          timer: 2500,
+          showConfirmButton: false,
+        });
+        // Actualizar estado local
+        setAreasComunes((prev) =>
+          prev.map((a) =>
+            a.idAreaComun === area.idAreaComun
+              ? {
+                  ...a,
+                  estadoId: nuevoEstado,
+                  nombreEstado:
+                    nuevoEstado === 4 ? "disponible" : "No disponible",
+                }
+              : a,
+          ),
+        );
+      } else {
+        const errData = await resp.json().catch(() => ({}));
+        Swal.fire(
+          "Error",
+          errData?.message || `No se pudo ${accion} el área.`,
+          "error",
+        );
+      }
+    } catch {
+      Swal.fire("Error", "Error de conexión con el servidor.", "error");
+    }
+  };
+
+  // ════════════════════════════════════════════════════════
+  // CALENDARIO
+  // ════════════════════════════════════════════════════════
+
+  const abrirCalendario = () => {
+    const ahora = new Date();
+    setCalMonth(ahora.getMonth());
+    setCalYear(ahora.getFullYear());
+    setSelectedDay(null);
+    cargarCalendario();
+    setShowCalendario(true);
+  };
+
+  const mesAnterior = () => {
+    if (calMonth === 0) {
+      setCalMonth(11);
+      setCalYear(calYear - 1);
+    } else {
+      setCalMonth(calMonth - 1);
+    }
+    setSelectedDay(null);
+  };
+
+  const mesSiguiente = () => {
+    if (calMonth === 11) {
+      setCalMonth(0);
+      setCalYear(calYear + 1);
+    } else {
+      setCalMonth(calMonth + 1);
+    }
+    setSelectedDay(null);
+  };
+
+  const MESES = [
+    "Enero",
+    "Febrero",
+    "Marzo",
+    "Abril",
+    "Mayo",
+    "Junio",
+    "Julio",
+    "Agosto",
+    "Septiembre",
+    "Octubre",
+    "Noviembre",
+    "Diciembre",
+  ];
+  const DIAS_SEMANA = ["L", "M", "X", "J", "V", "S", "D"];
+
+  const buildCalendarGrid = () => {
+    const primerDia = new Date(calYear, calMonth, 1);
+    const diasEnMes = new Date(calYear, calMonth + 1, 0).getDate();
+    // getDay: 0=domingo, queremos lunes=0
+    let startDay = primerDia.getDay() - 1;
+    if (startDay < 0) startDay = 6;
+
+    const cells = [];
+    // Celdas vacías antes del día 1
+    for (let i = 0; i < startDay; i++)
+      cells.push({ day: null, id: `empty-${i}` });
+    // Días del mes
+    for (let d = 1; d <= diasEnMes; d++) cells.push({ day: d, id: `day-${d}` });
+    return cells;
+  };
+
+  /** Reservas del calendario que caen en un día concreto del mes actual
+   *  Usa las reservas ya cargadas (no solo las del mes actual del backend) */
+  const reservasDelDia = (day) => {
+    if (!day) return [];
+    const fechaStr = `${calYear}-${String(calMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    // Combinar datos del backend calendario + reservas locales
+    const fromLocal = reservas.filter((r) => r.fechaReserva === fechaStr);
+    const fromCal = calendarData.filter(
+      (r) => (r.fechaReserva || "") === fechaStr,
+    );
+    // Si hay reservas locales, usarlas (tienen más datos). Si no, usar las del endpoint.
+    return fromLocal.length > 0 ? fromLocal : fromCal;
+  };
+
+  /** ¿Es hoy? */
+  const esHoy = (day) => {
+    const hoy = new Date();
+    return (
+      day === hoy.getDate() &&
+      calMonth === hoy.getMonth() &&
+      calYear === hoy.getFullYear()
+    );
+  };
+
+  /** ¿Es pasado? */
+  const esPasado = (day) => {
+    if (!day) return false;
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const fecha = new Date(calYear, calMonth, day);
+    return fecha < hoy;
+  };
+
+  // ════════════════════════════════════════════════════════
+  // FILTROS + PAGINACIÓN
+  // ════════════════════════════════════════════════════════
+
   const reservasFiltradas = reservas
     .filter((r) => {
-      
+      const texto = busqueda.toLowerCase();
       const cumpleBusqueda =
-        r.nombreArea?.toLowerCase().includes(busqueda.toLowerCase()) ||
-        r.nombreSolicitante?.toLowerCase().includes(busqueda.toLowerCase()) ||
+        !texto ||
+        r.nombreArea?.toLowerCase().includes(texto) ||
+        r.nombreSolicitante?.toLowerCase().includes(texto) ||
         r.documentoSolicitante?.includes(busqueda);
 
-      
+      const estado = r.nombreEstado?.toLowerCase() || "";
       const cumpleEstado =
-        filtroEstado === "" ||
-        (filtroEstado === "registrada" && r.nombreEstado !== "finalizada") ||
-        (filtroEstado === "finalizada" && r.nombreEstado === "finalizada");
+        filtroEstado === "todas" ||
+        (filtroEstado === "activas" && estado !== "finalizada") ||
+        (filtroEstado === "finalizadas" && estado === "finalizada");
 
       return cumpleBusqueda && cumpleEstado;
     })
     .sort((a, b) => {
-      
-      if (a.nombreEstado === "finalizada" && b.nombreEstado !== "finalizada")
-        return 1;
-      if (a.nombreEstado !== "finalizada" && b.nombreEstado === "finalizada")
-        return -1;
-      // Si tienen el mismo estado, mantener orden original (por ID desc)
+      const aFin = a.nombreEstado?.toLowerCase() === "finalizada";
+      const bFin = b.nombreEstado?.toLowerCase() === "finalizada";
+      if (aFin && !bFin) return 1;
+      if (!aFin && bFin) return -1;
       return b.idReservas - a.idReservas;
     });
 
-  // Paginación
-  const indiceUltimo = paginaActual * reservasPorPagina;
-  const indicePrimero = indiceUltimo - reservasPorPagina;
+  const totalPaginas = Math.ceil(reservasFiltradas.length / reservasPorPagina);
+  const indicePrimero = (paginaActual - 1) * reservasPorPagina;
   const reservasPaginadas = reservasFiltradas.slice(
     indicePrimero,
-    indiceUltimo
+    indicePrimero + reservasPorPagina,
   );
-  const totalPaginas = Math.ceil(reservasFiltradas.length / reservasPorPagina);
+
+  // Estadísticas
+  const totalReservas = reservas.length;
+  const totalActivas = reservas.filter(
+    (r) => r.nombreEstado?.toLowerCase() !== "finalizada",
+  ).length;
+  const totalFinalizadas = reservas.filter(
+    (r) => r.nombreEstado?.toLowerCase() === "finalizada",
+  ).length;
+
+  // ════════════════════════════════════════════════════════
+  // GENERAR TICKET PDF
+  // ════════════════════════════════════════════════════════
+
+  const normalizeTime = (t) => {
+    if (!t) return "";
+    const parts = t.split(":");
+    const hh = Number.parseInt(parts[0], 10);
+    const mm = parts[1] || "00";
+    if (Number.isNaN(hh)) return t;
+    const ampm = hh >= 12 ? "PM" : "AM";
+    const h12 = hh % 12 === 0 ? 12 : hh % 12;
+    return `${h12}:${String(mm).padStart(2, "0")} ${ampm}`;
+  };
+
+  /** Abre una ventana con formato de ticket térmico (80mm) y lanza impresión */
+  const imprimirRecibo = (res) => {
+    if (!res) return;
+    const hi = normalizeTime((res.horaInicio || "").replace(/:00$/, ""));
+    const hf = normalizeTime((res.horaFin || "").replace(/:00$/, ""));
+    const ahora = new Date();
+    const fechaImpresion =
+      [
+        String(ahora.getDate()).padStart(2, "0"),
+        String(ahora.getMonth() + 1).padStart(2, "0"),
+        ahora.getFullYear(),
+      ].join("/") +
+      " " +
+      [
+        String(ahora.getHours()).padStart(2, "0"),
+        String(ahora.getMinutes()).padStart(2, "0"),
+      ].join(":");
+
+    const html = buildTicketHtml({
+      id: res.idReservas || "",
+      nombre: res.nombreSolicitante || "",
+      doc: res.documentoSolicitante || "",
+      tel: res.telefonoSolicitante || "",
+      area: res.nombreArea || "",
+      apto: res.numeroApartamento || "",
+      torre: res.nombreTorre || "",
+      fecha: res.fechaReserva || "",
+      hi,
+      hf,
+      asistentes: res.cantidadAsistentes || "",
+      motivo: res.motivoReserva || "",
+      estado: res.nombreEstado || "Activa",
+      fechaImpresion,
+    });
+
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const ventana = window.open(url, "_blank", "width=320,height=600");
+    if (!ventana) {
+      URL.revokeObjectURL(url);
+      Swal.fire(
+        "Error",
+        "El navegador bloqueó la ventana emergente. Permite las ventanas emergentes e intenta de nuevo.",
+        "warning",
+      );
+      return;
+    }
+    ventana.onload = () => {
+      URL.revokeObjectURL(url);
+      setTimeout(() => {
+        ventana.print();
+      }, 300);
+    };
+  };
+
+  // ════════════════════════════════════════════════════════
+  // HELPERS DE RENDER
+  // ════════════════════════════════════════════════════════
+
+  const badgeEstado = (estado) => {
+    const e = (estado || "").toLowerCase();
+    if (e === "finalizada")
+      return <span className="ac-badge ac-badge-finalizada">Finalizada</span>;
+    return <span className="ac-badge ac-badge-activa">Activa</span>;
+  };
+
+  const formatHora = (h) => {
+    if (!h) return "";
+    return h.substring(0, 5);
+  };
+
+  // ════════════════════════════════════════════════════════
+  // RENDER
+  // ════════════════════════════════════════════════════════
+
+  if (loading && reservas.length === 0) {
+    return (
+      <div className="ac-loading-screen">
+        <output className="spinner-border text-warning" />
+        <p className="mt-3 text-muted">Cargando reservas...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="container-fluid p-0">
-      {/* Sidebar */}
-      <aside
-        id="menuTrabajador"
-        className={`worker-menu bg-success text-white ${
-          menuAbierto ? "active" : ""
-        }`}
-      >
-        <div className="p-3 d-flex flex-column h-100">
-          <div className="d-flex align-items-center gap-3 mb-4">
-            <div
-              className="user-circle bg-white d-flex align-items-center justify-content-center"
-              style={{ width: "50px", height: "50px", borderRadius: "50%" }}
-            >
-              <span className="fw-bold text-success">
-                {nombreUsuario?.substring(0, 2).toUpperCase() || "US"}
-              </span>
-            </div>
-            <div className="d-flex flex-column">
-              <span className="fw-semibold text-white">
-                {nombreUsuario || "Usuario"}
-              </span>
-              <span className="fw-semibold text-white"> {rolUsuario || "Usuario"}</span>
-              <span className="small text-white-50">Sesión activa</span>
-            </div>
+    <div className="ac-dashboard">
+      {/* ── Overlay ── */}
+      <button
+        type="button"
+        className={`ac-overlay ${menuOpen ? "active" : ""}`}
+        onClick={() => setMenuOpen(false)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setMenuOpen(false);
+        }}
+        tabIndex={0}
+        aria-label="Cerrar menú"
+      />
+
+      {/* ══════════ DRAWER ══════════ */}
+      <aside className={`ac-drawer ${menuOpen ? "open" : ""}`}>
+        <div className="ac-drawer-header">
+          <div className="ac-drawer-avatar">
+            <i className="bi bi-calendar2-event" />
           </div>
-
-          <h5 className="mb-3 mx-4">Menú {rolUsuario || "Usuario"} </h5>
-
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión de Paquetes</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link
-                  className="nav-link text-white"
-                  to="/Paqueteria"
-                  state={{ abrirModal: true }}
-                >
-                  Registrar Paquete
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/Paqueteria">
-                  Historial de Paquetes
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión de Visitas</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link
-                  className="nav-link text-white"
-                  to="/visitas"
-                  state={{ abrirModal: true }}
-                >
-                  Crear Visita
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/visitas">
-                  Consultar Visitas
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/parqueaderos">
-                  Consultar Parqueaderos
-                </Link>
-              </li>
-             
-            </ul>
-          </div>
-
-          {showAreasComunes && (
-            <div className="mb-4">
-              <h6 className="text-uppercase fw-bold">Gestión de Áreas Comunes</h6>
-              <ul className="nav flex-column mt-2 gap-2">
-                <li>
-                  <Link className="nav-link text-white" onClick={abrirModal}>
-                    Registrar Reserva
-                  </Link>
-                </li>
-                <li>
-                   {(verificadorRol === 1 || verificadorRol==="1" || verificadorRol ===2)&& (
-                  <Link className="nav-link text-white" to="/CalendarioReservas">
-                    Ver Calendario
-                  </Link>
-                    )}
-                </li>
-              </ul>
-            </div>
-          )}
-
-          {showUserManagement && (
-            <div className="mb-4">
-              
-              <h6 className="text-uppercase fw-bold">Gestión de Usuarios</h6>
-              <ul className="nav flex-column mt-2 gap-2">
-                {(verificadorRol === 1 || verificadorRol==="1")&& (
-                <li className="nav-link text-white" onClick={gestionUsuarios}>
-                  Registrar Usuario
-                </li>
-                )}
-                {(verificadorRol === 1 ||verificadorRol==="1") && (
-                <li>
-                  <Link className="nav-link text-white" to="/GestionUsuario">
-                    Consultar Usuarios
-                  </Link>
-                </li>
-                )}
-              </ul>
-            </div>
-          )}
-
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión Residentes</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link
-                  className="nav-link text-white"
-                  to="/Residentes"
-                  state={{ abrirModal: true }}
-                >
-                  Crear Residente
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/Residentes">
-                  Consultar Residente
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div className="mt-auto text-center">
-            <button className="btn btn-light w-100" onClick={cerrarSesión}>
-              Cerrar sesión
-            </button>
-          </div>
+          <h4 className="ac-drawer-title">{nombreUsuario}</h4>
+          <span className="ac-drawer-user">{rolUsuario}</span>
         </div>
-      </aside>
 
-      <div className={`main-content ${menuAbierto ? "shift" : ""}`}>
-        {/* Header */}
-        <div className="d-flex align-items-center justify-content-between px-3 py-2 header-bar">
-          <div className="logo-container text-center flex-grow-1">
-            <Link to="/">
-              <img src={logo} alt="Logo" className="logo-img" />
+        <div className="ac-drawer-body">
+          {/* Navegación */}
+          <div className="ac-menu-section">
+            <h6 className="ac-menu-section-title">Navegación</h6>
+            <Link
+              className="ac-menu-item"
+              to={dashboardPath}
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-speedometer2" />
+              <span>Dashboard</span>
+              <i className="bi bi-chevron-right ac-menu-arrow" />
+            </Link>
+            <Link
+              className="ac-menu-item active"
+              to="/AreasComunes"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-calendar2-event" />
+              <span>Áreas Comunes</span>
+              <i className="bi bi-chevron-right ac-menu-arrow" />
             </Link>
           </div>
-          <div className="position-relative">
-            <div
-              className="btn btn-outline-success d-flex align-items-center gap-2"
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              style={{ cursor: "pointer" }}
+
+          {/* Módulos */}
+          <div className="ac-menu-section">
+            <h6 className="ac-menu-section-title">Módulos</h6>
+            <Link
+              className="ac-menu-item"
+              to="/Paqueteria"
+              onClick={() => setMenuOpen(false)}
             >
-              {nombreUsuario}
-            </div>
-            {showUserMenu && (
-              <div
-                className="user-menu text-center bg-white shadow p-3 rounded"
-                style={{
-                  position: "absolute",
-                  right: 0,
-                  top: "calc(100% + 20px)",
-                  zIndex: 1000,
-                  minWidth: "200px",
-                }}
-              >
-                <p>
-                  Usuario: <strong>{nombreUsuario}</strong>
-                </p>
-                
-                <hr />
-                <button className="btn btn-danger w-100" onClick={cerrarSesión}>
-                  Cerrar sesión
-                </button>
-              </div>
+              <i className="bi bi-box-seam" />
+              <span>Paquetería</span>
+              <i className="bi bi-chevron-right ac-menu-arrow" />
+            </Link>
+            <Link
+              className="ac-menu-item"
+              to="/visitas"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-person-badge" />
+              <span>Visitas</span>
+              <i className="bi bi-chevron-right ac-menu-arrow" />
+            </Link>
+            <Link
+              className="ac-menu-item"
+              to="/parqueaderos"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-car-front" />
+              <span>Parqueaderos</span>
+              <i className="bi bi-chevron-right ac-menu-arrow" />
+            </Link>
+            {(rolesId === 1 || rolesId === 2) && (
+              <>
+                <Link
+                  className="ac-menu-item"
+                  to="/Residentes"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-people" />
+                  <span>Residentes</span>
+                  <i className="bi bi-chevron-right ac-menu-arrow" />
+                </Link>
+                <Link
+                  className="ac-menu-item"
+                  to="/Reportes"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-graph-up-arrow" />
+                  <span>Reportes</span>
+                  <i className="bi bi-chevron-right ac-menu-arrow" />
+                </Link>
+              </>
+            )}
+            {rolesId === 1 && (
+              <>
+                <Link
+                  className="ac-menu-item"
+                  to="/GestionUsuario"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-person-gear" />
+                  <span>Gestión Usuarios</span>
+                  <i className="bi bi-chevron-right ac-menu-arrow" />
+                </Link>
+                <Link
+                  className="ac-menu-item"
+                  to="/Auditorias"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-shield-check" />
+                  <span>Auditorías</span>
+                  <i className="bi bi-chevron-right ac-menu-arrow" />
+                </Link>
+                <Link
+                  className="ac-menu-item"
+                  to="/LogErrores"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-bug" />
+                  <span>Log de Errores</span>
+                  <i className="bi bi-chevron-right ac-menu-arrow" />
+                </Link>
+              </>
             )}
           </div>
         </div>
 
-        <div className="text-center mt-3 my-4">
-          <h2 className="fw-bold">Gestión de Áreas Comunes</h2>
-          {/* Indicadores de estado */}
-          {reservas.length > 0 && (
-            <div className="mt-2">
-              <small className="text-muted">
-                Total: {reservas.length} |
-                <span className="text-info ms-1">
-                  Registradas:{" "}
-                  {
-                    reservas.filter((r) => r.nombreEstado !== "finalizada")
-                      .length
-                  }
-                </span>{" "}
-                |
-                <span className="text-success ms-1">
-                  Finalizadas:{" "}
-                  {
-                    reservas.filter((r) => r.nombreEstado === "finalizada")
-                      .length
-                  }
-                </span>
-                {filtroEstado && (
-                  <span className="text-primary ms-2">
-                    | Mostrando:{" "}
-                    {filtroEstado === "registrada"
-                      ? "Solo Registradas"
-                      : "Solo Finalizadas"}
-                  </span>
-                )}
-              </small>
-            </div>
-          )}
-        </div>
-
-        {/* Buscador + Filtros + Registrar */}
-        <div className="container d-flex justify-content-between align-items-center mb-3">
-          <button
-            className="btn btn-success"
-            onClick={abrirModal}
-            disabled={loading}
-          >
-            {loading ? "Cargando..." : "Registrar Nueva Reserva"}
+        <div className="ac-drawer-footer">
+          <button className="ac-logout-btn" onClick={cerrarSesion}>
+            <i className="bi bi-box-arrow-right" /> Cerrar Sesión
           </button>
+        </div>
+      </aside>
 
-          <div className="d-flex gap-2 align-items-center">
-            {/* Filtro por estado */}
-            <select
-              className="form-select"
-              style={{ width: "180px" }}
-              value={filtroEstado}
-              onChange={(e) => {
-                setFiltroEstado(e.target.value);
-                setPaginaActual(1);
-              }}
+      {/* ══════════ MAIN ══════════ */}
+      <div className="ac-main">
+        {/* ── Header ── */}
+        <header className="ac-header">
+          <button
+            className="ac-header-btn"
+            onClick={() => navegacion(-1)}
+            title="Volver"
+          >
+            <i className="bi bi-arrow-left" />
+          </button>
+          <div className="ac-header-center">
+            <h1 className="ac-header-title">Gestión de Áreas Comunes</h1>
+          </div>
+          <div className="ac-header-actions">
+            <button
+              className="ac-header-btn"
+              onClick={() => setMenuOpen(true)}
+              title="Abrir menú"
             >
-              <option value="">Todos los estados</option>
-              <option value="registrada">Solo Registradas</option>
-              <option value="finalizada">Solo Finalizadas</option>
-            </select>
-
-            {/* Buscador */}
-            <input
-              type="text"
-              placeholder="Buscar por área, solicitante o documento"
-              className="form-control"
-              style={{ width: "350px" }}
-              value={busqueda}
-              onChange={(e) => {
-                setBusqueda(e.target.value);
-                setPaginaActual(1);
-              }}
-            />
+              <i className="bi bi-list" />
+            </button>
           </div>
-        </div>
+        </header>
 
-        {/* Tabla */}
-       <div style={{ maxWidth: "90%", margin: "0 auto" }}>
-  {loading ? (
-    <div className="text-center p-4">Cargando reservas...</div>
-  ) : reservasPaginadas.length === 0 ? (
-    <div className="text-center p-4">No hay reservas para mostrar</div>
-  ) : (
-    reservasPaginadas.map((r, index) => (
-      <div
-        key={r.idReservas || index}
-        className="shadow-sm mb-3 p-3 d-flex align-items-center justify-content-between"
-        style={{
-          background: "#ffffff",
-          borderRadius: "18px",
-          borderLeft: "6px solid #4CAF50",
-        }}
-      >
-        {/* Icono */}
-        <div className="d-flex align-items-center gap-3">
-          <div
-            style={{
-              width: 60,
-              height: 60,
-              borderRadius: "14px",
-              background: "#e6f5ef",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <i className="bi bi-people-fill"></i>
-
-          </div>
-
-          {/* Información */}
-          <div>
-            <h5 className="fw-bold mb-1" style={{ fontSize: "1rem" }}>
-              {r.nombreArea}
-            </h5>
-            <p className="mb-0" style={{ fontSize: "0.85rem" }}>
-              <strong>Solicitante:</strong> {r.nombreSolicitante}
-            </p>
-            <p className="mb-0" style={{ fontSize: "0.85rem" }}>
-              <strong>Documento:</strong> {r.documentoSolicitante}
-            </p>
-          </div>
-        </div>
-
-        {/* Fecha y horas */}
-        <div className="text-center" style={{ minWidth: "150px" }}>
-          <p className="mb-1" style={{ fontSize: "0.85rem" }}>
-            <strong>Fecha:</strong> {r.fechaReserva}
-          </p>
-          <p className="mb-0" style={{ fontSize: "0.85rem" }}>
-            {r.horaInicio?.substring(0, 5)} — {r.horaFin?.substring(0, 5)}
-          </p>
-        </div>
-
-        {/* Asistentes */}
-        <div className="text-center" style={{ minWidth: "80px" }}>
-          <span
-            className="badge bg-secondary"
-            style={{ fontSize: "0.8rem", padding: "6px 10px" }}
-          >
-            {r.cantidadAsistentes} Asist.
-          </span>
-        </div>
-
-        {/* Estado */}
-        <div style={{ minWidth: "110px" }}>
-          {r.nombreEstado === "finalizada" ? (
-            <span className="badge bg-success" style={{ fontSize: "0.8rem" }}>
-              Finalizada
-            </span>
-          ) : r.nombreEstado === "en curso" ? (
-            <span className="badge bg-warning text-dark" style={{ fontSize: "0.8rem" }}>
-              En Curso
-            </span>
-          ) : (
-            <span className="badge bg-info text-white" style={{ fontSize: "0.8rem" }}>
-              Registrada
-            </span>
-          )}
-        </div>
-
-        {/* Acciones */}
-        <div className="d-flex flex-column gap-1" style={{ minWidth: "110px" }}>
-          {r.nombreEstado !== "finalizada" && (
-            <>
-              <button
-                className="btn btn-sm btn-outline-primary"
-                onClick={() => editarReserva(r)}
-                disabled={loading}
-              >
-                Editar
-              </button>
-
-              <button
-                className="btn btn-sm btn-outline-success"
-                onClick={() => finalizarRegistro(r.idReservas)}
-                disabled={loading}
-              >
-                Finalizar
-              </button>
-            </>
-          )}
-
-          <button
-            className="btn btn-sm btn-outline-info"
-            onClick={() => verDetalles(r)}
-          >
-            Detalles
-          </button>
-        </div>
-      </div>
-    ))
-  )}
-
-  {/* Paginación */}
-  <nav className="d-flex justify-content-center mt-3">
-    <ul className="pagination">
-      <li className={`page-item ${paginaActual === 1 ? "disabled" : ""}`}>
-        <button
-          className="page-link"
-          onClick={() => paginaActual > 1 && setPaginaActual(paginaActual - 1)}
-        >
-          Anterior
-        </button>
-      </li>
-
-      {[...Array(totalPaginas).keys()].map((num) => (
-        <li
-          key={num + 1}
-          className={`page-item ${paginaActual === num + 1 ? "active" : ""}`}
-        >
-          <button className="page-link" onClick={() => setPaginaActual(num + 1)}>
-            {num + 1}
-          </button>
-        </li>
-      ))}
-
-      <li
-        className={`page-item ${
-          paginaActual === totalPaginas || totalPaginas === 0 ? "disabled" : ""
-        }`}
-      >
-        <button
-          className="page-link"
-          onClick={() =>
-            paginaActual < totalPaginas && setPaginaActual(paginaActual + 1)
-          }
-        >
-          Siguiente
-        </button>
-      </li>
-    </ul>
-  </nav>
-</div>
-
-
-        {/* Modal Registrar/Editar */}
-        {modalAbierto && (
-          <div
-            className="modal fade show"
-            tabIndex="-1"
-            role="dialog"
-            aria-modal="true"
-            style={{
-              display: "block",
-              backgroundColor: "rgba(0,0,0,0.5)",
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100vw",
-              height: "100vh",
-              zIndex: 1050,
-            }}
-          >
-            <div className="modal-dialog">
-              <div className="modal-content">
-                <div className="modal-header bg-success text-white">
-                  <h5 className="modal-title">
-                    {editIndex !== null
-                      ? "Editar Reserva"
-                      : "Registrar Reserva"}
-                  </h5>
-                  <button
-                    type="button"
-                    className="btn-close btn-close-white"
-                    aria-label="Cerrar"
-                    onClick={cerrarModal}
-                  ></button>
-                </div>
-                <div className="modal-body">
-                  <form onSubmit={handleSubmit}>
-                    <div className="row mb-3">
-                      <div className="col-md-4">
-                        <label className="form-label">Torre *</label>
-                        <select
-                          name="torre"
-                          className="form-select"
-                          value={reserva.torre}
-                          onChange={handleTorreChange}
-                          required
-                        >
-                          <option value="">Selecciona torre</option>
-                          <option value="A">Torre A (101-109)</option>
-                          <option value="B">Torre B (201-209)</option>
-                          <option value="C">Torre C (301-309)</option>
-                          <option value="D">Torre D (401-409)</option>
-                          <option value="E">Torre E (501-509)</option>
-                          <option value="F">Torre F (601-609)</option>
-                          <option value="G">Torre G (701-709)</option>
-                          <option value="H">Torre H (801-809)</option>
-                          <option value="I">Torre I (901-909)</option>
-                          <option value="J">Torre J (1001-1009)</option>
-                        </select>
-                      </div>
-                      <div className="col-md-4">
-                        <label className="form-label">Apartamento *</label>
-                        <select
-                          name="apartamentoId"
-                          className="form-select"
-                          value={reserva.apartamentoId}
-                          onChange={handleChange}
-                          required
-                          disabled={!reserva.torre}
-                        >
-                          <option value="">
-                            {!reserva.torre
-                              ? "Primero selecciona una torre"
-                              : "Selecciona apartamento"}
-                          </option>
-                          {apartamentosFiltrados.map((apt) => (
-                            <option
-                              key={apt.idApartamento}
-                              value={apt.idApartamento}
-                            >
-                              Apartamento {apt.numeroApartamento}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="col-md-4">
-                        <label className="form-label">Área Común *</label>
-                        <select
-                          name="areaComunId"
-                          className="form-select"
-                          value={reserva.areaComunId}
-                          onChange={handleChange}
-                          required
-                        >
-                          <option value="">Selecciona área</option>
-                          {areasComunes.map((area) => (
-                            <option
-                              key={area.idAreaComun}
-                              value={area.idAreaComun}
-                            >
-                              {area.nombreArea}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="row mb-3">
-                      <div className="col-md-6">
-                        <label className="form-label">
-                          Tipo de Documento *
-                        </label>
-                        <select
-                          name="tipoDocumentoId"
-                          className="form-select"
-                          value={reserva.tipoDocumentoId}
-                          onChange={handleChange}
-                          required
-                        >
-                          <option value="">Selecciona tipo</option>
-                          {tiposDocumento.map((tipo) => (
-                            <option
-                              key={tipo.tipoDocumentoId}
-                              value={tipo.tipoDocumentoId}
-                            >
-                              {tipo.nombre}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="col-md-6">
-                        <label className="form-label">
-                          Número de Documento *
-                        </label>
-                        <input
-                          type="text"
-                          name="documentoSolicitante"
-                          className="form-control"
-                          value={reserva.documentoSolicitante}
-                          onChange={handleChange}
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Nombre Completo del Solicitante *
-                      </label>
-                      <input
-                        type="text"
-                        name="nombreSolicitante"
-                        className="form-control"
-                        value={reserva.nombreSolicitante}
-                        onChange={handleChange}
-                        placeholder="Nombre y apellidos completos"
-                        required
-                      />
-                    </div>
-
-                    <div className="row mb-3">
-                      <div className="col-md-6">
-                        <label className="form-label">Teléfono *</label>
-                        <input
-                          type="text"
-                          name="telefonoSolicitante"
-                          className="form-control"
-                          value={reserva.telefonoSolicitante}
-                          onChange={handleChange}
-                          required
-                        />
-                      </div>
-                      <div className="col-md-6">
-                        <label className="form-label">
-                          Correo Electrónico *
-                        </label>
-                        <input
-                          type="email"
-                          name="correoSolicitante"
-                          className="form-control"
-                          value={reserva.correoSolicitante}
-                          onChange={handleChange}
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="row mb-3">
-                      <div className="col-md-4">
-                        <label className="form-label">Fecha Reserva *</label>
-                        <input
-                          type="date"
-                          name="fechaReserva"
-                          className="form-control"
-                          value={reserva.fechaReserva}
-                          onChange={handleChange}
-                          min={new Date().toISOString().split("T")[0]} // No permitir fechas pasadas
-                          required
-                        />
-                      </div>
-                      <div className="col-md-4">
-                        <label className="form-label">Hora Inicio *</label>
-                        <input
-                          type="time"
-                          name="horaInicio"
-                          className="form-control"
-                          value={reserva.horaInicio}
-                          onChange={handleChange}
-                          required
-                        />
-                      </div>
-                      <div className="col-md-4">
-                        <label className="form-label">Hora Fin *</label>
-                        <input
-                          type="time"
-                          name="horaFin"
-                          className="form-control"
-                          value={reserva.horaFin}
-                          onChange={handleChange}
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="row mb-3">
-                      <div className="col-md-8">
-                        <label className="form-label">
-                          Motivo de la Reserva *
-                        </label>
-                        <textarea
-                          name="motivoReserva"
-                          className="form-control"
-                          value={reserva.motivoReserva}
-                          onChange={handleChange}
-                          placeholder="Describe el motivo de la reserva"
-                          rows="2"
-                          required
-                        ></textarea>
-                      </div>
-                      <div className="col-md-4">
-                        <label className="form-label">
-                          Cantidad Asistentes *
-                        </label>
-                        <input
-                          type="number"
-                          name="cantidadAsistentes"
-                          className="form-control"
-                          value={reserva.cantidadAsistentes}
-                          onChange={handleChange}
-                          min="1"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="row mb-3">
-                      <div className="col-md-6">
-                        <div className="form-check">
-                          <input
-                            className="form-check-input"
-                            type="checkbox"
-                            name="invitadosExternos"
-                            checked={reserva.invitadosExternos}
-                            onChange={handleChange}
-                          />
-                          <label className="form-check-label">
-                            ¿Habrá invitados externos?
-                          </label>
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="form-check">
-                          <input
-                            className="form-check-input"
-                            type="checkbox"
-                            name="aceptaReglamento"
-                            checked={reserva.aceptaReglamento}
-                            onChange={handleChange}
-                            required
-                          />
-                          <label className="form-check-label">
-                            Acepto el reglamento *
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="btn btn-success w-100"
-                      disabled={loading}
-                    >
-                      {loading
-                        ? editIndex !== null
-                          ? "Guardando..."
-                          : "Registrando..."
-                        : editIndex !== null
-                        ? "Guardar Cambios"
-                        : "Registrar Reserva"}
-                    </button>
-                  </form>
-                </div>
+        {/* ── Content ── */}
+        <div className="ac-content">
+          {/* Estadísticas */}
+          <div className="ac-stats-container">
+            <div className="ac-stat-box">
+              <div className="ac-stat-label" style={{ color: "#e65100" }}>
+                Total
+              </div>
+              <div className="ac-stat-value" style={{ color: "#e65100" }}>
+                {totalReservas}
+              </div>
+            </div>
+            <div className="ac-stat-box">
+              <div className="ac-stat-label" style={{ color: "#f57c00" }}>
+                Activas
+              </div>
+              <div className="ac-stat-value" style={{ color: "#f57c00" }}>
+                {totalActivas}
+              </div>
+            </div>
+            <div className="ac-stat-box">
+              <div className="ac-stat-label" style={{ color: "#9e9e9e" }}>
+                Finalizadas
+              </div>
+              <div className="ac-stat-value" style={{ color: "#9e9e9e" }}>
+                {totalFinalizadas}
               </div>
             </div>
           </div>
-        )}
 
-        {/* Modal Detalles */}
-        {showModalDetalles && registroSeleccionado && (
-          <div
-            className="modal fade show"
-            tabIndex="-1"
-            role="dialog"
-            aria-modal="true"
-            style={{
-              display: "block",
-              backgroundColor: "rgba(0,0,0,0.5)",
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100vw",
-              height: "100vh",
-              zIndex: 1050,
-            }}
-          >
-            <div className="modal-dialog">
-              <div className="modal-content">
-                <div className="modal-header bg-info text-white">
-                  <h5 className="modal-title">Detalles de la Reserva</h5>
-                  <button
-                    type="button"
-                    className="btn-close btn-close-white"
-                    aria-label="Cerrar"
-                    onClick={() => setShowModalDetalles(false)}
-                  ></button>
+          {/* Botones de acción */}
+          <div className="ac-action-bar">
+            <button
+              className="ac-btn-registrar"
+              onClick={() => abrirModal()}
+              disabled={loading}
+            >
+              <i className="bi bi-plus-circle" />{" "}
+              {loading ? "Cargando..." : "Registrar Nueva Reserva"}
+            </button>
+            <button className="ac-btn-calendario" onClick={abrirCalendario}>
+              <i className="bi bi-calendar3" /> Calendario
+            </button>
+            {rolesId === 1 && (
+              <button
+                className="ac-btn-gestionar-areas"
+                onClick={() => setShowModalAreas(true)}
+              >
+                <i className="bi bi-toggles" /> Gestionar Áreas
+              </button>
+            )}
+          </div>
+
+          {/* Toolbar: búsqueda + filtros */}
+          <div className="ac-toolbar">
+            <div className="ac-toolbar-row">
+              <div className="ac-filter-search">
+                <i className="bi bi-search ac-filter-search-icon" />
+                <input
+                  type="text"
+                  className="form-control ac-filter-input"
+                  placeholder="Buscar solicitante..."
+                  value={busqueda}
+                  onChange={(e) => {
+                    setBusqueda(e.target.value);
+                    setPaginaActual(1);
+                  }}
+                />
+              </div>
+
+              <div className="ac-filter-group">
+                <span className="ac-filter-label">Estado:</span>
+                <div className="ac-filter-chips">
+                  {[
+                    { key: "todas", label: "Todas" },
+                    { key: "activas", label: "Activas" },
+                    { key: "finalizadas", label: "Finalizadas" },
+                  ].map((chip) => (
+                    <button
+                      key={chip.key}
+                      className={`ac-chip ${filtroEstado === chip.key ? "active" : ""}`}
+                      onClick={() => {
+                        setFiltroEstado(chip.key);
+                        setPaginaActual(1);
+                      }}
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
                 </div>
-                <div className="modal-body">
-                  <div className="row">
-                    <div className="col-md-6">
-                      <p>
-                        <strong>ID Reserva:</strong>{" "}
-                        {registroSeleccionado.idReservas}
-                      </p>
-                      <p>
-                        <strong>Área:</strong> {registroSeleccionado.nombreArea}
-                      </p>
-                      <p>
-                        <strong>Apartamento:</strong>{" "}
-                        {registroSeleccionado.numeroApartamento} -{" "}
-                        {registroSeleccionado.nombreTorre}
-                      </p>
-                      <p>
-                        <strong>Documento:</strong>{" "}
-                        {registroSeleccionado.documentoSolicitante}
-                      </p>
-                      <p>
-                        <strong>Solicitante:</strong>{" "}
-                        {registroSeleccionado.nombreSolicitante}
-                      </p>
-                      <p>
-                        <strong>Teléfono:</strong>{" "}
-                        {registroSeleccionado.telefonoSolicitante}
-                      </p>
-                      <p>
-                        <strong>Correo:</strong>{" "}
-                        {registroSeleccionado.correoSolicitante}
-                      </p>
-                    </div>
-                    <div className="col-md-6">
-                      <p>
-                        <strong>Fecha Reserva:</strong>{" "}
-                        {registroSeleccionado.fechaReserva}
-                      </p>
-                      <p>
-                        <strong>Hora Inicio:</strong>{" "}
-                        {registroSeleccionado.horaInicio}
-                      </p>
-                      <p>
-                        <strong>Hora Fin:</strong>{" "}
-                        {registroSeleccionado.horaFin}
-                      </p>
-                      <p>
-                        <strong>Motivo:</strong>{" "}
-                        {registroSeleccionado.motivoReserva}
-                      </p>
-                      <p>
-                        <strong>Cantidad Asistentes:</strong>{" "}
-                        {registroSeleccionado.cantidadAsistentes}
-                      </p>
-                      <p>
-                        <strong>Invitados Externos:</strong>{" "}
-                        {registroSeleccionado.invitadosExternos ? "Sí" : "No"}
-                      </p>
-                      <p>
-                        <strong>Estado:</strong>{" "}
-                        <span
-                          className={`badge ${
-                            registroSeleccionado.nombreEstado === "finalizada"
-                              ? "bg-success"
-                              : registroSeleccionado.nombreEstado === "en curso"
-                              ? "bg-warning"
-                              : "bg-info"
-                          }`}
+              </div>
+            </div>
+            <div className="ac-results-info">
+              Mostrando {reservasPaginadas.length} de {reservasFiltradas.length}{" "}
+              reservas
+            </div>
+          </div>
+
+          {/* ── Estado vacío ── */}
+          {reservasFiltradas.length === 0 && (
+            <div className="ac-empty-container">
+              <i className="bi bi-calendar-x ac-empty-icon" />
+              <p>No hay reservas para mostrar</p>
+            </div>
+          )}
+
+          {/* ── Tabla (desktop ≥ 800px, ocultada por CSS en móvil) ── */}
+          {reservasPaginadas.length > 0 && (
+            <div className="ac-table-container">
+              <table className="ac-table">
+                <thead>
+                  <tr>
+                    <th>Solicitante</th>
+                    <th>Área</th>
+                    <th>Fecha</th>
+                    <th>Horario</th>
+                    <th>Apto</th>
+                    <th>Estado</th>
+                    <th style={{ textAlign: "center" }}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reservasPaginadas.map((r) => (
+                    <tr key={r.idReservas}>
+                      <td>
+                        <strong>{r.nombreSolicitante}</strong>
+                        <br />
+                        <small style={{ color: "#9e9e9e" }}>
+                          {r.documentoSolicitante}
+                        </small>
+                      </td>
+                      <td>{r.nombreArea}</td>
+                      <td>{r.fechaReserva}</td>
+                      <td>
+                        {formatHora(r.horaInicio)} — {formatHora(r.horaFin)}
+                      </td>
+                      <td>
+                        {r.numeroApartamento}
+                        {r.nombreTorre && (
+                          <small style={{ display: "block", color: "#9e9e9e" }}>
+                            {r.nombreTorre}
+                          </small>
+                        )}
+                      </td>
+                      <td>{badgeEstado(r.nombreEstado)}</td>
+                      <td style={{ textAlign: "center" }}>
+                        <button
+                          className="ac-action-btn info"
+                          title="Detalles"
+                          onClick={() => verDetalles(r)}
                         >
-                          {registroSeleccionado.nombreEstado}
-                        </span>
-                      </p>
+                          <i className="bi bi-eye" />
+                        </button>
+                        {r.nombreEstado?.toLowerCase() !== "finalizada" && (
+                          <>
+                            <button
+                              className="ac-action-btn edit"
+                              title="Editar"
+                              onClick={() => editarReserva(r)}
+                            >
+                              <i className="bi bi-pencil" />
+                            </button>
+                            <button
+                              className="ac-action-btn finish"
+                              title="Finalizar"
+                              onClick={() => finalizarRegistro(r.idReservas)}
+                            >
+                              <i className="bi bi-check-circle" />
+                            </button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* ── Cards (móvil < 800px, ocultadas por CSS en desktop) ── */}
+          {reservasPaginadas.length > 0 && (
+            <div className="ac-cards-container">
+              {reservasPaginadas.map((r) => (
+                <div className="ac-card" key={r.idReservas}>
+                  <div className="ac-card-header">
+                    <span className="ac-card-name">{r.nombreSolicitante}</span>
+                    {badgeEstado(r.nombreEstado)}
+                  </div>
+
+                  <div className="ac-card-row">
+                    <div className="ac-card-row-icon area">
+                      <i className="bi bi-building" />
                     </div>
+                    <span className="ac-card-row-text">{r.nombreArea}</span>
+                  </div>
+
+                  <div className="ac-card-row">
+                    <div className="ac-card-row-icon fecha">
+                      <i className="bi bi-calendar3" />
+                    </div>
+                    <span className="ac-card-row-text">
+                      {r.fechaReserva} · {formatHora(r.horaInicio)} —{" "}
+                      {formatHora(r.horaFin)}
+                    </span>
+                  </div>
+
+                  <div className="ac-card-row">
+                    <div className="ac-card-row-icon apto">
+                      <i className="bi bi-door-open" />
+                    </div>
+                    <span className="ac-card-row-text">
+                      Apto {r.numeroApartamento}{" "}
+                      {r.nombreTorre ? `- ${r.nombreTorre}` : ""}
+                    </span>
+                  </div>
+
+                  <div className="ac-card-actions">
+                    <button
+                      className="ac-card-btn detalles"
+                      onClick={() => verDetalles(r)}
+                    >
+                      <i className="bi bi-eye" /> Detalles
+                    </button>
+                    {r.nombreEstado?.toLowerCase() !== "finalizada" && (
+                      <>
+                        <button
+                          className="ac-card-btn editar"
+                          onClick={() => editarReserva(r)}
+                        >
+                          <i className="bi bi-pencil" /> Editar
+                        </button>
+                        <button
+                          className="ac-card-btn finalizar"
+                          onClick={() => finalizarRegistro(r.idReservas)}
+                        >
+                          <i className="bi bi-check-circle" /> Finalizar
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── Paginación ── */}
+          {totalPaginas > 1 && (
+            <div className="ac-pagination">
+              <button
+                className="ac-page-btn"
+                disabled={paginaActual === 1}
+                onClick={() => setPaginaActual(paginaActual - 1)}
+              >
+                <i className="bi bi-chevron-left" />
+              </button>
+              {Array.from({ length: totalPaginas }).map((_, i) => (
+                <button
+                  key={`page-${i + 1}`}
+                  className={`ac-page-btn ${paginaActual === i + 1 ? "active" : ""}`}
+                  onClick={() => setPaginaActual(i + 1)}
+                >
+                  {i + 1}
+                </button>
+              ))}
+              <button
+                className="ac-page-btn"
+                disabled={paginaActual === totalPaginas}
+                onClick={() => setPaginaActual(paginaActual + 1)}
+              >
+                <i className="bi bi-chevron-right" />
+              </button>
+              <span className="ac-page-info">
+                Pág {paginaActual} de {totalPaginas}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ══════════ MODAL — REGISTRAR / EDITAR ══════════ */}
+      <ModalOverlay
+        isOpen={modalAbierto}
+        onClose={() => cerrarModal()}
+        className="ac-modal-overlay"
+      >
+        <div className="ac-modal">
+          <div className="ac-modal-header">
+            <h5>
+              {editIndex === null ? "Registrar Reserva" : "Editar Reserva"}
+            </h5>
+            <button className="ac-modal-close" onClick={cerrarModal}>
+              <i className="bi bi-x-lg" />
+            </button>
+          </div>
+          <div className="ac-modal-body">
+            <form onSubmit={handleSubmit}>
+              {/* Sección Solicitante */}
+              <div className="ac-form-section">
+                <div className="ac-form-section-title">
+                  <i className="bi bi-person-fill me-2" /> Datos del Solicitante
+                </div>
+                <div className="ac-form-grid">
+                  <div className="ac-form-group">
+                    <label className="ac-form-label" htmlFor="tipoDocumentoId">
+                      Tipo Documento *
+                    </label>
+                    <select
+                      id="tipoDocumentoId"
+                      name="tipoDocumentoId"
+                      className="ac-form-control"
+                      value={reserva.tipoDocumentoId}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="">Seleccionar</option>
+                      {tiposDocumento.map((t) => (
+                        <option
+                          key={t.tipoDocumentoId}
+                          value={t.tipoDocumentoId}
+                        >
+                          {t.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="ac-form-group">
+                    <label
+                      className="ac-form-label"
+                      htmlFor="documentoSolicitante"
+                    >
+                      Nro. Documento *
+                    </label>
+                    <input
+                      type="text"
+                      id="documentoSolicitante"
+                      name="documentoSolicitante"
+                      className="ac-form-control"
+                      value={reserva.documentoSolicitante}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="ac-form-group full-width">
+                    <label
+                      className="ac-form-label"
+                      htmlFor="nombreSolicitante"
+                    >
+                      Nombre Completo *
+                    </label>
+                    <input
+                      type="text"
+                      id="nombreSolicitante"
+                      name="nombreSolicitante"
+                      className="ac-form-control"
+                      value={reserva.nombreSolicitante}
+                      onChange={handleChange}
+                      placeholder="Nombre y apellidos"
+                      required
+                    />
+                  </div>
+                  <div className="ac-form-group">
+                    <label
+                      className="ac-form-label"
+                      htmlFor="telefonoSolicitante"
+                    >
+                      Teléfono *
+                    </label>
+                    <input
+                      type="text"
+                      id="telefonoSolicitante"
+                      name="telefonoSolicitante"
+                      className="ac-form-control"
+                      value={reserva.telefonoSolicitante}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="ac-form-group">
+                    <label
+                      className="ac-form-label"
+                      htmlFor="correoSolicitante"
+                    >
+                      Correo *
+                    </label>
+                    <input
+                      type="email"
+                      id="correoSolicitante"
+                      name="correoSolicitante"
+                      className="ac-form-control"
+                      value={reserva.correoSolicitante}
+                      onChange={handleChange}
+                      required
+                    />
                   </div>
                 </div>
               </div>
+
+              {/* Sección Reserva */}
+              <div className="ac-form-section">
+                <div className="ac-form-section-title">
+                  <i className="bi bi-calendar2-event me-2" /> Datos de la
+                  Reserva
+                </div>
+                <div className="ac-form-grid">
+                  <div className="ac-form-group">
+                    <label className="ac-form-label" htmlFor="torre">
+                      Torre *
+                    </label>
+                    <select
+                      id="torre"
+                      name="torre"
+                      className="ac-form-control"
+                      value={reserva.torre}
+                      onChange={handleTorreChange}
+                      required
+                    >
+                      <option value="">Seleccionar</option>
+                      {torresDisponibles.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="ac-form-group">
+                    <label className="ac-form-label" htmlFor="apartamentoId">
+                      Apartamento *
+                    </label>
+                    <select
+                      id="apartamentoId"
+                      name="apartamentoId"
+                      className="ac-form-control"
+                      value={reserva.apartamentoId}
+                      onChange={handleChange}
+                      required
+                      disabled={!reserva.torre}
+                    >
+                      <option value="">
+                        {reserva.torre
+                          ? "Seleccionar"
+                          : "Primero selecciona torre"}
+                      </option>
+                      {apartamentosFiltrados.map((a) => (
+                        <option key={a.idApartamento} value={a.idApartamento}>
+                          Apto {a.numeroApartamento}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="ac-form-group full-width">
+                    <label className="ac-form-label" htmlFor="areaComunId">
+                      Área Común *
+                    </label>
+                    <select
+                      id="areaComunId"
+                      name="areaComunId"
+                      className="ac-form-control"
+                      value={reserva.areaComunId}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="">Seleccionar área</option>
+                      {areasComunes
+                        .filter((a) => a.estadoId === 4)
+                        .map((a) => (
+                          <option key={a.idAreaComun} value={a.idAreaComun}>
+                            {a.nombreArea}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <div className="ac-form-group">
+                    <label className="ac-form-label" htmlFor="fechaReserva">
+                      Fecha Reserva *
+                    </label>
+                    <input
+                      type="date"
+                      id="fechaReserva"
+                      name="fechaReserva"
+                      className="ac-form-control"
+                      value={reserva.fechaReserva}
+                      onChange={handleChange}
+                      min={new Date().toISOString().split("T")[0]}
+                      required
+                    />
+                  </div>
+                  <div className="ac-form-group" />
+                  <div className="ac-form-group">
+                    <label className="ac-form-label" htmlFor="horaInicio">
+                      Hora Inicio *
+                    </label>
+                    <input
+                      type="time"
+                      id="horaInicio"
+                      name="horaInicio"
+                      className="ac-form-control"
+                      value={reserva.horaInicio}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="ac-form-group">
+                    <label className="ac-form-label" htmlFor="horaFin">
+                      Hora Fin *
+                    </label>
+                    <input
+                      type="time"
+                      id="horaFin"
+                      name="horaFin"
+                      className="ac-form-control"
+                      value={reserva.horaFin}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="ac-form-group">
+                    <label
+                      className="ac-form-label"
+                      htmlFor="cantidadAsistentes"
+                    >
+                      Asistentes *
+                    </label>
+                    <input
+                      type="number"
+                      id="cantidadAsistentes"
+                      name="cantidadAsistentes"
+                      className="ac-form-control"
+                      value={reserva.cantidadAsistentes}
+                      onChange={handleChange}
+                      min="1"
+                      required
+                    />
+                  </div>
+                  <div className="ac-form-group">
+                    <span className="ac-form-label">&nbsp;</span>
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        cursor: "pointer",
+                        fontSize: 14,
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        name="invitadosExternos"
+                        checked={reserva.invitadosExternos}
+                        onChange={handleChange}
+                      />{" "}
+                      Invitados externos
+                    </label>
+                  </div>
+                  <div className="ac-form-group full-width">
+                    <label className="ac-form-label" htmlFor="motivoReserva">
+                      Motivo de la Reserva *
+                    </label>
+                    <textarea
+                      id="motivoReserva"
+                      name="motivoReserva"
+                      className="ac-form-control"
+                      value={reserva.motivoReserva}
+                      onChange={handleChange}
+                      rows="2"
+                      placeholder="Describe el motivo de la reserva"
+                      required
+                    />
+                  </div>
+                  <div className="ac-form-group full-width">
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        cursor: "pointer",
+                        fontSize: 14,
+                        color: "#424242",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        name="aceptaReglamento"
+                        checked={reserva.aceptaReglamento}
+                        onChange={handleChange}
+                        required
+                      />{" "}
+                      Acepto el reglamento de uso *
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="ac-form-submit"
+                disabled={loading}
+              >
+                {obtenerLabelSubmitReserva(loading, editIndex !== null)}
+              </button>
+            </form>
+          </div>
+        </div>
+      </ModalOverlay>
+
+      {/* ══════════ MODAL — DETALLES ══════════ */}
+      {showModalDetalles && registroSeleccionado && (
+        <ModalOverlay
+          isOpen
+          onClose={() => setShowModalDetalles(false)}
+          className="ac-modal-overlay"
+        >
+          <div className="ac-modal">
+            <div className="ac-modal-header">
+              <h5>Detalles de la Reserva</h5>
+              <button
+                className="ac-modal-close"
+                onClick={() => setShowModalDetalles(false)}
+              >
+                <i className="bi bi-x-lg" />
+              </button>
+            </div>
+            <div className="ac-modal-body">
+              <div className="ac-detalle-section">Solicitante</div>
+              <div className="ac-detalle-row">
+                <span className="ac-detalle-label">Nombre</span>
+                <span className="ac-detalle-value">
+                  {registroSeleccionado.nombreSolicitante}
+                </span>
+              </div>
+              <div className="ac-detalle-row">
+                <span className="ac-detalle-label">Documento</span>
+                <span className="ac-detalle-value">
+                  {registroSeleccionado.documentoSolicitante}
+                </span>
+              </div>
+              <div className="ac-detalle-row">
+                <span className="ac-detalle-label">Teléfono</span>
+                <span className="ac-detalle-value">
+                  {registroSeleccionado.telefonoSolicitante}
+                </span>
+              </div>
+              <div className="ac-detalle-row">
+                <span className="ac-detalle-label">Correo</span>
+                <span className="ac-detalle-value">
+                  {registroSeleccionado.correoSolicitante}
+                </span>
+              </div>
+
+              <div className="ac-detalle-section">Reserva</div>
+              <div className="ac-detalle-row">
+                <span className="ac-detalle-label">ID</span>
+                <span className="ac-detalle-value">
+                  #{registroSeleccionado.idReservas}
+                </span>
+              </div>
+              <div className="ac-detalle-row">
+                <span className="ac-detalle-label">Área</span>
+                <span className="ac-detalle-value">
+                  {registroSeleccionado.nombreArea}
+                </span>
+              </div>
+              <div className="ac-detalle-row">
+                <span className="ac-detalle-label">Apartamento</span>
+                <span className="ac-detalle-value">
+                  {registroSeleccionado.numeroApartamento}{" "}
+                  {registroSeleccionado.nombreTorre
+                    ? `- ${registroSeleccionado.nombreTorre}`
+                    : ""}
+                </span>
+              </div>
+              <div className="ac-detalle-row">
+                <span className="ac-detalle-label">Fecha</span>
+                <span className="ac-detalle-value">
+                  {registroSeleccionado.fechaReserva}
+                </span>
+              </div>
+              <div className="ac-detalle-row">
+                <span className="ac-detalle-label">Horario</span>
+                <span className="ac-detalle-value">
+                  {formatHora(registroSeleccionado.horaInicio)} —{" "}
+                  {formatHora(registroSeleccionado.horaFin)}
+                </span>
+              </div>
+              <div className="ac-detalle-row">
+                <span className="ac-detalle-label">Motivo</span>
+                <span className="ac-detalle-value">
+                  {registroSeleccionado.motivoReserva}
+                </span>
+              </div>
+              <div className="ac-detalle-row">
+                <span className="ac-detalle-label">Asistentes</span>
+                <span className="ac-detalle-value">
+                  {registroSeleccionado.cantidadAsistentes}
+                </span>
+              </div>
+              <div className="ac-detalle-row">
+                <span className="ac-detalle-label">Externos</span>
+                <span className="ac-detalle-value">
+                  {registroSeleccionado.invitadosExternos ? "Sí" : "No"}
+                </span>
+              </div>
+              <div className="ac-detalle-row">
+                <span className="ac-detalle-label">Estado</span>
+                <span className="ac-detalle-value">
+                  {badgeEstado(registroSeleccionado.nombreEstado)}
+                </span>
+              </div>
+
+              {/* Botón imprimir recibo */}
+              <button
+                className="ac-btn-imprimir"
+                onClick={() => imprimirRecibo(registroSeleccionado)}
+              >
+                <i className="bi bi-printer" /> Imprimir Recibo
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </ModalOverlay>
+      )}
+
+      {/* ══════════ MODAL — CALENDARIO ══════════ */}
+      <ModalOverlay
+        isOpen={showCalendario}
+        onClose={() => setShowCalendario(false)}
+        className="ac-modal-overlay"
+      >
+        <div className="ac-modal ac-calendar-modal">
+          <div className="ac-modal-header">
+            <h5>Calendario de Reservas</h5>
+            <button
+              className="ac-modal-close"
+              onClick={() => setShowCalendario(false)}
+            >
+              <i className="bi bi-x-lg" />
+            </button>
+          </div>
+          <div className="ac-modal-body">
+            {/* Navegación de mes */}
+            <div className="ac-calendar-nav">
+              <button className="ac-calendar-nav-btn" onClick={mesAnterior}>
+                <i className="bi bi-chevron-left" />
+              </button>
+              <span className="ac-calendar-month">
+                {MESES[calMonth]} {calYear}
+              </span>
+              <button className="ac-calendar-nav-btn" onClick={mesSiguiente}>
+                <i className="bi bi-chevron-right" />
+              </button>
+            </div>
+
+            {/* Encabezados de semana */}
+            <div className="ac-calendar-weekdays">
+              {DIAS_SEMANA.map((d) => (
+                <div key={d} className="ac-calendar-weekday">
+                  {d}
+                </div>
+              ))}
+            </div>
+
+            {/* Grilla de días */}
+            <div className="ac-calendar-grid">
+              {buildCalendarGrid().map((cell) => {
+                if (!cell.day) {
+                  return (
+                    <div key={cell.id} className="ac-calendar-day empty" />
+                  );
+                }
+                const reservasDia = reservasDelDia(cell.day);
+                const tieneReservas = reservasDia.length > 0;
+                const past = esPasado(cell.day);
+                const today = esHoy(cell.day);
+                const isSelected = selectedDay === cell.day;
+
+                let cls = "ac-calendar-day";
+                if (past) cls += " past";
+                if (today) cls += " today";
+                if (isSelected) cls += " selected";
+                if (tieneReservas && !past) cls += " has-reservas";
+
+                return (
+                  <button
+                    type="button"
+                    key={cell.id}
+                    className={cls}
+                    onClick={() => !past && setSelectedDay(cell.day)}
+                    onKeyDown={(e) => {
+                      if ((e.key === "Enter" || e.key === " ") && !past)
+                        setSelectedDay(cell.day);
+                    }}
+                    tabIndex={past ? -1 : 0}
+                  >
+                    {cell.day}
+                    {tieneReservas && !past && (
+                      <div className="ac-calendar-day-dot" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Lista de reservas del día seleccionado */}
+            {selectedDay && (
+              <div className="ac-calendar-reservas">
+                <div className="ac-calendar-fecha">
+                  {selectedDay} de {MESES[calMonth]} {calYear}
+                </div>
+                {reservasDelDia(selectedDay).length === 0 ? (
+                  <p style={{ color: "#9e9e9e", textAlign: "center" }}>
+                    No hay reservas este día
+                  </p>
+                ) : (
+                  reservasDelDia(selectedDay).map((r) => (
+                    <div
+                      key={r.idReservas}
+                      className="ac-calendar-reserva-card"
+                    >
+                      <div className="ac-calendar-reserva-icon">
+                        <i className="bi bi-calendar2-event" />
+                      </div>
+                      <div className="ac-calendar-reserva-info">
+                        <div className="ac-calendar-reserva-area">
+                          {r.areaComun?.nombreArea ||
+                            r.nombreArea ||
+                            "Área común"}
+                        </div>
+                        <div className="ac-calendar-reserva-hora">
+                          {formatHora(r.horaInicio)} — {formatHora(r.horaFin)}
+                        </div>
+                        <div className="ac-calendar-reserva-nombre">
+                          {r.Solicitante?.nombreSolicitante ||
+                            r.nombreSolicitante ||
+                            ""}
+                        </div>
+                      </div>
+                      <div className="ac-calendar-reserva-estado">
+                        {r.estado?.nombreEstado || r.nombreEstado || "Activa"}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </ModalOverlay>
+
+      {/* ══════════ MODAL GESTIONAR ÁREAS (SuperAdmin) ══════════ */}
+      <ModalOverlay
+        isOpen={showModalAreas && rolesId === 1}
+        onClose={() => setShowModalAreas(false)}
+        className="ac-modal-overlay"
+      >
+        <div className="ac-modal ac-modal-areas">
+          <div className="ac-modal-header">
+            <h2>
+              <i className="bi bi-toggles me-2" /> Gestionar Áreas Comunes
+            </h2>
+            <button
+              className="ac-modal-close"
+              onClick={() => setShowModalAreas(false)}
+            >
+              <i className="bi bi-x-lg" />
+            </button>
+          </div>
+          <div className="ac-modal-body" style={{ padding: "20px" }}>
+            <p className="ac-areas-desc">
+              <i className="bi bi-info-circle me-1" /> Active o desactive las
+              áreas comunes. Las áreas inhabilitadas no aparecerán en el
+              formulario de reservas.
+            </p>
+            <div className="ac-areas-list">
+              {areasComunes.map((area) => {
+                const disponible = area.estadoId === 4;
+                return (
+                  <div
+                    key={area.idAreaComun}
+                    className={`ac-area-card ${disponible ? "ac-area-disponible" : "ac-area-inhabilitada"}`}
+                  >
+                    <div className="ac-area-card-info">
+                      <div className="ac-area-card-icon">
+                        <i
+                          className={`bi ${disponible ? "bi-building-check" : "bi-building-slash"}`}
+                        />
+                      </div>
+                      <div>
+                        <div className="ac-area-card-name">
+                          {area.nombreArea}
+                        </div>
+                        <div className="ac-area-card-meta">
+                          Capacidad: {area.capacidad || "—"} personas
+                        </div>
+                        <span
+                          className={`ac-badge ${disponible ? "ac-badge-activa" : "ac-badge-finalizada"}`}
+                        >
+                          {disponible ? "Disponible" : "Inhabilitada"}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      className={`ac-area-toggle-btn ${disponible ? "ac-area-toggle-off" : "ac-area-toggle-on"}`}
+                      onClick={() => toggleEstadoArea(area)}
+                      title={disponible ? "Inhabilitar" : "Habilitar"}
+                    >
+                      <i
+                        className={`bi ${disponible ? "bi-toggle-on" : "bi-toggle-off"}`}
+                      />
+                      {disponible ? "Inhabilitar" : "Habilitar"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </ModalOverlay>
     </div>
   );
 }

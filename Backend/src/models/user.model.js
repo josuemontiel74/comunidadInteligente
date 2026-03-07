@@ -25,13 +25,23 @@ class Usuario extends Model {
           type: DataTypes.INTEGER,
           allowNull: false,
         },
+        ultimaActividad: {
+          type: DataTypes.DATE,
+          allowNull: true,
+          defaultValue: null,
+        },
+        fotoPerfil: {
+          type: DataTypes.TEXT("long"),
+          allowNull: true,
+          defaultValue: null,
+        },
       },
       {
         sequelize,
         modelName: "Usuario",
         tableName: "usuarios",
         timestamps: false,
-      }
+      },
     );
   }
 }

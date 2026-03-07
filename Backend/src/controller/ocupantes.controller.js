@@ -1,9 +1,16 @@
 import dayjs from "dayjs";
+import { Op } from "sequelize";
 import Ocupante from "../models/ocupante.model.js";
 import Persona from "../models/personas.model.js";
 import { sequelize } from "../config/connect.db.js";
 import { registrarAuditoria } from "../services/auditorias.service.js";
 import { registrarFallo } from "../services/logger.service.js";
+import {
+  validarCamposNombre,
+  validarTelefono,
+  validarNumeroDocumento,
+} from "../utils/validaciones.js";
+import { ESTADO_OCUPANTE } from "../utils/constantes.js";
 
 export const crearOcupante = async (req, res) => {
   const t = await sequelize.transaction();
@@ -23,6 +30,58 @@ export const crearOcupante = async (req, res) => {
       telefono: dataOcupante.telefono,
       correoElectronico: dataOcupante.correoElectronico,
     };
+
+    // Validar documento 
+    const errorDoc = validarNumeroDocumento(
+      dataOcupante.tipoDocumentoId,
+      dataOcupante.numeroDocumento,
+    );
+    if (errorDoc) {
+      await t.rollback();
+      return res.status(400).json({ message: errorDoc, status: 400 });
+    }
+
+    // Validar teléfono ─
+    const errorTel = validarTelefono(dataOcupante.telefono);
+    if (errorTel) {
+      await t.rollback();
+      return res.status(400).json({ message: errorTel, status: 400 });
+    }
+
+    // Validar nombres antes de guardar 
+    const errorNombre = validarCamposNombre({
+      "Primer nombre": dataOcupante.primerNombre,
+      "Segundo nombre": dataOcupante.segundoNombre,
+      "Primer apellido": dataOcupante.primerApellido,
+      "Segundo apellido": dataOcupante.segundoApellido,
+    });
+    if (errorNombre) {
+      await t.rollback();
+      return res.status(400).json({ message: errorNombre, status: 400 });
+    }
+
+    // Verificar que el apartamento no tenga ya un ocupante activo del mismo tipo 
+    if (dataOcupante.apartamentosId && dataOcupante.tipoOcupacion) {
+      const ocupanteExistente = await Ocupante.findOne({
+        where: {
+          apartamentosId: dataOcupante.apartamentosId,
+          tipoOcupacion: dataOcupante.tipoOcupacion,
+          estadoId: { [Op.notIn]: ESTADO_OCUPANTE.INACTIVOS }, // excluir inactivos/finalizados
+        },
+        transaction: t,
+      });
+      if (ocupanteExistente) {
+        await t.rollback();
+        const tipo =
+          dataOcupante.tipoOcupacion === "propietario"
+            ? "propietario"
+            : "arrendatario";
+        return res.status(409).json({
+          message: `El apartamento ya tiene un ${tipo} activo. Finalice el proceso actual antes de registrar uno nuevo.`,
+          status: 409,
+        });
+      }
+    }
 
     if (dataOcupante.numeroDocumento) {
       [persona, created] = await Persona.findOrCreate({
@@ -51,9 +110,9 @@ export const crearOcupante = async (req, res) => {
         tieneNinos: dataOcupante.tieneNinos,
         tieneAdultoMayor: dataOcupante.tieneAdultoMayor,
         tieneDiscapacidad: dataOcupante.tieneDiscapacidad,
-        estadoId: 5,
+        estadoId: ESTADO_OCUPANTE.ACTIVO,
       },
-      { transaction: t }
+      { transaction: t },
     );
 
     await t.commit();
@@ -64,7 +123,7 @@ export const crearOcupante = async (req, res) => {
       usuarioActual,
       "ocupantes",
       "INSERT",
-      createOcupante.idOcupante
+      createOcupante.idOcupante,
     );
 
     res.status(201).json({
@@ -137,7 +196,6 @@ JOIN estados AS es
 
     await registrarFallo("ERROR", username, ruta, error.message, error.stack);
 
-    console.error("Error al listar ocupantes:", error);
     res.status(500).json({
       error: "Error interno al listar ocupantes",
       status: 500,
@@ -172,7 +230,6 @@ export const obtenerOcupante = async (req, res) => {
 };
 
 export const obtenerOcupantePorId = async (req, res) => {
-
   try {
     const id = req.params.idOcupante;
     const ocupante = await Ocupante.findOne({
@@ -193,7 +250,6 @@ export const obtenerOcupantePorId = async (req, res) => {
         status: 404,
       });
     }
-    console.log(ocupante)
   } catch (error) {
     const username = req.user?.username || "desconocido";
     const ruta = "GET /ocupantes/:id";
@@ -213,7 +269,6 @@ export const actualizarOcupante = async (req, res) => {
   try {
     const id = req.params.idOcupante;
     const dataOcupante = req.body;
-    console.log(dataOcupante.numeroDocumento);
     const [updated] = await Ocupante.update(
       {
         apartamentosId: dataOcupante.apartamentosId,
@@ -226,7 +281,7 @@ export const actualizarOcupante = async (req, res) => {
         tieneDiscapacidad: dataOcupante.tieneDiscapacidad,
         estadoId: dataOcupante.estadoId,
       },
-      { where: { idOcupante: id }, transaction: t }
+      { where: { idOcupante: id }, transaction: t },
     );
 
     if (!updated) {
@@ -251,7 +306,7 @@ export const actualizarOcupante = async (req, res) => {
         {
           where: { numeroDocumento: dataOcupante.numeroDocumento },
           transaction: t,
-        }
+        },
       );
     }
 
@@ -280,10 +335,8 @@ export const actualizarOcupante = async (req, res) => {
       message: "Lo siento, no se pudo actualizar el ocupante",
       status: 500,
       error: error.message,
-    
     });
- 
-}
+  }
 };
 
 export const finalizarOcupante = async (req, res) => {
@@ -294,7 +347,7 @@ export const finalizarOcupante = async (req, res) => {
         estadoId: 6,
         fechaFin: dayjs().format("YYYY-MM-DD"),
       },
-      { where: { idOcupante: id } }
+      { where: { idOcupante: id } },
     );
     if (updated) {
       // Registrar en auditoría

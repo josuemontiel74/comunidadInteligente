@@ -38,7 +38,7 @@ class _CalendarioReservasState extends State<CalendarioReservas> {
       }
 
       final response = await http.get(
-        Uri.parse('${LoginServe.baseUrl}/api/ReservasAreasComunesMovil'),
+        Uri.parse('${LoginServe.baseUrl}/api/reservas-areas'),
         headers: headers,
       );
 
@@ -431,7 +431,7 @@ class _CalendarioReservasState extends State<CalendarioReservas> {
           ),
         ),
         const SizedBox(height: 15),
-        ...reservasDelDia.map((reserva) => _buildReservaCard(reserva)).toList(),
+        ...reservasDelDia.map((reserva) => _buildReservaCard(reserva)),
       ],
     );
   }

@@ -1,8 +1,5 @@
 import { sequelize } from "../config/connect.db.js";
 
-// ============================================================================
-// REPORTE DE PARQUEADEROS
-// ============================================================================
 export const obtenerReporteParqueaderos = async (req, res) => {
   try {
     const { fechaInicio, fechaFin } = req.query;
@@ -14,21 +11,53 @@ export const obtenerReporteParqueaderos = async (req, res) => {
       });
     }
 
-    // Total de parqueaderos por tipo de vehículo
-    const [porTipo] = await sequelize.query(`
+    // Capacidad total de parqueaderos por tipo de vehículo (dato estático)
+    const [capacidad] = await sequelize.query(`
       SELECT 
         tv.nombreVehiculo,
-        COUNT(p.codigoParqueadero) as totalParqueaderos,
-        SUM(CASE WHEN p.estadoId = 3 THEN 1 ELSE 0 END) as ocupados,
-        SUM(CASE WHEN p.estadoId = 4 THEN 1 ELSE 0 END) as disponibles
+        COUNT(p.codigoParqueadero) as totalCupos
       FROM parqueaderos p
       INNER JOIN tiposVehiculo tv ON p.tipoVehiculoId = tv.idTipoVehiculo
       GROUP BY tv.nombreVehiculo, tv.idTipoVehiculo
       ORDER BY tv.idTipoVehiculo
     `);
 
-    // Ocupación diaria en el período
-    const [ocupacionDiaria] = await sequelize.query(
+    // Resumen de vehículos que ingresaron en el período (datos históricos)
+    const [resumenPeriodoRaw] = await sequelize.query(
+      `
+      SELECT 
+        COUNT(DISTINCT v.vehiculoMatricula) as totalVehiculos,
+        SUM(CASE WHEN ve.tipoVehiculoId = 1 THEN 1 ELSE 0 END) as carros,
+        SUM(CASE WHEN ve.tipoVehiculoId = 2 THEN 1 ELSE 0 END) as motos
+      FROM visitas v
+      INNER JOIN vehiculo ve ON v.vehiculoMatricula = ve.matricula
+      WHERE DATE(v.fechaHoraIngreso) >= ? AND DATE(v.fechaHoraIngreso) <= ?
+        AND v.vehiculoMatricula IS NOT NULL
+    `,
+      { replacements: [fechaInicio, fechaFin] },
+    );
+
+    // Día pico: fecha con más vehículos ingresados en el período
+    const [diaPicoRaw] = await sequelize.query(
+      `
+      SELECT 
+        DATE(v.fechaHoraIngreso) as fecha,
+        COUNT(DISTINCT v.vehiculoMatricula) as totalVehiculos,
+        SUM(CASE WHEN ve.tipoVehiculoId = 1 THEN 1 ELSE 0 END) as carros,
+        SUM(CASE WHEN ve.tipoVehiculoId = 2 THEN 1 ELSE 0 END) as motos
+      FROM visitas v
+      INNER JOIN vehiculo ve ON v.vehiculoMatricula = ve.matricula
+      WHERE DATE(v.fechaHoraIngreso) >= ? AND DATE(v.fechaHoraIngreso) <= ?
+        AND v.vehiculoMatricula IS NOT NULL
+      GROUP BY DATE(v.fechaHoraIngreso)
+      ORDER BY totalVehiculos DESC
+      LIMIT 1
+    `,
+      { replacements: [fechaInicio, fechaFin] },
+    );
+
+    // Uso diario en el período (para gráfica de línea/barra)
+    const [usoDiario] = await sequelize.query(
       `
       SELECT 
         DATE(v.fechaHoraIngreso) as fecha,
@@ -40,9 +69,9 @@ export const obtenerReporteParqueaderos = async (req, res) => {
       WHERE DATE(v.fechaHoraIngreso) >= ? AND DATE(v.fechaHoraIngreso) <= ?
         AND v.vehiculoMatricula IS NOT NULL
       GROUP BY DATE(v.fechaHoraIngreso)
-      ORDER BY fecha DESC
+      ORDER BY fecha ASC
     `,
-      { replacements: [fechaInicio, fechaFin] }
+      { replacements: [fechaInicio, fechaFin] },
     );
 
     // Pico de ocupación por hora del día
@@ -59,19 +88,24 @@ export const obtenerReporteParqueaderos = async (req, res) => {
       GROUP BY HOUR(v.fechaHoraIngreso)
       ORDER BY cantidadVisitas DESC
     `,
-      { replacements: [fechaInicio, fechaFin] }
+      { replacements: [fechaInicio, fechaFin] },
     );
 
     res.json({
       success: true,
       data: {
-        resumenActual: porTipo,
-        ocupacionDiaria: ocupacionDiaria,
+        capacidad: capacidad,
+        resumenPeriodo: resumenPeriodoRaw[0] || {
+          totalVehiculos: 0,
+          carros: 0,
+          motos: 0,
+        },
+        diaPico: diaPicoRaw[0] || null,
+        usoDiario: usoDiario,
         picoOcupacion: picoOcupacion,
       },
     });
   } catch (error) {
-    console.error("Error en reporte de parqueaderos:", error);
     res.status(500).json({
       success: false,
       message: "Error al generar reporte de parqueaderos",
@@ -80,9 +114,6 @@ export const obtenerReporteParqueaderos = async (req, res) => {
   }
 };
 
-// ============================================================================
-// REPORTE DE VISITAS
-// ============================================================================
 export const obtenerReporteVisitas = async (req, res) => {
   try {
     const { fechaInicio, fechaFin } = req.query;
@@ -97,7 +128,7 @@ export const obtenerReporteVisitas = async (req, res) => {
     // Total de visitas en el período
     const [totalVisitas] = await sequelize.query(
       `SELECT COUNT(*) as total FROM visitas WHERE DATE(fechaHoraIngreso) >= ? AND DATE(fechaHoraIngreso) <= ?`,
-      { replacements: [fechaInicio, fechaFin] }
+      { replacements: [fechaInicio, fechaFin] },
     );
 
     // Visitas por día
@@ -107,7 +138,7 @@ export const obtenerReporteVisitas = async (req, res) => {
       FROM visitas WHERE DATE(fechaHoraIngreso) >= ? AND DATE(fechaHoraIngreso) <= ?
       GROUP BY DATE(fechaHoraIngreso) ORDER BY fecha DESC
     `,
-      { replacements: [fechaInicio, fechaFin] }
+      { replacements: [fechaInicio, fechaFin] },
     );
 
     // Visitas con vehículo vs sin vehículo
@@ -119,7 +150,7 @@ export const obtenerReporteVisitas = async (req, res) => {
       FROM visitas WHERE DATE(fechaHoraIngreso) >= ? AND DATE(fechaHoraIngreso) <= ?
       GROUP BY CASE WHEN vehiculoMatricula IS NOT NULL THEN 'Con vehículo' ELSE 'Sin vehículo' END
     `,
-      { replacements: [fechaInicio, fechaFin] }
+      { replacements: [fechaInicio, fechaFin] },
     );
 
     const diaConMasVisitas =
@@ -137,7 +168,6 @@ export const obtenerReporteVisitas = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error en reporte de visitas:", error);
     res.status(500).json({
       success: false,
       message: "Error al generar reporte de visitas",
@@ -146,9 +176,6 @@ export const obtenerReporteVisitas = async (req, res) => {
   }
 };
 
-// ============================================================================
-// REPORTE DE PAQUETES
-// ============================================================================
 export const obtenerReportePaquetes = async (req, res) => {
   try {
     const { fechaInicio, fechaFin } = req.query;
@@ -162,22 +189,22 @@ export const obtenerReportePaquetes = async (req, res) => {
 
     const [totalPaquetes] = await sequelize.query(
       `SELECT COUNT(*) as total FROM recepcionpaquetes WHERE DATE(fechaRecepcion) >= ? AND DATE(fechaRecepcion) <= ?`,
-      { replacements: [fechaInicio, fechaFin] }
+      { replacements: [fechaInicio, fechaFin] },
     );
 
     const [entregados] = await sequelize.query(
       `SELECT COUNT(*) as total FROM recepcionpaquetes WHERE DATE(fechaRecepcion) >= ? AND DATE(fechaRecepcion) <= ? AND fechaEntrega IS NOT NULL`,
-      { replacements: [fechaInicio, fechaFin] }
+      { replacements: [fechaInicio, fechaFin] },
     );
 
     const [pendientes] = await sequelize.query(
       `SELECT COUNT(*) as total FROM recepcionpaquetes WHERE DATE(fechaRecepcion) >= ? AND DATE(fechaRecepcion) <= ? AND fechaEntrega IS NULL`,
-      { replacements: [fechaInicio, fechaFin] }
+      { replacements: [fechaInicio, fechaFin] },
     );
 
     const [porDia] = await sequelize.query(
       `SELECT DATE(fechaRecepcion) as fecha, COUNT(*) as cantidad FROM recepcionpaquetes WHERE DATE(fechaRecepcion) >= ? AND DATE(fechaRecepcion) <= ? GROUP BY DATE(fechaRecepcion) ORDER BY fecha DESC`,
-      { replacements: [fechaInicio, fechaFin] }
+      { replacements: [fechaInicio, fechaFin] },
     );
 
     res.json({
@@ -190,7 +217,6 @@ export const obtenerReportePaquetes = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error en reporte de paquetes:", error);
     res.status(500).json({
       success: false,
       message: "Error al generar reporte de paquetes",
@@ -199,9 +225,6 @@ export const obtenerReportePaquetes = async (req, res) => {
   }
 };
 
-// ============================================================================
-// REPORTE DE RESERVAS
-// ============================================================================
 export const obtenerReporteReservas = async (req, res) => {
   try {
     const { fechaInicio, fechaFin } = req.query;
@@ -215,7 +238,7 @@ export const obtenerReporteReservas = async (req, res) => {
 
     const [totalReservas] = await sequelize.query(
       `SELECT COUNT(*) as total FROM reservasareas WHERE fechaReserva >= ? AND fechaReserva <= ?`,
-      { replacements: [fechaInicio, fechaFin] }
+      { replacements: [fechaInicio, fechaFin] },
     );
 
     const [porArea] = await sequelize.query(
@@ -226,7 +249,7 @@ export const obtenerReporteReservas = async (req, res) => {
       WHERE r.fechaReserva >= ? AND r.fechaReserva <= ?
       GROUP BY ac.nombreArea, ac.idAreaComun ORDER BY cantidad DESC
     `,
-      { replacements: [fechaInicio, fechaFin] }
+      { replacements: [fechaInicio, fechaFin] },
     );
 
     const [porEstado] = await sequelize.query(
@@ -237,17 +260,17 @@ export const obtenerReporteReservas = async (req, res) => {
       WHERE r.fechaReserva >= ? AND r.fechaReserva <= ?
       GROUP BY e.nombreEstado, r.estadoId ORDER BY cantidad DESC
     `,
-      { replacements: [fechaInicio, fechaFin] }
+      { replacements: [fechaInicio, fechaFin] },
     );
 
     const [promedioAsistentes] = await sequelize.query(
       `SELECT ROUND(AVG(cantidadAsistentes), 2) as promedio FROM reservasareas WHERE fechaReserva >= ? AND fechaReserva <= ?`,
-      { replacements: [fechaInicio, fechaFin] }
+      { replacements: [fechaInicio, fechaFin] },
     );
 
     const [reservasPorDia] = await sequelize.query(
       `SELECT DATE(fechaReserva) as fecha, COUNT(*) as cantidad FROM reservasareas WHERE fechaReserva >= ? AND fechaReserva <= ? GROUP BY DATE(fechaReserva) ORDER BY cantidad DESC LIMIT 1`,
-      { replacements: [fechaInicio, fechaFin] }
+      { replacements: [fechaInicio, fechaFin] },
     );
 
     res.json({
@@ -261,7 +284,6 @@ export const obtenerReporteReservas = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error en reporte de reservas:", error);
     res.status(500).json({
       success: false,
       message: "Error al generar reporte de reservas",
@@ -270,9 +292,6 @@ export const obtenerReporteReservas = async (req, res) => {
   }
 };
 
-// ============================================================================
-// REPORTE CONSOLIDADO
-// ============================================================================
 export const obtenerReporteConsolidado = async (req, res) => {
   try {
     const { fechaInicio, fechaFin } = req.query;
@@ -297,42 +316,42 @@ export const obtenerReporteConsolidado = async (req, res) => {
       [reservasPorEstado],
     ] = await Promise.all([
       sequelize.query(
-        `SELECT tv.nombreVehiculo, COUNT(p.codigoParqueadero) as cantidad FROM parqueaderos p INNER JOIN tiposVehiculo tv ON p.tipoVehiculoId = tv.idTipoVehiculo GROUP BY tv.nombreVehiculo, tv.idTipoVehiculo ORDER BY tv.idTipoVehiculo`
+        `SELECT tv.nombreVehiculo, COUNT(p.codigoParqueadero) as cantidad FROM parqueaderos p INNER JOIN tiposVehiculo tv ON p.tipoVehiculoId = tv.idTipoVehiculo GROUP BY tv.nombreVehiculo, tv.idTipoVehiculo ORDER BY tv.idTipoVehiculo`,
       ),
       sequelize.query(
-        `SELECT e.nombreEstado, COUNT(p.codigoParqueadero) as cantidad FROM parqueaderos p INNER JOIN estados e ON p.estadoId = e.IdEstado WHERE p.estadoId IN (3, 4) GROUP BY e.nombreEstado, p.estadoId ORDER BY p.estadoId`
+        `SELECT e.nombreEstado, COUNT(p.codigoParqueadero) as cantidad FROM parqueaderos p INNER JOIN estados e ON p.estadoId = e.IdEstado WHERE p.estadoId IN (3, 4) GROUP BY e.nombreEstado, p.estadoId ORDER BY p.estadoId`,
       ),
       sequelize.query(
         `SELECT COUNT(*) as total FROM visitas WHERE DATE(fechaHoraIngreso) >= ? AND DATE(fechaHoraIngreso) <= ?`,
-        { replacements: [fechaInicio, fechaFin] }
+        { replacements: [fechaInicio, fechaFin] },
       ),
       sequelize.query(
         `SELECT CASE WHEN vehiculoMatricula IS NOT NULL THEN 'Con vehículo' ELSE 'Sin vehículo' END as tipo, COUNT(*) as cantidad FROM visitas WHERE DATE(fechaHoraIngreso) >= ? AND DATE(fechaHoraIngreso) <= ? GROUP BY CASE WHEN vehiculoMatricula IS NOT NULL THEN 'Con vehículo' ELSE 'Sin vehículo' END`,
-        { replacements: [fechaInicio, fechaFin] }
+        { replacements: [fechaInicio, fechaFin] },
       ),
       sequelize.query(
         `SELECT COUNT(*) as total FROM recepcionpaquetes WHERE DATE(fechaRecepcion) >= ? AND DATE(fechaRecepcion) <= ?`,
-        { replacements: [fechaInicio, fechaFin] }
+        { replacements: [fechaInicio, fechaFin] },
       ),
       sequelize.query(
         `SELECT COUNT(*) as total FROM recepcionpaquetes WHERE DATE(fechaRecepcion) >= ? AND DATE(fechaRecepcion) <= ? AND fechaEntrega IS NOT NULL`,
-        { replacements: [fechaInicio, fechaFin] }
+        { replacements: [fechaInicio, fechaFin] },
       ),
       sequelize.query(
         `SELECT COUNT(*) as total FROM recepcionpaquetes WHERE DATE(fechaRecepcion) >= ? AND DATE(fechaRecepcion) <= ? AND fechaEntrega IS NULL`,
-        { replacements: [fechaInicio, fechaFin] }
+        { replacements: [fechaInicio, fechaFin] },
       ),
       sequelize.query(
         `SELECT COUNT(*) as total FROM reservasareas WHERE fechaReserva >= ? AND fechaReserva <= ?`,
-        { replacements: [fechaInicio, fechaFin] }
+        { replacements: [fechaInicio, fechaFin] },
       ),
       sequelize.query(
         `SELECT ac.nombreArea, COUNT(r.idReservas) as cantidad FROM reservasareas r INNER JOIN areacomun ac ON r.areaComunId = ac.idAreaComun WHERE r.fechaReserva >= ? AND r.fechaReserva <= ? GROUP BY ac.nombreArea, ac.idAreaComun ORDER BY cantidad DESC`,
-        { replacements: [fechaInicio, fechaFin] }
+        { replacements: [fechaInicio, fechaFin] },
       ),
       sequelize.query(
         `SELECT e.nombreEstado, COUNT(r.idReservas) as cantidad FROM reservasareas r INNER JOIN estados e ON r.estadoId = e.IdEstado WHERE r.fechaReserva >= ? AND r.fechaReserva <= ? GROUP BY e.nombreEstado, r.estadoId ORDER BY cantidad DESC`,
-        { replacements: [fechaInicio, fechaFin] }
+        { replacements: [fechaInicio, fechaFin] },
       ),
     ]);
 
@@ -360,7 +379,6 @@ export const obtenerReporteConsolidado = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error en reporte consolidado:", error);
     res.status(500).json({
       success: false,
       message: "Error al generar reporte consolidado",
@@ -369,9 +387,6 @@ export const obtenerReporteConsolidado = async (req, res) => {
   }
 };
 
-// ============================================================================
-// REPORTE DE RESIDENTES - APARTAMENTOS Y TORRES MÁS HABITADAS
-// ============================================================================
 export const obtenerReporteOcupacion = async (req, res) => {
   try {
     // Resumen general de ocupación
@@ -434,32 +449,31 @@ export const obtenerReporteOcupacion = async (req, res) => {
       success: true,
       data: {
         // Resumen principal para las tarjetas
-        totalApartamentos: parseInt(resumenGeneral[0]?.totalApartamentos) || 0,
+        totalApartamentos: Number.parseInt(resumenGeneral[0]?.totalApartamentos, 10) || 0,
         apartamentosOcupados:
-          parseInt(resumenGeneral[0]?.apartamentosOcupados) || 0,
+          Number.parseInt(resumenGeneral[0]?.apartamentosOcupados, 10) || 0,
         apartamentosVacios:
-          parseInt(resumenGeneral[0]?.apartamentosVacios) || 0,
-        totalResidentes: parseInt(resumenGeneral[0]?.totalResidentes) || 0,
+          Number.parseInt(resumenGeneral[0]?.apartamentosVacios, 10) || 0,
+        totalResidentes: Number.parseInt(resumenGeneral[0]?.totalResidentes, 10) || 0,
         porcentajeOcupacion:
-          parseFloat(resumenGeneral[0]?.porcentajeOcupacion) || 0,
+          Number.parseFloat(resumenGeneral[0]?.porcentajeOcupacion) || 0,
         // Detalle por torre
         detallePorTorre: torresMasHabitadas.map((t) => ({
           ...t,
-          totalApartamentos: parseInt(t.totalApartamentos) || 0,
-          apartamentosOcupados: parseInt(t.apartamentosOcupados) || 0,
-          totalOcupantes: parseInt(t.totalOcupantes) || 0,
-          totalPersonas: parseInt(t.totalPersonas) || 0,
-          promedioPersonasPorApto: parseFloat(t.promedioPersonasPorApto) || 0,
+          totalApartamentos: Number.parseInt(t.totalApartamentos, 10) || 0,
+          apartamentosOcupados: Number.parseInt(t.apartamentosOcupados, 10) || 0,
+          totalOcupantes: Number.parseInt(t.totalOcupantes, 10) || 0,
+          totalPersonas: Number.parseInt(t.totalPersonas, 10) || 0,
+          promedioPersonasPorApto: Number.parseFloat(t.promedioPersonasPorApto) || 0,
         })),
         apartamentosMasHabitados: apartamentosMasHabitados.map((a) => ({
           ...a,
-          totalOcupantes: parseInt(a.totalOcupantes) || 0,
-          totalPersonas: parseInt(a.totalPersonas) || 0,
+          totalOcupantes: Number.parseInt(a.totalOcupantes, 10) || 0,
+          totalPersonas: Number.parseInt(a.totalPersonas, 10) || 0,
         })),
       },
     });
   } catch (error) {
-    console.error("Error en reporte de ocupación:", error);
     res.status(500).json({
       success: false,
       message: "Error al generar reporte de ocupación",
@@ -468,9 +482,6 @@ export const obtenerReporteOcupacion = async (req, res) => {
   }
 };
 
-// ============================================================================
-// REPORTE DE RESIDENTES - TORRES CON MÁS NIÑOS
-// ============================================================================
 export const obtenerReporteNinos = async (req, res) => {
   try {
     // Resumen total de niños
@@ -518,20 +529,19 @@ export const obtenerReporteNinos = async (req, res) => {
     res.json({
       success: true,
       data: {
-        totalNinos: parseInt(resumenNinos[0]?.totalOcupantesConNinos) || 0,
+        totalNinos: Number.parseInt(resumenNinos[0]?.totalOcupantesConNinos, 10) || 0,
         totalApartamentosConNinos:
-          parseInt(resumenNinos[0]?.totalApartamentosConNinos) || 0,
+          Number.parseInt(resumenNinos[0]?.totalApartamentosConNinos, 10) || 0,
         resumenPorTorre: torresConNinos.map((t) => ({
           ...t,
-          totalApartamentos: parseInt(t.totalApartamentos) || 0,
-          apartamentosConNinos: parseInt(t.apartamentosConNinos) || 0,
-          porcentajeConNinos: parseFloat(t.porcentajeConNinos) || 0,
+          totalApartamentos: Number.parseInt(t.totalApartamentos, 10) || 0,
+          apartamentosConNinos: Number.parseInt(t.apartamentosConNinos, 10) || 0,
+          porcentajeConNinos: Number.parseFloat(t.porcentajeConNinos) || 0,
         })),
         detalleApartamentos: detalleApartamentos,
       },
     });
   } catch (error) {
-    console.error("Error en reporte de niños:", error);
     res.status(500).json({
       success: false,
       message: "Error al generar reporte de niños",
@@ -540,9 +550,6 @@ export const obtenerReporteNinos = async (req, res) => {
   }
 };
 
-// ============================================================================
-// REPORTE DE RESIDENTES - TORRES CON ADULTOS MAYORES Y DISCAPACIDAD
-// ============================================================================
 export const obtenerReportePoblacionEspecial = async (req, res) => {
   try {
     // Resumen total de población especial
@@ -637,41 +644,192 @@ export const obtenerReportePoblacionEspecial = async (req, res) => {
       success: true,
       data: {
         totalAdultosMayores:
-          parseInt(resumenTotal[0]?.totalAdultosMayores) || 0,
-        totalDiscapacidad: parseInt(resumenTotal[0]?.totalDiscapacidad) || 0,
+          Number.parseInt(resumenTotal[0]?.totalAdultosMayores, 10) || 0,
+        totalDiscapacidad: Number.parseInt(resumenTotal[0]?.totalDiscapacidad, 10) || 0,
         adultosMayores: torresConAdultosMayores.map((t) => ({
           ...t,
-          totalApartamentos: parseInt(t.totalApartamentos) || 0,
+          totalApartamentos: Number.parseInt(t.totalApartamentos, 10) || 0,
           apartamentosConAdultosMayores:
-            parseInt(t.apartamentosConAdultosMayores) || 0,
+            Number.parseInt(t.apartamentosConAdultosMayores, 10) || 0,
           porcentajeConAdultosMayores:
-            parseFloat(t.porcentajeConAdultosMayores) || 0,
+            Number.parseFloat(t.porcentajeConAdultosMayores) || 0,
         })),
         discapacidad: torresConDiscapacidad.map((t) => ({
           ...t,
-          totalApartamentos: parseInt(t.totalApartamentos) || 0,
+          totalApartamentos: Number.parseInt(t.totalApartamentos, 10) || 0,
           apartamentosConDiscapacidad:
-            parseInt(t.apartamentosConDiscapacidad) || 0,
+            Number.parseInt(t.apartamentosConDiscapacidad, 10) || 0,
           porcentajeConDiscapacidad:
-            parseFloat(t.porcentajeConDiscapacidad) || 0,
+            Number.parseFloat(t.porcentajeConDiscapacidad) || 0,
         })),
         resumenCombinado: resumenCombinado.map((t) => ({
           ...t,
-          totalApartamentos: parseInt(t.totalApartamentos) || 0,
-          conAdultosMayores: parseInt(t.conAdultosMayores) || 0,
-          conDiscapacidad: parseInt(t.conDiscapacidad) || 0,
-          conPoblacionEspecial: parseInt(t.conPoblacionEspecial) || 0,
+          totalApartamentos: Number.parseInt(t.totalApartamentos, 10) || 0,
+          conAdultosMayores: Number.parseInt(t.conAdultosMayores, 10) || 0,
+          conDiscapacidad: Number.parseInt(t.conDiscapacidad, 10) || 0,
+          conPoblacionEspecial: Number.parseInt(t.conPoblacionEspecial, 10) || 0,
           porcentajePoblacionEspecial:
-            parseFloat(t.porcentajePoblacionEspecial) || 0,
+            Number.parseFloat(t.porcentajePoblacionEspecial) || 0,
         })),
         detalleApartamentos: detalleApartamentos,
       },
     });
   } catch (error) {
-    console.error("Error en reporte de población especial:", error);
     res.status(500).json({
       success: false,
       message: "Error al generar reporte de población especial",
+      error: error.message,
+    });
+  }
+};
+
+export const obtenerReporteUsuarios = async (req, res) => {
+  try {
+    const { fechaInicio, fechaFin } = req.query;
+
+    if (!fechaInicio || !fechaFin) {
+      return res.status(400).json({
+        success: false,
+        message: "Se requieren fechaInicio y fechaFin",
+      });
+    }
+
+    // Usuarios más activos en el período con su rol y estado real
+    // estadoId = 1 → Activo | estadoId = 2 → Inactivo
+    const [masActivos] = await sequelize.query(
+      `
+      SELECT
+        u.username,
+        r.nombreRol,
+        e.nombreEstado,
+        u.ultimaActividad,
+        COUNT(a.idAuditoria) as totalRegistros,
+        MAX(a.fechaHoraAuditoria) as ultimoRegistro
+      FROM usuarios u
+      LEFT JOIN auditorias a ON u.username = a.username
+        AND DATE(a.fechaHoraAuditoria) >= ? AND DATE(a.fechaHoraAuditoria) <= ?
+      LEFT JOIN roles r ON u.rolesId = r.idRol
+      LEFT JOIN estados e ON u.estadoId = e.IdEstado
+      GROUP BY u.username, r.nombreRol, e.nombreEstado, u.ultimaActividad
+      ORDER BY totalRegistros DESC
+      LIMIT 10
+      `,
+      { replacements: [fechaInicio, fechaFin] },
+    );
+
+    // Usuarios con mayor tiempo sin ingresar al sistema
+    const [masInactivos] = await sequelize.query(
+      `
+      SELECT
+        u.username,
+        r.nombreRol,
+        e.nombreEstado,
+        u.ultimaActividad,
+        CASE
+          WHEN u.ultimaActividad IS NULL THEN 9999
+          ELSE DATEDIFF(NOW(), u.ultimaActividad)
+        END as diasSinActividad
+      FROM usuarios u
+      LEFT JOIN roles r ON u.rolesId = r.idRol
+      LEFT JOIN estados e ON u.estadoId = e.IdEstado
+      ORDER BY diasSinActividad DESC
+      LIMIT 10
+      `,
+    );
+
+    // Módulos más utilizados en el período (agrupado por tabla → nombre amigable)
+    const [modulosMasUsados] = await sequelize.query(
+      `
+      SELECT tablaAfectada, COUNT(*) as cantidad
+      FROM auditorias
+      WHERE DATE(fechaHoraAuditoria) >= ? AND DATE(fechaHoraAuditoria) <= ?
+      GROUP BY tablaAfectada
+      ORDER BY cantidad DESC
+      LIMIT 8
+      `,
+      { replacements: [fechaInicio, fechaFin] },
+    );
+
+    // Actividad diaria en el período (para gráfica)
+    const [actividadDiaria] = await sequelize.query(
+      `
+      SELECT
+        DATE(fechaHoraAuditoria) as fecha,
+        COUNT(*) as registros,
+        COUNT(DISTINCT username) as usuariosActivos
+      FROM auditorias
+      WHERE DATE(fechaHoraAuditoria) >= ? AND DATE(fechaHoraAuditoria) <= ?
+      GROUP BY DATE(fechaHoraAuditoria)
+      ORDER BY fecha ASC
+      `,
+      { replacements: [fechaInicio, fechaFin] },
+    );
+
+    // Usuarios que ingresaron hoy al sistema
+    const [hoy] = await sequelize.query(
+      `
+      SELECT COUNT(*) as registros, COUNT(DISTINCT username) as usuarios
+      FROM auditorias
+      WHERE DATE(fechaHoraAuditoria) = CURDATE()
+      `,
+    );
+
+    // Total registros en el período
+    const [totalPeriodo] = await sequelize.query(
+      `SELECT COUNT(*) as total FROM auditorias WHERE DATE(fechaHoraAuditoria) >= ? AND DATE(fechaHoraAuditoria) <= ?`,
+      { replacements: [fechaInicio, fechaFin] },
+    );
+
+    // Mapa de nombres amigables para los módulos
+    const nombreModulo = {
+      visitas: "Visitas",
+      recepcionpaquetes: "Paquetería",
+      reservasareas: "Reservas Áreas",
+      parqueaderos: "Parqueaderos",
+      usuarios: "Gestión Usuarios",
+      apartamentos: "Apartamentos",
+      ocupante: "Residentes",
+      areacomun: "Áreas Comunes",
+      vehiculo: "Vehículos",
+      personas: "Personas",
+      torres: "Torres",
+    };
+
+    res.json({
+      success: true,
+      data: {
+        masActivos: masActivos.map((u) => ({
+          ...u,
+          totalRegistros: Number.parseInt(u.totalRegistros, 10) || 0,
+        })),
+        masInactivos: masInactivos.map((u) => ({
+          ...u,
+          diasSinActividad:
+            Number.parseInt(u.diasSinActividad, 10) === 9999
+              ? null
+              : Number.parseInt(u.diasSinActividad, 10),
+        })),
+        modulosMasUsados: modulosMasUsados.map((m) => ({
+          tabla: m.tablaAfectada,
+          nombre:
+            nombreModulo[(m.tablaAfectada || "").toLowerCase()] ||
+            m.tablaAfectada,
+          cantidad: Number.parseInt(m.cantidad, 10) || 0,
+        })),
+        actividadDiaria: actividadDiaria.map((d) => ({
+          ...d,
+          registros: Number.parseInt(d.registros, 10) || 0,
+          usuariosActivos: Number.parseInt(d.usuariosActivos, 10) || 0,
+        })),
+        registrosHoy: Number.parseInt(hoy[0]?.registros, 10) || 0,
+        usuariosActivosHoy: Number.parseInt(hoy[0]?.usuarios, 10) || 0,
+        totalRegistrosPeriodo: Number.parseInt(totalPeriodo[0]?.total, 10) || 0,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error al generar reporte de usuarios",
       error: error.message,
     });
   }

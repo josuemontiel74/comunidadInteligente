@@ -1,9 +1,40 @@
 import personasModel from "../models/personas.model.js";
 import User from "../models/user.model.js";
+import {
+  validarCamposNombre,
+  validarTelefono,
+  validarNumeroDocumento,
+} from "../utils/validaciones.js";
+
 export const createPersona = async (req, res) => {
   try {
     await personasModel.sync();
     const dataPersona = req.body;
+
+    // Validar número de documento
+    const errorDoc = validarNumeroDocumento(
+      dataPersona.tipoDocumentoId,
+      dataPersona.numeroDocumento,
+    );
+    if (errorDoc)
+      return res.status(400).json({ message: errorDoc, status: 400 });
+
+    // Validar teléfono
+    const errorTel = validarTelefono(dataPersona.telefono);
+    if (errorTel)
+      return res.status(400).json({ message: errorTel, status: 400 });
+
+    // Validar que los nombres no contengan números
+    const errorNombre = validarCamposNombre({
+      "Primer nombre": dataPersona.primerNombre,
+      "Segundo nombre": dataPersona.segundoNombre,
+      "Primer apellido": dataPersona.primerApellido,
+      "Segundo apellido": dataPersona.segundoApellido,
+    });
+    if (errorNombre) {
+      return res.status(400).json({ message: errorNombre, status: 400 });
+    }
+
     const createPersona = await personasModel.create({
       numeroDocumento: dataPersona.numeroDocumento,
       tipoDocumentoId: dataPersona.tipoDocumentoId,
@@ -93,6 +124,22 @@ export const UpdatePersona = async (req, res) => {
         .json({ message: "El numeroDocumento es obligatorio" });
     }
 
+    // Validar que los nombres no contengan números
+    const errorNombre = validarCamposNombre({
+      "Primer nombre": data.primerNombre,
+      "Segundo nombre": data.segundoNombre,
+      "Primer apellido": data.primerApellido,
+      "Segundo apellido": data.segundoApellido,
+    });
+    if (errorNombre) {
+      return res.status(400).json({ message: errorNombre, status: 400 });
+    }
+
+    // Validar teléfono
+    const errorTelUpd = validarTelefono(data.telefono);
+    if (errorTelUpd)
+      return res.status(400).json({ message: errorTelUpd, status: 400 });
+
     // Actualizar solo los campos editables (numeroDocumento no se toca)
     const [updated] = await personasModel.update(
       {
@@ -105,7 +152,7 @@ export const UpdatePersona = async (req, res) => {
         correoElectronico: data.correoElectronico,
         estadoId: data.estadoId ?? null,
       },
-      { where: { numeroDocumento } }
+      { where: { numeroDocumento } },
     );
 
     if (updated === 0) {
@@ -123,7 +170,7 @@ export const UpdatePersona = async (req, res) => {
     if (data.estadoId) {
       await User.update(
         { estadoId: data.estadoId },
-        { where: { personaId: personaActualizada.id } }
+        { where: { personaId: personaActualizada.id } },
       );
     }
 
@@ -144,7 +191,9 @@ export const deletePersona = async (req, res) => {
     const numeroDocumento = req.params.numeroDocumento;
 
     if (!numeroDocumento) {
-      return res.status(400).json({ message: "El numeroDocumento es obligatorio" });
+      return res
+        .status(400)
+        .json({ message: "El numeroDocumento es obligatorio" });
     }
 
     const deleted = await personasModel.destroy({
@@ -152,10 +201,14 @@ export const deletePersona = async (req, res) => {
     });
 
     if (deleted === 0) {
-      return res.status(404).json({ message: "No se encontró la persona para eliminar" });
+      return res
+        .status(404)
+        .json({ message: "No se encontró la persona para eliminar" });
     }
 
-    res.status(200).json({ message: "Persona y usuarios eliminados exitosamente" });
+    res
+      .status(200)
+      .json({ message: "Persona y usuarios eliminados exitosamente" });
   } catch (error) {
     res.status(500).json({
       message: "Error al eliminar persona",

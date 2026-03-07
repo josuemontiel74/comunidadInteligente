@@ -214,7 +214,7 @@ class _AuditoriasState extends State<Auditorias> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: filtroModulo,
+                        initialValue: filtroModulo,
                         decoration: InputDecoration(
                           labelText: 'Módulo',
                           border: OutlineInputBorder(
@@ -259,7 +259,7 @@ class _AuditoriasState extends State<Auditorias> {
                     SizedBox(width: 16),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: filtroAccion,
+                        initialValue: filtroAccion,
                         decoration: InputDecoration(
                           labelText: 'Acción',
                           border: OutlineInputBorder(

@@ -33,6 +33,7 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
     });
   }
 
+  // ignore: unused_element
   void _mostrarDetalleRegistro(Auditoria auditoria) {
     showDialog(
       context: context,
@@ -56,13 +57,17 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
             SizedBox(height: 12),
             Text(
               'ID del Registro (Clave Primaria):',
-              style: TextStyle(color: Colors.grey[700]),
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
             ),
             SizedBox(height: 8),
             Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.indigo.withOpacity(0.1),
+                color: Colors.indigo.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -124,7 +129,11 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
                     SizedBox(height: 12),
                     Text(
                       'El servidor está teniendo problemas.\nPor favor, contacta al administrador.',
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.5),
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     SizedBox(height: 16),
@@ -158,11 +167,22 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.history, size: 80, color: Colors.grey),
+          Icon(
+            Icons.history,
+            size: 80,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.5),
+          ),
           SizedBox(height: 16),
           Text(
             'No hay registros de auditoría',
-            style: TextStyle(fontSize: 18, color: Colors.grey),
+            style: TextStyle(
+              fontSize: 18,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
           ),
         ],
       ),
@@ -181,7 +201,9 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
   Widget _buildFilters() {
     return Container(
       padding: EdgeInsets.all(16),
-      color: Colors.grey[100],
+      color: Theme.of(context).brightness == Brightness.dark
+          ? Colors.grey.shade900
+          : Colors.grey[100],
       child: Column(
         children: [
           // Barra de búsqueda
@@ -198,7 +220,7 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
                 borderSide: BorderSide(color: Colors.indigo, width: 2),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: Theme.of(context).cardColor,
             ),
             onChanged: (value) {
               setState(() {
@@ -212,7 +234,7 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _filtroOperacion,
+                  initialValue: _filtroOperacion,
                   decoration: InputDecoration(
                     labelText: 'Operación',
                     prefixIcon: Icon(Icons.filter_list, color: Colors.indigo),
@@ -220,7 +242,7 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: Theme.of(context).cardColor,
                   ),
                   items: [
                     DropdownMenuItem(value: 'todos', child: Text('Todas')),
@@ -238,7 +260,7 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
               SizedBox(width: 16),
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _filtroTabla,
+                  initialValue: _filtroTabla,
                   decoration: InputDecoration(
                     labelText: 'Tabla',
                     prefixIcon: Icon(Icons.table_chart, color: Colors.indigo),
@@ -246,7 +268,7 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: Theme.of(context).cardColor,
                   ),
                   items: [
                     DropdownMenuItem(value: 'todos', child: Text('Todas')),
@@ -286,11 +308,22 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: 80, color: Colors.grey),
+            Icon(
+              Icons.search_off,
+              size: 80,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
             SizedBox(height: 16),
             Text(
               'No se encontraron registros',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              style: TextStyle(
+                fontSize: 18,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
             ),
           ],
         ),
@@ -337,8 +370,10 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
           padding: const EdgeInsets.all(16.0),
           child: DataTable(
             columnSpacing: 24,
-            headingRowColor: MaterialStateProperty.all(
-              Colors.indigo.withOpacity(0.1),
+            headingRowColor: WidgetStateProperty.all(
+              Theme.of(context).brightness == Brightness.dark
+                  ? Colors.indigo.withValues(alpha: 0.3)
+                  : Colors.indigo.withValues(alpha: 0.1),
             ),
             columns: const [
               DataColumn(
@@ -459,7 +494,9 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
                             dateFormat.format(auditoria.fechaHoraAuditoria),
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.7),
                             ),
                           ),
                         ],
@@ -493,7 +530,9 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
                             'Tabla Afectada',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.7),
                             ),
                           ),
                           SizedBox(height: 4),
@@ -511,7 +550,9 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
                           'ID Afectado',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[600],
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
                         ),
                         SizedBox(height: 4),

@@ -4,428 +4,84 @@ import solicitantesModel from "../models/solicitante.model.js";
 import dayjs from "dayjs";
 import Apartamento from "../models/apartamentos.model.js";
 import Estado from "../models/estados.model.js";
-import { sequelize } from "../config/connect.db.js";
 import { Op, fn, col, literal, where } from "sequelize";
 import Tipodocumentos from "../models/tipoDocumento.model.js";
 import Torre from "../models/torres.model.js";
 import { registrarAuditoria } from "../services/auditorias.service.js";
 import { registrarFallo } from "../services/logger.service.js";
+import { ESTADO_RESERVA } from "../utils/constantes.js";
 
-/**
- * Función auxiliar para actualizar automáticamente los estados de las reservas
- * según la fecha y hora actual
- * Estados:
- * - 7: Pendiente/Programada (antes de la fecha/hora de inicio)
- * - 8: En curso (entre hora inicio y hora fin del día de la reserva)
- * - 9: Finalizada (después de la hora fin)
- */
+// Helpers para calcular estados de reservas ─
+
+/** Extrae la parte de fecha (YYYY-MM-DD) desde distintos formatos */
+const resolverFechaReservaStr = (fechaReserva) => {
+  if (typeof fechaReserva === "string") return fechaReserva.split("T")[0];
+  if (fechaReserva instanceof Date)
+    return fechaReserva.toISOString().split("T")[0];
+  return dayjs(fechaReserva).format("YYYY-MM-DD");
+};
+
+/** Determina el nuevo estadoId para una reserva dado el contexto horario actual */
+const calcularNuevoEstado = (reserva, fechaHoy, horaActual) => {
+  const { horaInicio, horaFin, estadoId } = reserva;
+  const fechaReservaStr = resolverFechaReservaStr(reserva.fechaReserva);
+  const fechaReservaDayjs = dayjs(fechaReservaStr, "YYYY-MM-DD");
+  const hoyDayjs = dayjs(fechaHoy, "YYYY-MM-DD");
+
+  if (fechaReservaDayjs.isBefore(hoyDayjs, "day")) {
+    return estadoId === ESTADO_RESERVA.FINALIZADA
+      ? null
+      : ESTADO_RESERVA.FINALIZADA;
+  }
+
+  if (!fechaReservaDayjs.isSame(hoyDayjs, "day")) return null;
+
+  if (horaFin && horaActual > horaFin) {
+    return estadoId === ESTADO_RESERVA.FINALIZADA
+      ? null
+      : ESTADO_RESERVA.FINALIZADA;
+  }
+
+  const enCurso =
+    horaInicio &&
+    horaActual >= horaInicio &&
+    (!horaFin || horaActual <= horaFin);
+  if (enCurso) {
+    return estadoId === ESTADO_RESERVA.EN_CURSO
+      ? null
+      : ESTADO_RESERVA.EN_CURSO;
+  }
+
+  return null;
+};
+
+// Función auxiliar: actualizar estados de reservas automáticamente
+// Estados: 7=Pendiente, 8=En curso, 9=Finalizada
 const actualizarEstadosReservas = async () => {
   try {
     const ahora = dayjs();
     const fechaHoy = ahora.format("YYYY-MM-DD");
     const horaActual = ahora.format("HH:mm:ss");
 
-    console.log(
-      "Actualizando estados - Fecha hoy:",
-      fechaHoy,
-      "Hora actual:",
-      horaActual
-    );
-
-    // Buscar reservas que no estén finalizadas
     const reservas = await reservasAreasModel.findAll({
-      where: {
-        estadoId: [7, 8], // Solo pendientes o en curso
-      },
+      where: { estadoId: [ESTADO_RESERVA.PENDIENTE, ESTADO_RESERVA.EN_CURSO] },
     });
-
-    console.log(`Encontradas ${reservas.length} reservas para revisar`);
 
     for (const reserva of reservas) {
-      // Extraer solo la parte de la fecha sin conversión de zona horaria
-      let fechaReservaStr;
-      if (typeof reserva.fechaReserva === "string") {
-        // Si ya es string, tomar solo la parte de la fecha
-        fechaReservaStr = reserva.fechaReserva.split("T")[0];
-      } else if (reserva.fechaReserva instanceof Date) {
-        // Si es objeto Date, convertir a ISO y tomar la parte de fecha
-        fechaReservaStr = reserva.fechaReserva.toISOString().split("T")[0];
-      } else {
-        // Si no es ninguno de los dos, usar dayjs para parsear
-        fechaReservaStr = dayjs(reserva.fechaReserva).format("YYYY-MM-DD");
+      const nuevoEstado = calcularNuevoEstado(reserva, fechaHoy, horaActual);
+      if (nuevoEstado !== null) {
+        await reserva.update({ estadoId: nuevoEstado });
       }
-
-      const horaInicio = reserva.horaInicio;
-      const horaFin = reserva.horaFin;
-
-      console.log(`\nReserva ID ${reserva.idReservas}:`);
-      console.log(`   Fecha reserva (raw):`, reserva.fechaReserva);
-      console.log(`   Fecha reserva (tipo):`, typeof reserva.fechaReserva);
-      console.log(`   Fecha reserva (procesada): ${fechaReservaStr}`);
-      console.log(`   Hora inicio: ${horaInicio}, Hora fin: ${horaFin}`);
-      console.log(`   Estado actual: ${reserva.estadoId}`);
-
-      // Comparar fechas usando dayjs para mejor precisión
-      const fechaReservaDayjs = dayjs(fechaReservaStr, "YYYY-MM-DD");
-      const hoyDayjs = dayjs(fechaHoy, "YYYY-MM-DD");
-
-      if (fechaReservaDayjs.isBefore(hoyDayjs, "day")) {
-        // La fecha ya pasó (días anteriores) -> Finalizada
-        console.log(`   Fecha pasada - Cambiando a Finalizada`);
-        if (reserva.estadoId !== 9) {
-          await reserva.update({ estadoId: 9 });
-        }
-      } else if (fechaReservaDayjs.isSame(hoyDayjs, "day")) {
-        // Es hoy, verificar la hora
-        console.log(`   Es hoy - Verificando horas`);
-        if (horaFin && horaActual > horaFin) {
-          // Ya pasó la hora de fin -> Finalizada
-          console.log(`   Hora fin pasada - Cambiando a Finalizada`);
-          if (reserva.estadoId !== 9) {
-            await reserva.update({ estadoId: 9 });
-          }
-        } else if (
-          horaInicio &&
-          horaActual >= horaInicio &&
-          (!horaFin || horaActual <= horaFin)
-        ) {
-          // Está entre hora inicio y hora fin -> En curso
-          console.log(`   Dentro del horario - Cambiando a En curso`);
-          if (reserva.estadoId !== 8) {
-            await reserva.update({ estadoId: 8 });
-          }
-        } else {
-          console.log(`   Aun no inicia - Mantiene Pendiente`);
-        }
-        // Si aún no llega la hora de inicio, se mantiene en estado 7
-      } else {
-        console.log(`   Fecha futura - Mantiene Pendiente`);
-      }
-      // Si la fecha es futura (después de hoy), se mantiene en estado 7 (Pendiente)
     }
   } catch (error) {
-    console.error("Error al actualizar estados de reservas:", error.message);
+    console.warn("Error actualizando estados de reservas:", error);
   }
 };
 
-export const CrearReservaArea = async (req, res) => {
-  try {
-    await reservasAreasModel.sync();
-    await solicitantesModel.sync();
-
-    const dataReserva = req.body;
-    console.log(dataReserva);
-
-    const hoy = dayjs().startOf("day");
-    // Parsear la fecha sin conversión de zona horaria
-    const fechaReserva = dayjs(dataReserva.fechaReserva, "YYYY-MM-DD", true);
-
-    if (!fechaReserva.isValid()) {
-      return res.status(400).json({
-        message: "Formato de fecha inválido. Use YYYY-MM-DD",
-        status: 400,
-      });
-    }
-    if (fechaReserva.isBefore(hoy)) {
-      return res.status(400).json({
-        message: "No se puede crear una reserva en el pasado",
-        status: 400,
-      });
-    }
-
-    // Verificar si ya existe una reserva que interfiera con el horario
-    const verficarReserva = await reservasAreasModel.findOne({
-      where: {
-        areaComunId: dataReserva.areaComunId,
-        fechaReserva: fechaReserva.format("YYYY-MM-DD"),
-        [SequelizeOp.and]: [
-          { horaInicio: { [SequelizeOp.lt]: dataReserva.horaFin } },
-          { horaFin: { [SequelizeOp.gt]: dataReserva.horaInicio } },
-        ],
-      },
-    });
-
-    console.log("===== DEBUG VALIDACIÓN RESERVA =====");
-    console.log("Área Común ID:", dataReserva.areaComunId);
-    console.log("Fecha:", fechaReserva.format("YYYY-MM-DD"));
-    console.log("Hora Inicio (nueva):", dataReserva.horaInicio);
-    console.log("Hora Fin (nueva):", dataReserva.horaFin);
-    console.log("Reserva existente encontrada:", verficarReserva ? "SÍ" : "NO");
-    if (verficarReserva) {
-      console.log("Reserva existente - ID:", verficarReserva.idReservas);
-      console.log(
-        "Reserva existente - Hora Inicio:",
-        verficarReserva.horaInicio
-      );
-      console.log("Reserva existente - Hora Fin:", verficarReserva.horaFin);
-    }
-    console.log("====================================");
-
-    if (verficarReserva != null) {
-      return res.status(409).json({
-        ok: false,
-        message:
-          "Lo sentimos, el área ya está reservada en la fecha y horario indicados.",
-      });
-    }
-
-    const [solicitante, created] = await solicitantesModel.findOrCreate({
-      where: { documentoSolicitante: dataReserva.documentoSolicitante },
-      defaults: {
-        documentoSolicitante: dataReserva.documentoSolicitante,
-        nombreSolicitante: dataReserva.nombreSolicitante,
-        telefonoSolicitante: dataReserva.telefonoSolicitante,
-        correoSolicitante: dataReserva.correoSolicitante,
-        tipoDocumentoId: dataReserva.tipoDocumentoId,
-      },
-    });
-
-    const nuevaReservaArea = await reservasAreasModel.create({
-      apartamentoId: dataReserva.apartamentoId,
-      areaComunId: dataReserva.areaComunId,
-      fechaReserva: fechaReserva.format("YYYY-MM-DD"),
-      horaInicio: dataReserva.horaInicio || null,
-      horaFin: dataReserva.horaFin || null,
-      motivoReserva: dataReserva.motivoReserva,
-      cantidadAsistentes: dataReserva.cantidadAsistentes,
-      invitadosExternos: dataReserva.invitadosExternos,
-      aceptaReglamento: dataReserva.aceptaReglamento,
-      estadoId: dataReserva.estadoId ?? 7,
-      documentoSolicitante: solicitante.documentoSolicitante,
-    });
-
-    // Registrar en auditoría
-    const usuarioActual = req.user?.username || "desconocido";
-    await registrarAuditoria(
-      usuarioActual,
-      "reservasareas",
-      "INSERT",
-      nuevaReservaArea.idReservas
-    );
-
-    res.status(201).json({
-      message: "Reserva creada exitosamente",
-      reserva: nuevaReservaArea,
-      solicitante: solicitante,
-      solicitanteNuevo: created,
-    });
-  } catch (error) {
-    const username = req.user?.username || "desconocido";
-    const ruta = "POST /reservasareas";
-
-    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
-
-    res.status(500).json({
-      message: "Error al crear la reserva",
-      status: 500,
-      error: error.message,
-    });
-  }
-};
-
+// GET /api/reservas-areas
+// Listar todas las reservas (versión unificada - antes "mostrarAreasComunesVersionMovil")
 export const listarReservasAreas = async (req, res) => {
   try {
-    // Actualizar estados automáticamente antes de consultar
-    await actualizarEstadosReservas();
-
-    const [results] = await sequelize.query(`
-      SELECT 
-    r.idReservas,
-    r.fechaReserva,
-    r.horaInicio,
-    r.horaFin,
-    r.motivoReserva,
-    r.cantidadAsistentes,
-    r.invitadosExternos,
-    r.aceptaReglamento,
-    r.apartamentoId,
-    ap.numeroApartamento,
-    ap.torresId,
-    t.nombreTorre,
-    r.areaComunId,
-    ac.nombreArea,
-    r.estadoId,
-    es.nombreEstado,
-    r.documentoSolicitante,
-    s.nombreSolicitante,
-    s.telefonoSolicitante,
-    s.correoSolicitante,
-    s.tipoDocumentoId,
-    td.nombreDocumento
-FROM reservasareas AS r
-JOIN apartamentos AS ap 
-    ON r.apartamentoId = ap.idApartamento
-JOIN torres AS t 
-    ON ap.torresId = t.idTorre
-JOIN areacomun AS ac 
-    ON r.areaComunId = ac.idAreaComun
-JOIN estados AS es 
-    ON r.estadoId = es.idEstado
-JOIN solicitante AS s 
-    ON r.documentoSolicitante = s.documentoSolicitante
-LEFT JOIN tipodocumentos AS td 
-    ON s.tipoDocumentoId = td.idTipoDocumento
-ORDER BY r.fechaReserva DESC, r.horaInicio ASC;
-    `);
-
-    res.status(200).json({
-      ok: true,
-      status: 200,
-      message: "Listado de reservas de áreas comunes",
-      body: results,
-    });
-  } catch (error) {
-    const username = req.user?.username || "desconocido";
-    const ruta = "GET /reservasareas";
-
-    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
-
-    console.error("Error al listar reservas de áreas:", error);
-    res.status(500).json({
-      error: "Error interno al listar reservas",
-      status: 500,
-      details: error.message,
-    });
-  }
-};
-
-export const ObtenerReservasAreas = async (req, res) => {
-  try {
-    // Actualizar estados automáticamente antes de consultar
-    await actualizarEstadosReservas();
-
-    await reservasAreasModel.sync();
-    const reservasAreas = await reservasAreasModel.findAll({
-      include: [
-        { model: areasModel, as: "areaComun" },
-        { model: solicitantesModel, as: "Solicitante" },
-      ],
-    });
-    res.json(reservasAreas);
-  } catch (error) {
-    const username = req.user?.username || "desconocido";
-    const ruta = "GET /reservasareas";
-
-    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
-
-    res.status(500).json({ message: error.message });
-  }
-};
-
-export const ObtenerReservaAreaPorId = async (req, res) => {
-  try {
-    const { idReservas } = req.params;
-    await reservasAreasModel.sync();
-    const reservaArea = await reservasAreasModel.findByPk(idReservas, {
-      include: [
-        { model: areasModel, as: "areaComun" },
-        { model: solicitantesModel, as: "Solicitante" },
-      ],
-    });
-    if (reservaArea) {
-      res.json(reservaArea);
-    } else {
-      res.status(404).json({ message: "Reserva de área no encontrada" });
-    }
-  } catch (error) {
-    const username = req.user?.username || "desconocido";
-    const ruta = "GET /reservasareas/:id";
-
-    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
-
-    res.status(500).json({ message: error.message });
-  }
-};
-
-export const ActualizarReservaArea = async (req, res) => {
-  try {
-    const { idReservas } = req.params;
-    const dataActualizada = req.body;
-    await reservasAreasModel.sync();
-
-
-
-    const reservaArea = await reservasAreasModel.findByPk(idReservas);
-    if (!reservaArea) {
-      return res.status(404).json({ message: "Reserva de área no encontrada" });
-    }
-    await reservaArea.update(dataActualizada);
-
-    // Registrar en auditoría
-    const usuarioActual = req.user?.username || "desconocido";
-    await registrarAuditoria(
-      usuarioActual,
-      "reservasareas",
-      "UPDATE",
-      idReservas
-    );
-
-    res.json({
-      message: "Reserva de área actualizada exitosamente",
-      reservaArea,
-    });
-  } catch (error) {
-    const username = req.user?.username || "desconocido";
-    const ruta = "PATCH /reservasareas/:id";
-
-    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
-
-    res.status(500).json({
-      message: "Algo salió mal en la petición :(",
-      status: 500,
-      error: error.message,
-    });
-  }
-};
-
-export const eliminarReservaArea = async (req, res) => {
-  try {
-    const { idReservas } = req.params;
-
-    const reserva = await reservasAreasModel.findByPk(idReservas);
-
-    if (!reserva) {
-      return res.status(404).json({
-        message: "Reserva de área no encontrada",
-        status: 404,
-      });
-    }
-
-    await reserva.update({
-      estadoId: 9,
-      horaFin: dayjs().format("HH:mm:ss"),
-    });
-
-    // Registrar en auditoría
-    const usuarioActual = req.user?.username || "desconocido";
-    await registrarAuditoria(
-      usuarioActual,
-      "reservasareas",
-      "DELETE",
-      idReservas
-    );
-
-    res.status(200).json({
-      message: "Reserva de área eliminada exitosamente",
-      status: 200,
-    });
-  } catch (error) {
-    const username = req.user?.username || "desconocido";
-    const ruta = "DELETE /reservasareas/:id";
-
-    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
-
-    res.status(500).json({
-      message: "Algo salió mal en la petición :(",
-      status: 500,
-      error: error.message,
-    });
-  }
-};
-// Trae datos de mejor manera versión móvil
-export const mostrarAreasComunesVersionMovil = async (req, res) => {
-  try {
-    // Actualizar estados automáticamente antes de consultar
     await actualizarEstadosReservas();
 
     const mostrarAreasComunes = await reservasAreasModel.findAll({
@@ -478,16 +134,27 @@ export const mostrarAreasComunesVersionMovil = async (req, res) => {
         },
       ],
     });
+
     res.status(200).json({
       ok: true,
       mostrarAreasComunes,
     });
   } catch (error) {
-    console.log("Error:", error.message);
+    const username = req.user?.username || "desconocido";
+    await registrarFallo(
+      "ERROR",
+      username,
+      "GET /reservas-areas",
+      error.message,
+      error.stack,
+    );
     res.status(500).json({ ok: false, error: error.message });
   }
 };
-export const buscar = async (req, res) => {
+
+// GET /api/reservas-areas/:idReservas
+// Buscar reserva por ID (versión unificada - antes "buscar")
+export const obtenerReservaPorId = async (req, res) => {
   try {
     const mostrarAreasComunes = await reservasAreasModel.findOne({
       where: { idReservas: req.params.idReservas },
@@ -499,6 +166,7 @@ export const buscar = async (req, res) => {
         ["motivoReserva", "motivoReserva"],
         ["cantidadAsistentes", "cantidadAsistentes"],
         ["invitadosExternos", "invitadosExternos"],
+        ["aceptaReglamento", "aceptaReglamento"],
       ],
       include: [
         {
@@ -534,43 +202,64 @@ export const buscar = async (req, res) => {
         },
       ],
     });
+
+    if (!mostrarAreasComunes) {
+      return res
+        .status(404)
+        .json({ ok: false, message: "Reserva no encontrada" });
+    }
+
     res.status(200).json({
       ok: true,
       mostrarAreasComunes,
     });
   } catch (error) {
-    console.log("Error:", error.message);
+    const username = req.user?.username || "desconocido";
+    await registrarFallo(
+      "ERROR",
+      username,
+      "GET /reservas-areas/:id",
+      error.message,
+      error.stack,
+    );
     res.status(500).json({ ok: false, error: error.message });
   }
 };
-export const crearReservasParaMovil = async (req, res) => {
+
+// POST /api/reservas-areas
+// Crear reserva (versión unificada - antes "crearReservasParaMovil")
+// Soporta tanto apartamentoId como numeroApartamento
+export const crearReserva = async (req, res) => {
   try {
-    let solicitante = null;
-    let created = false;
-    let nuevaReservaArea = null;
+    const dataReserva = req.body;
 
-    const apartamento = await Apartamento.findOne({
-      attributes: [
-        ["idApartamento", "idApartamento"],
-        ["torresId", "torresId"],
-      ],
-      where: { numeroApartamento: req.body.numeroApartamento },
-    });
+    // Resolver apartamentoId: soporta ambos formatos
+    let apartamentoId = dataReserva.apartamentoId;
 
-    if (!apartamento) {
+    if (!apartamentoId && dataReserva.numeroApartamento) {
+      const apartamento = await Apartamento.findOne({
+        attributes: [["idApartamento", "idApartamento"]],
+        where: { numeroApartamento: dataReserva.numeroApartamento },
+      });
+
+      if (!apartamento) {
+        return res.status(400).json({
+          ok: false,
+          message: `No se encuentra el apartamento con número ${dataReserva.numeroApartamento}`,
+        });
+      }
+      apartamentoId = apartamento.toJSON().idApartamento;
+    }
+
+    if (!apartamentoId) {
       return res.status(400).json({
         ok: false,
-        message: `No se encuentra el apartamento con número ${req.body.numeroApartamento}`,
+        message:
+          "Debe enviar apartamentoId o numeroApartamento para crear la reserva",
       });
     }
 
-    const json = apartamento.toJSON();
-    const id = json.idApartamento;
-
-    console.log(id);
-    const dataReserva = req.body;
     const hoy = dayjs().startOf("day");
-    // Parsear la fecha sin conversión de zona horaria
     const fechaReserva = dayjs(dataReserva.fechaReserva, "YYYY-MM-DD", true);
 
     if (!fechaReserva.isValid()) {
@@ -582,24 +271,24 @@ export const crearReservasParaMovil = async (req, res) => {
 
     if (fechaReserva.isBefore(hoy)) {
       return res.status(400).json({
+        ok: false,
         message: "No se puede crear una reserva en el pasado",
-        status: 400,
       });
     }
 
-    // Verificar si ya existe una reserva que interfiera con el horario
-    const verficarReserva = await reservasAreasModel.findOne({
+    // Verificar conflicto de horario
+    const verificarReserva = await reservasAreasModel.findOne({
       where: {
         areaComunId: dataReserva.areaComunId,
         fechaReserva: fechaReserva.format("YYYY-MM-DD"),
-        [SequelizeOp.and]: [
-          { horaInicio: { [SequelizeOp.lt]: dataReserva.horaFin } },
-          { horaFin: { [SequelizeOp.gt]: dataReserva.horaInicio } },
+        [Op.and]: [
+          { horaInicio: { [Op.lt]: dataReserva.horaFin } },
+          { horaFin: { [Op.gt]: dataReserva.horaInicio } },
         ],
       },
     });
 
-    if (verficarReserva != null) {
+    if (verificarReserva != null) {
       return res.status(409).json({
         ok: false,
         message:
@@ -607,12 +296,7 @@ export const crearReservasParaMovil = async (req, res) => {
       });
     }
 
-    console.log("Body recibido:", req.body);
-    console.log("Fecha recibida:", dataReserva.fechaReserva);
-    console.log("Fecha parseada:", fechaReserva.format("YYYY-MM-DD"));
-    console.log("Fecha de hoy:", hoy.format("YYYY-MM-DD"));
-
-    [solicitante, created] = await solicitantesModel.findOrCreate({
+    const [solicitante, created] = await solicitantesModel.findOrCreate({
       where: { documentoSolicitante: dataReserva.documentoSolicitante },
       defaults: {
         documentoSolicitante: dataReserva.documentoSolicitante,
@@ -623,8 +307,8 @@ export const crearReservasParaMovil = async (req, res) => {
       },
     });
 
-    nuevaReservaArea = await reservasAreasModel.create({
-      apartamentoId: id,
+    const nuevaReservaArea = await reservasAreasModel.create({
+      apartamentoId,
       areaComunId: dataReserva.areaComunId,
       fechaReserva: fechaReserva.format("YYYY-MM-DD"),
       horaInicio: dataReserva.horaInicio || null,
@@ -637,19 +321,16 @@ export const crearReservasParaMovil = async (req, res) => {
       documentoSolicitante: solicitante.documentoSolicitante,
     });
 
-    console.log("Reserva creada con fecha:", nuevaReservaArea.fechaReserva);
-    console.log("Estado inicial:", nuevaReservaArea.estadoId);
-
     // Registrar en auditoría
     const usuarioActual = req.user?.username || "desconocido";
     await registrarAuditoria(
       usuarioActual,
       "reservasareas",
       "INSERT",
-      nuevaReservaArea.idReservas
+      nuevaReservaArea.idReservas,
     );
 
-    return res.status(200).json({
+    return res.status(201).json({
       ok: true,
       message: "Reserva creada exitosamente",
       reserva: nuevaReservaArea,
@@ -658,50 +339,60 @@ export const crearReservasParaMovil = async (req, res) => {
     });
   } catch (error) {
     const username = req.user?.username || "desconocido";
-    const ruta = "POST /reservasareas/movil";
-
-    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
-
-    console.log(error.message);
-    console.log("Body recibido:", req.body);
+    await registrarFallo(
+      "ERROR",
+      username,
+      "POST /reservas-areas",
+      error.message,
+      error.stack,
+    );
     return res.status(500).json({ ok: false, error: error.message });
   }
 };
 
-export const ActualizarReservaAreaParaMovil = async (req, res) => {
+// PATCH /api/reservas-areas/:idReservas
+// Actualizar reserva (versión unificada - antes "ActualizarReservaAreaParaMovil")
+// Incluye: validación de conflictos, resolución de apartamento, manejo de solicitante
+export const actualizarReserva = async (req, res) => {
   try {
     const data = req.body;
     const idReservas = req.params.idReservas;
-    console.log("Datos recibidos:", data, "idReserva:", idReservas);
 
     if (!idReservas) {
       return res
         .status(400)
-        .json({ ok: false, message: "Falta idReserva en la URL" });
+        .json({ ok: false, message: "Falta idReservas en la URL" });
     }
-    const verficarReserva = await reservasAreasModel.findOne({
 
+    // Verificar conflicto de horario únicamente si se están modificando campos de horario/área
+    // (cuando solo se actualiza estadoId, como en 'finalizar', se omite esta validación)
+    const cambiandoHorario =
+      data.areaComunId || data.fechaReserva || data.horaInicio || data.horaFin;
+
+    if (cambiandoHorario) {
+      const verificarReserva = await reservasAreasModel.findOne({
         where: {
-    areaComunId: data.areaComunId,
-    fechaReserva: data.fechaReserva,
+          areaComunId: data.areaComunId,
+          fechaReserva: data.fechaReserva,
+          idReservas: { [Op.ne]: idReservas },
+          [Op.and]: [
+            { horaInicio: { [Op.lt]: data.horaFin } },
+            { horaFin: { [Op.gt]: data.horaInicio } },
+          ],
+        },
+      });
 
-    
-    idReservas: {
-      [Op.ne]: idReservas
-    },
-
-   
-    [Op.and]: [
-      { horaInicio: { [Op.lt]: data.horaFin } },
-      { horaFin: { [Op.gt]: data.horaInicio } }
-    ]
-  }
-    });
-    if (verficarReserva != null) {
-      return res.status(409).json({ ok: false, message: "Lo sentimos, el área ya está reservada en la fecha y horario indicados." })
+      if (verificarReserva != null) {
+        return res.status(409).json({
+          ok: false,
+          message:
+            "Lo sentimos, el área ya está reservada en la fecha y horario indicados.",
+        });
+      }
     }
+
     const reservaExistente = await reservasAreasModel.findOne({
-      where: { idReservas: idReservas },
+      where: { idReservas },
     });
 
     if (!reservaExistente) {
@@ -710,11 +401,14 @@ export const ActualizarReservaAreaParaMovil = async (req, res) => {
         .json({ ok: false, message: "La reserva no existe" });
     }
 
+    // Resolver apartamentoId: soporta ambos formatos
     let apartamentoId = reservaExistente.apartamentoId;
-    if (data.numeroApartamento) {
+
+    if (data.apartamentoId) {
+      apartamentoId = data.apartamentoId;
+    } else if (data.numeroApartamento) {
       const apartamento = await Apartamento.findOne({
         where: { numeroApartamento: data.numeroApartamento },
-        attributes: ["idApartamento"],
       });
       if (!apartamento) {
         return res.status(400).json({
@@ -722,18 +416,21 @@ export const ActualizarReservaAreaParaMovil = async (req, res) => {
           message: `No se encuentra el apartamento con número ${data.numeroApartamento}`,
         });
       }
-      apartamentoId = apartamento.idApartamento;
+      apartamentoId = apartamento.IdApartamento;
     }
 
+    // Validar fecha
     const fechaReserva = data.fechaReserva
       ? dayjs(data.fechaReserva).startOf("day")
       : null;
-    if (fechaReserva && fechaReserva.isBefore(dayjs().startOf("day"))) {
+    if (fechaReserva?.isBefore(dayjs().startOf("day"))) {
       return res.status(400).json({
         ok: false,
         message: "No se puede actualizar una reserva al pasado",
       });
     }
+
+    // Manejar solicitante
     const documentoSolicitanteFinal =
       data.documentoSolicitante ?? reservaExistente.documentoSolicitante;
     const [solicitante, created] = await solicitantesModel.findOrCreate({
@@ -781,6 +478,15 @@ export const ActualizarReservaAreaParaMovil = async (req, res) => {
 
     await reservaExistente.update(updateData);
 
+    // Registrar en auditoría
+    const usuarioActual = req.user?.username || "desconocido";
+    await registrarAuditoria(
+      usuarioActual,
+      "reservasareas",
+      "UPDATE",
+      idReservas,
+    );
+
     return res.status(200).json({
       ok: true,
       message: "Reserva actualizada correctamente",
@@ -790,136 +496,168 @@ export const ActualizarReservaAreaParaMovil = async (req, res) => {
     });
   } catch (error) {
     const username = req.user?.username || "desconocido";
-    const ruta = "PUT /reservasareas/movil/:id";
-
-    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
-
-    console.error(error);
+    await registrarFallo(
+      "ERROR",
+      username,
+      "PATCH /reservas-areas/:id",
+      error.message,
+      error.stack,
+    );
     return res.status(500).json({ ok: false, error: error.message });
   }
 };
-//
+
+// DELETE /api/reservas-areas/:idReservas
+// Eliminar (finalizar) reserva
+export const eliminarReservaArea = async (req, res) => {
+  try {
+    const { idReservas } = req.params;
+
+    const reserva = await reservasAreasModel.findByPk(idReservas);
+
+    if (!reserva) {
+      return res.status(404).json({
+        ok: false,
+        message: "Reserva de área no encontrada",
+      });
+    }
+
+    await reserva.update({
+      estadoId: 9,
+      horaFin: dayjs().format("HH:mm:ss"),
+    });
+
+    const usuarioActual = req.user?.username || "desconocido";
+    await registrarAuditoria(
+      usuarioActual,
+      "reservasareas",
+      "DELETE",
+      idReservas,
+    );
+
+    res.status(200).json({
+      ok: true,
+      message: "Reserva de área eliminada exitosamente",
+    });
+  } catch (error) {
+    const username = req.user?.username || "desconocido";
+    await registrarFallo(
+      "ERROR",
+      username,
+      "DELETE /reservas-areas/:id",
+      error.message,
+      error.stack,
+    );
+    res.status(500).json({ ok: false, error: error.message });
+  }
+};
+
+// POST /api/reportes/:por
+// Reportes de áreas comunes
 export const reportes = async (req, res) => {
   try {
-    const reportPor = parseInt(req.params.por);
-
+    const reportPor = Number.parseInt(req.params.por, 10);
     const rango = req.body.rango || req.body;
-
     let { fechaInicio, fechaFin } = rango;
 
-    // Verifica si las fechas vienen invertidas
     if (new Date(fechaInicio) > new Date(fechaFin)) {
-      console.log("Fechas invertidas, corrigiendo...");
       [fechaInicio, fechaFin] = [fechaFin, fechaInicio];
     }
 
     const queryConfig = {
       where: {
         fechaReserva: {
-          [Op.between]: [fechaInicio, fechaFin]
-        }
-      }
+          [Op.between]: [fechaInicio, fechaFin],
+        },
+      },
     };
 
     let areascomunesReporte = [];
 
     switch (reportPor) {
-      // POR AÑO
       case 1:
         areascomunesReporte = await reservasAreasModel.findAll({
           attributes: [
             "areaComunId",
             [fn("YEAR", col("fechaReserva")), "anio"],
-            [fn("COUNT", col("idReservas")), "totalVisitas"]
+            [fn("COUNT", col("idReservas")), "totalVisitas"],
           ],
           ...queryConfig,
           group: ["areaComunId", "anio"],
-          order: [["anio", "ASC"]]
+          order: [["anio", "ASC"]],
         });
         break;
       case 2:
-        // POR MES
         areascomunesReporte = await reservasAreasModel.findAll({
           attributes: [
             "areaComunId",
             [fn("YEAR", col("fechaReserva")), "anio"],
             [fn("MONTH", col("fechaReserva")), "mes"],
-            [fn("COUNT", col("idReservas")), "totalVisitas"]
+            [fn("COUNT", col("idReservas")), "totalVisitas"],
           ],
           ...queryConfig,
           group: ["areaComunId", "anio", "mes"],
-          order: [["anio", "ASC"], ["mes", "ASC"]]
+          order: [
+            ["anio", "ASC"],
+            ["mes", "ASC"],
+          ],
         });
         break;
       case 3:
-        // POR SEMANA
         areascomunesReporte = await reservasAreasModel.findAll({
           attributes: [
             "areaComunId",
             [fn("YEAR", col("fechaReserva")), "anio"],
             [literal("FLOOR((DAY(fechaReserva)-1)/7)+1"), "semanaMes"],
-            [fn("COUNT", col("idReservas")), "totalVisitas"]
+            [fn("COUNT", col("idReservas")), "totalVisitas"],
           ],
           ...queryConfig,
           group: ["areaComunId", "anio", "semanaMes"],
-          order: [["anio", "ASC"], ["semanaMes", "ASC"]]
+          order: [
+            ["anio", "ASC"],
+            ["semanaMes", "ASC"],
+          ],
         });
         break;
     }
-    res.status(200).json({
-      ok: true,
-      areascomunesReporte
-    });
 
+    res.status(200).json({ ok: true, areascomunesReporte });
   } catch (error) {
-    console.log("Lo siento salió un error:", error.message);
-    res.status(500).json({
-      ok: false,
-      message: error.message
-    });
+    res.status(500).json({ ok: false, message: error.message });
   }
 };
 
-
+// GET /api/calendariodereservas
+// Calendario de reservas del mes actual
 export const calendariosReservas = async (req, res) => {
   try {
     const caledarioreservas = await reservasAreasModel.findAll({
-      attributes: [
-        "areaComunId",
-        "fechaReserva",
-        "horaInicio",
-        "horaFin"
-      ],
+      attributes: ["areaComunId", "fechaReserva", "horaInicio", "horaFin"],
       include: [
         {
           model: solicitantesModel,
           attributes: [
             ["documentoSolicitante", "documentoSolicitante"],
             ["nombreSolicitante", "nombreSolicitante"],
-          ]
-        }
+          ],
+        },
       ],
       where: {
         estadoId: {
-          [Op.in]: [7, 8]
+          [Op.in]: [7, 8],
         },
         [Op.and]: [
-          where(fn('MONTH', col('fechaReserva')), fn('MONTH', fn('CURDATE'))),
-          where(fn('YEAR', col('fechaReserva')), fn('YEAR', fn('CURDATE')))
-        ]
-      }
+          where(fn("MONTH", col("fechaReserva")), fn("MONTH", fn("CURDATE"))),
+          where(fn("YEAR", col("fechaReserva")), fn("YEAR", fn("CURDATE"))),
+        ],
+      },
     });
 
-    return res.status(200).json({
-      ok: true,
-      caledarioreservas
-    });
-
+    return res.status(200).json({ ok: true, caledarioreservas });
   } catch (error) {
-    console.error("Lo siento, está ocurriendo un error", error);
-    return res.status(500).json({
-      ok: false,
-      message: "Error interno del servidor"
-    });
+    console.error(error);
+    return res
+      .status(500)
+      .json({ ok: false, message: "Error interno del servidor" });
   }
 };

@@ -4,6 +4,8 @@ import Vehiculo from "../models/vehiculo.model.js";
 import RecepcionPaquetes from "../models/recepcionPaquetes.model.js";
 import ReservarAreas from "../models/reservasAreas.model.js";
 import Visitas from "../models/visitas.model.js";
+import Usuario from "../models/user.model.js";
+import Ocupante from "../models/ocupante.model.js";
 
 /**
  * Obtiene estadísticas de ocupación de parqueaderos
@@ -55,14 +57,13 @@ export const getEstadisticasParqueaderos = async (req, res) => {
         ocupadosVisitantes: parqueaderosVisitantes,
         disponibles: parqueaderosDisponibles,
         porcentajes: {
-          residentes: parseFloat(porcentajeResidentes),
-          visitantes: parseFloat(porcentajeVisitantes),
-          disponibles: parseFloat(porcentajeDisponibles),
+          residentes: Number.parseFloat(porcentajeResidentes),
+          visitantes: Number.parseFloat(porcentajeVisitantes),
+          disponibles: Number.parseFloat(porcentajeDisponibles),
         },
       },
     });
   } catch (error) {
-    console.error("Error al obtener estadísticas de parqueaderos:", error);
     res.status(500).json({
       success: false,
       message: "Error al obtener estadísticas de parqueaderos",
@@ -92,20 +93,21 @@ export const getPaquetesRecibidosHoy = async (req, res) => {
       },
     });
 
-    // Contar paquetes entregados hoy
+    // Contar paquetes entregados hoy (entregados hoy, sin importar cuándo se recibieron)
     const paquetesEntregados = await RecepcionPaquetes.count({
       where: {
-        fechaRecepcion: {
-          [Op.between]: [inicioDelDia, finDelDia],
-        },
         fechaEntrega: {
-          [Op.ne]: null,
+          [Op.between]: [inicioDelDia, finDelDia],
         },
       },
     });
 
-    // Paquetes pendientes de entrega (recibidos hoy)
-    const paquetesPendientes = paquetesRecibidos - paquetesEntregados;
+    // Paquetes pendientes: todos los que no han sido entregados
+    const paquetesPendientes = await RecepcionPaquetes.count({
+      where: {
+        fechaEntrega: null,
+      },
+    });
 
     res.status(200).json({
       success: true,
@@ -117,7 +119,6 @@ export const getPaquetesRecibidosHoy = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error al obtener paquetes recibidos hoy:", error);
     res.status(500).json({
       success: false,
       message: "Error al obtener paquetes recibidos hoy",
@@ -168,12 +169,11 @@ export const getReservasHoy = async (req, res) => {
         totalReservas: reservasHoy,
         reservasPorArea: reservasPorArea.map((r) => ({
           areaComunId: r.areaComunId,
-          cantidad: parseInt(r.dataValues.cantidad),
+          cantidad: Number.parseInt(r.dataValues.cantidad, 10),
         })),
       },
     });
   } catch (error) {
-    console.error("Error al obtener reservas de hoy:", error);
     res.status(500).json({
       success: false,
       message: "Error al obtener reservas de hoy",
@@ -192,9 +192,6 @@ export const getResumenDashboard = async (req, res) => {
     inicioDelDia.setHours(0, 0, 0, 0);
     const finDelDia = new Date();
     finDelDia.setHours(23, 59, 59, 999);
-
-    // Estadísticas de parqueaderos
-    const totalParqueaderos = await Parqueadero.count();
 
     // Contar parqueaderos ocupados por tipo de vehículo
     // estadoId: 3 = Ocupado, 4 = Disponible
@@ -220,16 +217,17 @@ export const getResumenDashboard = async (req, res) => {
     });
 
     // Estadísticas de paquetes
-    const paquetesRecibidos = await RecepcionPaquetes.count({
+    // Pendientes: todos los paquetes sin entregar (cualquier fecha de recepción)
+    const paquetesPendientes = await RecepcionPaquetes.count({
       where: {
-        fechaRecepcion: { [Op.between]: [inicioDelDia, finDelDia] },
+        fechaEntrega: null,
       },
     });
 
+    // Entregados hoy: paquetes cuya fecha de entrega es hoy
     const paquetesEntregados = await RecepcionPaquetes.count({
       where: {
-        fechaRecepcion: { [Op.between]: [inicioDelDia, finDelDia] },
-        fechaEntrega: { [Op.ne]: null },
+        fechaEntrega: { [Op.between]: [inicioDelDia, finDelDia] },
       },
     });
 
@@ -238,6 +236,34 @@ export const getResumenDashboard = async (req, res) => {
       where: {
         fechaReserva: { [Op.between]: [inicioDelDia, finDelDia] },
       },
+    });
+
+    // Estadísticas de visitas
+    const visitasHoy = await Visitas.count({
+      where: {
+        fechaHoraIngreso: { [Op.between]: [inicioDelDia, finDelDia] },
+      },
+    });
+
+    // estadoId 8 = Activa/En curso, estadoId 9 = Finalizada
+    const visitasActivas = await Visitas.count({
+      where: {
+        estadoId: 8,
+      },
+    });
+
+    // Estadísticas de usuarios
+    const usuariosActivos = await Usuario.count({
+      where: { estadoId: 1 },
+    });
+
+    const usuariosInactivos = await Usuario.count({
+      where: { estadoId: 2 },
+    });
+
+    // Estadísticas de residentes (ocupantes activos)
+    const residentesActivos = await Ocupante.count({
+      where: { estadoId: 1 },
     });
 
     res.status(200).json({
@@ -250,12 +276,26 @@ export const getResumenDashboard = async (req, res) => {
         },
         paquetes: {
           entregados: paquetesEntregados,
-          pendientes: paquetesRecibidos - paquetesEntregados,
+          pendientes: paquetesPendientes,
+        },
+        reservas: {
+          hoy: reservasHoy,
+        },
+        visitas: {
+          hoy: visitasHoy,
+          activas: visitasActivas,
+        },
+        usuarios: {
+          activos: usuariosActivos,
+          inactivos: usuariosInactivos,
+          total: usuariosActivos + usuariosInactivos,
+        },
+        residentes: {
+          activos: residentesActivos,
         },
       },
     });
   } catch (error) {
-    console.error("Error al obtener resumen del dashboard:", error);
     res.status(500).json({
       success: false,
       message: "Error al obtener resumen del dashboard",
