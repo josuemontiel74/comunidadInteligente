@@ -416,11 +416,7 @@ export const actualizarReserva = async (req, res) => {
           message: `No se encuentra el apartamento con número ${data.numeroApartamento}`,
         });
       }
-      // El modelo Apartamento define la PK como 'IdApartamento' (I mayúscula)
       apartamentoId = apartamento.IdApartamento;
-      console.log(
-        `[PATCH reservas-areas] Apartamento encontrado: num=${data.numeroApartamento} → id=${apartamentoId}`,
-      );
     }
 
     // Validar fecha
