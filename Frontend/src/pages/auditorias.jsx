@@ -204,7 +204,6 @@ function Auditorias() {
 
   return (
     <div className="aud-dashboard">
-      {/* ====== OFFCANVAS MENU ====== */}
       <button
         type="button"
         className={`aud-overlay ${menuOpen ? "active" : ""}`}
@@ -324,7 +323,6 @@ function Auditorias() {
         </div>
       </aside>
 
-      {/* ====== CONTENIDO PRINCIPAL ====== */}
       <div className="aud-main">
         {/* Header tipo AppBar (como Flutter) */}
         <header className="aud-header">

@@ -5,7 +5,7 @@ import "../Styles/Landing.css";
 import logo from "../../img/logo.png";
 import "bootstrap-icons/font/bootstrap-icons.css";
 
-const APK_URL = "/comunidadInteligente.apk";
+const APK_URL = "/tuComunidadInteligente.apk";
 const DARK_KEY = "ci_modo_oscuro";
 
 const features = [

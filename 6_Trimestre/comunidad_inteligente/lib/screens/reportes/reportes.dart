@@ -4,12 +4,10 @@ import 'dart:convert';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import '../../utils/api_config.dart';
 
-// ============================================================================
-// REPORTES API SERVICE
-// ============================================================================
 class ReportesApiService {
-  static const String _baseUrl = 'http://localhost:3001/api';
+  static String get _baseUrl => ApiConfig.apiUrl;
 
   // Helper para formatear fecha como YYYY-MM-DD
   static String _formatearFecha(DateTime fecha) {
@@ -40,8 +38,8 @@ class ReportesApiService {
       }
       return {};
     } catch (e, stackTrace) {
-      print('Error al obtener reporte de parqueaderos: $e');
-      print('Stack trace: $stackTrace');
+      debugPrint('Error al obtener reporte de parqueaderos: $e');
+      debugPrint('Stack trace: $stackTrace');
       return {};
     }
   }
@@ -69,7 +67,7 @@ class ReportesApiService {
       }
       return {};
     } catch (e) {
-      print('Error al obtener reporte de paquetes: $e');
+      debugPrint('Error al obtener reporte de paquetes: $e');
       return {};
     }
   }
@@ -97,7 +95,7 @@ class ReportesApiService {
       }
       return {};
     } catch (e) {
-      print('Error al obtener reporte de reservas: $e');
+      debugPrint('Error al obtener reporte de reservas: $e');
       return {};
     }
   }
@@ -125,14 +123,10 @@ class ReportesApiService {
       }
       return {};
     } catch (e) {
-      print('Error al obtener reporte de visitas: $e');
+      debugPrint('Error al obtener reporte de visitas: $e');
       return {};
     }
   }
-
-  // ============================================================================
-  // REPORTES DE RESIDENTES
-  // ============================================================================
 
   /// Obtiene estadísticas de ocupación por torre
   static Future<Map<String, dynamic>> obtenerReporteOcupacion(
@@ -151,7 +145,7 @@ class ReportesApiService {
       }
       return {};
     } catch (e) {
-      print('Error al obtener reporte de ocupación: $e');
+      debugPrint('Error al obtener reporte de ocupación: $e');
       return {};
     }
   }
@@ -171,7 +165,7 @@ class ReportesApiService {
       }
       return {};
     } catch (e) {
-      print('Error al obtener reporte de niños: $e');
+      debugPrint('Error al obtener reporte de niños: $e');
       return {};
     }
   }
@@ -193,15 +187,12 @@ class ReportesApiService {
       }
       return {};
     } catch (e) {
-      print('Error al obtener reporte de población especial: $e');
+      debugPrint('Error al obtener reporte de población especial: $e');
       return {};
     }
   }
 }
 
-// ============================================================================
-// PANTALLA PRINCIPAL DE REPORTES
-// ============================================================================
 class ReportesScreen extends StatefulWidget {
   final String token;
 
@@ -339,7 +330,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
           // Selector de fechas
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: Colors.grey.shade100,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade900
+                : Colors.grey.shade100,
             child: Column(
               children: [
                 Row(
@@ -425,9 +418,6 @@ class _ReportesScreenState extends State<ReportesScreen> {
                         const SizedBox(height: 24),
                         _buildReporteReservas(),
                         const SizedBox(height: 32),
-                        // ============================================
-                        // SECCIÓN DE REPORTES DE RESIDENTES
-                        // ============================================
                         _buildSeccionTitulo(
                           'Reportes de Residentes',
                           Icons.people,
@@ -466,9 +456,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade400),
+          border: Border.all(color: Theme.of(context).dividerColor),
           borderRadius: BorderRadius.circular(8),
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -480,7 +470,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
                   label,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade600,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -560,7 +552,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
         }
       }
     } catch (e) {
-      print('Error procesando resumenActual: $e');
+      debugPrint('Error procesando resumenActual: $e');
     }
 
     final totalOcupados = ocupadosCarros + ocupadosMotos;
@@ -797,7 +789,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
                           fechaCorta,
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey.shade700,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
                         ),
                       ],
@@ -859,9 +853,14 @@ class _ReportesScreenState extends State<ReportesScreen> {
               ],
             ),
             const Divider(height: 24),
-            const Text(
+            Text(
               'Top 10 horas con mayor ocupación',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
             ),
             const SizedBox(height: 16),
             // Gráfico de barras horizontales
@@ -899,7 +898,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
                               Container(
                                 height: 32,
                                 decoration: BoxDecoration(
-                                  color: Colors.grey.shade200,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerHighest,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
@@ -933,7 +934,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
                                     fontWeight: FontWeight.bold,
                                     color: porcentaje > 0.3
                                         ? Colors.white
-                                        : Colors.black87,
+                                        : Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
                                   ),
                                 ),
                               ),
@@ -1225,7 +1228,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
                           value: totalReservas > 0
                               ? cantidad / totalReservas
                               : 0,
-                          backgroundColor: Colors.grey.shade200,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
                           valueColor: AlwaysStoppedAnimation(estadoColor),
                         ),
                       ),
@@ -1264,7 +1269,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
                           value: totalReservas > 0
                               ? cantidad / totalReservas
                               : 0,
-                          backgroundColor: Colors.grey.shade200,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
                           valueColor: AlwaysStoppedAnimation(
                             Colors.teal.shade400,
                           ),
@@ -1295,9 +1302,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1309,7 +1316,12 @@ class _ReportesScreenState extends State<ReportesScreen> {
               Expanded(
                 child: Text(
                   label,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
                 ),
               ),
             ],
@@ -1365,12 +1377,21 @@ class _ReportesScreenState extends State<ReportesScreen> {
   }) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: Colors.grey.shade600),
+        Icon(
+          icon,
+          size: 20,
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             label,
-            style: TextStyle(fontSize: 15, color: Colors.grey.shade700),
+            style: TextStyle(
+              fontSize: 15,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
           ),
         ),
         Text(
@@ -1403,7 +1424,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
         const SizedBox(height: 4),
         LinearProgressIndicator(
           value: porcentaje,
-          backgroundColor: Colors.grey.shade200,
+          backgroundColor: Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest,
           valueColor: AlwaysStoppedAnimation(color),
           minHeight: 8,
           borderRadius: BorderRadius.circular(4),
@@ -1475,7 +1498,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
         }
       }
     } catch (e) {
-      print('Error procesando resumenActual en PDF: $e');
+      debugPrint('Error procesando resumenActual en PDF: $e');
     }
 
     final totalOcupados = ocupadosCarros + ocupadosMotos;
@@ -1826,9 +1849,6 @@ class _ReportesScreenState extends State<ReportesScreen> {
             ),
           ),
 
-          // ============================================================
-          // REPORTES DE RESIDENTES
-          // ============================================================
           pw.SizedBox(height: 32),
           pw.Container(
             padding: const pw.EdgeInsets.all(12),
@@ -1930,10 +1950,6 @@ class _ReportesScreenState extends State<ReportesScreen> {
   String _formatearFecha(DateTime fecha) {
     return '${fecha.day.toString().padLeft(2, '0')}/${fecha.month.toString().padLeft(2, '0')}/${fecha.year}';
   }
-
-  // ============================================================================
-  // MÉTODOS PDF PARA REPORTES DE RESIDENTES
-  // ============================================================================
 
   /// Genera contenido PDF para ocupación por torres
   List<pw.Widget> _buildPDFOcupacionTorres() {
@@ -2039,7 +2055,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                         _buildPDFCelda('${_toInt(torre['totalPersonas'])}'),
                       ],
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
             ] else
@@ -2143,7 +2159,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                         ),
                       ],
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
               if (detalleApartamentos.length > 15)
@@ -2265,7 +2281,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                         ),
                       ],
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
               if (detalleApartamentos.length > 15)
@@ -2339,22 +2355,18 @@ class _ReportesScreenState extends State<ReportesScreen> {
     );
   }
 
-  // ============================================================================
-  // WIDGETS DE REPORTES DE RESIDENTES
-  // ============================================================================
-
   /// Widget para crear título de sección con ícono
   Widget _buildSeccionTitulo(String titulo, IconData icono, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [color.withOpacity(0.1), color.withOpacity(0.05)],
+          colors: [color.withValues(alpha: 0.1), color.withValues(alpha: 0.05)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -2537,7 +2549,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.teal.withOpacity(0.3),
+                                  color: Colors.teal.withValues(alpha: 0.3),
                                   blurRadius: 4,
                                   offset: const Offset(0, 2),
                                 ),
@@ -2559,7 +2571,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
                             '$apartamentosOcupados/$totalApartamentos',
                             style: TextStyle(
                               fontSize: 10,
-                              color: Colors.grey.shade600,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                           ),
                         ],
@@ -2574,7 +2588,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
                   'Ocupados / Total apartamentos',
                   style: TextStyle(
                     fontSize: 11,
-                    color: Colors.grey.shade500,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.5),
                     fontStyle: FontStyle.italic,
                   ),
                 ),
@@ -2588,12 +2604,18 @@ class _ReportesScreenState extends State<ReportesScreen> {
                       Icon(
                         Icons.apartment,
                         size: 48,
-                        color: Colors.grey.shade300,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.3),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'No hay datos de ocupación disponibles',
-                        style: TextStyle(color: Colors.grey.shade500),
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.5),
+                        ),
                       ),
                     ],
                   ),
@@ -2618,7 +2640,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
           width: 60,
           height: 60,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             shape: BoxShape.circle,
             border: Border.all(color: color, width: 2),
           ),
@@ -2635,7 +2657,12 @@ class _ReportesScreenState extends State<ReportesScreen> {
         ),
         Text(
           label,
-          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          style: TextStyle(
+            fontSize: 11,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
         ),
       ],
     );
@@ -2651,7 +2678,6 @@ class _ReportesScreenState extends State<ReportesScreen> {
     }
 
     final totalNinos = _toInt(data['totalNinos']);
-    final totalApartamentosConNinos = _toInt(data['totalApartamentosConNinos']);
 
     List detalleApartamentos = [];
     if (data['detalleApartamentos'] is List) {
@@ -2714,8 +2740,10 @@ class _ReportesScreenState extends State<ReportesScreen> {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
-                  headingRowColor: MaterialStateProperty.all(
-                    Colors.pink.shade50,
+                  headingRowColor: WidgetStateProperty.all(
+                    Theme.of(context).brightness == Brightness.dark
+                        ? Colors.pink.shade800
+                        : Colors.pink.shade50,
                   ),
                   columns: const [
                     DataColumn(
@@ -2786,12 +2814,18 @@ class _ReportesScreenState extends State<ReportesScreen> {
                       Icon(
                         Icons.child_care,
                         size: 48,
-                        color: Colors.grey.shade300,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.3),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'No hay datos de niños disponibles',
-                        style: TextStyle(color: Colors.grey.shade500),
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.5),
+                        ),
                       ),
                     ],
                   ),
@@ -2896,7 +2930,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
                           '(60+ años)',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey.shade600,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                       ],
@@ -2940,7 +2976,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
                           'Discapacidad',
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.grey.shade700,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -2985,8 +3023,10 @@ class _ReportesScreenState extends State<ReportesScreen> {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
-                  headingRowColor: MaterialStateProperty.all(
-                    Colors.purple.shade50,
+                  headingRowColor: WidgetStateProperty.all(
+                    Theme.of(context).brightness == Brightness.dark
+                        ? Colors.purple.shade800
+                        : Colors.purple.shade50,
                   ),
                   columns: const [
                     DataColumn(
@@ -3068,12 +3108,18 @@ class _ReportesScreenState extends State<ReportesScreen> {
                       Icon(
                         Icons.accessibility,
                         size: 48,
-                        color: Colors.grey.shade300,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.3),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'No hay datos de población especial disponibles',
-                        style: TextStyle(color: Colors.grey.shade500),
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.5),
+                        ),
                       ),
                     ],
                   ),

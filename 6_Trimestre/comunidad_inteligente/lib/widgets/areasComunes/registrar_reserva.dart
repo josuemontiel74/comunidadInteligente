@@ -1,7 +1,10 @@
+// ignore_for_file: use_build_context_synchronously
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import '../../main.dart';
+import '../../utils/validaciones.dart';
 
 class RegistrarReserva extends StatefulWidget {
   const RegistrarReserva({super.key, required this.token});
@@ -111,98 +114,118 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
   }
 
   Future<void> crearReserva() async {
-    final url = Uri.parse('${LoginServe.baseUrl}/api/reservas-areas');
-    final response = await http.post(
-      url,
-      headers: {
-        'Authorization': 'Bearer ${widget.token}',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'nombreSolicitante': nombreSolicitante,
-        'documentoSolicitante': documentoSolicitante,
-        'telefonoSolicitante': telefonoSolicitante,
-        'correoSolicitante': correoSolicitante,
-        'tipoDocumentoId': tipoDocumentoId,
-        'areaComunId': int.tryParse(areaComunId ?? '0'),
-        'motivoReserva': motivoReserva,
-        'cantidadAsistentes': int.tryParse(cantidadAsistentes ?? '0'),
-        'invitadosExternos': int.tryParse(invitadosExternos ?? '0'),
-        'numeroApartamento': apartamentoSeleccionado,
-        'aceptaReglamento': aceptaReglamento,
-        'horaInicio': horaInicio != null
-            ? '${horaInicio!.hour.toString().padLeft(2, '0')}:${horaInicio!.minute.toString().padLeft(2, '0')}'
-            : null,
-        'horaFin': horaFin != null
-            ? '${horaFin!.hour.toString().padLeft(2, '0')}:${horaFin!.minute.toString().padLeft(2, '0')}'
-            : null,
-        'fechaReserva': fechaReserva != null
-            ? '${fechaReserva!.year}-${fechaReserva!.month.toString().padLeft(2, '0')}-${fechaReserva!.day.toString().padLeft(2, '0')}'
-            : null,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Reserva creada correctamente"),
-          backgroundColor: Colors.green,
-          showCloseIcon: true,
-        ),
+    try {
+      final url = Uri.parse('${LoginServe.baseUrl}/api/reservas-areas');
+      final response = await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'nombreSolicitante': nombreSolicitante,
+          'documentoSolicitante': documentoSolicitante,
+          'telefonoSolicitante': telefonoSolicitante,
+          'correoSolicitante': correoSolicitante,
+          'tipoDocumentoId': tipoDocumentoId,
+          'areaComunId': int.tryParse(areaComunId ?? '0'),
+          'motivoReserva': motivoReserva,
+          'cantidadAsistentes': int.tryParse(cantidadAsistentes ?? '0'),
+          'invitadosExternos': int.tryParse(invitadosExternos ?? '0'),
+          'numeroApartamento': apartamentoSeleccionado,
+          'aceptaReglamento': aceptaReglamento,
+          'horaInicio': horaInicio != null
+              ? '${horaInicio!.hour.toString().padLeft(2, '0')}:${horaInicio!.minute.toString().padLeft(2, '0')}'
+              : null,
+          'horaFin': horaFin != null
+              ? '${horaFin!.hour.toString().padLeft(2, '0')}:${horaFin!.minute.toString().padLeft(2, '0')}'
+              : null,
+          'fechaReserva': fechaReserva != null
+              ? '${fechaReserva!.year}-${fechaReserva!.month.toString().padLeft(2, '0')}-${fechaReserva!.day.toString().padLeft(2, '0')}'
+              : null,
+        }),
       );
-      await Future.delayed(const Duration(seconds: 1));
-      Navigator.pop(context);
-    } else if (response.statusCode == 409) {
-      // Conflicto: ya existe una reserva en el mismo horario
-      final errorData = jsonDecode(response.body);
-      final mensaje =
-          errorData['message'] ??
-          'El área ya está reservada en la fecha y horario indicados.';
 
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15),
-            ),
-            title: Row(
-              children: [
-                Icon(
-                  Icons.warning_amber_rounded,
-                  color: Colors.orange.shade700,
-                  size: 28,
-                ),
-                const SizedBox(width: 10),
-                const Flexible(
-                  child: Text(
-                    'Horario No Disponible',
-                    overflow: TextOverflow.ellipsis,
+      if (!context.mounted) return;
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Reserva creada correctamente"),
+            backgroundColor: Colors.green,
+            showCloseIcon: true,
+          ),
+        );
+        await Future.delayed(const Duration(seconds: 1));
+        if (!context.mounted) return;
+        Navigator.pop(context);
+      } else if (response.statusCode == 409) {
+        // Conflicto: ya existe una reserva en el mismo horario
+        final errorData = jsonDecode(response.body);
+        final rawMsg = errorData['message'];
+        final mensaje = rawMsg is String
+            ? rawMsg
+            : 'El área ya está reservada en la fecha y horario indicados.';
+
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              title: Row(
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.orange.shade700,
+                    size: 28,
                   ),
+                  const SizedBox(width: 10),
+                  const Flexible(
+                    child: Text(
+                      'Horario No Disponible',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              content: Text(mensaje, style: const TextStyle(fontSize: 15)),
+              actions: [
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Entendido'),
                 ),
               ],
             ),
-            content: Text(mensaje, style: const TextStyle(fontSize: 15)),
-            actions: [
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Entendido'),
-              ),
-            ],
+          );
+        }
+      } else {
+        // Intentar extraer mensaje del servidor
+        String errorMsg = 'Error al crear la reserva (${response.statusCode})';
+        try {
+          final errorData = jsonDecode(response.body);
+          if (errorData['message'] is String) {
+            errorMsg = errorData['message'];
+          }
+        } catch (_) {}
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error de conexión: ${e.toString()}'),
+            backgroundColor: Colors.red,
           ),
         );
       }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error al crear la reserva (${response.statusCode})"),
-          backgroundColor: Colors.red,
-        ),
-      );
     }
   }
 
@@ -214,7 +237,7 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
     );
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).cardColor,
       body: Column(
         children: [
           // Header personalizado con botón cerrar
@@ -278,37 +301,10 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
                                 labelText: "Nombre solicitante",
                                 border: border,
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'El nombre es requerido';
-                                }
-                                if (!RegExp(
-                                  r'^[a-zA-Z\sÁÉÍÓÚáéíóúÑñ]+$',
-                                ).hasMatch(value)) {
-                                  return 'El nombre solo puede contener letras';
-                                }
-                                return null;
-                              },
+                              inputFormatters: [NombreInputFormatter()],
+                              validator: (value) =>
+                                  validarNombreCompleto(value),
                               onSaved: (val) => nombreSolicitante = val,
-                            ),
-                            const SizedBox(height: 12),
-
-                            TextFormField(
-                              decoration: InputDecoration(
-                                labelText: "Documento solicitante",
-                                border: border,
-                              ),
-                              keyboardType: TextInputType.number,
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'El documento es requerido';
-                                }
-                                if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                                  return 'El documento solo puede contener números';
-                                }
-                                return null;
-                              },
-                              onSaved: (val) => documentoSolicitante = val,
                             ),
                             const SizedBox(height: 12),
 
@@ -330,7 +326,58 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
                                   child: Text("PPT"),
                                 ),
                               ],
-                              onChanged: (v) => tipoDocumentoId = v,
+                              onChanged: (v) {
+                                setState(() {
+                                  tipoDocumentoId = v;
+                                  // Limpiar documento al cambiar tipo
+                                  documentoSolicitante = null;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 12),
+
+                            TextFormField(
+                              key: ValueKey('doc_area_$tipoDocumentoId'),
+                              decoration: InputDecoration(
+                                labelText: "Documento solicitante",
+                                border: border,
+                              ),
+                              keyboardType: tipoDocumentoId == '3'
+                                  ? TextInputType.text
+                                  : TextInputType.number,
+                              inputFormatters: [
+                                tipoDocumentoId == '3'
+                                    ? PasaporteInputFormatter()
+                                    : DocumentoNumericoInputFormatter(),
+                                LengthLimitingTextInputFormatter(20),
+                              ],
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'El documento es requerido';
+                                }
+                                // Mapear IDs de áreas a validaciones:
+                                // CC=1→1, CE=2→3, PP=3→2, PEP=4→4, PPT=5→5
+                                int? validacionId;
+                                switch (tipoDocumentoId) {
+                                  case '1':
+                                    validacionId = 1;
+                                    break;
+                                  case '2':
+                                    validacionId = 3;
+                                    break;
+                                  case '3':
+                                    validacionId = 2;
+                                    break;
+                                  case '4':
+                                    validacionId = 4;
+                                    break;
+                                  case '5':
+                                    validacionId = 5;
+                                    break;
+                                }
+                                return validarDocumento(value, validacionId);
+                              },
+                              onSaved: (val) => documentoSolicitante = val,
                             ),
                             const SizedBox(height: 12),
 
@@ -340,11 +387,10 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
                                 border: border,
                               ),
                               keyboardType: TextInputType.phone,
+                              inputFormatters: [TelefonoInputFormatter()],
                               validator: (value) {
                                 if (value != null && value.trim().isNotEmpty) {
-                                  if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
-                                    return 'El teléfono debe tener exactamente 10 dígitos';
-                                  }
+                                  return validarTelefono(value);
                                 }
                                 return null;
                               },
@@ -374,7 +420,7 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
 
                             // Torre
                             DropdownButtonFormField<String>(
-                              value: torreSeleccionada,
+                              initialValue: torreSeleccionada,
                               decoration: InputDecoration(
                                 labelText: 'Torre *',
                                 border: border,
@@ -404,7 +450,7 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
 
                             // Apartamento
                             DropdownButtonFormField<String>(
-                              value: apartamentoSeleccionado,
+                              initialValue: apartamentoSeleccionado,
                               decoration: InputDecoration(
                                 labelText: 'Apartamento *',
                                 border: border,
@@ -575,6 +621,31 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
                                       },
                                 );
                                 if (picked != null) {
+                                  // Validar que no sea hora pasada si la fecha es hoy
+                                  final now = DateTime.now();
+                                  final esHoy =
+                                      fechaReserva != null &&
+                                      fechaReserva!.year == now.year &&
+                                      fechaReserva!.month == now.month &&
+                                      fechaReserva!.day == now.day;
+                                  if (esHoy &&
+                                      (picked.hour < now.hour ||
+                                          (picked.hour == now.hour &&
+                                              picked.minute < now.minute))) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'No puede seleccionar una hora pasada',
+                                          ),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                    return;
+                                  }
                                   setState(() => horaInicio = picked);
                                 }
                               },
@@ -614,8 +685,57 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
                                         );
                                       },
                                 );
-                                if (picked != null)
+                                if (picked != null) {
+                                  // Validar que la hora fin sea posterior a hora inicio
+                                  if (horaInicio != null) {
+                                    final inicioMin =
+                                        horaInicio!.hour * 60 +
+                                        horaInicio!.minute;
+                                    final finMin =
+                                        picked.hour * 60 + picked.minute;
+                                    if (finMin <= inicioMin) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'La hora fin debe ser posterior a la hora inicio',
+                                            ),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                      return;
+                                    }
+                                  }
+                                  // Validar que no sea hora pasada si la fecha es hoy
+                                  final now = DateTime.now();
+                                  final esHoy =
+                                      fechaReserva != null &&
+                                      fechaReserva!.year == now.year &&
+                                      fechaReserva!.month == now.month &&
+                                      fechaReserva!.day == now.day;
+                                  if (esHoy &&
+                                      (picked.hour < now.hour ||
+                                          (picked.hour == now.hour &&
+                                              picked.minute < now.minute))) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'No puede seleccionar una hora pasada',
+                                          ),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                    return;
+                                  }
                                   setState(() => horaFin = picked);
+                                }
                               },
                             ),
                             const SizedBox(height: 12),
@@ -625,6 +745,13 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
                                 labelText: "Motivo reserva",
                                 border: border,
                               ),
+                              maxLength: 255,
+                              validator: (value) {
+                                if (value != null && value.length > 255) {
+                                  return 'Máximo 255 caracteres';
+                                }
+                                return null;
+                              },
                               onSaved: (val) => motivoReserva = val,
                             ),
                             const SizedBox(height: 12),
@@ -635,6 +762,10 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
                                 labelText: "Cantidad asistentes",
                                 border: border,
                               ),
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(3),
+                              ],
                               validator: (value) {
                                 if (value != null && value.isNotEmpty) {
                                   final numero = int.tryParse(value);

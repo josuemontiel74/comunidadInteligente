@@ -1,6 +1,3 @@
-/* ============================================================
-   Dashboard Vigilante – Tema Azul
-   ============================================================ */
 
 html,
 body {
@@ -34,7 +31,6 @@ body {
   max-width: 100vw;
 }
 
-/* ── OVERLAY ─────────────────────────────────────────── */
 .vi-overlay {
   position: fixed;
   inset: 0;
@@ -49,7 +45,6 @@ body {
   pointer-events: all;
 }
 
-/* ── DRAWER ──────────────────────────────────────────── */
 .vi-drawer {
   position: fixed;
   top: 0;
@@ -176,14 +171,12 @@ body {
   background: rgba(255, 255, 255, 0.25);
 }
 
-/* ── MAIN AREA ───────────────────────────────────────── */
 .vi-main {
   min-height: 100vh;
   overflow-x: hidden;
   width: 100%;
 }
 
-/* ── HEADER ──────────────────────────────────────────── */
 .vi-header {
   display: flex;
   align-items: center;
@@ -243,6 +236,15 @@ body {
 .vi-header-btn i {
   font-size: 28px;
   color: #374151;
+}
+.vi-header-btn.dap-header-btn i {
+  color: #fff;
+}
+.vi-header-btn.dap-header-btn:hover {
+  background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+}
+.vi-header-btn.dap-header-btn:hover i {
+  color: #ffffff;
 }
 .vi-header-actions {
   display: flex;
@@ -319,7 +321,6 @@ body {
   }
 }
 
-/* ── WELCOME ─────────────────────────────────────────── */
 .vi-welcome {
   text-align: center;
   padding: 30px 20px 10px;
@@ -343,7 +344,6 @@ body {
   padding: 0 8px;
 }
 
-/* ── MODULE CARDS ────────────────────────────────────── */
 .vi-modules-grid {
   display: flex;
   flex-wrap: wrap;
@@ -410,7 +410,6 @@ body {
   line-height: 1.3;
 }
 
-/* ── STATS ───────────────────────────────────────────── */
 .vi-stats-section {
   padding: 20px 24px 40px;
   box-sizing: border-box;
@@ -494,7 +493,6 @@ body {
   background: #d1d5db;
 }
 
-/* ── RESPONSIVE ──────────────────────────────────────── */
 @media (max-width: 900px) {
   .vi-modules-grid {
     padding: 20px 16px;
@@ -644,7 +642,6 @@ body {
   }
 }
 
-/* ── ANIMACIONES ──────────────────────────────────── */
 @keyframes vi-fadeInUp {
   from {
     opacity: 0;
@@ -681,7 +678,6 @@ body {
   pointer-events: none;
 }
 
-/* ── DRAWER MODO OSCURO ── */
 [data-modo="oscuro"] .vi-drawer {
   background: linear-gradient(180deg, #152961, #1a45a5, #295bac) !important;
 }

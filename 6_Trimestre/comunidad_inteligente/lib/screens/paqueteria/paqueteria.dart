@@ -1,8 +1,10 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../main.dart';
 import '../../utils/helpers.dart';
+import '../../utils/validaciones.dart';
 
 class ModuloPaqueteria extends StatefulWidget {
   final bool abrirModalRegistro;
@@ -40,7 +42,7 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
       );
     } catch (e) {
       // Si falla, solo imprime en consola
-      print('SnackBar: $mensaje');
+      debugPrint('SnackBar: $mensaje');
     }
   }
 
@@ -52,7 +54,7 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     } catch (e) {
       // Si falla, solo imprime en consola
-      print('SnackBar no disponible');
+      debugPrint('SnackBar no disponible');
     }
   }
 
@@ -87,6 +89,8 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
         Uri.parse('${LoginServe.baseUrl}/api/recepcionPaquetes'),
         headers: headers,
       );
+
+      if (!context.mounted) return;
 
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
@@ -321,7 +325,12 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
             const SizedBox(height: 8),
             Text(
               'Esta acción no se puede deshacer.',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
+                fontSize: 13,
+              ),
             ),
           ],
         ),
@@ -356,6 +365,8 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
         Uri.parse('${LoginServe.baseUrl}/api/recepcionPaquetes/$idPaquete'),
         headers: headers,
       );
+
+      if (!context.mounted) return;
 
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
@@ -468,7 +479,9 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                       'Torre ${_convertirTorreIdALetra(paquete['apartamento']?['torresId'])} - Apto ${paquete['apartamento']?['numeroApartamento']?.toString() ?? ''}',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade700,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -495,7 +508,9 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                         paquete['empresaMensajeria']?.toString() ?? '',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey.shade700,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ),
@@ -524,7 +539,9 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                       ),
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade700,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -608,7 +625,11 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
       scrollDirection: Axis.horizontal,
       child: SingleChildScrollView(
         child: DataTable(
-          headingRowColor: WidgetStateProperty.all(Colors.blue.shade50),
+          headingRowColor: WidgetStateProperty.all(
+            Theme.of(context).brightness == Brightness.dark
+                ? Colors.blue.shade800
+                : Colors.blue.shade50,
+          ),
           columns: const [
             DataColumn(
               label: Text(
@@ -739,7 +760,6 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
@@ -753,7 +773,9 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
             padding: EdgeInsets.all(
               MediaQuery.of(context).size.width < 600 ? 12 : 20,
             ),
-            color: Colors.grey.shade50,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade900
+                : Colors.grey.shade50,
             child: Column(
               children: [
                 ElevatedButton.icon(
@@ -789,7 +811,7 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: Theme.of(context).cardColor,
                   ),
                   onChanged: (value) {
                     setState(() {
@@ -805,14 +827,14 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: filtroTorre,
+                        initialValue: filtroTorre,
                         decoration: InputDecoration(
                           labelText: 'Torre',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: Theme.of(context).cardColor,
                         ),
                         items: [
                           const DropdownMenuItem(
@@ -847,14 +869,14 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: filtroApartamento,
+                        initialValue: filtroApartamento,
                         decoration: InputDecoration(
                           labelText: 'Apartamento',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: Theme.of(context).cardColor,
                         ),
                         items: [
                           const DropdownMenuItem(
@@ -909,10 +931,15 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : paquetes.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       'No hay paquetes registrados',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.5),
+                      ),
                     ),
                   )
                 : MediaQuery.of(context).size.width < 600
@@ -979,7 +1006,9 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
       },
       selectedColor: Colors.blue,
       labelStyle: TextStyle(
-        color: seleccionado ? Colors.white : Colors.black,
+        color: seleccionado
+            ? Colors.white
+            : Theme.of(context).colorScheme.onSurface,
         fontWeight: seleccionado ? FontWeight.bold : FontWeight.normal,
       ),
     );
@@ -1016,7 +1045,6 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
 
         return Theme(
           data: theme.copyWith(
-            useMaterial3: false,
             timePickerTheme: const TimePickerThemeData(
               hourMinuteShape: RoundedRectangleBorder(), // evita bordes nuevos
               dialBackgroundColor: null,
@@ -1130,6 +1158,8 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
         body: json.encode(body),
       );
 
+      if (!context.mounted) return;
+
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
         return;
@@ -1179,7 +1209,7 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
     try {
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     } catch (e) {
-      print('SnackBar no disponible');
+      debugPrint('SnackBar no disponible');
     }
   }
 
@@ -1232,17 +1262,13 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
                     ),
                     prefixIcon: const Icon(Icons.person),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Este campo es obligatorio';
-                    }
-                    return null;
-                  },
+                  inputFormatters: [NombreInputFormatter()],
+                  validator: (v) => validarNombreCompleto(v),
                 ),
                 const SizedBox(height: 15),
                 // Torre
                 DropdownButtonFormField<String>(
-                  value: torreSeleccionada,
+                  initialValue: torreSeleccionada,
                   decoration: InputDecoration(
                     labelText: 'Torre *',
                     border: OutlineInputBorder(
@@ -1273,7 +1299,7 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
                 const SizedBox(height: 15),
                 // Apartamento
                 DropdownButtonFormField<String>(
-                  value: apartamentoSeleccionado,
+                  initialValue: apartamentoSeleccionado,
                   decoration: InputDecoration(
                     labelText: 'Apartamento *',
                     border: OutlineInputBorder(
@@ -1306,22 +1332,48 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
                   },
                 ),
                 const SizedBox(height: 15),
-                // Transportadora
-                TextFormField(
-                  controller: transportadoraController,
-                  decoration: InputDecoration(
-                    labelText: 'Transportadora *',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    prefixIcon: const Icon(Icons.local_shipping),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Este campo es obligatorio';
+                // Transportadora (Autocomplete)
+                Autocomplete<String>(
+                  optionsBuilder: (TextEditingValue textEditingValue) {
+                    if (textEditingValue.text.isEmpty) {
+                      return transportadorasCo.map(
+                        (t) => t[0].toUpperCase() + t.substring(1),
+                      );
                     }
-                    return null;
+                    return transportadorasCo
+                        .where(
+                          (t) => t.toLowerCase().contains(
+                            textEditingValue.text.toLowerCase(),
+                          ),
+                        )
+                        .map((t) => t[0].toUpperCase() + t.substring(1));
                   },
+                  onSelected: (String selection) {
+                    transportadoraController.text = selection;
+                  },
+                  fieldViewBuilder:
+                      (context, controller, focusNode, onFieldSubmitted) {
+                        if (controller.text.isEmpty &&
+                            transportadoraController.text.isNotEmpty) {
+                          controller.text = transportadoraController.text;
+                        }
+                        return TextFormField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          decoration: InputDecoration(
+                            labelText: 'Transportadora *',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            prefixIcon: const Icon(Icons.local_shipping),
+                            hintText: 'Escriba o seleccione',
+                          ),
+                          validator: (v) => validarTransportadora(v),
+                          onChanged: (v) {
+                            transportadoraController.text = v;
+                          },
+                        );
+                      },
                 ),
                 const SizedBox(height: 15),
                 // Fecha y Hora
@@ -1449,13 +1501,21 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
                 TextFormField(
                   controller: observacionesController,
                   maxLines: 3,
+                  maxLength: 255,
                   decoration: InputDecoration(
                     labelText: 'Observaciones',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                     prefixIcon: const Icon(Icons.note),
+                    helperText: 'Máximo 255 caracteres (opcional)',
                   ),
+                  validator: (value) {
+                    if (value != null && value.length > 255) {
+                      return 'Máximo 255 caracteres';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 25),
                 // Botón de registro
@@ -1530,7 +1590,6 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
 
         return Theme(
           data: theme.copyWith(
-            useMaterial3: false,
             timePickerTheme: const TimePickerThemeData(
               hourMinuteShape: RoundedRectangleBorder(), // evita bordes nuevos
               dialBackgroundColor: null,
@@ -1623,7 +1682,7 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
         minute: fechaRecepcion.minute,
       );
     } catch (e) {
-      print('Error parseando fecha: $e');
+      debugPrint('Error parseando fecha: $e');
       fechaSeleccionada = DateTime.now();
       horaSeleccionada = TimeOfDay.now();
     }
@@ -1700,6 +1759,8 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
         body: json.encode(body),
       );
 
+      if (!context.mounted) return;
+
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
         return;
@@ -1748,7 +1809,7 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
     try {
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     } catch (e) {
-      print('SnackBar no disponible');
+      debugPrint('SnackBar no disponible');
     }
   }
 
@@ -1797,17 +1858,13 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
                     ),
                     prefixIcon: const Icon(Icons.person),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Este campo es obligatorio';
-                    }
-                    return null;
-                  },
+                  inputFormatters: [NombreInputFormatter()],
+                  validator: (v) => validarNombreCompleto(v),
                 ),
                 const SizedBox(height: 15),
                 // Torre
                 DropdownButtonFormField<String>(
-                  value: torreSeleccionada,
+                  initialValue: torreSeleccionada,
                   decoration: InputDecoration(
                     labelText: 'Torre *',
                     border: OutlineInputBorder(
@@ -1838,7 +1895,7 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
                 const SizedBox(height: 15),
                 // Apartamento
                 DropdownButtonFormField<String>(
-                  value: apartamentoSeleccionado,
+                  initialValue: apartamentoSeleccionado,
                   decoration: InputDecoration(
                     labelText: 'Apartamento *',
                     border: OutlineInputBorder(
@@ -1871,22 +1928,47 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
                   },
                 ),
                 const SizedBox(height: 15),
-                // Transportadora
-                TextFormField(
-                  controller: transportadoraController,
-                  decoration: InputDecoration(
-                    labelText: 'Transportadora *',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    prefixIcon: const Icon(Icons.local_shipping),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Este campo es obligatorio';
+                // Transportadora (Autocomplete)
+                Autocomplete<String>(
+                  optionsBuilder: (TextEditingValue textEditingValue) {
+                    if (textEditingValue.text.isEmpty) {
+                      return transportadorasCo.map(
+                        (t) => t[0].toUpperCase() + t.substring(1),
+                      );
                     }
-                    return null;
+                    return transportadorasCo
+                        .where(
+                          (t) => t.toLowerCase().contains(
+                            textEditingValue.text.toLowerCase(),
+                          ),
+                        )
+                        .map((t) => t[0].toUpperCase() + t.substring(1));
                   },
+                  initialValue: TextEditingValue(
+                    text: transportadoraController.text,
+                  ),
+                  onSelected: (String selection) {
+                    transportadoraController.text = selection;
+                  },
+                  fieldViewBuilder:
+                      (context, controller, focusNode, onFieldSubmitted) {
+                        return TextFormField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          decoration: InputDecoration(
+                            labelText: 'Transportadora *',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            prefixIcon: const Icon(Icons.local_shipping),
+                            hintText: 'Escriba o seleccione',
+                          ),
+                          validator: (v) => validarTransportadora(v),
+                          onChanged: (v) {
+                            transportadoraController.text = v;
+                          },
+                        );
+                      },
                 ),
                 const SizedBox(height: 15),
                 // Fecha y Hora
@@ -2014,13 +2096,21 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
                 TextFormField(
                   controller: observacionesController,
                   maxLines: 3,
+                  maxLength: 255,
                   decoration: InputDecoration(
                     labelText: 'Observaciones',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                     prefixIcon: const Icon(Icons.note),
+                    helperText: 'Máximo 255 caracteres (opcional)',
                   ),
+                  validator: (value) {
+                    if (value != null && value.length > 255) {
+                      return 'Máximo 255 caracteres';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 25),
                 // Botón de actualización
@@ -2110,41 +2200,49 @@ class DetallesPaquete extends StatelessWidget {
               child: Column(
                 children: [
                   _buildDetalle(
+                    context,
                     'Residente',
                     paquete['nombreDestinatario']?.toString() ?? 'N/A',
                   ),
                   _buildDetalle(
+                    context,
                     'Torre',
                     _convertirTorreIdALetra(
                       paquete['apartamento']?['torresId'],
                     ),
                   ),
                   _buildDetalle(
+                    context,
                     'Apartamento',
                     paquete['apartamento']?['numeroApartamento']?.toString() ??
                         'N/A',
                   ),
                   _buildDetalle(
+                    context,
                     'Empresa Mensajería',
                     paquete['empresaMensajeria']?.toString() ?? 'N/A',
                   ),
                   _buildDetalle(
+                    context,
                     'Fecha Recepción',
                     formatearFechaParaMostrar(
                       paquete['fechaRecepcion']?.toString(),
                     ),
                   ),
                   _buildDetalle(
+                    context,
                     'Hora Recepción',
                     formatearHoraParaMostrar(
                       paquete['fechaRecepcion']?.toString(),
                     ),
                   ),
                   _buildDetalle(
+                    context,
                     'Estado',
                     paquete['estado']?['nombreEstado']?.toString() ?? 'N/A',
                   ),
                   _buildDetalle(
+                    context,
                     'Observaciones',
                     paquete['observaciones']?.toString() ?? 'Sin observaciones',
                   ),
@@ -2157,7 +2255,7 @@ class DetallesPaquete extends StatelessWidget {
     );
   }
 
-  Widget _buildDetalle(String titulo, String valor) {
+  Widget _buildDetalle(BuildContext context, String titulo, String valor) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
@@ -2170,7 +2268,10 @@ class DetallesPaquete extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             valor,
-            style: const TextStyle(fontSize: 15, color: Colors.black87),
+            style: TextStyle(
+              fontSize: 15,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
         ],
       ),

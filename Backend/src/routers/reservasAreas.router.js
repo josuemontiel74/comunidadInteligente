@@ -4,7 +4,6 @@ import { validarJWT, validarRol } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-// ========== RUTAS UNIFICADAS DE RESERVAS DE ÁREAS COMUNES ==========
 
 // Listar todas las reservas
 router.get(

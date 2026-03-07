@@ -1,4 +1,6 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'screens/dashboards/dashboardsuperadmin.dart';
 import 'screens/dashboards/dashboardadministrador.dart';
@@ -6,14 +8,25 @@ import 'screens/dashboards/dashboardvigilante.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'utils/api_config.dart';
+import 'utils/theme_provider.dart';
+import 'utils/user_photo_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  await ApiConfig.init();
+  await ThemeProvider().init();
   runApp(const MyApp());
 }
 
 class LoginServe {
-  static String baseUrl = 'http://localhost:3001';
+  static String get baseUrl => ApiConfig.baseUrl;
   static String? token;
+  static String?
+  rolActual; // rol del usuario logueado: 'superAdministrador', 'administrador', 'vigilante'
+  static String? usernameActual; // username del usuario logueado
 
   static Future<http.Response> postLogin(
     String username,
@@ -40,16 +53,25 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('es', 'ES'), Locale('en', 'US')],
-      locale: const Locale('es', 'ES'),
-      home: const LoginScreen(),
+    return ListenableBuilder(
+      listenable: ThemeProvider(),
+      builder: (context, _) {
+        final themeProvider = ThemeProvider();
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: ThemeProvider.lightTheme,
+          darkTheme: ThemeProvider.darkTheme,
+          themeMode: themeProvider.themeMode,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('es', 'ES'), Locale('en', 'US')],
+          locale: const Locale('es', 'ES'),
+          home: const LoginScreen(),
+        );
+      },
     );
   }
 }
@@ -95,57 +117,217 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: isDark
+          ? const Color(0xFF0D1B0F)
+          : const Color(0xFF1B5E20),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              const Color(0xFF1B5E20), // Verde oscuro
-              const Color(0xFF2E7D32), // Verde medio
-              const Color(0xFF43A047), // Verde claro
-            ],
+            colors: isDark
+                ? [
+                    const Color(0xFF0D1B0F),
+                    const Color(0xFF1A2E1C),
+                    const Color(0xFF243526),
+                  ]
+                : [
+                    const Color(0xFF1B5E20), // Verde oscuro
+                    const Color(0xFF2E7D32), // Verde medio
+                    const Color(0xFF43A047), // Verde claro
+                  ],
             stops: const [0.0, 0.5, 1.0],
           ),
         ),
         child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              bool isWide = constraints.maxWidth > 600;
+          child: Stack(
+            children: [
+              // Contenido principal
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  bool isWide = constraints.maxWidth > 600;
 
-              return Center(
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isWide ? constraints.maxWidth * 0.2 : 24,
-                      vertical: 20,
-                    ),
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: SlideTransition(
-                        position: _slideAnimation,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            // Logo y nombre del conjunto
-                            _buildHeader(),
-                            const SizedBox(height: 40),
-                            // Card de login
-                            _buildLoginCard(isWide),
-                            const SizedBox(height: 30),
-                            // Footer
-                            _buildFooter(),
-                          ],
+                  return Center(
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isWide ? constraints.maxWidth * 0.2 : 24,
+                          vertical: 20,
+                        ),
+                        child: FadeTransition(
+                          opacity: _fadeAnimation,
+                          child: SlideTransition(
+                            position: _slideAnimation,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Logo y nombre del conjunto
+                                _buildHeader(),
+                                const SizedBox(height: 40),
+                                // Card de login
+                                _buildLoginCard(isWide),
+                                const SizedBox(height: 30),
+                                // Footer
+                                _buildFooter(),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                  );
+                },
+              ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (!ApiConfig.isProduction)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(
+                            alpha: isDark ? 0.15 : 0.2,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.settings_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                          tooltip: 'Configurar servidor',
+                          onPressed: () => _mostrarConfigIp(context),
+                        ),
+                      ),
+                    if (!ApiConfig.isProduction) const SizedBox(width: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(
+                          alpha: isDark ? 0.15 : 0.2,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: IconButton(
+                        icon: Icon(
+                          isDark
+                              ? Icons.light_mode_rounded
+                              : Icons.dark_mode_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                        tooltip: isDark ? 'Modo claro' : 'Modo oscuro',
+                        onPressed: () {
+                          ThemeProvider().toggleTheme();
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              );
-            },
+              ),
+            ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _mostrarConfigIp(BuildContext context) {
+    final controller = TextEditingController(text: ApiConfig.ip);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.dns_rounded, color: Colors.green.shade600),
+            const SizedBox(width: 10),
+            const Text('Configurar Servidor'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Ingresa la dirección IP del servidor Backend:',
+              style: TextStyle(
+                fontSize: 13,
+                color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Dirección IP',
+                hintText: '192.168.1.X',
+                prefixIcon: const Icon(Icons.wifi_rounded),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: Colors.green.shade600,
+                    width: 2,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Puerto: ${ApiConfig.port}',
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton.icon(
+            onPressed: () async {
+              final newIp = controller.text.trim();
+              if (newIp.isNotEmpty) {
+                await ApiConfig.setIp(newIp);
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Servidor actualizado: ${ApiConfig.baseUrl}',
+                      ),
+                      backgroundColor: Colors.green.shade600,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+            icon: const Icon(Icons.save_rounded),
+            label: const Text('Guardar'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.green.shade600,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -164,7 +346,7 @@ class _LoginScreenState extends State<LoginScreen>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withValues(alpha: 0.3),
                   width: 2,
                 ),
               ),
@@ -178,7 +360,7 @@ class _LoginScreenState extends State<LoginScreen>
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 25,
                     spreadRadius: 5,
                   ),
@@ -226,7 +408,7 @@ class _LoginScreenState extends State<LoginScreen>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
+            color: Colors.white.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(20),
           ),
           child: const Text(
@@ -243,14 +425,16 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Widget _buildLoginCard(bool isWide) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       constraints: BoxConstraints(maxWidth: isWide ? 450 : double.infinity),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.15),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
@@ -274,7 +458,7 @@ class _LoginScreenState extends State<LoginScreen>
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
@@ -317,12 +501,18 @@ class _LoginScreenState extends State<LoginScreen>
       children: [
         Text(
           '© 2025 Comunidad Inteligente',
-          style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.7),
+            fontSize: 12,
+          ),
         ),
         const SizedBox(height: 5),
         Text(
           'Versión 1.0.0',
-          style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.5),
+            fontSize: 11,
+          ),
         ),
       ],
     );
@@ -340,6 +530,13 @@ class Loginstate extends State<Login> {
   final TextEditingController contrasena = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
+
+  @override
+  void dispose() {
+    usuario.dispose();
+    contrasena.dispose();
+    super.dispose();
+  }
 
   void _hateLogin() async {
     if (usuario.text.isEmpty || contrasena.text.isEmpty) {
@@ -375,6 +572,15 @@ class Loginstate extends State<Login> {
         LoginServe.token = responseBody['token'];
         // El rol está dentro de "usuario.rol" en la respuesta del backend
         final rol = responseBody['usuario']?['rol'] ?? 'superadmin';
+        // Guardar username y rol actuales
+        LoginServe.rolActual = rol.toString().toLowerCase().trim();
+        LoginServe.usernameActual = username;
+
+        // Guardar foto de perfil si viene del backend
+        final fotoPerfil = responseBody['usuario']?['fotoPerfil']?.toString();
+        if (fotoPerfil != null && fotoPerfil.isNotEmpty) {
+          await UserPhotoService.savePhoto(username, fotoPerfil);
+        }
 
         showDialog(
           context: context,
@@ -418,7 +624,7 @@ class Loginstate extends State<Login> {
         Navigator.of(context, rootNavigator: true).pop();
 
         // Navegar según el rol
-        print('Rol recibido del backend: $rol'); // Debug
+        debugPrint('Rol recibido del backend: $rol'); // Debug
         Widget dashboard;
         final rolLower = rol.toString().toLowerCase().trim();
 
@@ -447,78 +653,154 @@ class Loginstate extends State<Login> {
             'Lo siento, contraseña o usuario incorrecto. Vuelva a intentarlo';
         showDialog(
           context: context,
-          builder: (context) => Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            backgroundColor: Colors.white,
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.error_outline, color: Colors.red, size: 80),
-                  const SizedBox(height: 15),
-                  const Text(
-                    'Error de inicio de sesión',
-                    style: TextStyle(
-                      color: Colors.red,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    errorMessage,
-                    style: const TextStyle(color: Colors.black87, fontSize: 14),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange.shade200),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: Colors.orange.shade700,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        const Flexible(
-                          child: Text(
-                            'Si el problema persiste, contacte con un administrador',
-                            style: TextStyle(
-                              color: Colors.orange,
-                              fontSize: 12,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'Intentar de nuevo',
+          builder: (dialogContext) {
+            final darkDialog =
+                Theme.of(dialogContext).brightness == Brightness.dark;
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              backgroundColor: darkDialog
+                  ? const Color(0xFF1E1E1E)
+                  : Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.error_outline, color: Colors.red, size: 80),
+                    const SizedBox(height: 15),
+                    const Text(
+                      'Error de inicio de sesión',
                       style: TextStyle(
                         color: Colors.red,
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 10),
+                    Text(
+                      errorMessage,
+                      style: TextStyle(
+                        color: darkDialog ? Colors.white70 : Colors.black87,
+                        fontSize: 14,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: darkDialog
+                            ? Colors.orange.shade900.withValues(alpha: 0.3)
+                            : Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: darkDialog
+                              ? Colors.orange.shade700
+                              : Colors.orange.shade200,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: Colors.orange.shade700,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              'Si el problema persiste, contacte con un administrador',
+                              style: TextStyle(
+                                color: darkDialog
+                                    ? Colors.orange.shade300
+                                    : Colors.orange,
+                                fontSize: 12,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Enlace WhatsApp soporte
+                    InkWell(
+                      onTap: () async {
+                        final uri = Uri.parse(
+                          'https://chat.whatsapp.com/FPvNvN2Ubvc4AyK2IDM67p',
+                        );
+                        try {
+                          await launchUrl(
+                            uri,
+                            mode: LaunchMode.externalApplication,
+                          );
+                        } catch (_) {
+                          // Si no puede abrir con app externa, intenta en navegador
+                          await launchUrl(
+                            uri,
+                            mode: LaunchMode.platformDefault,
+                          );
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF25D366).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: const Color(
+                              0xFF25D366,
+                            ).withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.support_agent_rounded,
+                              color: const Color(0xFF25D366),
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                '¿Necesitas ayuda? Únete al grupo',
+                                style: TextStyle(
+                                  color: const Color(0xFF25D366),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: const Text(
+                        'Intentar de nuevo',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
         setState(() => _isLoading = false);
       }
@@ -550,6 +832,15 @@ class Loginstate extends State<Login> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fillColor = isDark ? const Color(0xFF2C2C2C) : Colors.grey.shade50;
+    final borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade200;
+    final iconBgColor = isDark ? Colors.green.shade900 : Colors.green.shade50;
+    final textStyle = TextStyle(
+      fontSize: 16,
+      color: isDark ? Colors.white : Colors.black87,
+    );
+
     return Column(
       children: [
         // Campo de usuario
@@ -558,7 +849,7 @@ class Loginstate extends State<Login> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.green.withOpacity(0.1),
+                color: Colors.green.withValues(alpha: isDark ? 0.05 : 0.1),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -567,14 +858,14 @@ class Loginstate extends State<Login> {
           child: TextField(
             controller: usuario,
             enabled: !_isLoading,
-            style: const TextStyle(fontSize: 16),
+            style: textStyle,
             decoration: InputDecoration(
               labelText: 'Usuario',
               hintText: 'Ingrese su usuario',
               prefixIcon: Container(
                 margin: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.green.shade50,
+                  color: iconBgColor,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(Icons.person_rounded, color: Colors.green.shade600),
@@ -585,14 +876,14 @@ class Loginstate extends State<Login> {
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                borderSide: BorderSide(color: borderColor, width: 1.5),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(color: Colors.green.shade400, width: 2),
               ),
               filled: true,
-              fillColor: Colors.grey.shade50,
+              fillColor: fillColor,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 20,
                 vertical: 18,
@@ -607,7 +898,7 @@ class Loginstate extends State<Login> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.green.withOpacity(0.1),
+                color: Colors.green.withValues(alpha: isDark ? 0.05 : 0.1),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -617,7 +908,7 @@ class Loginstate extends State<Login> {
             controller: contrasena,
             obscureText: _obscurePassword,
             enabled: !_isLoading,
-            style: const TextStyle(fontSize: 16),
+            style: textStyle,
             onSubmitted: (_) => _hateLogin(),
             decoration: InputDecoration(
               labelText: 'Contraseña',
@@ -625,7 +916,7 @@ class Loginstate extends State<Login> {
               prefixIcon: Container(
                 margin: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.green.shade50,
+                  color: iconBgColor,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(Icons.lock_rounded, color: Colors.green.shade600),
@@ -635,7 +926,7 @@ class Loginstate extends State<Login> {
                   _obscurePassword
                       ? Icons.visibility_off_rounded
                       : Icons.visibility_rounded,
-                  color: Colors.grey.shade500,
+                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
                 ),
                 onPressed: () =>
                     setState(() => _obscurePassword = !_obscurePassword),
@@ -646,14 +937,14 @@ class Loginstate extends State<Login> {
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                borderSide: BorderSide(color: borderColor, width: 1.5),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(color: Colors.green.shade400, width: 2),
               ),
               filled: true,
-              fillColor: Colors.grey.shade50,
+              fillColor: fillColor,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 20,
                 vertical: 18,
@@ -676,7 +967,7 @@ class Loginstate extends State<Login> {
                 borderRadius: BorderRadius.circular(16),
               ),
               elevation: 4,
-              shadowColor: Colors.green.withOpacity(0.4),
+              shadowColor: Colors.green.withValues(alpha: 0.4),
             ),
             child: _isLoading
                 ? Row(

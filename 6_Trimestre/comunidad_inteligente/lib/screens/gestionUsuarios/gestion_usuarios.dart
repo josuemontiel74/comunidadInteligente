@@ -1,8 +1,13 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:image_picker/image_picker.dart';
 import '../../main.dart';
 import '../../utils/helpers.dart';
+import '../../utils/validaciones.dart';
+import '../../utils/user_photo_service.dart';
 
 class GestionUsuarios extends StatefulWidget {
   final bool openCreateDialog;
@@ -17,10 +22,13 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
   List<dynamic> tiposDocumento = [];
   bool isLoading = true;
   bool vistaGrid = false;
-  String filtroEstado = 'todos'; // 'todos', 'activo', 'inactivo'
+  String filtroEstado = 'todos'; // 'todos', 'activo', 'inactivo', 'enlinea'
   String filtroRol = 'todos';
   String busquedaNombre = '';
   final TextEditingController _searchController = TextEditingController();
+
+  // Usuarios en línea (solo superadmin)
+  List<String> _usuariosEnLinea = [];
 
   // Paginación
   int paginaActual = 1;
@@ -38,6 +46,11 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
   void initState() {
     super.initState();
     _inicializarDatos();
+    // Cargar usuarios en línea solo si es superadmin
+    final rol = LoginServe.rolActual ?? '';
+    if (rol.contains('superadmin')) {
+      _cargarUsuariosEnLinea();
+    }
     if (widget.openCreateDialog) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _mostrarFormularioCrear();
@@ -47,6 +60,31 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
 
   Future<void> _inicializarDatos() async {
     await Future.wait([_cargarUsuarios(), _cargarTiposDocumento()]);
+  }
+
+  Future<void> _cargarUsuariosEnLinea() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${LoginServe.baseUrl}/api/usuario/en-linea'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${LoginServe.token}',
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final enLinea = data['enLinea'] as Map<String, dynamic>? ?? {};
+        if (mounted) {
+          setState(() {
+            _usuariosEnLinea = enLinea.keys
+                .where((k) => enLinea[k] == true)
+                .toList();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error al cargar usuarios en línea: $e');
+    }
   }
 
   Future<void> _cargarUsuarios() async {
@@ -63,6 +101,8 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
         headers: headers,
       );
 
+      if (!context.mounted) return;
+
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
         setState(() => isLoading = false);
@@ -71,10 +111,19 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
 
       if (response.statusCode == 200) {
         final datos = json.decode(response.body);
+        final lista = List<dynamic>.from(datos['body'] ?? datos['data'] ?? []);
         setState(() {
-          usuarios = datos['body'] ?? datos['data'] ?? [];
+          usuarios = lista;
           isLoading = false;
         });
+        // Hidratar fotos desde la BD (igual que el web con localStorage)
+        for (final u in lista) {
+          final foto = u['fotoPerfil']?.toString();
+          final uname = u['username']?.toString() ?? '';
+          if (foto != null && foto.isNotEmpty && uname.isNotEmpty) {
+            UserPhotoService.savePhoto(uname, foto);
+          }
+        }
       } else {
         throw Exception('Error al cargar usuarios');
       }
@@ -96,6 +145,8 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
         headers: headers,
       );
 
+      if (!context.mounted) return;
+
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
         return;
@@ -108,7 +159,7 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
         });
       }
     } catch (e) {
-      print('Error al cargar tipos de documento: $e');
+      debugPrint('Error al cargar tipos de documento: $e');
     }
   }
 
@@ -116,9 +167,14 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
     var usuariosFiltradosList = usuarios.where((usuario) {
       // Filtro por estado
       if (filtroEstado != 'todos') {
-        final estadoId = usuario['estadoId'];
-        if (filtroEstado == 'activo' && estadoId != 1) return false;
-        if (filtroEstado == 'inactivo' && estadoId != 2) return false;
+        // Filtro especial: En línea
+        if (filtroEstado == 'enlinea') {
+          if (!_usuariosEnLinea.contains(usuario['username'])) return false;
+        } else {
+          final estadoId = usuario['estadoId'];
+          if (filtroEstado == 'activo' && estadoId != 1) return false;
+          if (filtroEstado == 'inactivo' && estadoId != 2) return false;
+        }
       }
 
       // Filtro por rol
@@ -183,10 +239,10 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, -2),
           ),
@@ -325,6 +381,39 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
   }
 
   Future<void> _inactivarUsuario(String username) async {
+    // Protección: no permitir que el superadmin se ininactive a sí mismo
+    if (username == LoginServe.usernameActual) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: const [
+              Icon(Icons.block, color: Colors.red),
+              SizedBox(width: 8),
+              Text('Acción no permitida'),
+            ],
+          ),
+          content: const Text(
+            'No puedes inactivar tu propia cuenta mientras la estás usando. Debe ser otra persona quien lo haga.',
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Entendido'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -356,6 +445,8 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
         Uri.parse('${LoginServe.baseUrl}/api/usuario/$username'),
         headers: headers,
       );
+
+      if (!context.mounted) return;
 
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
@@ -409,6 +500,8 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
         body: body,
       );
 
+      if (!context.mounted) return;
+
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
         return;
@@ -442,7 +535,6 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
     final usuariosFiltradosList = usuariosFiltrados;
 
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Gestión de Usuarios'),
         backgroundColor: Colors.purple,
@@ -456,7 +548,9 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
             padding: EdgeInsets.all(
               MediaQuery.of(context).size.width < 600 ? 12 : 20,
             ),
-            color: Colors.grey.shade50,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade900
+                : Colors.grey.shade50,
             child: Column(
               children: [
                 ElevatedButton.icon(
@@ -492,7 +586,7 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: Theme.of(context).cardColor,
                   ),
                   onChanged: (value) => setState(() {
                     busquedaNombre = value;
@@ -510,14 +604,14 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: filtroRol,
+                        initialValue: filtroRol,
                         decoration: InputDecoration(
                           labelText: 'Rol',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: Theme.of(context).cardColor,
                         ),
                         items: [
                           const DropdownMenuItem(
@@ -563,6 +657,17 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
                       _buildChipFiltro('Activos', 'activo'),
                       const SizedBox(width: 10),
                       _buildChipFiltro('Inactivos', 'inactivo'),
+                      // Chip "En línea" solo visible para superadmin
+                      if ((LoginServe.rolActual ?? '').contains(
+                        'superadmin',
+                      )) ...[
+                        const SizedBox(width: 10),
+                        _buildChipFiltroColor(
+                          'En línea',
+                          'enlinea',
+                          Colors.green,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -574,10 +679,15 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : usuariosFiltradosList.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       'No hay usuarios registrados',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.5),
+                      ),
                     ),
                   )
                 : Column(
@@ -617,7 +727,47 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
       },
       selectedColor: Colors.purple,
       labelStyle: TextStyle(
-        color: seleccionado ? Colors.white : Colors.black,
+        color: seleccionado
+            ? Colors.white
+            : Theme.of(context).colorScheme.onSurface,
+        fontWeight: seleccionado ? FontWeight.bold : FontWeight.normal,
+      ),
+    );
+  }
+
+  Widget _buildChipFiltroColor(String label, String valor, Color color) {
+    final bool seleccionado = filtroEstado == valor;
+    return FilterChip(
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (seleccionado || valor == 'enlinea')
+            Container(
+              width: 8,
+              height: 8,
+              margin: const EdgeInsets.only(right: 4),
+              decoration: BoxDecoration(
+                color: seleccionado ? Colors.white : color,
+                shape: BoxShape.circle,
+              ),
+            ),
+          Text(label),
+        ],
+      ),
+      selected: seleccionado,
+      onSelected: (bool selected) {
+        setState(() {
+          filtroEstado = valor;
+          paginaActual = 1;
+        });
+        // Refrescar usuarios en línea al seleccionar el filtro
+        if (valor == 'enlinea') _cargarUsuariosEnLinea();
+      },
+      selectedColor: color,
+      labelStyle: TextStyle(
+        color: seleccionado
+            ? Colors.white
+            : Theme.of(context).colorScheme.onSurface,
         fontWeight: seleccionado ? FontWeight.bold : FontWeight.normal,
       ),
     );
@@ -639,7 +789,11 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
       scrollDirection: Axis.horizontal,
       child: SingleChildScrollView(
         child: DataTable(
-          headingRowColor: WidgetStateProperty.all(Colors.purple.shade100),
+          headingRowColor: WidgetStateProperty.all(
+            Theme.of(context).brightness == Brightness.dark
+                ? Colors.purple.shade800
+                : Colors.purple.shade100,
+          ),
           columns: const [
             DataColumn(label: Text('Username')),
             DataColumn(label: Text('Nombre Completo')),
@@ -760,7 +914,12 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
                 const SizedBox(width: 12),
                 Text(
                   usuario['username'] ?? 'N/A',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
                 ),
               ],
             ),
@@ -784,7 +943,12 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
                 Expanded(
                   child: Text(
                     _obtenerNumeroDocumento(usuario),
-                    style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
                   ),
                 ),
               ],
@@ -808,7 +972,12 @@ class _GestionUsuariosState extends State<GestionUsuarios> {
                 const SizedBox(width: 12),
                 Text(
                   _obtenerNombreRol(usuario),
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
                 ),
               ],
             ),
@@ -913,6 +1082,20 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
   int? rolId;
   bool obscurePassword = true;
   bool isSubmitting = false;
+  Uint8List? _fotoBytes;
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _seleccionarFoto() async {
+    final XFile? picked = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 75,
+    );
+    if (picked == null) return;
+    final bytes = await picked.readAsBytes();
+    if (mounted) setState(() => _fotoBytes = bytes);
+  }
 
   @override
   void dispose() {
@@ -1026,6 +1209,8 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
         body: json.encode(body),
       );
 
+      if (!context.mounted) return;
+
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
         if (mounted) setState(() => isSubmitting = false);
@@ -1033,6 +1218,30 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
       }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        // Guardar foto si se seleccionó una
+        if (_fotoBytes != null) {
+          try {
+            final responseData = json.decode(response.body);
+            final newUsername =
+                responseData['body']?['username'] ?? responseData['username'];
+            if (newUsername != null) {
+              final b64 = base64Encode(_fotoBytes!);
+              final dataUrl = 'data:image/jpeg;base64,$b64';
+              await UserPhotoService.savePhoto(newUsername.toString(), b64);
+              // Persistir en BD
+              await http.put(
+                Uri.parse(
+                  '${LoginServe.baseUrl}/api/usuario/${Uri.encodeComponent(newUsername.toString())}/foto',
+                ),
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer ${LoginServe.token}',
+                },
+                body: json.encode({'fotoPerfil': dataUrl}),
+              );
+            }
+          } catch (_) {}
+        }
         if (mounted) {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1145,6 +1354,58 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
                         ),
                       ),
                       const SizedBox(height: 16),
+                      // Foto de perfil
+                      Align(
+                        alignment: Alignment.center,
+                        child: Column(
+                          children: [
+                            const Text(
+                              'Foto de Perfil (opcional)',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.purple,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            GestureDetector(
+                              onTap: _seleccionarFoto,
+                              child: CircleAvatar(
+                                radius: 40,
+                                backgroundColor: Colors.purple.shade100,
+                                backgroundImage: _fotoBytes != null
+                                    ? MemoryImage(_fotoBytes!)
+                                    : null,
+                                child: _fotoBytes == null
+                                    ? Icon(
+                                        Icons.add_a_photo,
+                                        size: 32,
+                                        color: Colors.purple.shade700,
+                                      )
+                                    : null,
+                              ),
+                            ),
+                            if (_fotoBytes != null)
+                              TextButton.icon(
+                                onPressed: () =>
+                                    setState(() => _fotoBytes = null),
+                                icon: const Icon(
+                                  Icons.delete,
+                                  size: 16,
+                                  color: Colors.red,
+                                ),
+                                label: const Text(
+                                  'Quitar foto',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       // Password
                       TextFormField(
                         controller: passwordController,
@@ -1166,15 +1427,7 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'La contraseña es requerida';
-                          }
-                          if (value.length < 6) {
-                            return 'Mínimo 6 caracteres';
-                          }
-                          return null;
-                        },
+                        validator: (v) => validarPassword(v),
                       ),
                       const SizedBox(height: 16),
                       // Rol
@@ -1248,12 +1501,10 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
                           ),
                         ),
                         keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'El documento es requerido';
-                          }
-                          return null;
-                        },
+                        inputFormatters: [
+                          getDocumentoFormatter(tipoDocumentoId),
+                        ],
+                        validator: (v) => validarDocumento(v, tipoDocumentoId),
                       ),
                       const SizedBox(height: 16),
                       // Primer Nombre
@@ -1266,36 +1517,22 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'El primer nombre es requerido';
-                          }
-                          if (value.length < 1 || value.length > 20) {
-                            return 'Entre 1 y 20 caracteres';
-                          }
-                          return null;
-                        },
+                        inputFormatters: [NombreInputFormatter()],
+                        validator: (v) => validarNombre(v),
                       ),
                       const SizedBox(height: 16),
                       // Segundo Nombre
                       TextFormField(
                         controller: segundoNombreController,
                         decoration: InputDecoration(
-                          labelText: 'Segundo Nombre *',
+                          labelText: 'Segundo Nombre',
                           prefixIcon: const Icon(Icons.person),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'El segundo nombre es requerido';
-                          }
-                          if (value.length < 1 || value.length > 45) {
-                            return 'Entre 1 y 45 caracteres';
-                          }
-                          return null;
-                        },
+                        inputFormatters: [NombreInputFormatter()],
+                        validator: (v) => validarNombre(v, obligatorio: false),
                       ),
                       const SizedBox(height: 16),
                       // Primer Apellido
@@ -1308,36 +1545,22 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'El primer apellido es requerido';
-                          }
-                          if (value.length < 1 || value.length > 30) {
-                            return 'Entre 1 y 30 caracteres';
-                          }
-                          return null;
-                        },
+                        inputFormatters: [NombreInputFormatter()],
+                        validator: (v) => validarNombre(v),
                       ),
                       const SizedBox(height: 16),
                       // Segundo Apellido
                       TextFormField(
                         controller: segundoApellidoController,
                         decoration: InputDecoration(
-                          labelText: 'Segundo Apellido *',
+                          labelText: 'Segundo Apellido',
                           prefixIcon: const Icon(Icons.person_outline),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'El segundo apellido es requerido';
-                          }
-                          if (value.length < 1 || value.length > 30) {
-                            return 'Entre 1 y 30 caracteres';
-                          }
-                          return null;
-                        },
+                        inputFormatters: [NombreInputFormatter()],
+                        validator: (v) => validarNombre(v, obligatorio: false),
                       ),
                       const SizedBox(height: 16),
                       // Teléfono
@@ -1351,15 +1574,8 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
                           ),
                         ),
                         keyboardType: TextInputType.phone,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'El teléfono es requerido';
-                          }
-                          if (value.length < 7 || value.length > 10) {
-                            return 'Entre 7 y 10 caracteres';
-                          }
-                          return null;
-                        },
+                        inputFormatters: [TelefonoInputFormatter()],
+                        validator: (v) => validarTelefono(v),
                       ),
                       const SizedBox(height: 16),
                       // Correo
@@ -1373,20 +1589,7 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
                           ),
                         ),
                         keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'El correo es requerido';
-                          }
-                          if (!RegExp(
-                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                          ).hasMatch(value)) {
-                            return 'Correo inválido';
-                          }
-                          if (value.length > 45) {
-                            return 'Máximo 45 caracteres';
-                          }
-                          return null;
-                        },
+                        validator: (v) => validarEmail(v),
                       ),
                     ],
                   ),
@@ -1397,7 +1600,7 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(20),
                   bottomRight: Radius.circular(20),
@@ -1443,7 +1646,7 @@ class _CrearUsuarioDialogState extends State<CrearUsuarioDialog> {
 }
 
 // DIALOG DETALLES USUARIO
-class DetallesUsuarioDialog extends StatelessWidget {
+class DetallesUsuarioDialog extends StatefulWidget {
   final dynamic usuario;
   final List<dynamic> roles;
 
@@ -1453,9 +1656,74 @@ class DetallesUsuarioDialog extends StatelessWidget {
     required this.roles,
   });
 
+  @override
+  State<DetallesUsuarioDialog> createState() => _DetallesUsuarioDialogState();
+}
+
+class _DetallesUsuarioDialogState extends State<DetallesUsuarioDialog> {
+  String? _fotoBase64;
+  final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarFoto();
+  }
+
+  Future<void> _cargarFoto() async {
+    final username = widget.usuario['username']?.toString() ?? '';
+    // Primero intentar desde SharedPreferences (puede ya estar hidratada)
+    var foto = await UserPhotoService.getPhoto(username);
+    // Si no hay, leer del objeto usuario que vino de la BD
+    if (foto == null || foto.isEmpty) {
+      final fotoApi = widget.usuario['fotoPerfil']?.toString();
+      if (fotoApi != null && fotoApi.isNotEmpty) {
+        await UserPhotoService.savePhoto(username, fotoApi);
+        foto = UserPhotoService.extractBase64(fotoApi);
+      }
+    }
+    if (mounted && foto != null) {
+      setState(() => _fotoBase64 = foto);
+    }
+  }
+
+  Future<void> _cambiarFoto() async {
+    try {
+      final XFile? picked = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 75,
+      );
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      final b64 = base64Encode(bytes);
+      final dataUrl = 'data:image/jpeg;base64,$b64';
+      final username = widget.usuario['username']?.toString() ?? '';
+      // Guardar localmente
+      await UserPhotoService.savePhoto(username, b64);
+      if (mounted) setState(() => _fotoBase64 = b64);
+      // Persistir en la BD
+      try {
+        await http.put(
+          Uri.parse(
+            '${LoginServe.baseUrl}/api/usuario/${Uri.encodeComponent(username)}/foto',
+          ),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${LoginServe.token}',
+          },
+          body: json.encode({'fotoPerfil': dataUrl}),
+        );
+      } catch (_) {}
+    } catch (e) {
+      debugPrint('Error al seleccionar foto: $e');
+    }
+  }
+
   String _obtenerNombreRol(int? rolId) {
     if (rolId == null) return 'Sin rol';
-    final rol = roles.firstWhere(
+    final rol = widget.roles.firstWhere(
       (r) => r['idRol'] == rolId,
       orElse: () => {'nombreRol': 'Desconocido'},
     );
@@ -1464,8 +1732,9 @@ class DetallesUsuarioDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final persona = usuario['Persona'] ?? usuario['persona'] ?? {};
-    final bool esActivo = usuario['estadoId'] == 1;
+    final persona =
+        widget.usuario['Persona'] ?? widget.usuario['persona'] ?? {};
+    final bool esActivo = widget.usuario['estadoId'] == 1;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -1477,7 +1746,7 @@ class DetallesUsuarioDialog extends StatelessWidget {
         ),
         child: Column(
           children: [
-            // Header
+            // Header con foto
             Container(
               padding: const EdgeInsets.all(16),
               decoration: const BoxDecoration(
@@ -1489,7 +1758,43 @@ class DetallesUsuarioDialog extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.person, color: Colors.white, size: 28),
+                  GestureDetector(
+                    onTap: _cambiarFoto,
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 28,
+                          backgroundColor: Colors.white,
+                          backgroundImage: _fotoBase64 != null
+                              ? MemoryImage(base64Decode(_fotoBase64!))
+                              : null,
+                          child: _fotoBase64 == null
+                              ? const Icon(
+                                  Icons.person,
+                                  color: Colors.purple,
+                                  size: 32,
+                                )
+                              : null,
+                        ),
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              size: 14,
+                              color: Colors.purple,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
@@ -1550,13 +1855,15 @@ class DetallesUsuarioDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     _buildDetalleItem(
+                      context,
                       'Username',
-                      usuario['username'] ?? 'N/A',
+                      widget.usuario['username'] ?? 'N/A',
                       Icons.person,
                     ),
                     _buildDetalleItem(
+                      context,
                       'Rol',
-                      _obtenerNombreRol(usuario['rolesId']),
+                      _obtenerNombreRol(widget.usuario['rolesId']),
                       Icons.security,
                     ),
                     const SizedBox(height: 20),
@@ -1564,12 +1871,14 @@ class DetallesUsuarioDialog extends StatelessWidget {
                     _buildSeccionTitulo('Información Personal', Icons.badge),
                     const SizedBox(height: 12),
                     _buildDetalleItem(
+                      context,
                       'Nombre Completo',
                       '${persona['primerNombre'] ?? ''} ${persona['segundoNombre'] ?? ''} ${persona['primerApellido'] ?? ''} ${persona['segundoApellido'] ?? ''}'
                           .trim(),
                       Icons.person_outline,
                     ),
                     _buildDetalleItem(
+                      context,
                       'Tipo Documento',
                       persona['TipoDocumento']?['nombreDocumento'] ??
                           persona['tipoDocumento']?['nombreDocumento'] ??
@@ -1577,6 +1886,7 @@ class DetallesUsuarioDialog extends StatelessWidget {
                       Icons.credit_card,
                     ),
                     _buildDetalleItem(
+                      context,
                       'Número Documento',
                       persona['numeroDocumento']?.toString() ?? 'N/A',
                       Icons.badge,
@@ -1589,11 +1899,13 @@ class DetallesUsuarioDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     _buildDetalleItem(
+                      context,
                       'Teléfono',
                       persona['telefono']?.toString() ?? 'N/A',
                       Icons.phone,
                     ),
                     _buildDetalleItem(
+                      context,
                       'Correo Electrónico',
                       persona['correoElectronico'] ?? 'N/A',
                       Icons.email,
@@ -1606,7 +1918,7 @@ class DetallesUsuarioDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(20),
                   bottomRight: Radius.circular(20),
@@ -1649,7 +1961,12 @@ class DetallesUsuarioDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildDetalleItem(String label, String valor, IconData icono) {
+  Widget _buildDetalleItem(
+    BuildContext context,
+    String label,
+    String valor,
+    IconData icono,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -1658,10 +1975,16 @@ class DetallesUsuarioDialog extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icono, size: 18, color: Colors.grey.shade600),
+            child: Icon(
+              icono,
+              size: 18,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1670,7 +1993,12 @@ class DetallesUsuarioDialog extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -1728,6 +2056,15 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
   bool obscurePassword = true;
   bool isSubmitting = false;
 
+  /// Convierte un valor dinámico a int de forma segura
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1747,9 +2084,16 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
     telefonoController.text = (persona['telefono'] ?? '').toString();
     correoController.text = persona['correoElectronico'] ?? '';
 
-    tipoDocumentoId = persona['tipoDocumentoId'];
-    rolId = widget.usuario['rolesId'];
-    estadoId = widget.usuario['estadoId'];
+    tipoDocumentoId = _toInt(persona['tipoDocumentoId']);
+    rolId = _toInt(widget.usuario['rolesId']);
+    estadoId = _toInt(widget.usuario['estadoId']);
+
+    debugPrint('=== EDITAR USUARIO initState ===');
+    debugPrint(
+      'rolId: $rolId (tipo: ${widget.usuario['rolesId'].runtimeType})',
+    );
+    debugPrint('estadoId: $estadoId');
+    debugPrint('tipoDocumentoId: $tipoDocumentoId');
   }
 
   @override
@@ -1786,18 +2130,23 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
             ),
           ],
         ),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               '¿Está seguro de actualizar este usuario?',
               style: TextStyle(fontSize: 16),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               'Los cambios se guardarán permanentemente.',
-              style: TextStyle(color: Colors.grey, fontSize: 13),
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
+                fontSize: 13,
+              ),
             ),
           ],
         ),
@@ -1827,6 +2176,18 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
           widget.usuario['Persona'] ?? widget.usuario['persona'] ?? {};
       final body = <String, dynamic>{};
 
+      // Guardar el estado del form para capturar valores de los dropdowns
+      _formKey.currentState!.save();
+
+      debugPrint('=== DEBUG ACTUALIZAR USUARIO ===');
+      debugPrint('Username: ${widget.usuario['username']}');
+      debugPrint(
+        'rolId actual: $rolId | original: ${widget.usuario['rolesId']} (tipo: ${widget.usuario['rolesId'].runtimeType})',
+      );
+      debugPrint(
+        'estadoId actual: $estadoId | original: ${widget.usuario['estadoId']}',
+      );
+
       // Campos de cuenta
       if (usernameController.text.trim() != widget.usuario['username']) {
         body['username'] = usernameController.text.trim();
@@ -1834,10 +2195,10 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
       if (passwordController.text.isNotEmpty) {
         body['password'] = passwordController.text;
       }
-      if (rolId != widget.usuario['rolesId']) {
+      if (rolId != _toInt(widget.usuario['rolesId'])) {
         body['rolesId'] = rolId;
       }
-      if (estadoId != widget.usuario['estadoId']) {
+      if (estadoId != _toInt(widget.usuario['estadoId'])) {
         body['estadoId'] = estadoId;
       }
 
@@ -1849,7 +2210,7 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
         body['numeroDocumento'] = numeroDocumentoController.text.trim();
         hayaCambioenPersona = true;
       }
-      if (tipoDocumentoId != persona['tipoDocumentoId']) {
+      if (tipoDocumentoId != _toInt(persona['tipoDocumentoId'])) {
         body['tipoDocumentoId'] = tipoDocumentoId;
         hayaCambioenPersona = true;
       }
@@ -1902,9 +2263,7 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
         return;
       }
 
-      print('=== DEBUG ACTUALIZAR USUARIO ===');
-      print('Username: ${widget.usuario['username']}');
-      print('Body a enviar: $body');
+      debugPrint('Body a enviar: $body');
 
       final response = await http.patch(
         Uri.parse(
@@ -1917,8 +2276,10 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
         body: json.encode(body),
       );
 
-      print('Status Code: ${response.statusCode}');
-      print('Response Body: ${response.body}');
+      debugPrint('Status Code: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
+
+      if (!context.mounted) return;
 
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
@@ -2023,7 +2384,9 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           filled: true,
-                          fillColor: Colors.grey.shade200,
+                          fillColor: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
                           helperText: 'El username no se puede modificar',
                         ),
                       ),
@@ -2050,17 +2413,15 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                           ),
                         ),
                         validator: (value) {
-                          if (value != null &&
-                              value.isNotEmpty &&
-                              value.length < 6) {
-                            return 'Mínimo 6 caracteres';
+                          if (value != null && value.isNotEmpty) {
+                            return validarPassword(value);
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<int>(
-                        value: rolId,
+                        initialValue: rolId,
                         decoration: InputDecoration(
                           labelText: 'Rol',
                           prefixIcon: const Icon(Icons.security),
@@ -2071,18 +2432,25 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                         isExpanded: true,
                         items: widget.roles.map((rol) {
                           return DropdownMenuItem<int>(
-                            value: rol['idRol'],
+                            value: rol['idRol'] as int,
                             child: Text(
                               rol['nombreRol'] ?? '',
                               overflow: TextOverflow.ellipsis,
                             ),
                           );
                         }).toList(),
-                        onChanged: (value) => setState(() => rolId = value),
+                        onChanged: (value) {
+                          debugPrint('Rol dropdown onChanged: $rolId → $value');
+                          setState(() => rolId = value);
+                        },
+                        onSaved: (value) {
+                          debugPrint('Rol dropdown onSaved: $value');
+                          rolId = value;
+                        },
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<int>(
-                        value: estadoId,
+                        initialValue: estadoId,
                         decoration: InputDecoration(
                           labelText: 'Estado',
                           prefixIcon: const Icon(Icons.toggle_on),
@@ -2095,7 +2463,16 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                           DropdownMenuItem(value: 1, child: Text('Activo')),
                           DropdownMenuItem(value: 2, child: Text('Inactivo')),
                         ],
-                        onChanged: (value) => setState(() => estadoId = value),
+                        onChanged: (value) {
+                          debugPrint(
+                            'Estado dropdown onChanged: $estadoId → $value',
+                          );
+                          setState(() => estadoId = value);
+                        },
+                        onSaved: (value) {
+                          debugPrint('Estado dropdown onSaved: $value');
+                          estadoId = value;
+                        },
                       ),
                       const SizedBox(height: 24),
                       // Sección: Información Personal
@@ -2109,7 +2486,7 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<int>(
-                        value: tipoDocumentoId,
+                        initialValue: tipoDocumentoId,
                         decoration: InputDecoration(
                           labelText: 'Tipo de Documento',
                           prefixIcon: const Icon(Icons.credit_card),
@@ -2120,7 +2497,7 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                         isExpanded: true,
                         items: widget.tiposDocumento.map((tipo) {
                           return DropdownMenuItem<int>(
-                            value: tipo['idTipoDocumento'],
+                            value: _toInt(tipo['idTipoDocumento']),
                             child: Text(
                               tipo['nombreDocumento'] ?? '',
                               overflow: TextOverflow.ellipsis,
@@ -2129,6 +2506,7 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                         }).toList(),
                         onChanged: (value) =>
                             setState(() => tipoDocumentoId = value),
+                        onSaved: (value) => tipoDocumentoId = value,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -2141,6 +2519,10 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                           ),
                         ),
                         keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          getDocumentoFormatter(tipoDocumentoId),
+                        ],
+                        validator: (v) => validarDocumento(v, tipoDocumentoId),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -2152,14 +2534,8 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        validator: (value) {
-                          if (value != null && value.isNotEmpty) {
-                            if (value.length > 20) {
-                              return 'Máximo 20 caracteres';
-                            }
-                          }
-                          return null;
-                        },
+                        inputFormatters: [NombreInputFormatter()],
+                        validator: (v) => validarNombre(v),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -2171,14 +2547,8 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        validator: (value) {
-                          if (value != null && value.isNotEmpty) {
-                            if (value.length > 45) {
-                              return 'Máximo 45 caracteres';
-                            }
-                          }
-                          return null;
-                        },
+                        inputFormatters: [NombreInputFormatter()],
+                        validator: (v) => validarNombre(v, obligatorio: false),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -2190,14 +2560,8 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        validator: (value) {
-                          if (value != null && value.isNotEmpty) {
-                            if (value.length > 30) {
-                              return 'Máximo 30 caracteres';
-                            }
-                          }
-                          return null;
-                        },
+                        inputFormatters: [NombreInputFormatter()],
+                        validator: (v) => validarNombre(v),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -2209,14 +2573,8 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        validator: (value) {
-                          if (value != null && value.isNotEmpty) {
-                            if (value.length > 30) {
-                              return 'Máximo 30 caracteres';
-                            }
-                          }
-                          return null;
-                        },
+                        inputFormatters: [NombreInputFormatter()],
+                        validator: (v) => validarNombre(v, obligatorio: false),
                       ),
                       const SizedBox(height: 24),
                       // Sección: Información de Contacto
@@ -2239,14 +2597,8 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                           ),
                         ),
                         keyboardType: TextInputType.phone,
-                        validator: (value) {
-                          if (value != null && value.isNotEmpty) {
-                            if (value.length < 7 || value.length > 10) {
-                              return 'Entre 7 y 10 caracteres';
-                            }
-                          }
-                          return null;
-                        },
+                        inputFormatters: [TelefonoInputFormatter()],
+                        validator: (v) => validarTelefono(v),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -2259,19 +2611,7 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
                           ),
                         ),
                         keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value != null && value.isNotEmpty) {
-                            if (!RegExp(
-                              r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                            ).hasMatch(value)) {
-                              return 'Correo inválido';
-                            }
-                            if (value.length > 45) {
-                              return 'Máximo 45 caracteres';
-                            }
-                          }
-                          return null;
-                        },
+                        validator: (v) => validarEmail(v),
                       ),
                     ],
                   ),
@@ -2282,7 +2622,7 @@ class _EditarUsuarioDialogState extends State<EditarUsuarioDialog> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(20),
                   bottomRight: Radius.circular(20),

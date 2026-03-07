@@ -1,8 +1,11 @@
+// ignore_for_file: use_build_context_synchronously
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import '../../main.dart';
 import '../../utils/helpers.dart';
+import '../../utils/validaciones.dart';
 
 class Residentes extends StatefulWidget {
   final bool openCreateDialog;
@@ -93,6 +96,7 @@ class _ResidentesState extends State<Residentes> {
           builder: (context) => CrearResidenteDialog(
             apartamentos: apartamentos,
             tiposDocumento: tiposDocumento,
+            ocupantes: ocupantes,
             onCreated: _cargarOcupantes,
           ),
         );
@@ -109,6 +113,8 @@ class _ResidentesState extends State<Residentes> {
           'Authorization': 'Bearer ${LoginServe.token}',
         },
       );
+
+      if (!context.mounted) return;
 
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
@@ -158,6 +164,8 @@ class _ResidentesState extends State<Residentes> {
         },
       );
 
+      if (!context.mounted) return;
+
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
         return;
@@ -191,6 +199,8 @@ class _ResidentesState extends State<Residentes> {
           'Authorization': 'Bearer ${LoginServe.token}',
         },
       );
+
+      if (!context.mounted) return;
 
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
@@ -302,10 +312,10 @@ class _ResidentesState extends State<Residentes> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, -2),
           ),
@@ -385,6 +395,8 @@ class _ResidentesState extends State<Residentes> {
         },
       );
 
+      if (!context.mounted) return;
+
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
         return;
@@ -435,6 +447,7 @@ class _ResidentesState extends State<Residentes> {
                   builder: (context) => CrearResidenteDialog(
                     apartamentos: apartamentos,
                     tiposDocumento: tiposDocumento,
+                    ocupantes: ocupantes,
                     onCreated: _cargarOcupantes,
                   ),
                 );
@@ -459,9 +472,11 @@ class _ResidentesState extends State<Residentes> {
               margin: const EdgeInsets.symmetric(horizontal: 16),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade900
+                    : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(color: Theme.of(context).dividerColor),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -475,7 +490,7 @@ class _ResidentesState extends State<Residentes> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: Theme.of(context).cardColor,
                     ),
                     onChanged: (value) {
                       setState(() {
@@ -496,14 +511,14 @@ class _ResidentesState extends State<Residentes> {
                         SizedBox(
                           width: isMobile ? double.infinity : 200,
                           child: DropdownButtonFormField<String?>(
-                            value: filtroTorre,
+                            initialValue: filtroTorre,
                             decoration: InputDecoration(
                               labelText: 'Torre',
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: Theme.of(context).cardColor,
                             ),
                             isExpanded: true,
                             items: [
@@ -535,14 +550,14 @@ class _ResidentesState extends State<Residentes> {
                           SizedBox(
                             width: isMobile ? double.infinity : 200,
                             child: DropdownButtonFormField<String?>(
-                              value: filtroApartamento,
+                              initialValue: filtroApartamento,
                               decoration: InputDecoration(
                                 labelText: 'Apartamento',
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 filled: true,
-                                fillColor: Colors.white,
+                                fillColor: Theme.of(context).cardColor,
                               ),
                               isExpanded: true,
                               items: [
@@ -663,10 +678,15 @@ class _ResidentesState extends State<Residentes> {
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : ocupantesFiltrados.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       'No se encontraron residentes',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.5),
+                      ),
                     ),
                   )
                 : Column(
@@ -829,7 +849,11 @@ class _ResidentesState extends State<Residentes> {
                       ? () => _finalizarOcupante(ocupante['idOcupante'])
                       : null,
                   icon: Icon(esActivo ? Icons.block : Icons.check_circle),
-                  color: esActivo ? Colors.red : Colors.grey,
+                  color: esActivo
+                      ? Colors.red
+                      : Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.5),
                   tooltip: esActivo ? 'Finalizar' : 'Finalizado',
                 ),
               ],
@@ -845,19 +869,31 @@ class _ResidentesState extends State<Residentes> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: Colors.grey.shade600),
+          Icon(
+            icon,
+            size: 18,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
           const SizedBox(width: 8),
           Text(
             '$label: ',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: Colors.grey.shade700,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
           Expanded(
             child: Text(
               value?.toString() ?? 'N/A',
-              style: TextStyle(color: Colors.grey.shade800),
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.8),
+              ),
             ),
           ),
         ],
@@ -870,7 +906,11 @@ class _ResidentesState extends State<Residentes> {
       scrollDirection: Axis.horizontal,
       child: SingleChildScrollView(
         child: DataTable(
-          headingRowColor: MaterialStateProperty.all(Colors.teal.shade50),
+          headingRowColor: WidgetStateProperty.all(
+            Theme.of(context).brightness == Brightness.dark
+                ? Colors.teal.shade800
+                : Colors.teal.shade50,
+          ),
           columns: const [
             DataColumn(
               label: Text(
@@ -1042,7 +1082,11 @@ class _ResidentesState extends State<Residentes> {
                       IconButton(
                         icon: Icon(
                           esActivo ? Icons.block : Icons.check_circle,
-                          color: esActivo ? Colors.red : Colors.grey,
+                          color: esActivo
+                              ? Colors.red
+                              : Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
                         tooltip: esActivo ? 'Finalizar' : 'Finalizado',
                         onPressed: esActivo
@@ -1061,19 +1105,18 @@ class _ResidentesState extends State<Residentes> {
   }
 }
 
-// ============================================================================
-// DIÁLOGO CREAR RESIDENTE
-// ============================================================================
 
 class CrearResidenteDialog extends StatefulWidget {
   final List<dynamic> apartamentos;
   final List<dynamic> tiposDocumento;
+  final List<dynamic> ocupantes;
   final VoidCallback onCreated;
 
   const CrearResidenteDialog({
     super.key,
     required this.apartamentos,
     required this.tiposDocumento,
+    required this.ocupantes,
     required this.onCreated,
   });
 
@@ -1142,6 +1185,33 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
 
   Future<void> _crearResidente() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (apartamentoId != null) {
+      final ocupanteExistente = widget.ocupantes.any(
+        (ocupante) =>
+            ocupante['apartamentosId'] == apartamentoId &&
+            ocupante['tipoOcupacion'] == tipoOcupacion &&
+            ocupante['estadoId'] == 5,
+      ); // 5 = Activo
+
+      if (ocupanteExistente) {
+        final tipo = tipoOcupacion == 'propietario'
+            ? 'propietario'
+            : 'arrendatario';
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'El apartamento ya tiene un $tipo activo. Finalice el proceso actual antes de registrar uno nuevo.',
+              ),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+        return;
+      }
+    }
 
     // Mostrar alerta de confirmación
     final confirmar = await showDialog<bool>(
@@ -1255,11 +1325,13 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
       );
 
       // DEBUG: Ver respuesta del servidor
-      print('=== DEBUG CREAR RESIDENTE ===');
-      print('Status code: ${response.statusCode}');
-      print('Body enviado: $body');
-      print('Respuesta: ${response.body}');
-      print('=== FIN DEBUG ===');
+      debugPrint('=== DEBUG CREAR RESIDENTE ===');
+      debugPrint('Status code: ${response.statusCode}');
+      debugPrint('Body enviado: $body');
+      debugPrint('Respuesta: ${response.body}');
+      debugPrint('=== FIN DEBUG ===');
+
+      if (!context.mounted) return;
 
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
@@ -1338,7 +1410,7 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
 
                   // Dropdown de Torre
                   DropdownButtonFormField<int?>(
-                    value: torreSeleccionada,
+                    initialValue: torreSeleccionada,
                     decoration: const InputDecoration(
                       labelText: 'Torre *',
                       border: OutlineInputBorder(),
@@ -1367,18 +1439,18 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
                   Builder(
                     builder: (context) {
                       // DEBUG: Ver datos del backend
-                      print('=== DEBUG CREAR RESIDENTE ===');
-                      print(
+                      debugPrint('=== DEBUG CREAR RESIDENTE ===');
+                      debugPrint(
                         'Torre seleccionada: $torreSeleccionada (tipo: ${torreSeleccionada.runtimeType})',
                       );
-                      print(
+                      debugPrint(
                         'Total apartamentos recibidos: ${widget.apartamentos.length}',
                       );
                       if (widget.apartamentos.isNotEmpty) {
-                        print(
+                        debugPrint(
                           'Primer apartamento: ${widget.apartamentos.first}',
                         );
-                        print(
+                        debugPrint(
                           'Campos disponibles: ${widget.apartamentos.first.keys.toList()}',
                         );
                       }
@@ -1394,20 +1466,20 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
                                 )
                                 .toList();
 
-                      print(
+                      debugPrint(
                         'Apartamentos filtrados para torre $torreSeleccionada: ${apartamentosFiltrados.length}',
                       );
                       if (apartamentosFiltrados.isNotEmpty) {
-                        print(
+                        debugPrint(
                           'Primer apto filtrado: ${apartamentosFiltrados.first}',
                         );
                       } else {
-                        print('NO HAY APARTAMENTOS PARA ESTA TORRE');
+                        debugPrint('NO HAY APARTAMENTOS PARA ESTA TORRE');
                         // Mostrar todos los torresId disponibles
                         final torresDisponibles = widget.apartamentos
                             .map((a) => a['torresId'])
                             .toSet();
-                        print(
+                        debugPrint(
                           'Torres disponibles en datos: $torresDisponibles',
                         );
                       }
@@ -1425,16 +1497,16 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
                           ? apartamentoId
                           : null;
 
-                      print(
+                      debugPrint(
                         'apartamentoId: $apartamentoId, valorActual: $valorActual',
                       );
-                      print('=== FIN DEBUG ===');
+                      debugPrint('=== FIN DEBUG ===');
 
                       return DropdownButtonFormField<int?>(
                         key: ValueKey(
                           'apartamento-crear-${torreSeleccionada ?? "none"}',
                         ),
-                        value: valorActual,
+                        initialValue: valorActual,
                         decoration: const InputDecoration(
                           labelText: 'Apartamento *',
                           border: OutlineInputBorder(),
@@ -1481,7 +1553,7 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
                   const SizedBox(height: 16),
 
                   DropdownButtonFormField<String>(
-                    value: tipoOcupacion,
+                    initialValue: tipoOcupacion,
                     decoration: const InputDecoration(
                       labelText: 'Tipo de Ocupación *',
                       border: OutlineInputBorder(),
@@ -1509,6 +1581,10 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(3),
+                    ],
                     validator: (value) {
                       if (value != null && value.isNotEmpty) {
                         final num = int.tryParse(value);
@@ -1542,7 +1618,7 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
                     },
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(4),
-                      side: BorderSide(color: Colors.grey.shade400),
+                      side: BorderSide(color: Theme.of(context).dividerColor),
                     ),
                   ),
 
@@ -1560,7 +1636,7 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
                   const SizedBox(height: 16),
 
                   DropdownButtonFormField<int?>(
-                    value: tipoDocumentoId,
+                    initialValue: tipoDocumentoId,
                     decoration: const InputDecoration(
                       labelText: 'Tipo de Documento *',
                       border: OutlineInputBorder(),
@@ -1591,9 +1667,8 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
                       labelText: 'Número de Documento *',
                       border: OutlineInputBorder(),
                     ),
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'Campo requerido'
-                        : null,
+                    inputFormatters: [getDocumentoFormatter(tipoDocumentoId)],
+                    validator: (v) => validarDocumento(v, tipoDocumentoId),
                   ),
                   const SizedBox(height: 16),
 
@@ -1606,9 +1681,8 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
                             labelText: 'Primer Nombre *',
                             border: OutlineInputBorder(),
                           ),
-                          validator: (value) => value == null || value.isEmpty
-                              ? 'Campo requerido'
-                              : null,
+                          inputFormatters: [NombreInputFormatter()],
+                          validator: (v) => validarNombre(v),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -1619,6 +1693,9 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
                             labelText: 'Segundo Nombre',
                             border: OutlineInputBorder(),
                           ),
+                          inputFormatters: [NombreInputFormatter()],
+                          validator: (v) =>
+                              validarNombre(v, obligatorio: false),
                         ),
                       ),
                     ],
@@ -1634,9 +1711,8 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
                             labelText: 'Primer Apellido *',
                             border: OutlineInputBorder(),
                           ),
-                          validator: (value) => value == null || value.isEmpty
-                              ? 'Campo requerido'
-                              : null,
+                          inputFormatters: [NombreInputFormatter()],
+                          validator: (v) => validarNombre(v),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -1647,6 +1723,9 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
                             labelText: 'Segundo Apellido',
                             border: OutlineInputBorder(),
                           ),
+                          inputFormatters: [NombreInputFormatter()],
+                          validator: (v) =>
+                              validarNombre(v, obligatorio: false),
                         ),
                       ),
                     ],
@@ -1660,6 +1739,8 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.phone,
+                    inputFormatters: [TelefonoInputFormatter()],
+                    validator: (v) => validarTelefono(v),
                   ),
                   const SizedBox(height: 16),
 
@@ -1670,14 +1751,7 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value != null &&
-                          value.isNotEmpty &&
-                          !value.contains('@')) {
-                        return 'Correo inválido';
-                      }
-                      return null;
-                    },
+                    validator: (v) => validarEmail(v),
                   ),
 
                   // Información adicional - Solo mostrar si tiene personas a cargo
@@ -1697,7 +1771,9 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
                       'Especifique las características de las ${personasACargoController.text} persona(s) a cargo',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade600,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -1781,9 +1857,6 @@ class _CrearResidenteDialogState extends State<CrearResidenteDialog> {
   }
 }
 
-// ============================================================================
-// DIÁLOGO EDITAR RESIDENTE
-// ============================================================================
 
 class EditarResidenteDialog extends StatefulWidget {
   final dynamic ocupante;
@@ -1882,18 +1955,23 @@ class _EditarResidenteDialogState extends State<EditarResidenteDialog> {
             ),
           ],
         ),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               '¿Está seguro de actualizar este residente?',
               style: TextStyle(fontSize: 16),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               'Los cambios se guardarán permanentemente.',
-              style: TextStyle(color: Colors.grey, fontSize: 13),
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
+                fontSize: 13,
+              ),
             ),
           ],
         ),
@@ -1956,6 +2034,8 @@ class _EditarResidenteDialogState extends State<EditarResidenteDialog> {
         },
         body: body,
       );
+
+      if (!context.mounted) return;
 
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
@@ -2034,7 +2114,7 @@ class _EditarResidenteDialogState extends State<EditarResidenteDialog> {
 
                   // Dropdown de Torre
                   DropdownButtonFormField<int?>(
-                    value: torreSeleccionada,
+                    initialValue: torreSeleccionada,
                     decoration: const InputDecoration(
                       labelText: 'Torre *',
                       border: OutlineInputBorder(),
@@ -2090,7 +2170,7 @@ class _EditarResidenteDialogState extends State<EditarResidenteDialog> {
                         key: ValueKey(
                           'apartamento-editar-${torreSeleccionada ?? "none"}',
                         ),
-                        value: valorActual,
+                        initialValue: valorActual,
                         decoration: const InputDecoration(
                           labelText: 'Apartamento *',
                           border: OutlineInputBorder(),
@@ -2137,7 +2217,7 @@ class _EditarResidenteDialogState extends State<EditarResidenteDialog> {
                   const SizedBox(height: 16),
 
                   DropdownButtonFormField<String>(
-                    value: tipoOcupacion,
+                    initialValue: tipoOcupacion,
                     decoration: const InputDecoration(
                       labelText: 'Tipo de Ocupación *',
                       border: OutlineInputBorder(),
@@ -2164,6 +2244,10 @@ class _EditarResidenteDialogState extends State<EditarResidenteDialog> {
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(3),
+                    ],
                     validator: (value) {
                       if (value != null && value.isNotEmpty) {
                         final num = int.tryParse(value);
@@ -2197,7 +2281,7 @@ class _EditarResidenteDialogState extends State<EditarResidenteDialog> {
                     },
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(4),
-                      side: BorderSide(color: Colors.grey.shade400),
+                      side: BorderSide(color: Theme.of(context).dividerColor),
                     ),
                   ),
 
@@ -2215,7 +2299,7 @@ class _EditarResidenteDialogState extends State<EditarResidenteDialog> {
                   const SizedBox(height: 16),
 
                   DropdownButtonFormField<int?>(
-                    value: tipoDocumentoId,
+                    initialValue: tipoDocumentoId,
                     decoration: const InputDecoration(
                       labelText: 'Tipo de Documento *',
                       border: OutlineInputBorder(),
@@ -2259,9 +2343,8 @@ class _EditarResidenteDialogState extends State<EditarResidenteDialog> {
                             labelText: 'Primer Nombre *',
                             border: OutlineInputBorder(),
                           ),
-                          validator: (value) => value == null || value.isEmpty
-                              ? 'Campo requerido'
-                              : null,
+                          inputFormatters: [NombreInputFormatter()],
+                          validator: (v) => validarNombre(v),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -2272,6 +2355,9 @@ class _EditarResidenteDialogState extends State<EditarResidenteDialog> {
                             labelText: 'Segundo Nombre',
                             border: OutlineInputBorder(),
                           ),
+                          inputFormatters: [NombreInputFormatter()],
+                          validator: (v) =>
+                              validarNombre(v, obligatorio: false),
                         ),
                       ),
                     ],
@@ -2287,9 +2373,8 @@ class _EditarResidenteDialogState extends State<EditarResidenteDialog> {
                             labelText: 'Primer Apellido *',
                             border: OutlineInputBorder(),
                           ),
-                          validator: (value) => value == null || value.isEmpty
-                              ? 'Campo requerido'
-                              : null,
+                          inputFormatters: [NombreInputFormatter()],
+                          validator: (v) => validarNombre(v),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -2300,6 +2385,9 @@ class _EditarResidenteDialogState extends State<EditarResidenteDialog> {
                             labelText: 'Segundo Apellido',
                             border: OutlineInputBorder(),
                           ),
+                          inputFormatters: [NombreInputFormatter()],
+                          validator: (v) =>
+                              validarNombre(v, obligatorio: false),
                         ),
                       ),
                     ],
@@ -2313,6 +2401,8 @@ class _EditarResidenteDialogState extends State<EditarResidenteDialog> {
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.phone,
+                    inputFormatters: [TelefonoInputFormatter()],
+                    validator: (v) => validarTelefono(v),
                   ),
                   const SizedBox(height: 16),
 
@@ -2323,14 +2413,7 @@ class _EditarResidenteDialogState extends State<EditarResidenteDialog> {
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value != null &&
-                          value.isNotEmpty &&
-                          !value.contains('@')) {
-                        return 'Correo inválido';
-                      }
-                      return null;
-                    },
+                    validator: (v) => validarEmail(v),
                   ),
 
                   const SizedBox(height: 24),
@@ -2518,7 +2601,10 @@ class VerDetalleResidenteDialog extends StatelessWidget {
                                   'ID: ${ocupante['idOcupante']}',
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: Colors.grey.shade600,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.6),
                                   ),
                                 ),
                               ],

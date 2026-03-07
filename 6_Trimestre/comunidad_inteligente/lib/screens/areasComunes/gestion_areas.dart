@@ -36,26 +36,26 @@ class _GestionAreasState extends State<GestionAreas> {
         headers: headers,
       );
 
-      print('=== DEBUG GESTION AREAS ===');
-      print('Status Code: ${response.statusCode}');
-      print('Response Body: ${response.body}');
+      debugPrint('=== DEBUG GESTION AREAS ===');
+      debugPrint('Status Code: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('Data decoded: $data');
-        print('data[body]: ${data['body']}');
-        print('data[data]: ${data['data']}');
+        debugPrint('Data decoded: $data');
+        debugPrint('data[body]: ${data['body']}');
+        debugPrint('data[data]: ${data['data']}');
 
         setState(() {
           _areasComunes = data['body'] ?? data['data'] ?? [];
-          print('Áreas cargadas: ${_areasComunes.length}');
+          debugPrint('Áreas cargadas: ${_areasComunes.length}');
           if (_areasComunes.isNotEmpty) {
-            print('Primera área: ${_areasComunes[0]}');
+            debugPrint('Primera área: ${_areasComunes[0]}');
           }
           _isLoading = false;
         });
       } else {
-        print('Error status code: ${response.statusCode}');
+        debugPrint('Error status code: ${response.statusCode}');
         setState(() => _isLoading = false);
         _mostrarError('Error al cargar áreas comunes');
       }
@@ -81,11 +81,11 @@ class _GestionAreasState extends State<GestionAreas> {
         body: json.encode({'estadoId': nuevoEstadoId}),
       );
 
-      print('=== DEBUG CAMBIAR ESTADO ===');
-      print('ID Area: $idAreaComun');
-      print('Nuevo estadoId: $nuevoEstadoId');
-      print('Status Code: ${response.statusCode}');
-      print('Response Body: ${response.body}');
+      debugPrint('=== DEBUG CAMBIAR ESTADO ===');
+      debugPrint('ID Area: $idAreaComun');
+      debugPrint('Nuevo estadoId: $nuevoEstadoId');
+      debugPrint('Status Code: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         _cargarAreasComunes();
@@ -174,7 +174,6 @@ class _GestionAreasState extends State<GestionAreas> {
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
@@ -188,11 +187,22 @@ class _GestionAreasState extends State<GestionAreas> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.home_work_outlined, size: 80, color: Colors.grey),
+                  Icon(
+                    Icons.home_work_outlined,
+                    size: 80,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.5),
+                  ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'No hay áreas comunes registradas',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
                   ),
                 ],
               ),
@@ -229,9 +239,9 @@ class _GestionAreasState extends State<GestionAreas> {
                   ),
                   const SizedBox(height: 20),
                   // Lista de áreas
-                  ..._areasComunes
-                      .map((area) => _buildAreaCard(area, isSmallScreen))
-                      .toList(),
+                  ..._areasComunes.map(
+                    (area) => _buildAreaCard(area, isSmallScreen),
+                  ),
                 ],
               ),
             ),
@@ -295,13 +305,17 @@ class _GestionAreasState extends State<GestionAreas> {
                             Icon(
                               Icons.people_outline,
                               size: 16,
-                              color: Colors.grey.shade600,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.7),
                             ),
                             const SizedBox(width: 4),
                             Text(
                               'Capacidad: ${capacidadMax ?? 'N/A'}',
                               style: TextStyle(
-                                color: Colors.grey.shade600,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.7),
                                 fontSize: 13,
                               ),
                             ),

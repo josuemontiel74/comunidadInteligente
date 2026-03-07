@@ -1,8 +1,4 @@
-/* ================================================================
-   DescargaAppMovil.css — Estilos del botón y modal de descarga APK
-   ================================================================ */
 
-/* ── Botón del header ──────────────────────────────────────────── */
 .dap-header-btn {
   display: flex;
   align-items: center;
@@ -30,7 +26,6 @@
   line-height: 1;
 }
 
-/* ── Overlay ───────────────────────────────────────────────────── */
 .dap-overlay {
   position: fixed;
   inset: 0;
@@ -52,7 +47,6 @@
   }
 }
 
-/* ── Modal card ────────────────────────────────────────────────── */
 .dap-modal {
   background: #fff;
   border-radius: 24px;
@@ -75,7 +69,6 @@
   }
 }
 
-/* ── Botón cerrar ──────────────────────────────────────────────── */
 .dap-close {
   position: absolute;
   top: 14px;
@@ -100,7 +93,6 @@
   color: #111827;
 }
 
-/* ── Ícono animado ─────────────────────────────────────────────── */
 .dap-icon-wrap {
   position: relative;
   display: inline-flex;
@@ -147,7 +139,6 @@
   border: 2px solid #fff;
 }
 
-/* ── Texto ─────────────────────────────────────────────────────── */
 .dap-title {
   font-size: 22px;
   font-weight: 700;
@@ -161,7 +152,6 @@
   line-height: 1.55;
 }
 
-/* ── Lista de características ──────────────────────────────────── */
 .dap-features {
   list-style: none;
   padding: 0;
@@ -184,7 +174,6 @@
   flex-shrink: 0;
 }
 
-/* ── Botón descarga ────────────────────────────────────────────── */
 .dap-btn-download {
   width: 100%;
   padding: 14px;
@@ -213,7 +202,6 @@
   font-size: 17px;
 }
 
-/* ── Checkbox "no mostrar" ─────────────────────────────────────── */
 .dap-no-mostrar {
   display: flex;
   align-items: center;
@@ -230,7 +218,6 @@
   accent-color: #22c55e;
 }
 
-/* ── Responsive ────────────────────────────────────────────────── */
 @media (max-width: 480px) {
   .dap-modal {
     padding: 28px 18px 20px;
@@ -245,7 +232,6 @@
   }
 }
 
-/* ── Modo oscuro ───────────────────────────────────────────────── */
 [data-modo="oscuro"] .dap-modal {
   background: #1e2330;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);

@@ -1,4 +1,4 @@
-/// Funciones auxiliares compartidas en toda la aplicación
+library;
 
 import 'package:flutter/material.dart';
 import '../main.dart';
@@ -220,7 +220,7 @@ DateTime parsearFechaDesdeBackend(String fechaStr) {
       return DateTime.now();
     }
   } catch (e) {
-    print('Error parseando fecha desde backend: $e');
+    debugPrint('Error parseando fecha desde backend: $e');
     return DateTime.now();
   }
 }

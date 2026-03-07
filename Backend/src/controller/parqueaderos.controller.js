@@ -278,7 +278,7 @@ export const eliminarParqueadero = async (req, res) => {
   }
 };
 
-// ── Cambiar estado de parqueadero (solo SuperAdmin) ──
+// Cambiar estado de parqueadero (solo SuperAdmin) 
 export const cambiarEstadoParqueadero = async (req, res) => {
   const { codigoParqueadero } = req.params;
   const { estadoId } = req.body;

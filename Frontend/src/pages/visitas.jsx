@@ -107,31 +107,31 @@ function Visitas() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ── estado general ──
+  // estado general 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [visitas, setVisitas] = useState([]);
   const [usuario, setUsuario] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // ── filtros ──
+  // filtros 
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroTorre, setFiltroTorre] = useState("");
   const [filtroApartamento, setFiltroApartamento] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todas");
 
-  // ── paginación ──
+  // paginación 
   const [paginaActual, setPaginaActual] = useState(1);
   const registrosPorPagina = 10;
 
-  // ── modal CRUD ──
+  // modal CRUD 
   const [modalCrear, setModalCrear] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
   const [modalDetalle, setModalDetalle] = useState(null);
   const [visitaEditando, setVisitaEditando] = useState(null);
   const [guardando, setGuardando] = useState(false);
 
-  // ── formulario ──
+  // formulario 
   const FORM_INITIAL = {
     numeroDocumento: "",
     tipoDocumentoId: "",
@@ -147,10 +147,10 @@ function Visitas() {
   };
   const [formData, setFormData] = useState(FORM_INITIAL);
 
-  // ── parqueaderos ──
+  // parqueaderos 
   const [parqueaderosDisponibles, setParqueaderosDisponibles] = useState([]);
 
-  // ── Apartamentos hardcoded (50 unidades, 5 por torre) ──
+  // Apartamentos hardcoded (50 unidades, 5 por torre) 
   const apartamentos = [
     { id: 1, torreId: 1, numero: "101" },
     { id: 2, torreId: 1, numero: "102" },
@@ -209,7 +209,7 @@ function Visitas() {
   const tokenLocal = localStorage.getItem("token");
   const rolesId = tokenLocal ? obtenerRolFromToken(tokenLocal) : null;
 
-  // ── Verificar sesión ──
+  // Verificar sesión 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token || verificarTokenVencido(token)) {
@@ -240,7 +240,7 @@ function Visitas() {
     }
   }, [navigate]);
 
-  // ── Cargar visitas ──
+  // Cargar visitas 
   const cargarVisitas = useCallback(async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -276,7 +276,7 @@ function Visitas() {
     return () => clearInterval(interval);
   }, [cargarVisitas]);
 
-  // ── Imprimir recibo de visita ──
+  // Imprimir recibo de visita 
   const imprimirReciboVisita = (v, tipo) => {
     if (!v) return;
     const ahora = new Date();
@@ -362,7 +362,7 @@ function Visitas() {
     };
   };
 
-  // ── Restaurar estado del formulario desde parqueaderos ──
+  // Restaurar estado del formulario desde parqueaderos 
   useEffect(() => {
     if (location.state?.fromVisitas && location.state?.formState) {
       const fs = location.state.formState;
@@ -394,7 +394,7 @@ function Visitas() {
     }
   }, [location.state]);
 
-  // ── Cargar parqueaderos disponibles ──
+  // Cargar parqueaderos disponibles 
   const cargarParqueaderos = useCallback(async (tipoVehiculo) => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -417,7 +417,7 @@ function Visitas() {
     }
   }, []);
 
-  // ── Convertir fecha a hora Colombia UTC-5 ──
+  // Convertir fecha a hora Colombia UTC-5 
   const toColombiaDate = (fechaStr) => {
     const fecha = new Date(fechaStr);
     if (Number.isNaN(fecha.getTime())) return null;
@@ -456,7 +456,7 @@ function Visitas() {
     }
   };
 
-  // ── Obtener estado real ──
+  // Obtener estado real 
   const obtenerEstadoReal = (estadoVisita) => {
     if (!estadoVisita) return "activa";
     const lower = estadoVisita.toLowerCase();
@@ -469,7 +469,7 @@ function Visitas() {
     return "activa";
   };
 
-  // ── Filtros ──
+  // Filtros 
   const visitasFiltradas = filtrarVisitas(
     visitas,
     { searchTerm, filtroTorre, filtroApartamento, filtroEstado },
@@ -493,7 +493,7 @@ function Visitas() {
       )
     : [];
 
-  // ── Paginación ──
+  // Paginación 
   const totalPaginas = Math.ceil(visitasFiltradas.length / registrosPorPagina);
   const indiceInicio = (paginaActual - 1) * registrosPorPagina;
   const indiceFin = indiceInicio + registrosPorPagina;
@@ -539,19 +539,19 @@ function Visitas() {
     setFiltroEstado("todas");
   };
 
-  // ── Reset form ──
+  // Reset form 
   const resetForm = () => {
     setFormData(FORM_INITIAL);
     setParqueaderosDisponibles([]);
   };
 
-  // ── Abrir modal crear ──
+  // Abrir modal crear 
   const abrirModalCrear = () => {
     resetForm();
     setModalCrear(true);
   };
 
-  // ── Abrir modal editar ──
+  // Abrir modal editar 
   const abrirModalEditar = (v) => {
     // Resolver torreId desde nombreTorre
     const letraTorre = (v.nombreTorre || "").replace(/^Torre\s*/i, "");
@@ -577,7 +577,7 @@ function Visitas() {
     setModalEditar(true);
   };
 
-  // ── Guardar visita (crear o editar) ──
+  // Guardar visita (crear o editar) 
   const handleGuardar = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
@@ -682,7 +682,7 @@ function Visitas() {
     }
   };
 
-  // ── Finalizar visita ──
+  // Finalizar visita 
   const handleFinalizar = (idVisita) => {
     Swal.fire({
       title: "¿Estás seguro?",
@@ -723,10 +723,10 @@ function Visitas() {
     });
   };
 
-  // ── Cerrar sesión ──
+  // Cerrar sesión 
   const cerrarSesion = useLogout();
 
-  // ── Navegar a parqueaderos para seleccionar ──
+  // Navegar a parqueaderos para seleccionar 
   const irASeleccionarParqueadero = () => {
     navigate("/parqueaderos", {
       replace: true,
@@ -740,7 +740,7 @@ function Visitas() {
     });
   };
 
-  // ── Handle form field changes ──
+  // Handle form field changes 
   const handleChange = (field, value) => {
     setFormData((prev) => {
       const updated = { ...prev, [field]: value };
@@ -768,7 +768,7 @@ function Visitas() {
     });
   };
 
-  // ── Loading ──
+  // Loading 
   if (loading && visitas.length === 0) {
     return (
       <div className="vis-loading-screen">
@@ -787,7 +787,6 @@ function Visitas() {
   // ══════════════════════ RENDER ══════════════════════
   return (
     <div className="vis-dashboard">
-      {/* ====== OVERLAY + DRAWER ====== */}
       <button
         type="button"
         className={`vis-overlay ${menuOpen ? "active" : ""}`}
@@ -928,7 +927,6 @@ function Visitas() {
         </div>
       </aside>
 
-      {/* ====== CONTENIDO PRINCIPAL ====== */}
       <div className="vis-main">
         {/* Header AppBar */}
         <header className="vis-header">

@@ -4,7 +4,7 @@
  * para evitar duplicación entre controladores.
  */
 
-// ── Patrón: solo letras, espacios, guiones y apóstrofes ──────────────────────
+// Patrón: solo letras, espacios, guiones y apóstrofes 
 export const NOMBRE_REGEX = /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s\-']+$/;
 
 /** Cuenta dígitos en un string */
@@ -13,7 +13,7 @@ const contarDigitos = (str) => (str.match(/\d/g) || []).length;
 /** Nombres de tipo de documento por ID numérico */
 const NOMBRES_TIPO_DOC = { 2: "CE", 3: "Pasaporte", 4: "PEP", 5: "PPT" };
 
-// ── Helpers por tipo de documento ─────────────────────────────────────────────
+// Helpers por tipo de documento ─
 
 const validarDocCC = (doc) => {
   if (!/^\d+$/.test(doc))
@@ -47,7 +47,7 @@ const validarDocPepPpt = (doc, digitos, tipo) => {
   return null;
 };
 
-// ── Funciones exportadas ──────────────────────────────────────────────────────
+// Funciones exportadas 
 
 /**
  * Valida que los campos de nombre no contengan números ni secuencias sin sentido.

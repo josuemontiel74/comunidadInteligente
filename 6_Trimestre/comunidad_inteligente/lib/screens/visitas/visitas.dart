@@ -1,14 +1,15 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../parqueaderos/parqueaderos.dart' show SeleccionarParqueaderoScreen;
 import '../../utils/helpers.dart';
+import '../../utils/api_config.dart';
+import '../../utils/validaciones.dart';
 
-// ============================================================================
-// API SERVICE
-// ============================================================================
 class VisitasApiService {
-  static const String _baseUrl = 'http://localhost:3001/api';
+  static String get _baseUrl => ApiConfig.apiUrl;
 
   static Future<List<dynamic>> obtenerVisitas(String token) async {
     try {
@@ -27,7 +28,7 @@ class VisitasApiService {
       }
       return [];
     } catch (e) {
-      print('Error al obtener visitas: $e');
+      debugPrint('Error al obtener visitas: $e');
       return [];
     }
   }
@@ -50,7 +51,7 @@ class VisitasApiService {
       }
       return null;
     } catch (e) {
-      print('Error al obtener visita: $e');
+      debugPrint('Error al obtener visita: $e');
       return null;
     }
   }
@@ -77,9 +78,12 @@ class VisitasApiService {
         // Intentar parsear el error del backend
         try {
           final errorData = json.decode(response.body);
+          final msg = errorData['message'];
           return {
             'success': false,
-            'message': errorData['message'] ?? 'Error desconocido del servidor',
+            'message': msg is String
+                ? msg
+                : (msg?.toString() ?? 'Error desconocido del servidor'),
           };
         } catch (e) {
           return {
@@ -90,7 +94,10 @@ class VisitasApiService {
         }
       }
     } catch (e) {
-      return {'success': false, 'message': 'Error de conexión: $e'};
+      return {
+        'success': false,
+        'message': 'Error de conexión: ${e.toString()}',
+      };
     }
   }
 
@@ -113,7 +120,7 @@ class VisitasApiService {
 
       return response.statusCode == 200;
     } catch (e) {
-      print('Error al editar visita: $e');
+      debugPrint('Error al editar visita: $e');
       return false;
     }
   }
@@ -150,7 +157,7 @@ class VisitasApiService {
       }
       return [];
     } catch (e) {
-      print('Error al obtener visitantes: $e');
+      debugPrint('Error al obtener visitantes: $e');
       return [];
     }
   }
@@ -172,7 +179,7 @@ class VisitasApiService {
       }
       return null;
     } catch (e) {
-      print('Error al obtener visitante: $e');
+      debugPrint('Error al obtener visitante: $e');
       return null;
     }
   }
@@ -195,7 +202,7 @@ class VisitasApiService {
 
       return response.statusCode == 201 || response.statusCode == 200;
     } catch (e) {
-      print('Error al crear visitante: $e');
+      debugPrint('Error al crear visitante: $e');
       return false;
     }
   }
@@ -219,7 +226,7 @@ class VisitasApiService {
 
       return response.statusCode == 200;
     } catch (e) {
-      print('Error al editar visitante: $e');
+      debugPrint('Error al editar visitante: $e');
       return false;
     }
   }
@@ -238,22 +245,19 @@ class VisitasApiService {
 
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
-      print('Error al eliminar visitante: $e');
+      debugPrint('Error al eliminar visitante: $e');
       return false;
     }
   }
 }
 
-// ============================================================================
-// HOMESCREEN
-// ============================================================================
 class HomeScreen extends StatefulWidget {
   final String? token;
 
   const HomeScreen({super.key, this.token});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
@@ -289,9 +293,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ============================================================================
-// TOKEN ERROR WIDGET
-// ============================================================================
 class TokenErrorWidget extends StatelessWidget {
   const TokenErrorWidget({super.key});
 
@@ -317,15 +318,12 @@ class TokenErrorWidget extends StatelessWidget {
   }
 }
 
-// ============================================================================
-// VISITAS SCREEN
-// ============================================================================
 class VisitasScreen extends StatefulWidget {
   final String token;
   const VisitasScreen({super.key, required this.token});
 
   @override
-  _VisitasScreenState createState() => _VisitasScreenState();
+  State<VisitasScreen> createState() => _VisitasScreenState();
 }
 
 class _VisitasScreenState extends State<VisitasScreen> {
@@ -463,7 +461,6 @@ class _VisitasScreenState extends State<VisitasScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
       body: Column(
         children: [
           // Sección de filtros y búsqueda
@@ -471,7 +468,9 @@ class _VisitasScreenState extends State<VisitasScreen> {
             padding: EdgeInsets.all(
               MediaQuery.of(context).size.width < 600 ? 12 : 20,
             ),
-            color: Colors.grey.shade50,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade900
+                : Colors.grey.shade50,
             child: Column(
               children: [
                 // Botón de registrar
@@ -509,7 +508,7 @@ class _VisitasScreenState extends State<VisitasScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: Theme.of(context).cardColor,
                   ),
                   onChanged: (value) {
                     setState(() {
@@ -526,14 +525,14 @@ class _VisitasScreenState extends State<VisitasScreen> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: filtroTorre,
+                        initialValue: filtroTorre,
                         decoration: InputDecoration(
                           labelText: 'Torre',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: Theme.of(context).cardColor,
                         ),
                         items: [
                           const DropdownMenuItem(
@@ -568,14 +567,14 @@ class _VisitasScreenState extends State<VisitasScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: filtroApartamento,
+                        initialValue: filtroApartamento,
                         decoration: InputDecoration(
                           labelText: 'Apartamento',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: Theme.of(context).cardColor,
                         ),
                         items: [
                           const DropdownMenuItem(
@@ -676,8 +675,11 @@ class _VisitasScreenState extends State<VisitasScreen> {
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: DataTable(
-                                headingRowColor: MaterialStateProperty.all(
-                                  Colors.green.shade50,
+                                headingRowColor: WidgetStateProperty.all(
+                                  Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.green.shade800
+                                      : Colors.green.shade50,
                                 ),
                                 columns: const [
                                   DataColumn(
@@ -792,7 +794,9 @@ class _VisitasScreenState extends State<VisitasScreen> {
                                           decoration: BoxDecoration(
                                             color: esActiva
                                                 ? Colors.green.shade100
-                                                : Colors.grey.shade300,
+                                                : Theme.of(context)
+                                                      .colorScheme
+                                                      .surfaceContainerHighest,
                                             borderRadius: BorderRadius.circular(
                                               20,
                                             ),
@@ -804,7 +808,10 @@ class _VisitasScreenState extends State<VisitasScreen> {
                                               fontWeight: FontWeight.bold,
                                               color: esActiva
                                                   ? Colors.green.shade700
-                                                  : Colors.grey.shade700,
+                                                  : Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurface
+                                                        .withValues(alpha: 0.7),
                                             ),
                                           ),
                                         ),
@@ -936,7 +943,9 @@ class _VisitasScreenState extends State<VisitasScreen> {
       },
       selectedColor: Colors.green,
       labelStyle: TextStyle(
-        color: seleccionado ? Colors.white : Colors.black,
+        color: seleccionado
+            ? Colors.white
+            : Theme.of(context).colorScheme.onSurface,
         fontWeight: seleccionado ? FontWeight.bold : FontWeight.normal,
       ),
     );
@@ -983,7 +992,7 @@ class _VisitasScreenState extends State<VisitasScreen> {
         widget.token,
         idVisita,
       );
-      if (success && mounted) {
+      if (success && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Visita finalizada exitosamente')),
         );
@@ -993,15 +1002,12 @@ class _VisitasScreenState extends State<VisitasScreen> {
   }
 }
 
-// ============================================================================
-// VISITANTES SCREEN
-// ============================================================================
 class VisitantesScreen extends StatefulWidget {
   final String token;
   const VisitantesScreen({super.key, required this.token});
 
   @override
-  _VisitantesScreenState createState() => _VisitantesScreenState();
+  State<VisitantesScreen> createState() => _VisitantesScreenState();
 }
 
 class _VisitantesScreenState extends State<VisitantesScreen> {
@@ -1081,7 +1087,6 @@ class _VisitantesScreenState extends State<VisitantesScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
       body: Column(
         children: [
           // Sección de búsqueda
@@ -1089,7 +1094,9 @@ class _VisitantesScreenState extends State<VisitantesScreen> {
             padding: EdgeInsets.all(
               MediaQuery.of(context).size.width < 600 ? 12 : 20,
             ),
-            color: Colors.grey.shade50,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade900
+                : Colors.grey.shade50,
             child: Column(
               children: [
                 // Botón de registrar
@@ -1127,7 +1134,7 @@ class _VisitantesScreenState extends State<VisitantesScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: Theme.of(context).cardColor,
                   ),
                   onChanged: (value) {
                     setState(() {
@@ -1188,8 +1195,11 @@ class _VisitantesScreenState extends State<VisitantesScreen> {
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: DataTable(
-                                headingRowColor: MaterialStateProperty.all(
-                                  Colors.green.shade50,
+                                headingRowColor: WidgetStateProperty.all(
+                                  Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.green.shade800
+                                      : Colors.green.shade50,
                                 ),
                                 columns: const [
                                   DataColumn(
@@ -1381,7 +1391,7 @@ class _VisitantesScreenState extends State<VisitantesScreen> {
         widget.token,
         numeroDocumento,
       );
-      if (success && mounted) {
+      if (success && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Visitante eliminado exitosamente')),
         );
@@ -1390,10 +1400,6 @@ class _VisitantesScreenState extends State<VisitantesScreen> {
     }
   }
 }
-
-// ============================================================================
-// WIDGETS REUTILIZABLES
-// ============================================================================
 
 // Empty State Widget
 class EmptyStateWidget extends StatelessWidget {
@@ -1416,7 +1422,13 @@ class EmptyStateWidget extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 64, color: Colors.grey),
+          Icon(
+            icon,
+            size: 64,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.5),
+          ),
           const SizedBox(height: 16),
           Text(message),
           const SizedBox(height: 16),
@@ -1478,7 +1490,7 @@ class VisitaCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: esActiva
                         ? Colors.green.shade100
-                        : Colors.grey.shade300,
+                        : Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -1488,7 +1500,9 @@ class VisitaCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       color: esActiva
                           ? Colors.green.shade700
-                          : Colors.grey.shade700,
+                          : Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                 ),
@@ -1499,11 +1513,22 @@ class VisitaCard extends StatelessWidget {
             // Apartamento
             Row(
               children: [
-                Icon(Icons.home, color: Colors.grey.shade600, size: 18),
+                Icon(
+                  Icons.home,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Apto: ${visita['numeroApartamento']} - Torre: ${visita['nombreTorre'] ?? 'N/A'}',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
                 ),
               ],
             ),
@@ -1512,11 +1537,22 @@ class VisitaCard extends StatelessWidget {
             // Documento
             Row(
               children: [
-                Icon(Icons.badge, color: Colors.grey.shade600, size: 18),
+                Icon(
+                  Icons.badge,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Doc: ${visita['numeroDocumento']}',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
                 ),
               ],
             ),
@@ -1525,11 +1561,22 @@ class VisitaCard extends StatelessWidget {
             // Fecha de ingreso
             Row(
               children: [
-                Icon(Icons.access_time, color: Colors.grey.shade600, size: 18),
+                Icon(
+                  Icons.access_time,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Ingreso: ${_formatearFecha(visita['fechaHoraIngreso'])}',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
                 ),
               ],
             ),
@@ -1611,7 +1658,12 @@ class VisitanteCard extends StatelessWidget {
           padding: const EdgeInsets.only(top: 4),
           child: Text(
             'Doc: ${visitante['numeroDocumento']}',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+            style: TextStyle(
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.6),
+              fontSize: 14,
+            ),
           ),
         ),
         trailing: Row(
@@ -1635,10 +1687,6 @@ class VisitanteCard extends StatelessWidget {
     );
   }
 }
-
-// ============================================================================
-// DIALOGS
-// ============================================================================
 
 // Confirmar Dialog
 class ConfirmarDialog extends StatelessWidget {
@@ -1830,7 +1878,7 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
   Future<void> _cargarTiposDocumento() async {
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:3001/api/documento'),
+        Uri.parse('${ApiConfig.apiUrl}/documento'),
         headers: {'Authorization': 'Bearer ${widget.token}'},
       );
 
@@ -1857,7 +1905,9 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
           });
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      // Silently ignored
+    }
   }
 
   @override
@@ -1887,7 +1937,6 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
           child: Scaffold(
-            backgroundColor: Colors.white,
             body: Column(
               children: [
                 // Header
@@ -1930,38 +1979,10 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          TextFormField(
-                            controller: numeroDocumentoController,
-                            decoration: InputDecoration(
-                              labelText: "Número de documento *",
-                              border: border,
-                              prefixIcon: const Icon(
-                                Icons.badge,
-                                color: Colors.green,
-                              ),
-                              helperText:
-                                  'Solo letras y números, máx 20 caracteres',
-                            ),
-                            keyboardType: TextInputType.text,
-                            maxLength: 20,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'El documento es requerido';
-                              }
-                              if (!RegExp(r'^[a-zA-Z0-9]+$').hasMatch(value)) {
-                                return 'Solo se permiten letras y números';
-                              }
-                              if (value.length > 20) {
-                                return 'Máximo 20 caracteres';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 12),
                           Builder(
                             builder: (context) {
                               return DropdownButtonFormField<String>(
-                                value: tiposDocumento.isEmpty
+                                initialValue: tiposDocumento.isEmpty
                                     ? null
                                     : (tipoDocumentoId != null &&
                                               tiposDocumento.any(
@@ -1998,6 +2019,8 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                                 onChanged: (value) {
                                   setState(() {
                                     tipoDocumentoId = value;
+                                    // Limpiar documento al cambiar tipo
+                                    numeroDocumentoController.clear();
                                   });
                                 },
                                 validator: (value) {
@@ -2006,6 +2029,40 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                                   }
                                   return null;
                                 },
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            key: ValueKey('doc_$tipoDocumentoId'),
+                            controller: numeroDocumentoController,
+                            decoration: InputDecoration(
+                              labelText: "Número de documento *",
+                              border: border,
+                              prefixIcon: const Icon(
+                                Icons.badge,
+                                color: Colors.green,
+                              ),
+                              helperText:
+                                  int.tryParse(tipoDocumentoId ?? '') == 2
+                                  ? 'Alfanumérico, máx 2 letras (Pasaporte)'
+                                  : 'Solo números',
+                            ),
+                            keyboardType:
+                                int.tryParse(tipoDocumentoId ?? '') == 2
+                                ? TextInputType.text
+                                : TextInputType.number,
+                            maxLength: 20,
+                            inputFormatters: [
+                              getDocumentoFormatter(
+                                int.tryParse(tipoDocumentoId ?? ''),
+                              ),
+                              LengthLimitingTextInputFormatter(20),
+                            ],
+                            validator: (value) {
+                              return validarDocumento(
+                                value,
+                                int.tryParse(tipoDocumentoId ?? ''),
                               );
                             },
                           ),
@@ -2022,6 +2079,7 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                               helperText: 'Mín 10 caracteres, máx 100',
                             ),
                             maxLength: 100,
+                            inputFormatters: [NombreInputFormatter()],
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'El nombre es requerido';
@@ -2051,7 +2109,7 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                           ),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
-                            value: torreSeleccionada,
+                            initialValue: torreSeleccionada,
                             decoration: InputDecoration(
                               labelText: 'Torre *',
                               border: border,
@@ -2082,7 +2140,7 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                           ),
                           const SizedBox(height: 12),
                           DropdownButtonFormField<String>(
-                            value: apartamentoSeleccionado,
+                            initialValue: apartamentoSeleccionado,
                             decoration: InputDecoration(
                               labelText: 'Apartamento *',
                               border: border,
@@ -2250,7 +2308,7 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                             ),
                             const SizedBox(height: 16),
                             DropdownButtonFormField<String>(
-                              value: tipoVehiculoId,
+                              initialValue: tipoVehiculoId,
                               decoration: InputDecoration(
                                 labelText: 'Tipo de vehículo *',
                                 border: border,
@@ -2272,6 +2330,8 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                               onChanged: (value) {
                                 setState(() {
                                   tipoVehiculoId = value;
+                                  // Reset parqueadero al cambiar tipo de vehículo
+                                  codigoParqueadero = null;
                                 });
                               },
                               validator: (value) {
@@ -2296,6 +2356,12 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                               ),
                               textCapitalization: TextCapitalization.characters,
                               maxLength: 10,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                  RegExp(r'[a-zA-Z0-9]'),
+                                ),
+                                LengthLimitingTextInputFormatter(10),
+                              ],
                               validator: (value) {
                                 if (traeVehiculo &&
                                     (value == null || value.isEmpty)) {
@@ -2347,12 +2413,14 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                                   border: Border.all(
                                     color: tipoVehiculoId != null
                                         ? Colors.green
-                                        : Colors.grey,
+                                        : Theme.of(context).colorScheme.outline,
                                   ),
                                   borderRadius: BorderRadius.circular(14),
                                   color: tipoVehiculoId != null
-                                      ? Colors.white
-                                      : Colors.grey[100],
+                                      ? Theme.of(context).cardColor
+                                      : Theme.of(
+                                          context,
+                                        ).colorScheme.surfaceContainerHighest,
                                 ),
                                 child: Row(
                                   children: [
@@ -2360,7 +2428,9 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                                       Icons.local_parking,
                                       color: tipoVehiculoId != null
                                           ? Colors.green
-                                          : Colors.grey,
+                                          : Theme.of(
+                                              context,
+                                            ).colorScheme.outline,
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
@@ -2372,7 +2442,10 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                                             "Espacio de parqueadero *",
                                             style: TextStyle(
                                               fontSize: 12,
-                                              color: Colors.grey[600],
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withValues(alpha: 0.6),
                                             ),
                                           ),
                                           const SizedBox(height: 4),
@@ -2496,10 +2569,8 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
     // Construir fecha y hora en formato 24h: "2025-10-03 14:30"
     final fecha = fechaHoraIngreso!;
     final hora = horaIngreso!;
-    // Convertir a formato 24 horas
-    final hora24 = hora.period == DayPeriod.pm && hora.hour != 12
-        ? hora.hour + 12
-        : (hora.period == DayPeriod.am && hora.hour == 12 ? 0 : hora.hour);
+    // TimeOfDay.hour ya está en formato 24 horas (0-23)
+    final hora24 = hora.hour;
 
     final fechaHoraFormateada =
         "${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')} "
@@ -2518,16 +2589,19 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
 
     // Agregar campos opcionales de vehículo si trae vehículo
     if (traeVehiculo) {
-      data['matricula'] = matriculaController.text;
+      data['matricula'] = matriculaController.text.trim().toUpperCase();
       data['tipoVehiculoId'] = int.parse(tipoVehiculoId!);
       data['codigoParqueadero'] = codigoParqueadero;
     }
 
-    Navigator.pop(context);
+    debugPrint('Datos visita a enviar: $data');
 
     final result = await VisitasApiService.crearVisita(widget.token, data);
 
-    if (result['success'] == true && context.mounted) {
+    if (!context.mounted) return;
+
+    if (result['success'] == true) {
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Visita registrada exitosamente'),
@@ -2535,10 +2609,12 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
         ),
       );
       widget.onSuccess();
-    } else if (context.mounted) {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result['message'] ?? 'Error al registrar la visita'),
+          content: Text(
+            result['message']?.toString() ?? 'Error al registrar la visita',
+          ),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 5),
         ),
@@ -2619,7 +2695,7 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
   Future<void> _cargarTiposDocumento() async {
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:3001/api/documento'),
+        Uri.parse('${ApiConfig.apiUrl}/documento'),
         headers: {'Authorization': 'Bearer ${widget.token}'},
       );
 
@@ -2646,7 +2722,9 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
           });
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      // Silently ignored
+    }
   }
 
   void _inicializarDatos() {
@@ -2758,7 +2836,6 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
           child: Scaffold(
-            backgroundColor: Colors.white,
             appBar: AppBar(
               title: Text(
                 'Editar Visita #${widget.visita['idVisita']}',
@@ -2784,27 +2861,6 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
                   children: [
                     _buildSeccionTitulo('Información del Visitante'),
                     const SizedBox(height: 12),
-                    _buildCampoTexto(
-                      controller: numeroDocumentoController,
-                      label: 'Número de Documento *',
-                      icono: Icons.badge,
-                      keyboardType: TextInputType.text,
-                      maxLength: 20,
-                      helperText: 'Solo letras y números, máx 20 caracteres',
-                      customValidator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'El documento es requerido';
-                        }
-                        if (!RegExp(r'^[a-zA-Z0-9]+$').hasMatch(value)) {
-                          return 'Solo se permiten letras y números';
-                        }
-                        if (value.length > 20) {
-                          return 'Máximo 20 caracteres';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 12),
                     _buildDropdown(
                       label: 'Tipo de Documento *',
                       value: tiposDocumento.isEmpty
@@ -2826,8 +2882,38 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
                                 child: Text(tipo['nombreDocumento'] ?? ''),
                               );
                             }).toList(),
-                      onChanged: (value) =>
-                          setState(() => tipoDocumentoId = value),
+                      onChanged: (value) {
+                        setState(() {
+                          tipoDocumentoId = value;
+                          // Limpiar documento al cambiar tipo
+                          numeroDocumentoController.clear();
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _buildCampoTexto(
+                      controller: numeroDocumentoController,
+                      label: 'Número de Documento *',
+                      icono: Icons.badge,
+                      keyboardType: int.tryParse(tipoDocumentoId ?? '') == 2
+                          ? TextInputType.text
+                          : TextInputType.number,
+                      maxLength: 20,
+                      helperText: int.tryParse(tipoDocumentoId ?? '') == 2
+                          ? 'Alfanumérico, máx 2 letras (Pasaporte)'
+                          : 'Solo números',
+                      inputFormatters: [
+                        getDocumentoFormatter(
+                          int.tryParse(tipoDocumentoId ?? ''),
+                        ),
+                        LengthLimitingTextInputFormatter(20),
+                      ],
+                      customValidator: (value) {
+                        return validarDocumento(
+                          value,
+                          int.tryParse(tipoDocumentoId ?? ''),
+                        );
+                      },
                     ),
                     const SizedBox(height: 12),
                     _buildCampoTexto(
@@ -2836,6 +2922,7 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
                       icono: Icons.person,
                       maxLength: 100,
                       helperText: 'Mín 10 caracteres, máx 100',
+                      inputFormatters: [NombreInputFormatter()],
                       customValidator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'El nombre es requerido';
@@ -2958,6 +3045,13 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
                         icono: Icons.local_parking,
                         maxLength: 10,
                         helperText: 'Solo letras y números, 6-10 caracteres',
+                        textCapitalization: TextCapitalization.characters,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'[a-zA-Z0-9]'),
+                          ),
+                          LengthLimitingTextInputFormatter(10),
+                        ],
                         customValidator: (value) {
                           if (traeVehiculo &&
                               (value == null || value.isEmpty)) {
@@ -3029,12 +3123,16 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
     bool requerido = true,
     String? helperText,
     String? Function(String?)? customValidator,
+    List<TextInputFormatter>? inputFormatters,
+    TextCapitalization textCapitalization = TextCapitalization.none,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLineas,
       maxLength: maxLength,
+      inputFormatters: inputFormatters,
+      textCapitalization: textCapitalization,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icono, color: Colors.green),
@@ -3066,7 +3164,7 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
     required void Function(String?) onChanged,
   }) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       isExpanded: true,
       decoration: InputDecoration(
         labelText: label,
@@ -3213,7 +3311,9 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide(
-              color: tipoVehiculoId == null ? Colors.grey : Colors.green,
+              color: tipoVehiculoId == null
+                  ? Theme.of(context).colorScheme.outline
+                  : Colors.green,
             ),
           ),
           focusedBorder: OutlineInputBorder(
@@ -3234,13 +3334,17 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
                   ? 'Espacio elegido: $codigoParqueadero'
                   : 'Toca para seleccionar',
               style: TextStyle(
-                color: tipoVehiculoId == null ? Colors.grey : Colors.black87,
+                color: tipoVehiculoId == null
+                    ? Theme.of(context).colorScheme.outline
+                    : Theme.of(context).colorScheme.onSurface,
               ),
             ),
             Icon(
               Icons.arrow_forward_ios,
               size: 16,
-              color: tipoVehiculoId == null ? Colors.grey : Colors.green,
+              color: tipoVehiculoId == null
+                  ? Theme.of(context).colorScheme.outline
+                  : Colors.green,
             ),
           ],
         ),
@@ -3276,10 +3380,8 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
     // Construir fecha y hora en formato 24h: "2025-10-03 14:30"
     final fecha = fechaHoraIngreso!;
     final hora = horaIngreso!;
-    // Convertir a formato 24 horas
-    final hora24 = hora.period == DayPeriod.pm && hora.hour != 12
-        ? hora.hour + 12
-        : (hora.period == DayPeriod.am && hora.hour == 12 ? 0 : hora.hour);
+    // TimeOfDay.hour ya está en formato 24 horas (0-23)
+    final hora24 = hora.hour;
 
     final fechaHoraFormateada =
         "${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')} "
@@ -3297,7 +3399,7 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
     };
 
     if (traeVehiculo) {
-      data['matricula'] = matriculaController.text;
+      data['matricula'] = matriculaController.text.trim().toUpperCase();
       data['tipoVehiculoId'] = int.parse(tipoVehiculoId!);
       data['codigoParqueadero'] = codigoParqueadero;
     } else {
@@ -3307,6 +3409,8 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
       data['codigoParqueadero'] = null;
     }
 
+    debugPrint('Datos visita editar a enviar: $data');
+
     Navigator.pop(context);
 
     final success = await VisitasApiService.editarVisita(
@@ -3315,7 +3419,9 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
       data,
     );
 
-    if (success && context.mounted) {
+    if (!context.mounted) return;
+
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Visita actualizada exitosamente'),
@@ -3323,7 +3429,7 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
         ),
       );
       widget.onSuccess();
-    } else if (context.mounted) {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Error al actualizar la visita'),
@@ -3404,12 +3510,14 @@ class _CrearVisitanteDialogState extends State<CrearVisitanteDialog> {
       'tipoDocumentoId': 1,
     });
 
-    if (success && context.mounted) {
+    if (!context.mounted) return;
+
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Visitante creado exitosamente')),
       );
       widget.onSuccess();
-    } else if (context.mounted) {
+    } else {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Error al crear visitante')));
@@ -3436,6 +3544,7 @@ class EditarVisitanteDialog extends StatefulWidget {
 
 class _EditarVisitanteDialogState extends State<EditarVisitanteDialog> {
   late final TextEditingController nombreController;
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -3455,9 +3564,18 @@ class _EditarVisitanteDialogState extends State<EditarVisitanteDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Editar Visitante'),
-      content: TextField(
-        controller: nombreController,
-        decoration: const InputDecoration(labelText: 'Nombre'),
+      content: Form(
+        key: _formKey,
+        child: TextFormField(
+          controller: nombreController,
+          decoration: const InputDecoration(
+            labelText: 'Nombre',
+            helperText: 'Solo letras, espacios y guiones',
+          ),
+          maxLength: 100,
+          inputFormatters: [NombreInputFormatter()],
+          validator: (value) => validarNombreCompleto(value),
+        ),
       ),
       actions: [
         TextButton(
@@ -3465,7 +3583,11 @@ class _EditarVisitanteDialogState extends State<EditarVisitanteDialog> {
           child: const Text('Cancelar'),
         ),
         ElevatedButton(
-          onPressed: _editarVisitante,
+          onPressed: () {
+            if (_formKey.currentState!.validate()) {
+              _editarVisitante();
+            }
+          },
           child: const Text('Guardar'),
         ),
       ],
@@ -3484,7 +3606,9 @@ class _EditarVisitanteDialogState extends State<EditarVisitanteDialog> {
       },
     );
 
-    if (success && context.mounted) {
+    if (!context.mounted) return;
+
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Visitante actualizado exitosamente')),
       );

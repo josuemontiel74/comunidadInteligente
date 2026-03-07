@@ -8,13 +8,13 @@ import "./Styles/global.css";
 
 import App from "./App.jsx";
 
-// ── Modo oscuro: aplicar preferencia guardada antes del primer render ─────────
+// Modo oscuro: aplicar preferencia guardada antes del primer render ─
 // Así todos los módulos tienen el tema correcto desde el instante 0,
 // sin parpadeo ("flash of white"), aunque el usuario no pase por un dashboard.
 if (localStorage.getItem("ci_modo_oscuro") === "1") {
   document.documentElement.dataset.modo = "oscuro";
 }
-// ─────────────────────────────────────────────────────────────────────────────
+// ─
 
 // Silenciar el error de ResizeObserver (no afecta funcionalidad)
 globalThis.addEventListener("error", (e) => {

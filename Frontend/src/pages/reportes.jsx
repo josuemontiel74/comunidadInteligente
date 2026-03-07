@@ -17,9 +17,6 @@ import {
 } from "../services/reportes.services.jsx";
 import "../Styles/reportes.css";
 
-// ============================================================================
-// HELPERS
-// ============================================================================
 const toInt = (v) => {
   if (v === null || v === undefined) return 0;
   const n = Number.parseInt(v, 10);
@@ -71,9 +68,6 @@ const hexToRgb = (hex) => {
   ];
 };
 
-// ============================================================================
-// HELPERS DE PDF (fuera del componente para reducir complejidad cognitiva)
-// ============================================================================
 function createPdfHelpers(pdf, ctx, { m, ph, pw, colLabel, colValue }) {
   const barX = colLabel;
   const barW = pw - m * 2 - 8;
@@ -179,7 +173,7 @@ function createPdfHelpers(pdf, ctx, { m, ph, pw, colLabel, colValue }) {
   return { checkPage, sectionTitle, subTitle, stat, progressBar, divider };
 }
 
-// ── Mapeos de rol (fuera del componente para menor complejidad cognitiva) ──
+// Mapeos de rol (fuera del componente para menor complejidad cognitiva) 
 const RPT_MENU_TITLE = { 1: "Men\u00fa Super Admin", 2: "Men\u00fa Admin" };
 const RPT_DASH_PATH = { 1: "/Superadmin", 2: "/Admin" };
 const mapMenuTitle = (id) => RPT_MENU_TITLE[id] || "Men\u00fa Vigilante";
@@ -275,9 +269,6 @@ function extraerDatosReportes({
   };
 }
 
-// ============================================================================
-// RENDER HELPERS
-// ============================================================================
 const StatRow = ({ icon, label, value, color }) => (
   <div className="rpt-stat-row">
     <div className="stat-icon" style={{ background: `${color}15`, color }}>
@@ -348,9 +339,6 @@ CircularStat.propTypes = {
   color: PropTypes.string.isRequired,
 };
 
-// ============================================================================
-// COMPONENTE PRINCIPAL
-// ============================================================================
 function Reportes() {
   const navigate = useNavigate();
 
@@ -390,9 +378,6 @@ function Reportes() {
   const actividadChartRef = useRef(null);
   const actividadInstance = useRef(null);
 
-  // ============================================================================
-  // AUTH CHECK
-  // ============================================================================
   useEffect(() => {
     const t = localStorage.getItem("token");
     const u = localStorage.getItem("user");
@@ -437,9 +422,6 @@ function Reportes() {
     setLoading(false);
   }, [navigate]);
 
-  // ============================================================================
-  // CARGAR REPORTES
-  // ============================================================================
   const cargarReportes = useCallback(async () => {
     const t = localStorage.getItem("token");
     if (!t) return;
@@ -477,9 +459,6 @@ function Reportes() {
     if (!loading) cargarReportes();
   }, [loading, cargarReportes]);
 
-  // ============================================================================
-  // CHARTS
-  // ============================================================================
   // Donut Parqueaderos
   useEffect(() => {
     if (!rptParqueaderos || !parkingChartRef.current) return;
@@ -624,9 +603,6 @@ function Reportes() {
     };
   }, [rptUsuarios]);
 
-  // ============================================================================
-  // CERRAR SESIÓN
-  // ============================================================================
   const cerrarSesion = async (e) => {
     e.preventDefault();
     const t = localStorage.getItem("token");
@@ -636,9 +612,6 @@ function Reportes() {
     navigate("/");
   };
 
-  // ============================================================================
-  // EXPORTAR PDF
-  // ============================================================================
   const exportarPDF = () => {
     const pdf = new jsPDF("p", "mm", "a4");
     const pw = pdf.internal.pageSize.getWidth();
@@ -924,9 +897,6 @@ function Reportes() {
     });
   };
 
-  // ============================================================================
-  // RENDER - DATOS EXTRAÍDOS (delegados a función externa)
-  // ============================================================================
   const {
     diaPico,
     totalCuposCarros,
@@ -961,9 +931,6 @@ function Reportes() {
     rptPoblacion,
   });
 
-  // ============================================================================
-  // LOADING & AUTH GUARD
-  // ============================================================================
   if (loading) {
     return (
       <div className="rpt-loading">
@@ -975,12 +942,8 @@ function Reportes() {
     );
   }
 
-  // ============================================================================
-  // JSX RETURN
-  // ============================================================================
   return (
     <div className="rpt-dashboard">
-      {/* ===================== OVERLAY ===================== */}
       <button
         type="button"
         className={`rpt-overlay ${menuOpen ? "active" : ""}`}
@@ -988,7 +951,6 @@ function Reportes() {
         aria-label="Cerrar menú"
       />
 
-      {/* ===================== DRAWER ===================== */}
       <aside className={`rpt-drawer ${menuOpen ? "open" : ""}`}>
         <div className="rpt-drawer-header">
           <div className="rpt-drawer-avatar">
@@ -1095,7 +1057,6 @@ function Reportes() {
         </div>
       </aside>
 
-      {/* ===================== MAIN ===================== */}
       <div className="rpt-main">
         {/* Header */}
         <header className="rpt-header">
@@ -1191,7 +1152,6 @@ function Reportes() {
           )}
           {!dataLoading && (
             <>
-              {/* ==================== PARQUEADEROS ==================== */}
               <div className="rpt-card">
                 <div className="rpt-card-header">
                   <div
@@ -1283,7 +1243,6 @@ function Reportes() {
                 </div>
               </div>
 
-              {/* ==================== PICO OCUPACIÓN ==================== */}
               {picoOcupacion.length > 0 && (
                 <div className="rpt-card">
                   <div className="rpt-card-header">
@@ -1338,7 +1297,6 @@ function Reportes() {
                 </div>
               )}
 
-              {/* ==================== VISITAS ==================== */}
               <div className="rpt-card">
                 <div className="rpt-card-header">
                   <div
@@ -1394,7 +1352,6 @@ function Reportes() {
                 </div>
               </div>
 
-              {/* ==================== PAQUETES ==================== */}
               <div className="rpt-card">
                 <div className="rpt-card-header">
                   <div
@@ -1441,7 +1398,6 @@ function Reportes() {
                 </div>
               </div>
 
-              {/* ==================== RESERVAS ==================== */}
               <div className="rpt-card">
                 <div className="rpt-card-header">
                   <div
@@ -1552,7 +1508,6 @@ function Reportes() {
                 </div>
               </div>
 
-              {/* ==================== SECCIÓN RESIDENTES ==================== */}
               <div
                 className="rpt-section-divider"
                 style={{
@@ -1566,7 +1521,6 @@ function Reportes() {
                 <h3>Reportes de Residentes</h3>
               </div>
 
-              {/* ==================== OCUPACIÓN POR TORRES ==================== */}
               <div className="rpt-card">
                 <div className="rpt-card-header">
                   <div
@@ -1655,7 +1609,6 @@ function Reportes() {
                 </div>
               </div>
 
-              {/* ==================== NIÑOS ==================== */}
               <div className="rpt-card">
                 <div className="rpt-card-header">
                   <div
@@ -1719,7 +1672,6 @@ function Reportes() {
                 </div>
               </div>
 
-              {/* ==================== POBLACIÓN ESPECIAL ==================== */}
               <div className="rpt-card">
                 <div className="rpt-card-header">
                   <div
@@ -1827,7 +1779,6 @@ function Reportes() {
                 </div>
               </div>
 
-              {/* ==================== USUARIOS (solo superadmin) ==================== */}
               {showUserManagement && rptUsuarios && (
                 <>
                   <div

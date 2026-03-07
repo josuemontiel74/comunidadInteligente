@@ -1,6 +1,3 @@
-/* ============================================
-   AUDITORÍAS — Tema Indigo (Flutter replica)
-   ============================================ */
 
 /* Loading screen */
 .aud-loading-screen {
@@ -624,7 +621,6 @@
   }
 }
 
-/* ── DRAWER MODO OSCURO ── */
 [data-modo="oscuro"] .aud-drawer {
   background: linear-gradient(180deg, #262272, #3731a0, #4547a9) !important;
 }

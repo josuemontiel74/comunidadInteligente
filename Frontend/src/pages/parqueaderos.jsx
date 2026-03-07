@@ -15,23 +15,23 @@ function Parqueaderos() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ── estado general ──
+  // estado general 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [parqueaderos, setParqueaderos] = useState([]);
   const [usuario, setUsuario] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // ── filtros ──
+  // filtros 
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [filtroTipo, setFiltroTipo] = useState("todos");
 
-  // ── paginación ──
+  // paginación 
   const [paginaActual, setPaginaActual] = useState(1);
   const porPagina = 12;
 
-  // ── modo selección (desde visitas) ──
+  // modo selección (desde visitas) 
   const [modoSeleccion, setModoSeleccion] = useState(false);
   const [tipoVehiculoFilter, setTipoVehiculoFilter] = useState(null);
   const [formStateVisitas, setFormStateVisitas] = useState(null);
@@ -43,7 +43,7 @@ function Parqueaderos() {
   const tokenLocal = localStorage.getItem("token");
   const rolesId = tokenLocal ? obtenerRolFromToken(tokenLocal) : null;
 
-  // ── Verificar sesión ──
+  // Verificar sesión 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token || verificarTokenVencido(token)) {
@@ -74,7 +74,7 @@ function Parqueaderos() {
     }
   }, [navigate]);
 
-  // ── Detectar modo selección desde visitas ──
+  // Detectar modo selección desde visitas 
   useEffect(() => {
     if (location.state?.fromVisitas) {
       setModoSeleccion(true);
@@ -91,7 +91,7 @@ function Parqueaderos() {
     }
   }, [location.state]);
 
-  // ── Cargar parqueaderos ──
+  // Cargar parqueaderos 
   const cargarParqueaderos = useCallback(async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -119,7 +119,7 @@ function Parqueaderos() {
     cargarParqueaderos();
   }, [cargarParqueaderos]);
 
-  // ── Filtros ──
+  // Filtros 
   const parqueaderosFiltrados = parqueaderos.filter((p) => {
     const cumpleBusqueda =
       !searchTerm ||
@@ -147,14 +147,14 @@ function Parqueaderos() {
     return cumpleBusqueda && cumpleEstado && cumpleTipoSeleccion && cumpleTipo;
   });
 
-  // ── Paginación calculada ──
+  // Paginación calculada 
   const totalPaginas = Math.ceil(parqueaderosFiltrados.length / porPagina);
   const parqueaderosPaginados = parqueaderosFiltrados.slice(
     (paginaActual - 1) * porPagina,
     paginaActual * porPagina,
   );
 
-  // ── Calcular estadísticas ──
+  // Calcular estadísticas 
   const totalParqueaderos = parqueaderos.length;
   const disponibles = parqueaderos.filter((p) => p.estadoId === 4).length;
   const ocupados = parqueaderos.filter((p) => p.estadoId === 3).length;
@@ -162,7 +162,7 @@ function Parqueaderos() {
   const totalMotos = parqueaderos.filter((p) => p.tipoVehiculoId === 2).length;
   const totalCarros = totalParqueaderos - totalMotos;
 
-  // ── Limpiar filtros ──
+  // Limpiar filtros 
   const limpiarFiltros = () => {
     setSearchTerm("");
     setFiltroEstado("todos");
@@ -173,12 +173,12 @@ function Parqueaderos() {
   const hayFiltrosActivos =
     searchTerm || filtroEstado !== "todos" || filtroTipo !== "todos";
 
-  // ── Resetear página al cambiar filtros ──
+  // Resetear página al cambiar filtros 
   useEffect(() => {
     setPaginaActual(1);
   }, [searchTerm, filtroEstado, filtroTipo]);
 
-  // ── Seleccionar parqueadero ──
+  // Seleccionar parqueadero 
   const seleccionarParqueadero = (codigo) => {
     if (!modoSeleccion) return;
     Swal.fire({
@@ -206,7 +206,7 @@ function Parqueaderos() {
     });
   };
 
-  // ── Cambiar estado de parqueadero (solo SuperAdmin) ──
+  // Cambiar estado de parqueadero (solo SuperAdmin) 
   const handleCambiarEstado = (p) => {
     const estadoActual = p.estadoId;
 
@@ -296,7 +296,7 @@ function Parqueaderos() {
 
   // cerrarSesion ya definido arriba mediante useLogout()
 
-  // ── Loading ──
+  // Loading 
   if (loading && parqueaderos.length === 0) {
     return (
       <div className="parq-loading-screen">
@@ -313,7 +313,6 @@ function Parqueaderos() {
   // ═════════════════════════════════════════ RENDER ═════════════════════════════════════════
   return (
     <div className="parq-dashboard">
-      {/* ====== OVERLAY + DRAWER ====== */}
       <button
         type="button"
         className={`parq-overlay ${menuOpen ? "active" : ""}`}
@@ -464,7 +463,6 @@ function Parqueaderos() {
         )}
       </aside>
 
-      {/* ====== CONTENIDO PRINCIPAL ====== */}
       <div className="parq-main">
         {/* Header AppBar */}
         <header className="parq-header">
