@@ -98,18 +98,45 @@ comunidadInteligente/
 - Rutas protegidas por rol con redirección automática
 
 #### App Móvil Flutter
-- Módulos: paquetería, áreas comunes, visitas, usuarios, residentes, reportes, auditorías
-- Dashboards para Administrador y Super Administrador
+- Módulos: paquetería, áreas comunes, visitas, usuarios, residentes, reportes, auditorías, torres
+- Dashboards para Super Administrador, Administrador y Vigilante
 - Autenticación con JWT sincronizada con el backend
+- Modo oscuro completo en todas las pantallas
+- IP dinámica configurable desde el login (soporte para desarrollo y producción en la nube)
+- Bloqueo de orientación a portrait
+- Integración con WhatsApp
+- Icono y nombre personalizados: "Comunidad Inteligente"
+- APK de producción disponible para descarga desde la web
 
 #### Base de datos
 - Modelo relacional documentado y actualizado (`.mwb` + `.png`)
 - Backup automatizado disponible en `Backend/backups/`
 
-### En desarrollo
-- Modo oscuro (App Móvil Flutter)
-- Pantalla de descarga de la app móvil
-- Optimización de consultas en reportes avanzados
+### Pendiente
+- Despliegue del backend y base de datos en **VPS Hostinger**
+- Configurar `productionUrl` en `ApiConfig` con la IP/dominio del VPS para que la app móvil se conecte automáticamente
+
+---
+
+## Descarga e instalación de la App Móvil
+
+La aplicación móvil ya está disponible para descarga directa desde la aplicación web:
+
+1. Abrir la plataforma web desde el navegador
+2. Ir a la sección **Descargar App** (disponible en la landing page y en el dashboard)
+3. Descargar e instalar el APK en el dispositivo Android
+
+### Uso en red local (desarrollo)
+Mientras el backend no esté desplegado en el VPS, la app funciona en red local:
+
+1. Asegurarse de que el celular y la PC con el backend estén en la **misma red WiFi**
+2. Ejecutar el backend en la PC (`npm start`)
+3. En la app, tocar el **icono de engranaje** en la pantalla de login
+4. Ingresar la IP local de la PC (ejemplo: `192.168.1.6`) y guardar
+5. Iniciar sesión normalmente
+
+### Uso en producción (VPS Hostinger)
+Una vez desplegado, la app se conectará automáticamente al servidor en la nube sin necesidad de configurar nada.
 
 ---
 
