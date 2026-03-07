@@ -98,18 +98,23 @@ comunidadInteligente/
 - Rutas protegidas por rol con redirección automática
 
 #### App Móvil Flutter
-- Módulos: paquetería, áreas comunes, visitas, usuarios, residentes, reportes, auditorías
-- Dashboards para Administrador y Super Administrador
+- Módulos: paquetería, áreas comunes, visitas, usuarios, residentes, reportes, auditorías, torres
+- Dashboards para Super Administrador, Administrador y Vigilante
 - Autenticación con JWT sincronizada con el backend
+- Modo oscuro completo en todas las pantallas
+- IP dinámica configurable desde el login (soporte para desarrollo y producción en la nube)
+- Bloqueo de orientación a portrait
+- Integración con WhatsApp
+- Icono y nombre personalizados: "Comunidad Inteligente"
+- APK de producción disponible para descarga desde la web
 
 #### Base de datos
 - Modelo relacional documentado y actualizado (`.mwb` + `.png`)
 - Backup automatizado disponible en `Backend/backups/`
 
-### En desarrollo
-- Modo oscuro (App Móvil Flutter)
-- Pantalla de descarga de la app móvil
-- Optimización de consultas en reportes avanzados
+### Pendiente
+- Despliegue del backend en la nube (Render, Railway, AWS, etc.)
+- Reescritura y actualización de la documentación técnica
 
 ---
 
