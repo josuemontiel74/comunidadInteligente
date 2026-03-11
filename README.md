@@ -70,7 +70,7 @@ comunidadInteligente/
 
 ---
 
-## Estado del proyecto � Completado y en producci�n
+## Estado del proyecto - Completado y en producción
 
 ### Completado
 
