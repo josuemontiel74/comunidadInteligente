@@ -1,5 +1,5 @@
 import SolicitanteModel from "../models/solicitante.model.js";
-import tipodocumento from "../models/tipoDocumento.model.js";
+import tipodocumento from "../models/tipodocumento.model.js";
 
 export const crearSolicitante = async (req, res) => {
   try {
@@ -76,7 +76,7 @@ export const actualizarSolicitante = async (req, res) => {
       datosActualizados,
       {
         where: { documentoSolicitante: documentoSolicitante },
-      }
+      },
     );
     if (filasActualizadas === 0) {
       return res.status(404).json({

@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import Persona from "../models/personas.model.js";
 import Rol from "../models/rol.model.js";
-import tipodocumento from "../models/tipoDocumento.model.js";
+import tipodocumento from "../models/tipodocumento.model.js";
 import Estado from "../models/estados.model.js";
 import { registrarAuditoria } from "../services/auditorias.service.js";
 import { registrarFallo } from "../services/logger.service.js";

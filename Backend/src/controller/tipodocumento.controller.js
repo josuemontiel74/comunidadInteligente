@@ -1,4 +1,4 @@
-import tipodocumento from "../models/tipoDocumento.model.js";
+import tipodocumento from "../models/tipodocumento.model.js";
 
 export const mostraDocumentos = async (req, res) => {
   try {
@@ -45,4 +45,4 @@ export const mostraDocumentosporId = async (req, res) => {
       error: error.message,
     });
   }
-}; 
+};
