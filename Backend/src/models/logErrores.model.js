@@ -1,8 +1,8 @@
 import { Model, DataTypes } from "sequelize";
 
-class logErrores extends Model {
+class LogErrores extends Model {
   static initModel(sequelize) {
-    logErrores.init(
+    LogErrores.init(
       {
         idLog: {
           type: DataTypes.INTEGER,
@@ -40,10 +40,10 @@ class logErrores extends Model {
         modelName: "logErrores",
         tableName: "logErrores",
         timestamps: false,
-      }
+      },
     );
-    return logErrores;
+    return LogErrores;
   }
 }
 
-export default logErrores;
+export default LogErrores;

@@ -1,59 +1,67 @@
-import { Outlet } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import Swal from 'sweetalert2';
+import { Outlet, Navigate, useNavigate } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import Swal from "sweetalert2";
+
+// Verificación sincrónica del token – no usa estado para no desmontar hijos
+const tokenEsValido = () => {
+  try {
+    const tk = localStorage.getItem("token");
+    if (!tk) return false;
+    const payload = JSON.parse(atob(tk.split(".")[1]));
+    return Date.now() < (payload.exp || 0) * 1000;
+  } catch {
+    return false;
+  }
+};
 
 function ProtectedRoute() {
   const navigate = useNavigate();
-  const [handled, setHandled] = useState(false);
+  const swalShownRef = useRef(false);
 
-  const verificarTokenVencido = (tk) => {
-    if (!tk) return true;
-    try {
-      const payload = JSON.parse(atob(tk.split('.')[1]));
-      const expMs = (payload.exp || 0) * 1000;
-      return Date.now() >= expMs;
-    } catch (err) {
-      return true;
-    }
-  };
-
+  // Bloquear el botón "atrás" del navegador solo cuando el destino
+  // sea una ruta no protegida (/login o /). Dentro de la app la
+  // navegación entre módulos debe funcionar con normalidad.
   useEffect(() => {
-    const checkAndHandle = () => {
-      const tk = localStorage.getItem('token');
-      if (!tk) {
-        if (!handled) {
-          setHandled(true);
-          Swal.fire({ icon: 'warning', title: 'Sesión expirada', text: 'La sesión expiró. Vuelva a iniciar sesión.', timer: 2000, showConfirmButton: false, timerProgressBar: true }).then(() => {
-            localStorage.clear();
-            navigate('/');
-          });
-        }
-        return;
+    // Añade UNA entrada extra para tener margen de retroceso
+    globalThis.history.pushState(null, "", globalThis.location.pathname);
+    const bloquearAtras = () => {
+      const destino = globalThis.location.pathname;
+      // Solo cancelar si el usuario salió hacia rutas públicas
+      if (destino === "/" || destino === "/login") {
+        globalThis.history.go(1);
       }
-
-      if (verificarTokenVencido(tk)) {
-        // token vencido: avisar y redirigir
-        if (!handled) {
-          setHandled(true);
-          Swal.fire({ icon: 'warning', title: 'Sesión expirada', text: 'La sesión expiró. Vuelva a iniciar sesión.', timer: 2000, showConfirmButton: false, timerProgressBar: true }).then(() => {
-            localStorage.clear();
-            navigate('/');
-          });
-        }
-      }
+      // Si el destino es cualquier ruta protegida, dejar que React
+      // Router resuelva la navegación con normalidad
     };
+    globalThis.addEventListener("popstate", bloquearAtras);
+    return () => globalThis.removeEventListener("popstate", bloquearAtras);
+  }, []);
 
-    // chequeo inmediato y luego periódico
-    checkAndHandle();
-    const intervalId = setInterval(checkAndHandle, 10000); // cada 10s
+  // Solo verifica expiración periódicamente (60 s), sin tocar el render
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (!tokenEsValido() && !swalShownRef.current) {
+        swalShownRef.current = true;
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        Swal.fire({
+          icon: "warning",
+          title: "Sesión expirada",
+          text: "La sesión expiró. Vuelva a iniciar sesión.",
+          timer: 2000,
+          showConfirmButton: false,
+          timerProgressBar: true,
+        }).then(() => navigate("/login"));
+      }
+    }, 60000); // cada 60 s – sin impacto en el render
 
     return () => clearInterval(intervalId);
-  }, [handled, navigate]);
+  }, [navigate]);
 
-  // Si no hay token, no renderizar rutas protegidas (la redirección se maneja arriba)
-  const currentToken = localStorage.getItem('token');
-  if (!currentToken) return null;
+  // Verificación sincrónica: si no hay token válido, redirigir sin mostrar nada
+  if (!tokenEsValido()) {
+    return <Navigate to="/login" replace />;
+  }
 
   return <Outlet />;
 }

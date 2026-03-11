@@ -1,8 +1,8 @@
 import { Model, DataTypes } from "sequelize";
 
-export default class areaComun extends Model {
+export default class AreaComun extends Model {
   static initModel(sequelize) {
-    return areaComun.init(
+    return AreaComun.init(
       {
         idAreaComun: {
           type: DataTypes.INTEGER,
@@ -33,7 +33,7 @@ export default class areaComun extends Model {
         modelName: "areaComun",
         tableName: "areaComun",
         timestamps: false,
-      }
+      },
     );
   }
 }

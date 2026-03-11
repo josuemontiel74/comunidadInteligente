@@ -1,29 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Calendar, Clock, MapPin, Plus } from 'lucide-react';
-import { obtenerCalendarioReservas } from '../services/areasComunes.services.jsx';
-import Swal from 'sweetalert2';
-import logo from '../../img/logo.png';
+import React, { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { Calendar, Clock, MapPin, Plus } from "lucide-react";
+import { obtenerCalendarioReservas } from "../services/areasComunes.services.jsx";
+import Swal from "sweetalert2";
+import logo from "../../img/logo.png";
+import "../Styles/estiloCalendario.css";
 
 export default function CalendarioReservas() {
   const navigate = useNavigate();
-  const [mesActual, setMesActual] = useState(new Date());
+  const [mesActual] = useState(new Date());
   const [reservas, setReservas] = useState([]);
-  const [diaSeleccionado, setDiaSeleccionado] = useState(null);
+  const [diaSeleccionado] = useState(null);
   const [loading, setLoading] = useState(true);
   const [menuAbierto, setMenuAbierto] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
 
   // Funciones para manejar token y usuario
   const obtenerToken = () => {
-    return localStorage.getItem('token') || localStorage.getItem('authToken');
+    return localStorage.getItem("token") || localStorage.getItem("authToken");
   };
 
   const verificarTokenVencido = (token) => {
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      const payload = JSON.parse(atob(token.split(".")[1]));
       return Date.now() >= payload.exp * 1000;
     } catch (error) {
+      console.error(error);
       return true;
     }
   };
@@ -31,11 +32,12 @@ export default function CalendarioReservas() {
   const obtenerUsuarioDelToken = () => {
     try {
       const token = obtenerToken();
-      if (!token || verificarTokenVencido(token)) return 'Usuario';
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.username || 'Usuario';
+      if (!token || verificarTokenVencido(token)) return "Usuario";
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload.username || "Usuario";
     } catch (error) {
-      return 'Usuario';
+      console.error(error);
+      return "Usuario";
     }
   };
 
@@ -43,61 +45,67 @@ export default function CalendarioReservas() {
     try {
       const token = obtenerToken();
       if (!token || verificarTokenVencido(token)) return null;
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      const payload = JSON.parse(atob(token.split(".")[1]));
       return payload.rolesId;
     } catch (error) {
+      console.error(error);
       return null;
     }
   };
 
-  const token = obtenerToken();
   const nombreUsuario = obtenerUsuarioDelToken();
   const rolesId = obtenerRolDelToken();
-  
+
   let rolUsuario;
   switch (rolesId) {
-    case 1: rolUsuario = 'superAdmin'; break;
-    case 2: rolUsuario = 'admin'; break;
-    case 3: rolUsuario = 'vigilante'; break;
-    default: rolUsuario = 'Usuario';
+    case 1:
+      rolUsuario = "superAdmin";
+      break;
+    case 2:
+      rolUsuario = "admin";
+      break;
+    case 3:
+      rolUsuario = "vigilante";
+      break;
+    default:
+      rolUsuario = "Usuario";
   }
 
   const showAreasComunes = rolesId !== 3;
   const showUserManagement = rolesId === 1;
+  const dashboardRutas = { 1: "/Superadmin", 2: "/Admin" };
+  const dashboardRuta = dashboardRutas[rolesId] || "/Vigilante";
 
   const cerrarSesión = (e) => {
     e.preventDefault();
-    localStorage.clear();
-    navigate('/');
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/");
   };
-
-  const toggleMenu = () => setMenuAbierto(!menuAbierto);
 
   useEffect(() => {
     cargarReservas();
-  }, [mesActual]);
+  }, [mesActual]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cargarReservas = async () => {
     try {
       setLoading(true);
       const token = obtenerToken();
-      
+
       if (!token) {
-        console.error('No se encontró token de autenticación');
         setLoading(false);
         return;
       }
-      
+
       const response = await obtenerCalendarioReservas(token);
       if (response.ok) {
         const data = await response.json();
         setReservas(data.caledarioreservas || []);
       } else {
-        console.error('Error en la respuesta del calendario:', response.status);
         setReservas([]);
       }
     } catch (error) {
-      console.error('Error al cargar reservas:', error);
+      console.error(error);
       setReservas([]);
     } finally {
       setLoading(false);
@@ -105,205 +113,236 @@ export default function CalendarioReservas() {
   };
 
   const obtenerNombreArea = (areaComunId) => {
-    switch(areaComunId) {
-      case 1: return 'Salón Comunal 1';
-      case 2: return 'Salón Comunal 2';
-      case 3: return 'Zona BBQ';
-      default: return `Área ${areaComunId}`;
+    switch (areaComunId) {
+      case 1:
+        return "Salón Comunal 1";
+      case 2:
+        return "Salón Comunal 2";
+      case 3:
+        return "Zona BBQ";
+      default:
+        return `Área ${areaComunId}`;
     }
   };
 
-  const obtenerDiasParaMostrar = () => {
-    const hoy = new Date();
-    const dias = [];
-    
-    for (let i = 0; i < 10; i++) {
-      const fecha = new Date(hoy);
-      fecha.setDate(hoy.getDate() + i);
-      dias.push(fecha);
+  // Genera array de días para un mes (incluye nulls antes del primer día para alinear lunes=0)
+  const generarDiasDelMes = (year, month) => {
+    const first = new Date(year, month, 1);
+    // Ajuste para que lunes sea 0
+    const primerIndice = (first.getDay() + 6) % 7; // 0..6
+    const diasEnMes = new Date(year, month + 1, 0).getDate();
+
+    const cells = [];
+    for (let i = 0; i < primerIndice; i++)
+      cells.push({ day: null, iso: null, id: `empty-${i}` });
+    for (let d = 1; d <= diasEnMes; d++) {
+      const yyyy = String(year);
+      const mm = String(month + 1).padStart(2, "0");
+      const dd = String(d).padStart(2, "0");
+      const iso = `${yyyy}-${mm}-${dd}`;
+      cells.push({ day: d, iso });
     }
-    
-    return dias;
+    return cells;
+  };
+
+  // Genera los 12 meses del año actual
+  const obtenerMesesDelAnio = () => {
+    const currentYear = new Date().getFullYear();
+    const mesesArr = [];
+    for (let m = 0; m < 12; m++) {
+      mesesArr.push({
+        year: currentYear,
+        month: m,
+        name: nombresMeses[m],
+        dias: generarDiasDelMes(currentYear, m),
+      });
+    }
+    return mesesArr;
+  };
+
+  const buildHtmlReservasDia = (reservasDia) => {
+    if (!reservasDia || reservasDia.length === 0) {
+      return `<p><strong>¡Excelente!</strong> No hay reservas para este día. Todos los espacios están disponibles.</p>`;
+    }
+    let html = `<h5 style="color:#dc3545">Horarios Ocupados</h5>`;
+    reservasDia.forEach((r) => {
+      const area = obtenerNombreArea(r.areaComunId);
+      const solicit = extraerSolicitante(r);
+      html += `<div style="margin-bottom:8px;padding:8px;border-left:4px solid ${obtenerColorArea(r.areaComunId)}">`;
+      html += `<div><strong>${area}</strong></div>`;
+      html += `<div>${formatearHora(r.horaInicio)} → ${formatearHora(r.horaFin)}</div>`;
+      html += `<div style="font-size:12px;color:#666">Solicitante: ${solicit.nombre || "N/A"} · Documento: ${solicit.documento || "N/A"}</div>`;
+      html += `</div>`;
+    });
+    return html;
+  };
+
+  const buildHtmlEspacios = (espacios, esHoy) => {
+    if (!espacios || espacios.length === 0) return "";
+    let html = `<hr/><h5 style="color:#198754">Espacios disponibles</h5>`;
+    if (esHoy) {
+      html += `<div class="alert alert-warning">Las reservas para hoy ya no están disponibles. Por favor realiza la reserva para <strong>mañana</strong> o una fecha posterior.</div>`;
+    }
+    espacios.forEach((e, i) => {
+      const color = obtenerColorPorDuracion(e.duracion);
+      html += `<div style="margin-bottom:8px;padding:8px;border-left:4px solid ${color}">`;
+      html += `<div><strong>${e.nombreArea}</strong></div>`;
+      html += `<div>${formatearHora(e.horaInicio)} → ${formatearHora(e.horaFin)}</div>`;
+      html += `<div style="font-size:12px;color:${color}">Disponible por ${e.duracion} hora${e.duracion > 1 ? "s" : ""}</div>`;
+      if (!esHoy) {
+        html += `<div style="margin-top:6px"><button id="reservar-${i}" class="btn btn-sm btn-primary">Reservar</button></div>`;
+      }
+      html += `</div>`;
+    });
+    return html;
+  };
+
+  const attachListenersReservar = (espacios, fecha) => {
+    const fechaStr = fecha.toISOString().split("T")[0];
+    espacios.forEach((e, i) => {
+      const btn = document.getElementById(`reservar-${i}`);
+      if (!btn) return;
+      btn.addEventListener("click", () => {
+        navigate("/AreasComunes", {
+          state: {
+            abrirModal: true,
+            prefill: {
+              areaComunId: e.areaId,
+              fechaReserva: fechaStr,
+              horaInicio: e.horaInicio,
+              horaFin: e.horaFin,
+            },
+          },
+        });
+        Swal.close();
+      });
+    });
   };
 
   const mostrarDetallesDia = (fecha) => {
     const reservasDia = obtenerReservasPorDia(fecha);
     const espacios = calcularEspaciosDisponibles(fecha);
-    const diaTexto = `${diasSemana[fecha.getDay()]} ${fecha.getDate()} de ${meses[fecha.getMonth()]}`;
-
-    let html = `<div style="text-align:left">`;
-
-    const hoy = new Date();
-    const fechaHoyStr = hoy.toISOString().split('T')[0];
-    const fechaStr = fecha.toISOString().split('T')[0];
-    const esHoy = fechaStr === fechaHoyStr;
-
-    if (!reservasDia || reservasDia.length === 0) {
-      html += `<p><strong>¡Excelente!</strong> No hay reservas para este día. Todos los espacios están disponibles.</p>`;
-    } else {
-      html += `<h5 style="color:#dc3545">Horarios Ocupados</h5>`;
-      reservasDia.forEach(r => {
-        const area = obtenerNombreArea(r.areaComunId);
-        html += `<div style="margin-bottom:8px;padding:8px;border-left:4px solid ${obtenerColorArea(r.areaComunId)}">`;
-        html += `<div><strong>${area}</strong></div>`;
-        html += `<div>${formatearHora(r.horaInicio)} → ${formatearHora(r.horaFin)}</div>`;
-        const solicit = extraerSolicitante(r);
-        html += `<div style="font-size:12px;color:#666">Solicitante: ${solicit.nombre || 'N/A'} · Documento: ${solicit.documento || 'N/A'}</div>`;
-        html += `</div>`;
-      });
-    }
-
-    // Mostrar espacios solo si hay disponibilidad
-    if (espacios && espacios.length > 0) {
-      html += `<hr/><h5 style="color:#198754">Espacios disponibles</h5>`;
-
-      if (esHoy) {
-        html += `<div class="alert alert-warning">Las reservas para hoy ya no están disponibles. Por favor realiza la reserva para <strong>mañana</strong> o una fecha posterior.</div>`;
-      }
-
-      espacios.forEach((e, i) => {
-        const color = obtenerColorPorDuracion(e.duracion);
-        html += `<div style="margin-bottom:8px;padding:8px;border-left:4px solid ${color}">`;
-        html += `<div><strong>${e.nombreArea}</strong></div>`;
-        html += `<div>${formatearHora(e.horaInicio)} → ${formatearHora(e.horaFin)}</div>`;
-        html += `<div style="font-size:12px;color:${color}">Disponible por ${e.duracion} hora${e.duracion > 1 ? 's' : ''}</div>`;
-        if (!esHoy) {
-          html += `<div style="margin-top:6px"><button id="reservar-${i}" class="btn btn-sm btn-primary">Reservar</button></div>`;
-        }
-        html += `</div>`;
-      });
-    }
-
-    html += `</div>`;
+    const diaTexto = `${diasSemana[fecha.getDay()]} ${fecha.getDate()} de ${nombresMeses[fecha.getMonth()]}`;
+    const esHoy =
+      fecha.toISOString().split("T")[0] ===
+      new Date().toISOString().split("T")[0];
+    const html =
+      `<div style="text-align:left">` +
+      buildHtmlReservasDia(reservasDia) +
+      buildHtmlEspacios(espacios, esHoy) +
+      `</div>`;
 
     Swal.fire({
       title: `Detalles del ${diaTexto}`,
       html,
       width: 800,
       showCloseButton: true,
-      confirmButtonText: 'Cerrar',
+      confirmButtonText: "Cerrar",
       didOpen: () => {
-        // Añadir listeners a los botones Reservar creados dinámicamente (solo si no es hoy)
         if (!esHoy && espacios && espacios.length > 0) {
-          espacios.forEach((e, i) => {
-            const btn = document.getElementById(`reservar-${i}`);
-            if (btn) {
-              btn.addEventListener('click', () => {
-                const fechaStr = fecha.toISOString().split('T')[0];
-                navigate('/AreasComunes', {
-                  state: {
-                    abrirModal: true,
-                    prefill: {
-                      areaComunId: e.areaId || e.areaId,
-                      fechaReserva: fechaStr,
-                      horaInicio: e.horaInicio,
-                      horaFin: e.horaFin
-                    }
-                  }
-                });
-                Swal.close();
-              });
-            }
-          });
+          attachListenersReservar(espacios, fecha);
         }
-      }
+      },
     });
   };
 
   const obtenerReservasPorDia = (fecha) => {
     if (!fecha) return [];
-    
-    const fechaStr = fecha.toISOString().split('T')[0];
-    return reservas.filter(r => r.fechaReserva === fechaStr);
+
+    const fechaStr = fecha.toISOString().split("T")[0];
+    return reservas.filter((r) => r.fechaReserva === fechaStr);
+  };
+
+  const calcularEspaciosDeArea = (
+    areaId,
+    reservasArea,
+    horaInicio,
+    horaFin,
+  ) => {
+    if (reservasArea.length === 0) {
+      return [
+        {
+          areaId,
+          nombreArea: obtenerNombreArea(areaId),
+          horaInicio: `${horaInicio}:00`,
+          horaFin: `${horaFin}:00`,
+          duracion: horaFin - horaInicio,
+        },
+      ];
+    }
+    const result = [];
+    let horaActual = horaInicio;
+    reservasArea.forEach((reserva) => {
+      const [h] = reserva.horaInicio.split(":").map(Number);
+      if (horaActual < h) {
+        result.push({
+          areaId,
+          nombreArea: obtenerNombreArea(areaId),
+          horaInicio: `${horaActual}:00`,
+          horaFin: `${h}:00`,
+          duracion: h - horaActual,
+        });
+      }
+      const [hFin] = reserva.horaFin.split(":").map(Number);
+      horaActual = Math.ceil(hFin);
+    });
+    if (horaActual < horaFin) {
+      result.push({
+        areaId,
+        nombreArea: obtenerNombreArea(areaId),
+        horaInicio: `${horaActual}:00`,
+        horaFin: `${horaFin}:00`,
+        duracion: horaFin - horaActual,
+      });
+    }
+    return result;
   };
 
   const calcularEspaciosDisponibles = (fecha) => {
     const reservasDia = obtenerReservasPorDia(fecha);
     const horaInicio = 8;
     const horaFin = 20;
-    
-    const areasPorId = {
-      1: [],
-      2: [],
-      3: []
-    };
-    
-    reservasDia.forEach(reserva => {
+    const areasPorId = { 1: [], 2: [], 3: [] };
+    reservasDia.forEach((reserva) => {
       if (areasPorId[reserva.areaComunId]) {
         areasPorId[reserva.areaComunId].push(reserva);
       }
     });
-    
-    const espaciosDisponibles = [];
-    
-    [1, 2, 3].forEach(areaId => {
-      const reservasArea = areasPorId[areaId].sort((a, b) => {
-        return a.horaInicio.localeCompare(b.horaInicio);
-      });
-      
-      if (reservasArea.length === 0) {
-        espaciosDisponibles.push({
-          areaId,
-          nombreArea: obtenerNombreArea(areaId),
-          horaInicio: `${horaInicio}:00`,
-          horaFin: `${horaFin}:00`,
-          duracion: horaFin - horaInicio
-        });
-      } else {
-        let horaActual = horaInicio;
-        
-        reservasArea.forEach(reserva => {
-          const [h] = reserva.horaInicio.split(':').map(Number);
-          
-          if (horaActual < h) {
-            espaciosDisponibles.push({
-              areaId,
-              nombreArea: obtenerNombreArea(areaId),
-              horaInicio: `${horaActual}:00`,
-              horaFin: `${h}:00`,
-              duracion: h - horaActual
-            });
-          }
-          
-          const [hFin] = reserva.horaFin.split(':').map(Number);
-          horaActual = Math.ceil(hFin);
-        });
-        
-        if (horaActual < horaFin) {
-          espaciosDisponibles.push({
-            areaId,
-            nombreArea: obtenerNombreArea(areaId),
-            horaInicio: `${horaActual}:00`,
-            horaFin: `${horaFin}:00`,
-            duracion: horaFin - horaActual
-          });
-        }
-      }
+    return [1, 2, 3].flatMap((areaId) => {
+      const reservasArea = areasPorId[areaId].sort((a, b) =>
+        a.horaInicio.localeCompare(b.horaInicio),
+      );
+      return calcularEspaciosDeArea(areaId, reservasArea, horaInicio, horaFin);
     });
-    
-    return espaciosDisponibles;
   };
 
   const obtenerColorPorDuracion = (duracion) => {
-    if (duracion < 5) return '#fb923c';
-    if (duracion >= 6) return '#10b981';
-    return '#f59e0b';
+    if (duracion < 5) return "#fb923c";
+    if (duracion >= 6) return "#10b981";
+    return "#f59e0b";
   };
 
   const formatearHora = (hora) => {
-    const [h, m] = hora.split(':');
-    const hour = parseInt(h);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const hour12 = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+    const [h, m] = hora.split(":");
+    const hour = Number.parseInt(h);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    let hour12;
+    if (hour > 12) hour12 = hour - 12;
+    else if (hour === 0) hour12 = 12;
+    else hour12 = hour;
     return `${hour12}:${m} ${ampm}`;
   };
 
   const obtenerColorArea = (areaId) => {
-    switch(areaId) {
-      case 1: return '#3b82f6';
-      case 2: return '#8b5cf6';
-      case 3: return '#ec4899';
-      default: return '#58d129ff';
+    switch (areaId) {
+      case 1:
+        return "#3b82f6";
+      case 2:
+        return "#8b5cf6";
+      case 3:
+        return "#ec4899";
+      default:
+        return "#58d129ff";
     }
   };
 
@@ -313,18 +352,21 @@ export default function CalendarioReservas() {
     if (!reserva) return resultado;
 
     if (reserva.nombreSolicitante) resultado.nombre = reserva.nombreSolicitante;
-    if (reserva.documentoSolicitante) resultado.documento = reserva.documentoSolicitante;
+    if (reserva.documentoSolicitante)
+      resultado.documento = reserva.documentoSolicitante;
 
     // Buscar en objetos incluidos (por si Sequelize devuelve { Solicitud: {...} } u otro alias)
-    Object.keys(reserva).forEach(key => {
+    Object.keys(reserva).forEach((key) => {
       const val = reserva[key];
-      if (!resultado.nombre && val && typeof val === 'object') {
+      if (!resultado.nombre && val && typeof val === "object") {
         if (val.nombreSolicitante) resultado.nombre = val.nombreSolicitante;
         if (val.nombre) resultado.nombre = resultado.nombre || val.nombre;
       }
-      if (!resultado.documento && val && typeof val === 'object') {
-        if (val.documentoSolicitante) resultado.documento = val.documentoSolicitante;
-        if (val.documento) resultado.documento = resultado.documento || val.documento;
+      if (!resultado.documento && val && typeof val === "object") {
+        if (val.documentoSolicitante)
+          resultado.documento = val.documentoSolicitante;
+        if (val.documento)
+          resultado.documento = resultado.documento || val.documento;
       }
     });
 
@@ -332,9 +374,9 @@ export default function CalendarioReservas() {
   };
 
   const mostrarDetallesReserva = (reserva) => {
-    const [hi, mi] = reserva.horaInicio.split(':').map(Number);
-    const [hf, mf] = reserva.horaFin.split(':').map(Number);
-    const duracion = (hf * 60 + mf) - (hi * 60 + mi);
+    const [hi, mi] = reserva.horaInicio.split(":").map(Number);
+    const [hf, mf] = reserva.horaFin.split(":").map(Number);
+    const duracion = hf * 60 + mf - (hi * 60 + mi);
     const horas = Math.floor(duracion / 60);
     const minutos = duracion % 60;
 
@@ -342,283 +384,277 @@ export default function CalendarioReservas() {
       title: obtenerNombreArea(reserva.areaComunId),
       html: `
         <div style="text-align: left;">
-          <p><strong>🕐 Horario:</strong> ${formatearHora(reserva.horaInicio)} - ${formatearHora(reserva.horaFin)}</p>
-          <p><strong>⏱️ Duración:</strong> ${horas}h ${minutos}min</p>
-          <p><strong>📍 Área ID:</strong> ${reserva.areaComunId}</p>
+          <p><strong>Horario:</strong> ${formatearHora(reserva.horaInicio)} - ${formatearHora(reserva.horaFin)}</p>
+          <p><strong>Duración:</strong> ${horas}h ${minutos}min</p>
+          <p><strong>Área ID:</strong> ${reserva.areaComunId}</p>
           <hr />
-          <p><strong>Solicitante:</strong> ${extraerSolicitante(reserva).nombre || 'N/A'}</p>
-          <p><strong>Documento:</strong> ${extraerSolicitante(reserva).documento || 'N/A'}</p>
+          <p><strong>Solicitante:</strong> ${extraerSolicitante(reserva).nombre || "N/A"}</p>
+          <p><strong>Documento:</strong> ${extraerSolicitante(reserva).documento || "N/A"}</p>
         </div>
       `,
-      icon: 'info',
-      confirmButtonText: 'Cerrar',
-      confirmButtonColor: '#28a745'
+      icon: "info",
+      confirmButtonText: "Cerrar",
+      confirmButtonColor: "#28a745",
     });
   };
 
-  const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-  const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const diasSemana = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+  const nombresMeses = [
+    "Enero",
+    "Febrero",
+    "Marzo",
+    "Abril",
+    "Mayo",
+    "Junio",
+    "Julio",
+    "Agosto",
+    "Septiembre",
+    "Octubre",
+    "Noviembre",
+    "Diciembre",
+  ];
 
-  const dias = obtenerDiasParaMostrar();
+  const meses = obtenerMesesDelAnio();
+  const reservasSet = new Set(reservas.map((r) => r.fechaReserva));
+  const hoyStr = new Date().toISOString().split("T")[0];
 
   return (
-    <div className="container-fluid p-0">
-      {/* Sidebar */}
-      <aside
-        id="menuTrabajador"
-        className={`worker-menu bg-success text-white ${menuAbierto ? 'active' : ''}`}
-      >
-        <div className="p-3 d-flex flex-column h-100">
-          <div className="d-flex align-items-center gap-3 mb-4">
-            <div
-              className="user-circle bg-white d-flex align-items-center justify-content-center"
-              style={{ width: '50px', height: '50px', borderRadius: '50%' }}
-            >
-              <span className="fw-bold text-success">
-                {nombreUsuario?.substring(0, 2).toUpperCase() || 'US'}
-              </span>
-            </div>
-            <div className="d-flex flex-column">
-              <span className="fw-semibold text-white">{nombreUsuario || 'Usuario'}</span>
-              <span className="fw-semibold text-white">{rolUsuario}</span>
-              <span className="small text-white-50">Sesión activa</span>
-            </div>
+    <div className="cal-dashboard">
+      {/* Overlay */}
+      <button
+        type="button"
+        className={`cal-overlay ${menuAbierto ? "active" : ""}`}
+        onClick={() => setMenuAbierto(false)}
+        aria-label="Cerrar menú"
+      />
+
+      {/* Drawer moderno */}
+      <aside className={`cal-drawer ${menuAbierto ? "open" : ""}`}>
+        <div className="cal-drawer-header">
+          <div className="cal-drawer-avatar">
+            <i className="bi bi-person-fill"></i>
           </div>
-
-          <h5 className="mb-3 mx-4">Menú {rolUsuario}</h5>
-
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión de Paquetes</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link className="nav-link text-white" to="/Paqueteria" state={{ abrirModal: true }}>
-                  Registrar Paquete
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/Paqueteria">
-                  Historial de Paquetes
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión de Visitas</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link className="nav-link text-white" to="/visitas" state={{ abrirModal: true }}>
-                  Crear Visita
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/visitas">
-                  Consultar Visitas
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/parqueaderos">
-                  Consultar Parqueaderos
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {showAreasComunes && (
-            <div className="mb-4">
-              <h6 className="text-uppercase fw-bold">Gestión de Áreas Comunes</h6>
-              <ul className="nav flex-column mt-2 gap-2">
-                <li>
-                  <Link className="nav-link text-white" to="/AreasComunes" state={{ abrirModal: true }}>
-                    Registrar Reserva
-                  </Link>
-                </li>
-                <li>
-                  <Link className="nav-link text-white" to="/CalendarioReservas">
-                    Ver Calendario
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          )}
-
-          {showUserManagement && (
-            <div className="mb-4">
-              <h6 className="text-uppercase fw-bold">Gestión de Usuarios</h6>
-              <ul className="nav flex-column mt-2 gap-2">
-                <li>
-                  <Link className="nav-link text-white" to="/GestionUsuario" state={{ abrirModal: true }}>
-                    Registrar Usuario
-                  </Link>
-                </li>
-                <li>
-                  <Link className="nav-link text-white" to="/GestionUsuario">
-                    Consultar Usuarios
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          )}
-
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">Gestión Residentes</h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li>
-                <Link className="nav-link text-white" to="/Residentes" state={{ abrirModal: true }}>
-                  Crear Residente
-                </Link>
-              </li>
-              <li>
-                <Link className="nav-link text-white" to="/Residentes">
-                  Consultar Residente
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div className="mt-auto text-center">
-            <button className="btn btn-light w-100" onClick={cerrarSesión}>
-              Cerrar sesión
-            </button>
-          </div>
+          <h3 className="cal-drawer-title">Menú {rolUsuario}</h3>
+          <p className="cal-drawer-user">{nombreUsuario || "Usuario"}</p>
         </div>
-      </aside>
 
-      {/* Contenido principal */}
-      <div className={`main-content ${menuAbierto ? 'shift' : ''}`}>
-        {/* Header */}
-        <div className="d-flex align-items-center justify-content-between px-3 py-2 header-bar">
-          <button className="btn btn-success d-md-none" onClick={toggleMenu}>
-            <i className="bi bi-list"></i>
-          </button>
-
-          <div className="logo-container text-center flex-grow-1">
-            <Link to="/">
-              <img src={logo} alt="Logo" className="logo-img" style={{ maxHeight: '50px' }} />
+        <div className="cal-drawer-body">
+          {/* Dashboard */}
+          <div className="cal-menu-section">
+            <h6 className="cal-menu-section-title">Dashboard</h6>
+            <Link className="cal-menu-item" to={dashboardRuta}>
+              <i className="bi bi-speedometer2"></i>
+              <span>Dashboard</span>
+              <i className="bi bi-chevron-right cal-menu-arrow"></i>
             </Link>
           </div>
 
-          <div className="position-relative">
-            <div
-              className="btn btn-outline-success d-flex align-items-center gap-2"
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              style={{ cursor: 'pointer' }}
-            >
-              <i className="bi bi-person-circle"></i> {nombreUsuario}
-            </div>
+          {/* Principal */}
+          <div className="cal-menu-section">
+            <h6 className="cal-menu-section-title">Calendario</h6>
+            <Link className="cal-menu-item active" to="/CalendarioReservas">
+              <i className="bi bi-calendar3"></i>
+              <span>Ver Calendario</span>
+              <i className="bi bi-chevron-right cal-menu-arrow"></i>
+            </Link>
+          </div>
 
-            {showUserMenu && (
-              <div
-                className="user-menu text-center bg-white shadow p-3 rounded"
-                style={{
-                  position: 'absolute',
-                  right: 0,
-                  top: 'calc(100% + 10px)',
-                  zIndex: 1000,
-                  minWidth: '200px',
-                  border: '1px solid #dee2e6'
-                }}
-              >
-                <p className="mb-2">Usuario: <strong>{nombreUsuario}</strong></p>
-                <p className="mb-2">Rol: <strong>{rolUsuario}</strong></p>
-                <hr />
-                <button className="btn btn-danger btn-sm w-100" onClick={cerrarSesión}>
-                  <i className="bi bi-box-arrow-right me-2"></i>Cerrar sesión
-                </button>
-              </div>
+          {/* Navegación */}
+          <div className="cal-menu-section">
+            <h6 className="cal-menu-section-title">Navegación</h6>
+            <Link className="cal-menu-item" to="/Paqueteria">
+              <i className="bi bi-box-seam"></i>
+              <span>Paquetería</span>
+              <i className="bi bi-chevron-right cal-menu-arrow"></i>
+            </Link>
+            <Link className="cal-menu-item" to="/visitas">
+              <i className="bi bi-person-badge"></i>
+              <span>Visitas</span>
+              <i className="bi bi-chevron-right cal-menu-arrow"></i>
+            </Link>
+            <Link className="cal-menu-item" to="/parqueaderos">
+              <i className="bi bi-car-front"></i>
+              <span>Parqueaderos</span>
+              <i className="bi bi-chevron-right cal-menu-arrow"></i>
+            </Link>
+            {showAreasComunes && (
+              <>
+                <Link className="cal-menu-item" to="/AreasComunes">
+                  <i className="bi bi-building"></i>
+                  <span>Áreas Comunes</span>
+                  <i className="bi bi-chevron-right cal-menu-arrow"></i>
+                </Link>
+                <Link className="cal-menu-item" to="/Residentes">
+                  <i className="bi bi-people"></i>
+                  <span>Residentes</span>
+                  <i className="bi bi-chevron-right cal-menu-arrow"></i>
+                </Link>
+                <Link className="cal-menu-item" to="/reportes">
+                  <i className="bi bi-graph-up"></i>
+                  <span>Reportes</span>
+                  <i className="bi bi-chevron-right cal-menu-arrow"></i>
+                </Link>
+              </>
+            )}
+            {showUserManagement && (
+              <>
+                <Link className="cal-menu-item" to="/GestionUsuario">
+                  <i className="bi bi-person-gear"></i>
+                  <span>Gestión Usuarios</span>
+                  <i className="bi bi-chevron-right cal-menu-arrow"></i>
+                </Link>
+                <Link className="cal-menu-item" to="/auditorias">
+                  <i className="bi bi-shield-check"></i>
+                  <span>Auditorías</span>
+                  <i className="bi bi-chevron-right cal-menu-arrow"></i>
+                </Link>
+              </>
             )}
           </div>
         </div>
 
+        <div className="cal-drawer-footer">
+          <button className="cal-logout-btn" onClick={cerrarSesión}>
+            <i className="bi bi-box-arrow-right"></i>
+            <span>Cerrar sesión</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Contenido principal */}
+      <main className="cal-main">
+        {/* Header */}
+        <header className="cal-header">
+          <div className="cal-header-group">
+            <Link to="/">
+              <img src={logo} alt="Logo" className="cal-logo" />
+            </Link>
+            <h2 className="cal-title">Calendario de Reservas</h2>
+          </div>
+          <button
+            className="cal-btn-hamburguer"
+            onClick={() => setMenuAbierto(true)}
+          >
+            <i className="bi bi-list"></i>
+          </button>
+        </header>
+
         {/* Contenido del calendario */}
-        <div className="container-fluid py-4" style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
+        <div
+          className="container-fluid py-4"
+          style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}
+        >
           <div className="mb-4">
             <h2 className="text-success fw-bold">
-              <Calendar size={32} className="me-2" style={{ display: 'inline' }} />
+              <Calendar
+                size={32}
+                className="me-2"
+                style={{ display: "inline" }}
+              />
               Calendario de Reservas
             </h2>
-            <p className="text-muted">Haz clic en un día para ver más detalles</p>
+            <p className="text-muted">
+              Haz clic en un día para ver más detalles
+            </p>
           </div>
 
-          {/* Cards de días */}
+          {/* Calendario anual: 12 meses (3 por fila) */}
           <div className="row g-3 mb-4">
-            {dias.map((fecha, index) => {
-              const reservasDia = obtenerReservasPorDia(fecha);
-              const esHoy = fecha.toDateString() === new Date().toDateString();
-              const estaSeleccionado = diaSeleccionado && 
-                fecha.toDateString() === diaSeleccionado.toDateString();
+            {meses.map((mesObj) => (
+              <div
+                key={`${mesObj.year}-${mesObj.month}`}
+                className="col-12 col-md-4"
+              >
+                <div className="card h-100">
+                  <div className="card-body">
+                    <h5 className="card-title text-center mb-2">
+                      {mesObj.name} {mesObj.year}
+                    </h5>
 
-              return (
-                <div key={index} className="col-12 col-md-6 col-lg-4 col-xl-3">
-                  <div 
-                    className={`card h-100 ${estaSeleccionado ? 'border-success' : ''}`}
-                    style={{
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      borderWidth: estaSeleccionado ? '3px' : '1px',
-                      boxShadow: estaSeleccionado ? '0 4px 12px rgba(40, 167, 69, 0.3)' : '0 2px 4px rgba(0,0,0,0.1)'
-                    }}
-                    onClick={() => mostrarDetallesDia(fecha)}
-                  >
-                    <div className={`card-header text-white ${esHoy ? 'bg-success' : 'bg-secondary'}`}>
-                      <div className="d-flex justify-content-between align-items-center">
-                        <div>
-                          <h5 className="mb-0">{diasSemana[fecha.getDay()]}</h5>
-                          <small>{fecha.getDate()} {meses[fecha.getMonth()]}</small>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(7, 1fr)",
+                        gap: 6,
+                        marginBottom: 6,
+                        textAlign: "center",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"].map((s) => (
+                        <div key={s} style={{ fontSize: 12, color: "#444" }}>
+                          {s.charAt(0)}
                         </div>
-                        {esHoy && <span className="badge bg-white text-success">HOY</span>}
-                      </div>
+                      ))}
                     </div>
 
-                    <div className="card-body p-3">
-                      {reservasDia.length === 0 ? (
-                        <div className="text-center py-3">
-                          <Plus size={32} className="text-success mb-2" />
-                          <p className="text-success mb-0 fw-bold">Sin reservas</p>
-                          <small className="text-muted">Día completamente disponible</small>
-                        </div>
-                      ) : (
-                        <div>
-                          <div className="d-flex align-items-center mb-3">
-                            <Clock size={16} className="text-danger me-2" />
-                            <span className="badge bg-danger">{reservasDia.length} reserva{reservasDia.length > 1 ? 's' : ''}</span>
-                          </div>
-
-                          <div className="d-flex flex-column gap-2">
-                            {reservasDia.slice(0, 3).map((reserva, idx) => (
-                              <div 
-                                key={idx}
-                                className="p-2 rounded"
-                                style={{
-                                  backgroundColor: `${obtenerColorArea(reserva.areaComunId)}15`,
-                                  borderLeft: `3px solid ${obtenerColorArea(reserva.areaComunId)}`
-                                }}
-                              >
-                                <div className="small">
-                                  <strong style={{ color: obtenerColorArea(reserva.areaComunId) }}>
-                                    {obtenerNombreArea(reserva.areaComunId)}
-                                  </strong>
-                                </div>
-                                <div className="small text-muted">
-                                  {formatearHora(reserva.horaInicio)} - {formatearHora(reserva.horaFin)}
-                                </div>
-                              </div>
-                            ))}
-                            
-                            {reservasDia.length > 3 && (
-                              <div className="text-center">
-                                <small className="text-muted">+{reservasDia.length - 3} más...</small>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(7, 1fr)",
+                        gap: 6,
+                      }}
+                    >
+                      {mesObj.dias.map((cell) => {
+                        if (!cell.day)
+                          return (
+                            <div key={cell.id} style={{ minHeight: 36 }}></div>
+                          );
+                        const reservado = reservasSet.has(cell.iso);
+                        const esPasado = cell.iso < hoyStr;
+                        const estilo = reservado
+                          ? {
+                              backgroundColor: "#e07a7a",
+                              color: "#fff",
+                              borderRadius: 6,
+                              padding: "8px 6px",
+                              textAlign: "center",
+                              cursor: "not-allowed",
+                            }
+                          : {
+                              backgroundColor: "#6fbf73",
+                              color: "#fff",
+                              borderRadius: 6,
+                              padding: "8px 6px",
+                              textAlign: "center",
+                              cursor: "pointer",
+                            };
+                        const handleCellClick = () => {
+                          if (reservado) {
+                            Swal.fire(
+                              "Fecha reservada",
+                              `La fecha ${cell.iso} ya está reservada.`,
+                              "info",
+                            );
+                            return;
+                          }
+                          if (esPasado) {
+                            Swal.fire(
+                              "Fecha pasada",
+                              "No es posible reservar fechas pasadas.",
+                              "warning",
+                            );
+                            return;
+                          }
+                          mostrarDetallesDia(new Date(cell.iso));
+                        };
+                        return (
+                          <button
+                            type="button"
+                            key={cell.iso}
+                            style={estilo}
+                            title={cell.iso}
+                            onClick={handleCellClick}
+                          >
+                            {cell.day}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
 
           {/* Detalles del día seleccionado */}
@@ -626,10 +662,12 @@ export default function CalendarioReservas() {
             <div className="card shadow-sm">
               <div className="card-header bg-success text-white">
                 <h4 className="mb-0">
-                  Detalles del {diasSemana[diaSeleccionado.getDay()]} {diaSeleccionado.getDate()} de {meses[diaSeleccionado.getMonth()]}
+                  Detalles del {diasSemana[diaSeleccionado.getDay()]}{" "}
+                  {diaSeleccionado.getDate()} de{" "}
+                  {nombresMeses[diaSeleccionado.getMonth()]}
                 </h4>
               </div>
-              
+
               <div className="card-body">
                 {/* Reservas existentes */}
                 <div className="mb-4">
@@ -637,42 +675,65 @@ export default function CalendarioReservas() {
                     <Clock size={20} className="me-2" />
                     Horarios Ocupados
                   </h5>
-                  
+
                   {obtenerReservasPorDia(diaSeleccionado).length === 0 ? (
                     <div className="alert alert-success">
-                      <strong>¡Excelente!</strong> No hay reservas para este día. Todos los espacios están disponibles.
+                      <strong>¡Excelente!</strong> No hay reservas para este
+                      día. Todos los espacios están disponibles.
                     </div>
                   ) : (
                     <div className="row g-3">
-                      {obtenerReservasPorDia(diaSeleccionado).map((reserva, idx) => (
-                        <div key={idx} className="col-md-6 col-lg-4">
-                          <div 
+                      {obtenerReservasPorDia(diaSeleccionado).map((reserva) => (
+                        <div
+                          key={reserva.idReservas || reserva.id}
+                          className="col-md-6 col-lg-4"
+                        >
+                          <div
                             className="card"
-                            style={{ borderLeft: `4px solid ${obtenerColorArea(reserva.areaComunId)}` }}
+                            style={{
+                              borderLeft: `4px solid ${obtenerColorArea(reserva.areaComunId)}`,
+                            }}
                           >
                             <div className="card-body">
                               <div className="d-flex align-items-start justify-content-between mb-2">
-                                <h6 className="mb-0" style={{ color: obtenerColorArea(reserva.areaComunId) }}>
+                                <h6
+                                  className="mb-0"
+                                  style={{
+                                    color: obtenerColorArea(
+                                      reserva.areaComunId,
+                                    ),
+                                  }}
+                                >
                                   <MapPin size={16} className="me-1" />
                                   {obtenerNombreArea(reserva.areaComunId)}
                                 </h6>
                                 <span className="badge bg-danger">Ocupado</span>
                               </div>
-                              
+
                               <div className="mt-2">
                                 <Clock size={14} className="me-1 text-muted" />
-                                <strong>{formatearHora(reserva.horaInicio)}</strong>
-                                {' → '}
-                                <strong>{formatearHora(reserva.horaFin)}</strong>
+                                <strong>
+                                  {formatearHora(reserva.horaInicio)}
+                                </strong>
+                                {" → "}
+                                <strong>
+                                  {formatearHora(reserva.horaFin)}
+                                </strong>
                               </div>
-                              
+
                               <div className="mt-2 d-flex justify-content-between align-items-center">
                                 <div>
                                   <small className="text-muted">
-                                    Duración: {(() => {
-                                      const [hi, mi] = reserva.horaInicio.split(':').map(Number);
-                                      const [hf, mf] = reserva.horaFin.split(':').map(Number);
-                                      const duracion = (hf * 60 + mf) - (hi * 60 + mi);
+                                    Duración:{" "}
+                                    {(() => {
+                                      const [hi, mi] = reserva.horaInicio
+                                        .split(":")
+                                        .map(Number);
+                                      const [hf, mf] = reserva.horaFin
+                                        .split(":")
+                                        .map(Number);
+                                      const duracion =
+                                        hf * 60 + mf - (hi * 60 + mi);
                                       const horas = Math.floor(duracion / 60);
                                       const minutos = duracion % 60;
                                       return `${horas}h ${minutos}min`;
@@ -682,7 +743,9 @@ export default function CalendarioReservas() {
                                 <div>
                                   <button
                                     className="btn btn-sm btn-outline-secondary"
-                                    onClick={() => mostrarDetallesReserva(reserva)}
+                                    onClick={() =>
+                                      mostrarDetallesReserva(reserva)
+                                    }
                                   >
                                     Más info
                                   </button>
@@ -702,71 +765,105 @@ export default function CalendarioReservas() {
                     <Plus size={20} className="me-2" />
                     Espacios Disponibles para Reservar
                   </h5>
-                  
+
                   {calcularEspaciosDisponibles(diaSeleccionado).length === 0 ? (
                     <div className="alert alert-warning">
-                      <strong>Lo sentimos.</strong> No hay espacios disponibles en este día.
+                      <strong>Lo sentimos.</strong> No hay espacios disponibles
+                      en este día.
                     </div>
                   ) : (
                     <div className="row g-3">
-                      {calcularEspaciosDisponibles(diaSeleccionado).map((espacio, idx) => {
-                        const color = obtenerColorPorDuracion(espacio.duracion);
-                        return (
-                          <div key={idx} className="col-md-6 col-lg-4">
-                            <div 
-                              className="card"
-                              style={{ borderLeft: `4px solid ${color}` }}
+                      {calcularEspaciosDisponibles(diaSeleccionado).map(
+                        (espacio, idx) => {
+                          const color = obtenerColorPorDuracion(
+                            espacio.duracion,
+                          );
+                          let etiquetaDuracion;
+                          if (espacio.duracion >= 6)
+                            etiquetaDuracion = "Disponible";
+                          else if (espacio.duracion < 5)
+                            etiquetaDuracion = "Corto";
+                          else etiquetaDuracion = "Medio";
+                          return (
+                            <div
+                              key={`${espacio.areaId}-${espacio.horaInicio}`}
+                              className="col-md-6 col-lg-4"
                             >
-                              <div className="card-body">
-                                <div className="d-flex align-items-start justify-content-between mb-2">
-                                  <h6 className="mb-0" style={{ color }}>
-                                    <MapPin size={16} className="me-1" />
-                                    {espacio.nombreArea}
-                                  </h6>
-                                  <span className="badge" style={{ backgroundColor: '#ededed', color }}>
-                                    {espacio.duracion >= 6 ? 'Disponible' : espacio.duracion < 5 ? 'Corto' : 'Medio'}
-                                  </span>
-                                </div>
-                                
-                                <div className="mt-2">
-                                  <Clock size={14} className="me-1" style={{ color }} />
-                                  <strong>{formatearHora(espacio.horaInicio)}</strong>
-                                  {' → '}
-                                  <strong>{formatearHora(espacio.horaFin)}</strong>
-                                </div>
-                                
-                                <div className="mt-2">
-                                  <small style={{ color }} className="fw-bold">
-                                    ⏱️ Disponible por {espacio.duracion} hora{espacio.duracion > 1 ? 's' : ''}
-                                  </small>
-                                </div>
+                              <div
+                                className="card"
+                                style={{ borderLeft: `4px solid ${color}` }}
+                              >
+                                <div className="card-body">
+                                  <div className="d-flex align-items-start justify-content-between mb-2">
+                                    <h6 className="mb-0" style={{ color }}>
+                                      <MapPin size={16} className="me-1" />
+                                      {espacio.nombreArea}
+                                    </h6>
+                                    <span
+                                      className="badge"
+                                      style={{
+                                        backgroundColor: "#ededed",
+                                        color,
+                                      }}
+                                    >
+                                      {etiquetaDuracion}
+                                    </span>
+                                  </div>
 
-                                <div className="mt-3">
-                                  <button 
-                                    className="btn btn-sm btn-outline-primary" 
-                                    onClick={() => {
-                                      const fechaStr = diaSeleccionado.toISOString().split('T')[0];
-                                      navigate('/AreasComunes', {
-                                        state: {
-                                          abrirModal: true,
-                                          prefill: {
-                                            areaComunId: espacio.areaId,
-                                            fechaReserva: fechaStr,
-                                            horaInicio: espacio.horaInicio,
-                                            horaFin: espacio.horaFin
-                                          }
-                                        }
-                                      });
-                                    }}
-                                  >
-                                    Reservar
-                                  </button>
+                                  <div className="mt-2">
+                                    <Clock
+                                      size={14}
+                                      className="me-1"
+                                      style={{ color }}
+                                    />
+                                    <strong>
+                                      {formatearHora(espacio.horaInicio)}
+                                    </strong>
+                                    {" → "}
+                                    <strong>
+                                      {formatearHora(espacio.horaFin)}
+                                    </strong>
+                                  </div>
+
+                                  <div className="mt-2">
+                                    <small
+                                      style={{ color }}
+                                      className="fw-bold"
+                                    >
+                                      ⏱️ Disponible por {espacio.duracion} hora
+                                      {espacio.duracion > 1 ? "s" : ""}
+                                    </small>
+                                  </div>
+
+                                  <div className="mt-3">
+                                    <button
+                                      className="btn btn-sm btn-outline-primary"
+                                      onClick={() => {
+                                        const fechaStr = diaSeleccionado
+                                          .toISOString()
+                                          .split("T")[0];
+                                        navigate("/AreasComunes", {
+                                          state: {
+                                            abrirModal: true,
+                                            prefill: {
+                                              areaComunId: espacio.areaId,
+                                              fechaReserva: fechaStr,
+                                              horaInicio: espacio.horaInicio,
+                                              horaFin: espacio.horaFin,
+                                            },
+                                          },
+                                        });
+                                      }}
+                                    >
+                                      Reservar
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        },
+                      )}
                     </div>
                   )}
                 </div>
@@ -776,60 +873,18 @@ export default function CalendarioReservas() {
 
           {loading && (
             <div className="text-center py-5">
-              <div className="spinner-border text-success" role="status">
+              <output className="spinner-border text-success">
                 <span className="visually-hidden">Cargando...</span>
-              </div>
+              </output>
             </div>
           )}
         </div>
-      </div>
+      </main>
 
       <style>{`
         .card:hover {
           transform: translateY(-2px);
           box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
-        }
-        
-        .worker-menu {
-          position: fixed;
-          top: 0;
-          left: -280px;
-          width: 280px;
-          height: 100vh;
-          transition: left 0.3s ease;
-          z-index: 1040;
-          overflow-y: auto;
-        }
-        
-        .worker-menu.active {
-          left: 0;
-        }
-        
-        .main-content {
-          transition: margin-left 0.3s ease;
-        }
-        
-        .main-content.shift {
-          margin-left: 280px;
-        }
-        
-        @media (min-width: 768px) {
-          .worker-menu {
-            left: 0;
-          }
-          
-          .main-content {
-            margin-left: 280px;
-          }
-        }
-        
-        .header-bar {
-          background-color: white;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .logo-img {
-          max-height: 50px;
         }
       `}</style>
     </div>

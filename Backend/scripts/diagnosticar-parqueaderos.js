@@ -22,7 +22,7 @@ const sequelize = new Sequelize(
     dialect: process.env.DB_DIALECT || "mysql",
     timezone: "-05:00",
     logging: false,
-  }
+  },
 );
 
 // Inicializar modelos
@@ -45,7 +45,7 @@ const diagnosticarParqueaderos = async () => {
     const estados = await Estado.findAll();
     estados.forEach((estado) => {
       console.log(
-        `   - ID: ${estado.IdEstado}, Nombre: ${estado.nombreEstado}`
+        `   - ID: ${estado.IdEstado}, Nombre: ${estado.nombreEstado}`,
       );
     });
 
@@ -54,7 +54,7 @@ const diagnosticarParqueaderos = async () => {
     const tiposVehiculo = await TipoVehiculo.findAll();
     tiposVehiculo.forEach((tipo) => {
       console.log(
-        `   - ID: ${tipo.idTipoVehiculo}, Nombre: ${tipo.nombreVehiculo}`
+        `   - ID: ${tipo.idTipoVehiculo}, Nombre: ${tipo.nombreVehiculo}`,
       );
     });
 
@@ -74,7 +74,7 @@ const diagnosticarParqueaderos = async () => {
       console.log(
         `   - Estado ${item.estadoId} (${
           estado ? estado.nombreEstado : "Desconocido"
-        }): ${item.cantidad}`
+        }): ${item.cantidad}`,
       );
     }
 
@@ -94,7 +94,7 @@ const diagnosticarParqueaderos = async () => {
       console.log(
         `   - Tipo ${item.tipoVehiculoId} (${
           tipo ? tipo.nombreVehiculo : "Desconocido"
-        }): ${item.cantidad}`
+        }): ${item.cantidad}`,
       );
     }
 
@@ -121,12 +121,14 @@ const diagnosticarParqueaderos = async () => {
     console.log("\n⚠️  Verificación de inconsistencias:");
 
     const sumaTotal = totalOcupados + disponibles;
-    if (sumaTotal !== totalParqueaderos) {
+    if (sumaTotal === totalParqueaderos) {
+      console.log(`   ✓ OK: Los números coinciden correctamente`);
+    } else {
       console.log(
-        `   ❌ ERROR: La suma no coincide (${sumaTotal} vs ${totalParqueaderos})`
+        `   ❌ ERROR: La suma no coincide (${sumaTotal} vs ${totalParqueaderos})`,
       );
       console.log(
-        `      Diferencia: ${Math.abs(sumaTotal - totalParqueaderos)}`
+        `      Diferencia: ${Math.abs(sumaTotal - totalParqueaderos)}`,
       );
 
       // Buscar estados diferentes a 3 y 4
@@ -140,29 +142,27 @@ const diagnosticarParqueaderos = async () => {
 
       if (estadosInvalidos.length > 0) {
         console.log(
-          `\n   ⚠️  Encontrados ${estadosInvalidos.length} parqueaderos con estadoId inválido:`
+          `\n   ⚠️  Encontrados ${estadosInvalidos.length} parqueaderos con estadoId inválido:`,
         );
         estadosInvalidos.forEach((p) => {
           console.log(
-            `      - ${p.codigoParqueadero}: estadoId=${p.estadoId}, tipoVehiculoId=${p.tipoVehiculoId}`
+            `      - ${p.codigoParqueadero}: estadoId=${p.estadoId}, tipoVehiculoId=${p.tipoVehiculoId}`,
           );
         });
       }
-    } else {
-      console.log(`   ✓ OK: Los números coinciden correctamente`);
     }
 
     // 8. Verificar si hay parqueaderos ocupados que exceden el total
     if (totalOcupados > totalParqueaderos) {
       console.log(
-        `\n   ❌ PROBLEMA GRAVE: Hay más parqueaderos ocupados (${totalOcupados}) que el total (${totalParqueaderos})`
+        `\n   ❌ PROBLEMA GRAVE: Hay más parqueaderos ocupados (${totalOcupados}) que el total (${totalParqueaderos})`,
       );
     }
 
     // 9. Verificar disponibles negativos
     if (disponibles < 0) {
       console.log(
-        `\n   ❌ ERROR: Parqueaderos disponibles es negativo (${disponibles})`
+        `\n   ❌ ERROR: Parqueaderos disponibles es negativo (${disponibles})`,
       );
     }
 
