@@ -135,19 +135,19 @@ La aplicación móvil ya está disponible para descarga directa desde la aplicac
 2. Ir a la sección **Descargar App** (disponible en la landing page y en el dashboard)
 3. Descargar e instalar el APK en el dispositivo Android
 
-### Uso en red local (desarrollo)
-
-Mientras el backend no esté desplegado en el VPS, la app funciona en red local:
-
-1. Asegurarse de que el celular y la PC con el backend estén en la **misma red WiFi**
-2. Ejecutar el backend en la PC (`npm start`)
-3. En la app, tocar el **icono de engranaje** en la pantalla de login
-4. Ingresar la IP local de la PC (ejemplo: `192.168.1.6`) y guardar
-5. Iniciar sesión normalmente
-
 ### Uso en producción (VPS Hostinger)
 
-Una vez desplegado, la app se conectará automáticamente al servidor en la nube sin necesidad de configurar nada.
+La app se conecta automáticamente al servidor en la nube. El ícono de engranaje de configuración de IP **no aparece** cuando la URL de producción está configurada en `ApiConfig`.
+
+### Uso en red local (solo para desarrolladores)
+
+Si se necesita probar la app en red local sin el VPS:
+
+1. Dejar vacía la constante `productionUrl` en `lib/utils/api_config.dart`
+2. Recompilar el APK
+3. Asegurarse de que el celular y la PC estén en la **misma red WiFi**
+4. En la app, el **ícono de engranaje** aparecerá en la pantalla de login
+5. Ingresar la IP local de la PC (ejemplo: `192.168.1.6`) y guardar
 
 ---
 
