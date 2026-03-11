@@ -30,48 +30,52 @@ comunidadInteligente/
 ## Tecnologías
 
 ### Backend
-| Tecnología | Uso |
-|-----------|-----|
-| Node.js + Express | Servidor y API REST |
-| JWT | Autenticación y autorización |
-| MySQL + Sequelize | Base de datos relacional |
-| Sequelize ORM | Modelos y queries |
-| Dayjs | Manejo de fechas y zonas horarias |
+
+| Tecnología        | Uso                               |
+| ----------------- | --------------------------------- |
+| Node.js + Express | Servidor y API REST               |
+| JWT               | Autenticación y autorización      |
+| MySQL + Sequelize | Base de datos relacional          |
+| Sequelize ORM     | Modelos y queries                 |
+| Dayjs             | Manejo de fechas y zonas horarias |
 
 ### Frontend Web
-| Tecnología | Uso |
-|-----------|-----|
-| React 18 + Vite | Framework UI |
-| React Router DOM v6 | Enrutamiento con rutas protegidas |
-| Bootstrap 5 + Bootstrap Icons | Estilos y componentes |
-| SweetAlert2 | Alertas y confirmaciones |
-| Chart.js | Gráficas en dashboards |
-| Lottie React | Animaciones |
-| FullCalendar | Calendario de reservas |
+
+| Tecnología                    | Uso                               |
+| ----------------------------- | --------------------------------- |
+| React 18 + Vite               | Framework UI                      |
+| React Router DOM v6           | Enrutamiento con rutas protegidas |
+| Bootstrap 5 + Bootstrap Icons | Estilos y componentes             |
+| SweetAlert2                   | Alertas y confirmaciones          |
+| Chart.js                      | Gráficas en dashboards            |
+| Lottie React                  | Animaciones                       |
+| FullCalendar                  | Calendario de reservas            |
 
 ### Móvil
-| Tecnología | Uso |
-|-----------|-----|
-| Flutter | Framework multiplataforma |
-| Dart | Lenguaje de desarrollo |
+
+| Tecnología | Uso                       |
+| ---------- | ------------------------- |
+| Flutter    | Framework multiplataforma |
+| Dart       | Lenguaje de desarrollo    |
 
 ---
 
 ## Roles del sistema
 
-| Rol | Acceso |
-|-----|--------|
-| **Super Administrador** | Gestión global, usuarios, auditorías, reportes avanzados |
-| **Administrador** | Dashboard operativo, residentes, parqueaderos, áreas, paquetería |
-| **Vigilante** | Control de visitas, parqueaderos y paquetería en tiempo real |
+| Rol                     | Acceso                                                           |
+| ----------------------- | ---------------------------------------------------------------- |
+| **Super Administrador** | Gestión global, usuarios, auditorías, reportes avanzados         |
+| **Administrador**       | Dashboard operativo, residentes, parqueaderos, áreas, paquetería |
+| **Vigilante**           | Control de visitas, parqueaderos y paquetería en tiempo real     |
 
 ---
 
-## Estado actual del proyecto
+## Estado del proyecto - Completado y en producción
 
 ### Completado
 
 #### Backend
+
 - API REST con autenticación JWT y control de roles
 - Controladores para: visitas, visitantes, parqueaderos, paquetería, áreas comunes, reservas, residentes, ocupantes, usuarios, reportes, auditorías, dashboard
 - Sistema de auditoría: registra automáticamente cada INSERT, UPDATE y DELETE con usuario y timestamp
@@ -80,6 +84,7 @@ comunidadInteligente/
 - Lógica de parqueaderos: asignación, liberación y cambio de estado automático al registrar visitas
 
 #### Frontend Web
+
 - Landing page pública con información del conjunto y acceso al sistema
 - Login con navegación al logo → landing page
 - Registro de usuarios
@@ -98,6 +103,7 @@ comunidadInteligente/
 - Rutas protegidas por rol con redirección automática
 
 #### App Móvil Flutter
+
 - Módulos: paquetería, áreas comunes, visitas, usuarios, residentes, reportes, auditorías, torres
 - Dashboards para Super Administrador, Administrador y Vigilante
 - Autenticación con JWT sincronizada con el backend
@@ -109,12 +115,15 @@ comunidadInteligente/
 - APK de producción disponible para descarga desde la web
 
 #### Base de datos
+
 - Modelo relacional documentado y actualizado (`.mwb` + `.png`)
 - Backup automatizado disponible en `Backend/backups/`
 
-### Pendiente
-- Despliegue del backend y base de datos en **VPS Hostinger**
-- Configurar `productionUrl` en `ApiConfig` con la IP/dominio del VPS para que la app móvil se conecte automáticamente
+### Completado en produccion
+
+- Despliegue del backend y base de datos en **VPS Hostinger** OK
+- `productionUrl` configurada en `ApiConfig` - la app movil se conecta automaticamente al servidor en la nube OK
+- Sistema completamente operativo en produccion desde el 11 de marzo de 2026 OK
 
 ---
 
@@ -126,23 +135,26 @@ La aplicación móvil ya está disponible para descarga directa desde la aplicac
 2. Ir a la sección **Descargar App** (disponible en la landing page y en el dashboard)
 3. Descargar e instalar el APK en el dispositivo Android
 
-### Uso en red local (desarrollo)
-Mientras el backend no esté desplegado en el VPS, la app funciona en red local:
-
-1. Asegurarse de que el celular y la PC con el backend estén en la **misma red WiFi**
-2. Ejecutar el backend en la PC (`npm start`)
-3. En la app, tocar el **icono de engranaje** en la pantalla de login
-4. Ingresar la IP local de la PC (ejemplo: `192.168.1.6`) y guardar
-5. Iniciar sesión normalmente
-
 ### Uso en producción (VPS Hostinger)
-Una vez desplegado, la app se conectará automáticamente al servidor en la nube sin necesidad de configurar nada.
+
+La app se conecta automáticamente al servidor en la nube. El ícono de engranaje de configuración de IP **no aparece** cuando la URL de producción está configurada en `ApiConfig`.
+
+### Uso en red local (solo para desarrolladores)
+
+Si se necesita probar la app en red local sin el VPS:
+
+1. Dejar vacía la constante `productionUrl` en `lib/utils/api_config.dart`
+2. Recompilar el APK
+3. Asegurarse de que el celular y la PC estén en la **misma red WiFi**
+4. En la app, el **ícono de engranaje** aparecerá en la pantalla de login
+5. Ingresar la IP local de la PC (ejemplo: `192.168.1.6`) y guardar
 
 ---
 
 ## Instalación rápida
 
 ### Backend
+
 ```bash
 cd Backend
 npm install
@@ -151,6 +163,7 @@ npm run dev
 ```
 
 ### Frontend
+
 ```bash
 cd Frontend
 npm install
@@ -158,6 +171,7 @@ npm run dev
 ```
 
 ### App Móvil
+
 ```bash
 cd 6_Trimestre/comunidad_inteligente
 flutter pub get
