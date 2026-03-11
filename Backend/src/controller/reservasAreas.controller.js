@@ -5,7 +5,7 @@ import dayjs from "dayjs";
 import Apartamento from "../models/apartamentos.model.js";
 import Estado from "../models/estados.model.js";
 import { Op, fn, col, literal, where } from "sequelize";
-import Tipodocumentos from "../models/tipoDocumento.model.js";
+import tipodocumento from "../models/tipoDocumento.model.js";
 import Torre from "../models/torres.model.js";
 import { registrarAuditoria } from "../services/auditorias.service.js";
 import { registrarFallo } from "../services/logger.service.js";
@@ -194,7 +194,7 @@ export const obtenerReservaPorId = async (req, res) => {
           ],
           include: [
             {
-              model: Tipodocumentos,
+              model: tipodocumento,
               as: "TipoDocumento",
               attributes: [["nombreDocumento", "nombreDocumento"]],
             },

@@ -1,5 +1,5 @@
 import SolicitanteModel from "../models/solicitante.model.js";
-import tipoDocumento from "../models/tipoDocumento.model.js";
+import tipodocumento from "../models/tipoDocumento.model.js";
 
 export const crearSolicitante = async (req, res) => {
   try {
@@ -20,7 +20,7 @@ export const obtenerSolicitantes = async (req, res) => {
   try {
     await SolicitanteModel.sync();
     const solicitantes = await SolicitanteModel.findAll({
-      include: [{ model: tipoDocumento, as: "TipoDocumento" }],
+      include: [{ model: tipodocumento, as: "TipoDocumento" }],
     });
     res.status(200).json({
       ok: true,
@@ -42,7 +42,7 @@ export const obtenerSolicitantePorId = async (req, res) => {
     await SolicitanteModel.sync();
     const { documentoSolicitante } = req.params;
     const solicitante = await SolicitanteModel.findByPk(documentoSolicitante, {
-      include: [{ model: tipoDocumento, as: "TipoDocumento" }],
+      include: [{ model: tipodocumento, as: "TipoDocumento" }],
     });
     if (solicitante) {
       res.status(200).json({
