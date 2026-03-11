@@ -6,7 +6,7 @@ class ApiConfig {
   // Cuando subas a la nube, pon aquí la URL completa del backend.
   // Ejemplo: 'https://mi-backend.onrender.com'
   // Mientras esté vacío, se usa la IP local configurable.
-  static const String productionUrl = '';
+  static const String productionUrl = 'https://www.micomunidadinteligente.com';
 
   static bool get isProduction => productionUrl.isNotEmpty;
 

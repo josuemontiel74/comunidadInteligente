@@ -1,9 +1,9 @@
-import tipoDocumentoModel from "../models/tipoDocumento.model.js";
+import tipodocumento from "../models/tipodocumento.model.js";
 
 export const mostraDocumentos = async (req, res) => {
   try {
-    await tipoDocumentoModel.sync();
-    const mostraDocumentos = await tipoDocumentoModel.findAll();
+    await tipodocumento.sync();
+    const mostraDocumentos = await tipodocumento.findAll();
     res.status(200).json({
       message: "Documentos",
       status: 200,
@@ -22,7 +22,7 @@ export const mostraDocumentosporId = async (req, res) => {
   try {
     const { idTipoDocumento } = req.params;
 
-    const mostraDocumentos = await tipoDocumentoModel.findOne({
+    const mostraDocumentos = await tipodocumento.findOne({
       where: { idTipoDocumento: idTipoDocumento },
     });
 
@@ -45,4 +45,4 @@ export const mostraDocumentosporId = async (req, res) => {
       error: error.message,
     });
   }
-}; 
+};
