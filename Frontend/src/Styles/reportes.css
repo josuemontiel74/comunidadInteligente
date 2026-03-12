@@ -330,7 +330,9 @@
 [data-modo="oscuro"] .rpt-filter-bar input[type="date"] {
   color-scheme: dark;
 }
-[data-modo="oscuro"] .rpt-filter-bar input[type="date"]::-webkit-calendar-picker-indicator {
+[data-modo="oscuro"]
+  .rpt-filter-bar
+  input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
 }
 .rpt-filter-bar input[type="date"]:focus {
