@@ -14,6 +14,15 @@ export const crearVisitanteSchema = Joi.object({
   fechaHoraSalida: Joi.date().optional(),
   estadoId: Joi.number().integer().min(1).optional(),
   observaciones: Joi.string().max(255).allow("", null).optional(),
+  telefono: Joi.string()
+    .pattern(/^[0-9+\- ]{7,15}$/)
+    .max(15)
+    .required()
+    .messages({
+      "string.pattern.base":
+        "El teléfono solo puede contener dígitos, +, - y espacios (7-15 caracteres)",
+      "any.required": "El número de teléfono del visitante es obligatorio",
+    }),
   tipoVehiculoId: Joi.number().integer().min(1).allow(null, "").optional(),
   matricula: Joi.string().alphanum().min(6).max(10).allow("", null).optional(),
   codigoParqueadero: Joi.string()
@@ -46,6 +55,15 @@ export const actualizarVisitanteSchema = Joi.object({
     .allow("", null)
     .optional(),
   observaciones: Joi.string().max(255).allow("", null).optional(),
+  telefono: Joi.string()
+    .pattern(/^[0-9+\- ]{7,15}$/)
+    .max(15)
+    .allow("", null)
+    .optional()
+    .messages({
+      "string.pattern.base":
+        "El teléfono solo puede contener dígitos, +, - y espacios (7-15 caracteres)",
+    }),
   matricula: Joi.string().alphanum().min(6).max(10).allow("", null).optional(),
 });
 

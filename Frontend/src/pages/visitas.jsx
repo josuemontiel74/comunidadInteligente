@@ -29,6 +29,10 @@ function validarFormularioVisita(fd) {
   if (!fd.tipoDocumentoId) return "Selecciona un tipo de documento";
   if (!fd.apartamentoId) return "Selecciona un apartamento";
   if (!fd.fechaHoraIngreso) return "Ingresa la fecha y hora de ingreso";
+  if (!fd.telefono || fd.telefono.trim().length < 7)
+    return "El teléfono del visitante es obligatorio (mínimo 7 dígitos)";
+  if (!/^[0-9+\- ]{7,15}$/.test(fd.telefono.trim()))
+    return "El teléfono solo puede contener dígitos, +, - y espacios";
   return null;
 }
 
@@ -83,7 +87,7 @@ function filtrarVisitas(
     const cumpleTorre = !filtroTorre || letraTorre === filtroTorre;
     const cumpleApartamento =
       !filtroApartamento || (v.numeroApartamento || "") === filtroApartamento;
-    const estado = obtenerEstadoReal(v.estadoVisita);
+    const estado = obtenerEstadoReal(v);
     const cumpleEstado = filtroEstado === "todas" || estado === filtroEstado;
     return cumpleBusqueda && cumpleTorre && cumpleApartamento && cumpleEstado;
   });
@@ -100,6 +104,23 @@ function getModalEditConfig(isEditing) {
   };
 }
 
+/** Devuelve la fecha/hora actual en Colombia (UTC-5) con formato YYYY-MM-DDTHH:mm */
+function obtenerFechaHoraColombia() {
+  const ahora = new Date();
+  const utcMs = ahora.getTime() + ahora.getTimezoneOffset() * 60000;
+  const col = new Date(utcMs + -5 * 60 * 60000);
+  const yyyy = col.getFullYear();
+  const mm = String(col.getMonth() + 1).padStart(2, "0");
+  const dd = String(col.getDate()).padStart(2, "0");
+  const hh = String(col.getHours()).padStart(2, "0");
+  const min = String(col.getMinutes()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+}
+
+function visitaRequiereRenovacion(visita) {
+  return Boolean(visita?.requiereRenovacion);
+}
+
 /** Helper para clase disabled en paginación */
 const disabledIf = (cond) => (cond ? "disabled" : "");
 
@@ -107,31 +128,31 @@ function Visitas() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // estado general 
+  // estado general
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [visitas, setVisitas] = useState([]);
   const [usuario, setUsuario] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // filtros 
+  // filtros
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroTorre, setFiltroTorre] = useState("");
   const [filtroApartamento, setFiltroApartamento] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todas");
 
-  // paginación 
+  // paginación
   const [paginaActual, setPaginaActual] = useState(1);
   const registrosPorPagina = 10;
 
-  // modal CRUD 
+  // modal CRUD
   const [modalCrear, setModalCrear] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
   const [modalDetalle, setModalDetalle] = useState(null);
   const [visitaEditando, setVisitaEditando] = useState(null);
   const [guardando, setGuardando] = useState(false);
 
-  // formulario 
+  // formulario
   const FORM_INITIAL = {
     numeroDocumento: "",
     tipoDocumentoId: "",
@@ -140,6 +161,7 @@ function Visitas() {
     apartamentoId: "",
     fechaHoraIngreso: "",
     observaciones: "",
+    telefono: "",
     vieneEnVehiculo: "NO",
     matricula: "",
     tipoVehiculoId: "",
@@ -147,10 +169,10 @@ function Visitas() {
   };
   const [formData, setFormData] = useState(FORM_INITIAL);
 
-  // parqueaderos 
+  // parqueaderos
   const [parqueaderosDisponibles, setParqueaderosDisponibles] = useState([]);
 
-  // Apartamentos hardcoded (50 unidades, 5 por torre) 
+  // Apartamentos hardcoded (50 unidades, 5 por torre)
   const apartamentos = [
     { id: 1, torreId: 1, numero: "101" },
     { id: 2, torreId: 1, numero: "102" },
@@ -209,7 +231,7 @@ function Visitas() {
   const tokenLocal = localStorage.getItem("token");
   const rolesId = tokenLocal ? obtenerRolFromToken(tokenLocal) : null;
 
-  // Verificar sesión 
+  // Verificar sesión
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token || verificarTokenVencido(token)) {
@@ -240,7 +262,7 @@ function Visitas() {
     }
   }, [navigate]);
 
-  // Cargar visitas 
+  // Cargar visitas
   const cargarVisitas = useCallback(async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -276,7 +298,7 @@ function Visitas() {
     return () => clearInterval(interval);
   }, [cargarVisitas]);
 
-  // Imprimir recibo de visita 
+  // Imprimir recibo de visita
   const imprimirReciboVisita = (v, tipo) => {
     if (!v) return;
     const ahora = new Date();
@@ -322,6 +344,7 @@ function Visitas() {
   <div class="sec">Visitante</div>
   <div class="row"><span class="l">Nombre:</span><span class="v">${v.nombreVisitante || "-"}</span></div>
   <div class="row"><span class="l">Documento:</span><span class="v">${v.numeroDocumento || "-"}</span></div>
+  <div class="row"><span class="l">Teléfono:</span><span class="v">${v.telefono || "-"}</span></div>
   <hr/>
   <div class="sec">Destino</div>
   <div class="row"><span class="l">Apto:</span><span class="v">${v.numeroApartamento || "-"} &mdash; ${v.nombreTorre || ""}</span></div>
@@ -362,7 +385,7 @@ function Visitas() {
     };
   };
 
-  // Restaurar estado del formulario desde parqueaderos 
+  // Restaurar estado del formulario desde parqueaderos
   useEffect(() => {
     if (location.state?.fromVisitas && location.state?.formState) {
       const fs = location.state.formState;
@@ -374,6 +397,7 @@ function Visitas() {
         apartamentoId: fs.apartamentoId || "",
         fechaHoraIngreso: fs.fechaHoraIngreso || "",
         observaciones: fs.observaciones || "",
+        telefono: fs.telefono || "",
         vieneEnVehiculo: fs.vieneEnVehiculo || "NO",
         matricula: fs.matricula || "",
         tipoVehiculoId: fs.tipoVehiculoId || "",
@@ -394,7 +418,7 @@ function Visitas() {
     }
   }, [location.state]);
 
-  // Cargar parqueaderos disponibles 
+  // Cargar parqueaderos disponibles
   const cargarParqueaderos = useCallback(async (tipoVehiculo) => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -417,7 +441,7 @@ function Visitas() {
     }
   }, []);
 
-  // Convertir fecha a hora Colombia UTC-5 
+  // Convertir fecha a hora Colombia UTC-5
   const toColombiaDate = (fechaStr) => {
     const fecha = new Date(fechaStr);
     if (Number.isNaN(fecha.getTime())) return null;
@@ -456,8 +480,10 @@ function Visitas() {
     }
   };
 
-  // Obtener estado real 
-  const obtenerEstadoReal = (estadoVisita) => {
+  // Obtener estado real
+  const obtenerEstadoReal = (visita) => {
+    if (visitaRequiereRenovacion(visita)) return "vencida";
+    const estadoVisita = visita?.estadoVisita;
     if (!estadoVisita) return "activa";
     const lower = estadoVisita.toLowerCase();
     if (
@@ -469,7 +495,7 @@ function Visitas() {
     return "activa";
   };
 
-  // Filtros 
+  // Filtros
   const visitasFiltradas = filtrarVisitas(
     visitas,
     { searchTerm, filtroTorre, filtroApartamento, filtroEstado },
@@ -493,7 +519,7 @@ function Visitas() {
       )
     : [];
 
-  // Paginación 
+  // Paginación
   const totalPaginas = Math.ceil(visitasFiltradas.length / registrosPorPagina);
   const indiceInicio = (paginaActual - 1) * registrosPorPagina;
   const indiceFin = indiceInicio + registrosPorPagina;
@@ -523,10 +549,13 @@ function Visitas() {
   });
   const totalVisitasHoy = visitasHoy.length;
   const activasTotalCount = visitas.filter(
-    (v) => obtenerEstadoReal(v.estadoVisita) === "activa",
+    (v) => obtenerEstadoReal(v) === "activa",
+  ).length;
+  const vencidasTotalCount = visitas.filter(
+    (v) => obtenerEstadoReal(v) === "vencida",
   ).length;
   const finalizadasHoyCount = visitasHoy.filter(
-    (v) => obtenerEstadoReal(v.estadoVisita) === "finalizada",
+    (v) => obtenerEstadoReal(v) === "finalizada",
   ).length;
 
   const hayFiltrosActivos =
@@ -539,19 +568,23 @@ function Visitas() {
     setFiltroEstado("todas");
   };
 
-  // Reset form 
+  // Reset form
   const resetForm = () => {
     setFormData(FORM_INITIAL);
     setParqueaderosDisponibles([]);
   };
 
-  // Abrir modal crear 
+  // Abrir modal crear
   const abrirModalCrear = () => {
     resetForm();
+    setFormData((prev) => ({
+      ...prev,
+      fechaHoraIngreso: obtenerFechaHoraColombia(),
+    }));
     setModalCrear(true);
   };
 
-  // Abrir modal editar 
+  // Abrir modal editar
   const abrirModalEditar = (v) => {
     // Resolver torreId desde nombreTorre
     const letraTorre = (v.nombreTorre || "").replace(/^Torre\s*/i, "");
@@ -566,6 +599,7 @@ function Visitas() {
       apartamentoId: String(v.apartamentoId || ""),
       fechaHoraIngreso: fechaParaInput(v.fechaHoraIngreso),
       observaciones: v.observaciones || "",
+      telefono: v.telefono || "",
       vieneEnVehiculo: v.matricula ? "SI" : "NO",
       matricula: v.matricula || "",
       tipoVehiculoId: String(v.tipoVehiculoId || ""),
@@ -577,7 +611,7 @@ function Visitas() {
     setModalEditar(true);
   };
 
-  // Guardar visita (crear o editar) 
+  // Guardar visita (crear o editar)
   const handleGuardar = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
@@ -603,6 +637,7 @@ function Visitas() {
         apartamentoId: Number.parseInt(formData.apartamentoId, 10),
         fechaHoraIngreso: formData.fechaHoraIngreso.replace("T", " "),
         observaciones: formData.observaciones.trim() || "-",
+        telefono: formData.telefono.trim(),
       };
 
       if (formData.vieneEnVehiculo === "SI") {
@@ -655,7 +690,7 @@ function Visitas() {
         return;
       }
 
-      Swal.fire({
+      await Swal.fire({
         icon: "success",
         title: "Éxito",
         text: modalEditar
@@ -682,7 +717,7 @@ function Visitas() {
     }
   };
 
-  // Finalizar visita 
+  // Finalizar visita
   const handleFinalizar = (idVisita) => {
     Swal.fire({
       title: "¿Estás seguro?",
@@ -723,10 +758,10 @@ function Visitas() {
     });
   };
 
-  // Cerrar sesión 
+  // Cerrar sesión
   const cerrarSesion = useLogout();
 
-  // Navegar a parqueaderos para seleccionar 
+  // Navegar a parqueaderos para seleccionar
   const irASeleccionarParqueadero = () => {
     navigate("/parqueaderos", {
       replace: true,
@@ -740,7 +775,7 @@ function Visitas() {
     });
   };
 
-  // Handle form field changes 
+  // Handle form field changes
   const handleChange = (field, value) => {
     setFormData((prev) => {
       const updated = { ...prev, [field]: value };
@@ -768,7 +803,7 @@ function Visitas() {
     });
   };
 
-  // Loading 
+  // Loading
   if (loading && visitas.length === 0) {
     return (
       <div className="vis-loading-screen">
@@ -1015,6 +1050,14 @@ function Visitas() {
                 </div>
               </div>
               <div className="vis-stat-box">
+                <div className="vis-stat-label" style={{ color: "#c2410c" }}>
+                  Vencidas
+                </div>
+                <div className="vis-stat-value" style={{ color: "#c2410c" }}>
+                  {vencidasTotalCount}
+                </div>
+              </div>
+              <div className="vis-stat-box">
                 <div className="vis-stat-label" style={{ color: "#757575" }}>
                   Finalizadas hoy
                 </div>
@@ -1092,7 +1135,7 @@ function Visitas() {
 
               {/* Filter Chips (estado) + Limpiar filtros */}
               <div className="vis-filter-chips">
-                {["todas", "activa", "finalizada"].map((est) => (
+                {["todas", "activa", "vencida", "finalizada"].map((est) => (
                   <button
                     key={est}
                     className={`vis-chip ${filtroEstado === est ? "active" : ""}`}
@@ -1102,6 +1145,7 @@ function Visitas() {
                       {
                         todas: "Todas",
                         activa: "Activas",
+                        vencida: "Vencidas",
                         finalizada: "Finalizadas",
                       }[est]
                     }
@@ -1137,6 +1181,7 @@ function Visitas() {
                     <tr>
                       <th>Visitante</th>
                       <th>Documento</th>
+                      <th>Teléfono</th>
                       <th>Apartamento</th>
                       <th>Torre</th>
                       <th>Fecha Ingreso</th>
@@ -1147,11 +1192,21 @@ function Visitas() {
                   </thead>
                   <tbody>
                     {visitasPaginadas.map((v) => {
-                      const estado = obtenerEstadoReal(v.estadoVisita);
+                      const estado = obtenerEstadoReal(v);
                       return (
                         <tr key={v.idVisita} className="vis-table-row">
                           <td>{v.nombreVisitante}</td>
                           <td>{v.numeroDocumento}</td>
+                          <td>
+                            {v.telefono ? (
+                              <a href={`tel:${v.telefono}`} title="Llamar">
+                                <i className="bi bi-telephone me-1"></i>
+                                {v.telefono}
+                              </a>
+                            ) : (
+                              <span className="text-muted">—</span>
+                            )}
+                          </td>
                           <td>{v.numeroApartamento}</td>
                           <td>{v.nombreTorre}</td>
                           <td>{formatearFecha(v.fechaHoraIngreso)}</td>
@@ -1171,9 +1226,13 @@ function Visitas() {
                           </td>
                           <td>
                             <span
-                              className={`vis-badge ${estado === "activa" ? "vis-badge-activa" : "vis-badge-finalizada"}`}
+                              className={`vis-badge ${estado === "activa" ? "vis-badge-activa" : estado === "vencida" ? "vis-badge-vencida" : "vis-badge-finalizada"}`}
                             >
-                              {estado === "activa" ? "Activa" : "Finalizada"}
+                              {estado === "activa"
+                                ? "Activa"
+                                : estado === "vencida"
+                                  ? "Vencida"
+                                  : "Finalizada"}
                             </span>
                           </td>
                           <td>
@@ -1185,7 +1244,8 @@ function Visitas() {
                               >
                                 <i className="bi bi-eye"></i>
                               </button>
-                              {estado === "activa" && (
+                              {(estado === "activa" ||
+                                estado === "vencida") && (
                                 <>
                                   <button
                                     className="vis-action-btn edit"
@@ -1217,7 +1277,7 @@ function Visitas() {
             {visitasFiltradas.length > 0 && (
               <div className="vis-cards-container">
                 {visitasPaginadas.map((v) => {
-                  const estado = obtenerEstadoReal(v.estadoVisita);
+                  const estado = obtenerEstadoReal(v);
                   return (
                     <div key={v.idVisita} className="vis-card">
                       <div className="vis-card-header">
@@ -1225,9 +1285,13 @@ function Visitas() {
                           {v.nombreVisitante}
                         </span>
                         <span
-                          className={`vis-badge ${estado === "activa" ? "vis-badge-activa" : "vis-badge-finalizada"}`}
+                          className={`vis-badge ${estado === "activa" ? "vis-badge-activa" : estado === "vencida" ? "vis-badge-vencida" : "vis-badge-finalizada"}`}
                         >
-                          {estado === "activa" ? "Activa" : "Finalizada"}
+                          {estado === "activa"
+                            ? "Activa"
+                            : estado === "vencida"
+                              ? "Vencida"
+                              : "Finalizada"}
                         </span>
                       </div>
                       <div className="vis-card-body">
@@ -1242,6 +1306,21 @@ function Visitas() {
                             </div>
                           </div>
                         </div>
+                        {v.telefono && (
+                          <div className="vis-card-info-row">
+                            <div className="vis-card-info-icon green">
+                              <i className="bi bi-telephone"></i>
+                            </div>
+                            <div>
+                              <div className="vis-card-info-label">
+                                Teléfono
+                              </div>
+                              <div className="vis-card-info-value">
+                                <a href={`tel:${v.telefono}`}>{v.telefono}</a>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                         <div className="vis-card-info-row">
                           <div className="vis-card-info-icon blue">
                             <i className="bi bi-building"></i>
@@ -1293,7 +1372,7 @@ function Visitas() {
                         >
                           <i className="bi bi-eye me-1"></i> Detalles
                         </button>
-                        {estado === "activa" && (
+                        {(estado === "activa" || estado === "vencida") && (
                           <>
                             <button
                               className="vis-card-action-btn editar"
@@ -1398,6 +1477,7 @@ function Visitas() {
           setVisitaEditando(null);
           resetForm();
         }}
+        confirmBeforeClose
         className="vis-modal-overlay"
       >
         <div className="vis-modal">
@@ -1506,6 +1586,36 @@ function Visitas() {
                   )}
               </div>
 
+              {/* Teléfono del visitante */}
+              <div className="vis-form-group">
+                <label htmlFor="vis-telefono" className="vis-form-label">
+                  Teléfono del Visitante <span className="required">*</span>
+                </label>
+                <input
+                  id="vis-telefono"
+                  type="tel"
+                  className="vis-form-control"
+                  value={formData.telefono}
+                  onChange={(e) =>
+                    handleChange(
+                      "telefono",
+                      e.target.value.replace(/[^0-9+\- ]/g, "").slice(0, 15),
+                    )
+                  }
+                  placeholder="Ej: 3101234567"
+                  minLength={7}
+                  maxLength={15}
+                  required
+                />
+                {formData.telefono &&
+                  formData.telefono.replace(/\D/g, "").length < 7 && (
+                    <small style={{ color: "#f97316", fontSize: "12px" }}>
+                      Faltan {7 - formData.telefono.replace(/\D/g, "").length}{" "}
+                      dígitos
+                    </small>
+                  )}
+              </div>
+
               {/* Torre + Apartamento */}
               <div className="vis-form-row">
                 <div className="vis-form-group">
@@ -1572,9 +1682,8 @@ function Visitas() {
                   type="datetime-local"
                   className="vis-form-control"
                   value={formData.fechaHoraIngreso}
-                  onChange={(e) =>
-                    handleChange("fechaHoraIngreso", e.target.value)
-                  }
+                  readOnly
+                  style={{ backgroundColor: "#f0f0f0", cursor: "not-allowed" }}
                   required
                 />
               </div>
@@ -1849,6 +1958,22 @@ function Visitas() {
                   </div>
                 </div>
               </div>
+
+              {modalDetalle.telefono && (
+                <div className="vis-detalle-row">
+                  <div className="vis-detalle-icon">
+                    <i className="bi bi-telephone"></i>
+                  </div>
+                  <div className="vis-detalle-content">
+                    <div className="vis-detalle-label">Teléfono</div>
+                    <div className="vis-detalle-value">
+                      <a href={`tel:${modalDetalle.telefono}`}>
+                        {modalDetalle.telefono}
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="vis-detalle-row">
                 <div className="vis-detalle-icon">
