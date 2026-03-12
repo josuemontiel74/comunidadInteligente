@@ -107,7 +107,7 @@ function buildTicketHtml({
 </body></html>`;
 }
 
-// Mapeos de rol (fuera del componente para reducir complejidad) 
+// Mapeos de rol (fuera del componente para reducir complejidad)
 const ROL_LABEL = { 1: "SuperAdmin", 2: "Admin" };
 const ROL_DASHBOARD = { 1: "/Superadmin", 2: "/Admin" };
 const mapRolLabel = (id) => ROL_LABEL[id] || "Vigilante";
@@ -1163,7 +1163,7 @@ function AreasComunes() {
                 className="ac-btn-gestionar-areas"
                 onClick={() => setShowModalAreas(true)}
               >
-                <i className="bi bi-toggles" /> Gestionar Áreas
+                <i className="bi bi-gear-fill" /> Gestionar Áreas
               </button>
             )}
           </div>
@@ -1970,7 +1970,7 @@ function AreasComunes() {
         <div className="ac-modal ac-modal-areas">
           <div className="ac-modal-header">
             <h2>
-              <i className="bi bi-toggles me-2" /> Gestionar Áreas Comunes
+              <i className="bi bi-gear-fill me-2" /> Gestionar Áreas Comunes
             </h2>
             <button
               className="ac-modal-close"

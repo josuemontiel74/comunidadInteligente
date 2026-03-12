@@ -58,7 +58,7 @@ class ReservarAreas extends Model {
       {
         sequelize,
         modelName: "ReservarAreas",
-        tableName: "reservasAreas",
+        tableName: "reservasareas",
         timestamps: false,
       },
     );

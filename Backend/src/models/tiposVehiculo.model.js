@@ -18,7 +18,7 @@ export default class TiposVehiculo extends Model {
       {
         sequelize,
         modelName: "tiposVehiculo",
-        tableName: "tiposVehiculo",
+        tableName: "tiposvehiculo",
         timestamps: false,
       },
     );
