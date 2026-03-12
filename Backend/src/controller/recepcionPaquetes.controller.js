@@ -1,5 +1,10 @@
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
 import { fn, col, literal, where, Op } from "sequelize";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 import RecepcionPaquetes from "../models/recepcionPaquetes.model.js";
 import Estado from "../models/estados.model.js";
 import Apartamento from "../models/apartamentos.model.js";
@@ -10,6 +15,7 @@ import {
   ESTADO_PAQUETE,
   USUARIO_DESCONOCIDO,
   AÑO_MAXIMO,
+  TIMEZONE_COLOMBIA,
 } from "../utils/constantes.js";
 
 /** Columnas que se copian directamente de req.body si están presentes */
@@ -42,7 +48,7 @@ const atributosBaseInforme = () => [
 export const crearRecepcionPaquete = async (req, res) => {
   try {
     await RecepcionPaquetes.sync();
-    const ahora = dayjs();
+    const ahora = dayjs().tz(TIMEZONE_COLOMBIA);
 
     let fechaRecepcion = req.body.fechaRecepcion
       ? dayjs(req.body.fechaRecepcion, "YYYY-MM-DD HH:mm", true)
@@ -294,7 +300,7 @@ export const FinalizarRecepcionPaquete = async (req, res) => {
     }
     await paquete.update({
       estadoId: ESTADO_PAQUETE.ENTREGADO,
-      fechaEntrega: dayjs().format("YYYY-MM-DD HH:mm"),
+      fechaEntrega: dayjs().tz(TIMEZONE_COLOMBIA).format("YYYY-MM-DD HH:mm"),
     });
 
     // Registrar en auditoría

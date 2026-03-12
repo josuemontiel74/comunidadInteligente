@@ -1,5 +1,12 @@
 import logErrores from "../models/logErrores.model.js";
 import { Op } from "sequelize";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
+import { TIMEZONE_COLOMBIA } from "../utils/constantes.js";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 export const obtenerLogErrores = async (req, res) => {
   try {
@@ -84,8 +91,7 @@ export const obtenerResumenLogErrores = async (req, res) => {
 export const limpiarLogErrores = async (req, res) => {
   try {
     const { diasAntiguedad = 30 } = req.body;
-    const limite = new Date();
-    limite.setDate(limite.getDate() - Number.parseInt(diasAntiguedad, 10));
+    const limite = dayjs().tz(TIMEZONE_COLOMBIA).subtract(Number.parseInt(diasAntiguedad, 10), "day").toDate();
 
     const eliminados = await logErrores.destroy({
       where: { fechaHora: { [Op.lt]: limite } },

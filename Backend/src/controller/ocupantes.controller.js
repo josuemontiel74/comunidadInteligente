@@ -1,5 +1,10 @@
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
 import { Op } from "sequelize";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 import Ocupante from "../models/ocupante.model.js";
 import Persona from "../models/personas.model.js";
 import { sequelize } from "../config/connect.db.js";
@@ -10,7 +15,7 @@ import {
   validarTelefono,
   validarNumeroDocumento,
 } from "../utils/validaciones.js";
-import { ESTADO_OCUPANTE } from "../utils/constantes.js";
+import { ESTADO_OCUPANTE, TIMEZONE_COLOMBIA } from "../utils/constantes.js";
 
 export const crearOcupante = async (req, res) => {
   const t = await sequelize.transaction();
@@ -345,7 +350,7 @@ export const finalizarOcupante = async (req, res) => {
     const [updated] = await Ocupante.update(
       {
         estadoId: 6,
-        fechaFin: dayjs().format("YYYY-MM-DD"),
+        fechaFin: dayjs().tz(TIMEZONE_COLOMBIA).format("YYYY-MM-DD"),
       },
       { where: { idOcupante: id } },
     );

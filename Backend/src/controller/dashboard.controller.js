@@ -1,4 +1,7 @@
 import { Sequelize, Op } from "sequelize";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
 import Parqueadero from "../models/parqueaderos.model.js";
 import Vehiculo from "../models/vehiculo.model.js";
 import RecepcionPaquetes from "../models/recepcionPaquetes.model.js";
@@ -6,6 +9,10 @@ import ReservarAreas from "../models/reservasAreas.model.js";
 import Visitas from "../models/visitas.model.js";
 import Usuario from "../models/user.model.js";
 import Ocupante from "../models/ocupante.model.js";
+import { TIMEZONE_COLOMBIA } from "../utils/constantes.js";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 /**
  * Obtiene estadísticas de ocupación de parqueaderos
@@ -77,12 +84,9 @@ export const getEstadisticasParqueaderos = async (req, res) => {
  */
 export const getPaquetesRecibidosHoy = async (req, res) => {
   try {
-    // Obtener fecha actual (inicio y fin del día)
-    const inicioDelDia = new Date();
-    inicioDelDia.setHours(0, 0, 0, 0);
-
-    const finDelDia = new Date();
-    finDelDia.setHours(23, 59, 59, 999);
+    // Obtener fecha actual en hora Colombia (inicio y fin del día)
+    const inicioDelDia = dayjs().tz(TIMEZONE_COLOMBIA).startOf("day").toDate();
+    const finDelDia = dayjs().tz(TIMEZONE_COLOMBIA).endOf("day").toDate();
 
     // Contar paquetes recibidos hoy
     const paquetesRecibidos = await RecepcionPaquetes.count({
@@ -112,7 +116,7 @@ export const getPaquetesRecibidosHoy = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        fecha: new Date().toISOString().split("T")[0],
+        fecha: dayjs().tz(TIMEZONE_COLOMBIA).format("YYYY-MM-DD"),
         recibidos: paquetesRecibidos,
         entregados: paquetesEntregados,
         pendientes: paquetesPendientes,
@@ -132,12 +136,9 @@ export const getPaquetesRecibidosHoy = async (req, res) => {
  */
 export const getReservasHoy = async (req, res) => {
   try {
-    // Obtener fecha actual (inicio y fin del día)
-    const inicioDelDia = new Date();
-    inicioDelDia.setHours(0, 0, 0, 0);
-
-    const finDelDia = new Date();
-    finDelDia.setHours(23, 59, 59, 999);
+    // Obtener fecha actual en hora Colombia (inicio y fin del día)
+    const inicioDelDia = dayjs().tz(TIMEZONE_COLOMBIA).startOf("day").toDate();
+    const finDelDia = dayjs().tz(TIMEZONE_COLOMBIA).endOf("day").toDate();
 
     // Contar reservas para hoy
     const reservasHoy = await ReservarAreas.count({
@@ -165,7 +166,7 @@ export const getReservasHoy = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        fecha: new Date().toISOString().split("T")[0],
+        fecha: dayjs().tz(TIMEZONE_COLOMBIA).format("YYYY-MM-DD"),
         totalReservas: reservasHoy,
         reservasPorArea: reservasPorArea.map((r) => ({
           areaComunId: r.areaComunId,
@@ -187,11 +188,9 @@ export const getReservasHoy = async (req, res) => {
  */
 export const getResumenDashboard = async (req, res) => {
   try {
-    // Fecha actual
-    const inicioDelDia = new Date();
-    inicioDelDia.setHours(0, 0, 0, 0);
-    const finDelDia = new Date();
-    finDelDia.setHours(23, 59, 59, 999);
+    // Fecha actual en hora Colombia
+    const inicioDelDia = dayjs().tz(TIMEZONE_COLOMBIA).startOf("day").toDate();
+    const finDelDia = dayjs().tz(TIMEZONE_COLOMBIA).endOf("day").toDate();
 
     // Contar parqueaderos ocupados por tipo de vehículo
     // estadoId: 3 = Ocupado, 4 = Disponible
