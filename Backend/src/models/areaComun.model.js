@@ -31,7 +31,7 @@ export default class AreaComun extends Model {
       {
         sequelize,
         modelName: "areaComun",
-        tableName: "areaComun",
+        tableName: "areacomun",
         timestamps: false,
       },
     );

@@ -166,7 +166,7 @@ export function initModels(sequelize) {
   });
   ReservasAreasModel.belongsTo(SolicitanteModel, {
     foreignKey: "documentoSolicitante",
-    as: "solicitante",
+    as: "Solicitante",
     onDelete: "CASCADE",
   });
 

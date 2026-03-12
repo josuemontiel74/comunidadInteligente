@@ -38,7 +38,7 @@ class LogErrores extends Model {
       {
         sequelize,
         modelName: "logErrores",
-        tableName: "logErrores",
+        tableName: "logerrores",
         timestamps: false,
       },
     );

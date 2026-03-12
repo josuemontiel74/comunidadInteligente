@@ -1205,7 +1205,7 @@ class Reserva {
       telefonoSolicitante:
           json['Solicitante']?['telefonoSolicitante'] as String?,
       tipodocumento:
-          json['Solicitante']?['tipodocumento']?['nombreDocumento'] as String?,
+          json['Solicitante']?['TipoDocumento']?['nombreDocumento'] as String?,
       areaComun: json['areaComun']?['nombreArea'] as String?,
       areaComunId: idAreaComun,
       aceptaReglamento: json['aceptaReglamento'] as int?,
