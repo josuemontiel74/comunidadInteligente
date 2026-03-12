@@ -1,4 +1,12 @@
 import { sequelize } from "../config/connect.db.js";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+const TIMEZONE_COLOMBIA = "America/Bogota";
 
 /**
  * Registra una acción de auditoría en la base de datos.
@@ -16,11 +24,12 @@ export async function registrarAuditoria(
 ) {
   const pkAfectada = String(idRegistroAfectado);
 
+  const ahora = dayjs().tz(TIMEZONE_COLOMBIA).format("YYYY-MM-DD HH:mm:ss");
   const sql = `
     INSERT INTO auditorias (username, fechaHoraAuditoria, operacionRealizada, tablaAfectada, idRegistroAfectado)
-    VALUES (?, NOW(), ?, ?, ?);
+    VALUES (?, ?, ?, ?, ?);
 `;
-  const values = [username, operacion, tabla, pkAfectada];
+  const values = [username, ahora, operacion, tabla, pkAfectada];
 
   try {
     await sequelize.query(sql, { replacements: values });
