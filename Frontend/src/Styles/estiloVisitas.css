@@ -1,4 +1,3 @@
-
 /* Loading screen */
 .vis-loading-screen {
   display: flex;
@@ -495,6 +494,11 @@
 .vis-badge-finalizada {
   background: #e0e0e0;
   color: #616161;
+}
+.vis-badge-vencida {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fdba74;
 }
 
 /* Botones de acción en la tabla */

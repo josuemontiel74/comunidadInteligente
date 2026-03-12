@@ -19,6 +19,7 @@ dayjs.extend(timezone);
 
 // Regex de placa colombiana ─
 const PLACA_REGEX = /^[A-Z]{3}\d{2,3}[A-Z]?$/;
+const HORAS_VENCIMIENTO_PARQUEADERO = 24;
 
 // Helpers privados
 
@@ -114,6 +115,36 @@ function parseFechaIngreso(fechaHoraIngreso, fechaActual) {
     fecha = dayjs(fechaHoraIngreso, "YYYY-MM-DD hh:mm A", true);
   if (fecha.isValid()) fecha = fecha.tz(TIMEZONE_COLOMBIA, true);
   return fecha;
+}
+
+/** Agrega metadatos operativos para identificar visitas que requieren renovación */
+function enriquecerVisitaConVencimiento(visita) {
+  const ahora = dayjs().tz(TIMEZONE_COLOMBIA);
+  const fechaIngreso = dayjs(visita.fechaHoraIngreso).tz(TIMEZONE_COLOMBIA);
+  const horasTranscurridas = fechaIngreso.isValid()
+    ? Math.floor(ahora.diff(fechaIngreso, "minute") / 60)
+    : null;
+  const visitaActiva =
+    Number(visita.estadoId) === ESTADO_VISITA.ACTIVA ||
+    String(visita.estadoVisita || "")
+      .toLowerCase()
+      .includes("activ");
+  const tieneParqueaderoAsignado = Boolean(
+    visita.codigoParqueadero || visita.vehiculoMatricula || visita.matricula,
+  );
+
+  return {
+    ...visita,
+    horasTranscurridas,
+    fechaLimiteParqueadero: fechaIngreso.isValid()
+      ? fechaIngreso.add(HORAS_VENCIMIENTO_PARQUEADERO, "hour").toISOString()
+      : null,
+    requiereRenovacion:
+      fechaIngreso.isValid() &&
+      visitaActiva &&
+      tieneParqueaderoAsignado &&
+      horasTranscurridas >= HORAS_VENCIMIENTO_PARQUEADERO,
+  };
 }
 
 /**
@@ -280,6 +311,7 @@ export const crearVisita = async (req, res) => {
       estadoId: estadoId || ESTADO_VISITA.ACTIVA,
       vehiculoMatricula,
       observaciones: observaciones || null,
+      telefono: telefono || null,
     });
 
     const usuarioActual = req.user?.username || "desconocido";
@@ -314,6 +346,7 @@ SELECT
     vi.fechaHoraIngreso,
     vi.fechaHoraSalida,
     vi.observaciones,
+    vi.telefono,
     veh.matricula,
     veh.tipoVehiculoId,
     et.nombreEstado AS estadoVisita,
@@ -340,7 +373,7 @@ LEFT JOIN tiposvehiculo AS ti
 ORDER BY vi.fechaHoraIngreso DESC;
     `);
 
-    res.json(results);
+    res.json(results.map(enriquecerVisitaConVencimiento));
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error al listar visitas" });
@@ -470,6 +503,7 @@ export const actualizarVisita = async (req, res) => {
       fechaHoraIngreso,
       estadoId,
       observaciones,
+      telefono,
       matricula,
       tipoVehiculoId,
       codigoParqueadero,
@@ -496,6 +530,7 @@ export const actualizarVisita = async (req, res) => {
     if (apartamentoId !== undefined) updateData.apartamentoId = apartamentoId;
     if (estadoId !== undefined) updateData.estadoId = estadoId;
     if (observaciones !== undefined) updateData.observaciones = observaciones;
+    if (telefono !== undefined) updateData.telefono = telefono;
 
     // Actualizar visitante
     const camposVisitante = buildVisitanteData(
