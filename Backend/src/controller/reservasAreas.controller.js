@@ -2,14 +2,19 @@ import reservasAreasModel from "../models/reservasAreas.model.js";
 import areasModel from "../models/areaComun.model.js";
 import solicitantesModel from "../models/solicitante.model.js";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
 import Apartamento from "../models/apartamentos.model.js";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 import Estado from "../models/estados.model.js";
 import { Op, fn, col, literal, where } from "sequelize";
 import tipodocumento from "../models/tipodocumento.model.js";
 import Torre from "../models/torres.model.js";
 import { registrarAuditoria } from "../services/auditorias.service.js";
 import { registrarFallo } from "../services/logger.service.js";
-import { ESTADO_RESERVA } from "../utils/constantes.js";
+import { ESTADO_RESERVA, TIMEZONE_COLOMBIA } from "../utils/constantes.js";
 
 // Helpers para calcular estados de reservas ─
 
@@ -59,7 +64,7 @@ const calcularNuevoEstado = (reserva, fechaHoy, horaActual) => {
 // Estados: 7=Pendiente, 8=En curso, 9=Finalizada
 const actualizarEstadosReservas = async () => {
   try {
-    const ahora = dayjs();
+    const ahora = dayjs().tz(TIMEZONE_COLOMBIA);
     const fechaHoy = ahora.format("YYYY-MM-DD");
     const horaActual = ahora.format("HH:mm:ss");
 
@@ -268,7 +273,7 @@ export const crearReserva = async (req, res) => {
       });
     }
 
-    const hoy = dayjs().startOf("day");
+    const hoy = dayjs().tz(TIMEZONE_COLOMBIA).startOf("day");
     const fechaReserva = dayjs(dataReserva.fechaReserva, "YYYY-MM-DD", true);
 
     if (!fechaReserva.isValid()) {
@@ -432,7 +437,7 @@ export const actualizarReserva = async (req, res) => {
     const fechaReserva = data.fechaReserva
       ? dayjs(data.fechaReserva).startOf("day")
       : null;
-    if (fechaReserva?.isBefore(dayjs().startOf("day"))) {
+    if (fechaReserva?.isBefore(dayjs().tz(TIMEZONE_COLOMBIA).startOf("day"))) {
       return res.status(400).json({
         ok: false,
         message: "No se puede actualizar una reserva al pasado",
@@ -533,7 +538,7 @@ export const eliminarReservaArea = async (req, res) => {
 
     await reserva.update({
       estadoId: 9,
-      horaFin: dayjs().format("HH:mm:ss"),
+      horaFin: dayjs().tz(TIMEZONE_COLOMBIA).format("HH:mm:ss"),
     });
 
     const usuarioActual = req.user?.username || "desconocido";

@@ -1,5 +1,10 @@
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
 import { fn, col, literal, where, Op } from "sequelize";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 import RecepcionPaquetes from "../models/recepcionPaquetes.model.js";
 import Estado from "../models/estados.model.js";
 import Apartamento from "../models/apartamentos.model.js";
@@ -10,6 +15,7 @@ import {
   ESTADO_PAQUETE,
   USUARIO_DESCONOCIDO,
   AÑO_MAXIMO,
+  TIMEZONE_COLOMBIA,
 } from "../utils/constantes.js";
 
 /** Columnas que se copian directamente de req.body si están presentes */
@@ -42,7 +48,7 @@ const atributosBaseInforme = () => [
 export const crearRecepcionPaquete = async (req, res) => {
   try {
     await RecepcionPaquetes.sync();
-    const ahora = dayjs();
+    const ahora = dayjs().tz(TIMEZONE_COLOMBIA);
 
     let fechaRecepcion = req.body.fechaRecepcion
       ? dayjs(req.body.fechaRecepcion, "YYYY-MM-DD HH:mm", true)
@@ -54,9 +60,10 @@ export const crearRecepcionPaquete = async (req, res) => {
         .json({ error: "La fecha de recepción no es válida" });
     }
 
-    // Permitir fechas con diferencia de hasta 5 minutos hacia atrás (por latencia de red)
-    const cincoMinutosAtras = ahora.subtract(5, "minute");
-    if (fechaRecepcion.isBefore(cincoMinutosAtras)) {
+    // Permitir fechas con diferencia de hasta 12 horas hacia atrás
+    // (cubre desfases de zona horaria entre cliente Colombia UTC-5 y servidor UTC)
+    const toleranciaAtras = ahora.subtract(12, "hour");
+    if (fechaRecepcion.isBefore(toleranciaAtras)) {
       return res.status(400).json({
         error: "La fecha de recepción no puede ser anterior a la actual",
       });
@@ -293,7 +300,7 @@ export const FinalizarRecepcionPaquete = async (req, res) => {
     }
     await paquete.update({
       estadoId: ESTADO_PAQUETE.ENTREGADO,
-      fechaEntrega: dayjs().format("YYYY-MM-DD HH:mm"),
+      fechaEntrega: dayjs().tz(TIMEZONE_COLOMBIA).format("YYYY-MM-DD HH:mm"),
     });
 
     // Registrar en auditoría

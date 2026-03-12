@@ -1,5 +1,10 @@
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
 import { Op } from "sequelize";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 import Ocupante from "../models/ocupante.model.js";
 import Persona from "../models/personas.model.js";
 import { sequelize } from "../config/connect.db.js";
@@ -10,7 +15,7 @@ import {
   validarTelefono,
   validarNumeroDocumento,
 } from "../utils/validaciones.js";
-import { ESTADO_OCUPANTE } from "../utils/constantes.js";
+import { ESTADO_OCUPANTE, TIMEZONE_COLOMBIA } from "../utils/constantes.js";
 
 export const crearOcupante = async (req, res) => {
   const t = await sequelize.transaction();
@@ -31,7 +36,7 @@ export const crearOcupante = async (req, res) => {
       correoElectronico: dataOcupante.correoElectronico,
     };
 
-    // Validar documento 
+    // Validar documento
     const errorDoc = validarNumeroDocumento(
       dataOcupante.tipoDocumentoId,
       dataOcupante.numeroDocumento,
@@ -48,7 +53,7 @@ export const crearOcupante = async (req, res) => {
       return res.status(400).json({ message: errorTel, status: 400 });
     }
 
-    // Validar nombres antes de guardar 
+    // Validar nombres antes de guardar
     const errorNombre = validarCamposNombre({
       "Primer nombre": dataOcupante.primerNombre,
       "Segundo nombre": dataOcupante.segundoNombre,
@@ -60,7 +65,7 @@ export const crearOcupante = async (req, res) => {
       return res.status(400).json({ message: errorNombre, status: 400 });
     }
 
-    // Verificar que el apartamento no tenga ya un ocupante activo del mismo tipo 
+    // Verificar que el apartamento no tenga ya un ocupante activo del mismo tipo
     if (dataOcupante.apartamentosId && dataOcupante.tipoOcupacion) {
       const ocupanteExistente = await Ocupante.findOne({
         where: {
@@ -345,7 +350,7 @@ export const finalizarOcupante = async (req, res) => {
     const [updated] = await Ocupante.update(
       {
         estadoId: 6,
-        fechaFin: dayjs().format("YYYY-MM-DD"),
+        fechaFin: dayjs().tz(TIMEZONE_COLOMBIA).format("YYYY-MM-DD"),
       },
       { where: { idOcupante: id } },
     );
