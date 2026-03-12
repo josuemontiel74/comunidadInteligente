@@ -9,14 +9,14 @@ const router = Router();
 router.get(
   "/areaComunes",
   validarJWT,
-  validarRol(1),
+  validarRol(1, 2),
   validate(areaComun.getAreaComunSchema),
   areaComunController.ObtenerAreasComunes
 );
 router.get(
   "/areaComunes/:idAreaComun",
   validarJWT,
-  validarRol(1),
+  validarRol(1, 2),
   validate(areaComun.getAreaComunSchema, "params", true),
   areaComunController.ObtenerAreasComunesPorId
 );
