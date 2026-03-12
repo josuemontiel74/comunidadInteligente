@@ -54,9 +54,10 @@ export const crearRecepcionPaquete = async (req, res) => {
         .json({ error: "La fecha de recepción no es válida" });
     }
 
-    // Permitir fechas con diferencia de hasta 5 minutos hacia atrás (por latencia de red)
-    const cincoMinutosAtras = ahora.subtract(5, "minute");
-    if (fechaRecepcion.isBefore(cincoMinutosAtras)) {
+    // Permitir fechas con diferencia de hasta 12 horas hacia atrás
+    // (cubre desfases de zona horaria entre cliente Colombia UTC-5 y servidor UTC)
+    const toleranciaAtras = ahora.subtract(12, "hour");
+    if (fechaRecepcion.isBefore(toleranciaAtras)) {
       return res.status(400).json({
         error: "La fecha de recepción no puede ser anterior a la actual",
       });

@@ -53,7 +53,7 @@ export const obtenerResumenLogErrores = async (req, res) => {
         nivel,
         COUNT(*) AS total,
         MAX(fechaHora) AS ultimoRegistro
-      FROM logErrores
+      FROM logerrores
       GROUP BY nivel
       ORDER BY total DESC
     `);
@@ -62,7 +62,7 @@ export const obtenerResumenLogErrores = async (req, res) => {
       SELECT 
         DATE(CONVERT_TZ(fechaHora, '+00:00', '-05:00')) AS fecha,
         COUNT(*) AS total
-      FROM logErrores
+      FROM logerrores
       WHERE fechaHora >= DATE_SUB(NOW(), INTERVAL 7 DAY)
       GROUP BY DATE(CONVERT_TZ(fechaHora, '+00:00', '-05:00'))
       ORDER BY fecha ASC
