@@ -1193,6 +1193,18 @@ function Visitas() {
                   <tbody>
                     {visitasPaginadas.map((v) => {
                       const estado = obtenerEstadoReal(v);
+                      const estadoBadgeClass =
+                        estado === "activa"
+                          ? "vis-badge-activa"
+                          : estado === "vencida"
+                            ? "vis-badge-vencida"
+                            : "vis-badge-finalizada";
+                      const estadoLabel =
+                        estado === "activa"
+                          ? "Activa"
+                          : estado === "vencida"
+                            ? "Vencida"
+                            : "Finalizada";
                       return (
                         <tr key={v.idVisita} className="vis-table-row">
                           <td>{v.nombreVisitante}</td>
@@ -1225,14 +1237,8 @@ function Visitas() {
                             )}
                           </td>
                           <td>
-                            <span
-                              className={`vis-badge ${estado === "activa" ? "vis-badge-activa" : estado === "vencida" ? "vis-badge-vencida" : "vis-badge-finalizada"}`}
-                            >
-                              {estado === "activa"
-                                ? "Activa"
-                                : estado === "vencida"
-                                  ? "Vencida"
-                                  : "Finalizada"}
+                            <span className={`vis-badge ${estadoBadgeClass}`}>
+                              {estadoLabel}
                             </span>
                           </td>
                           <td>
@@ -1278,20 +1284,26 @@ function Visitas() {
               <div className="vis-cards-container">
                 {visitasPaginadas.map((v) => {
                   const estado = obtenerEstadoReal(v);
+                  const estadoBadgeClass =
+                    estado === "activa"
+                      ? "vis-badge-activa"
+                      : estado === "vencida"
+                        ? "vis-badge-vencida"
+                        : "vis-badge-finalizada";
+                  const estadoLabel =
+                    estado === "activa"
+                      ? "Activa"
+                      : estado === "vencida"
+                        ? "Vencida"
+                        : "Finalizada";
                   return (
                     <div key={v.idVisita} className="vis-card">
                       <div className="vis-card-header">
                         <span className="vis-card-name">
                           {v.nombreVisitante}
                         </span>
-                        <span
-                          className={`vis-badge ${estado === "activa" ? "vis-badge-activa" : estado === "vencida" ? "vis-badge-vencida" : "vis-badge-finalizada"}`}
-                        >
-                          {estado === "activa"
-                            ? "Activa"
-                            : estado === "vencida"
-                              ? "Vencida"
-                              : "Finalizada"}
+                        <span className={`vis-badge ${estadoBadgeClass}`}>
+                          {estadoLabel}
                         </span>
                       </div>
                       <div className="vis-card-body">
@@ -1599,7 +1611,7 @@ function Visitas() {
                   onChange={(e) =>
                     handleChange(
                       "telefono",
-                      e.target.value.replace(/[^0-9+\- ]/g, "").slice(0, 15),
+                      e.target.value.replaceAll(/[^0-9+\- ]/g, "").slice(0, 15),
                     )
                   }
                   placeholder="Ej: 3101234567"
@@ -1608,9 +1620,10 @@ function Visitas() {
                   required
                 />
                 {formData.telefono &&
-                  formData.telefono.replace(/\D/g, "").length < 7 && (
+                  formData.telefono.replaceAll(/\D/g, "").length < 7 && (
                     <small style={{ color: "#f97316", fontSize: "12px" }}>
-                      Faltan {7 - formData.telefono.replace(/\D/g, "").length}{" "}
+                      Faltan{" "}
+                      {7 - formData.telefono.replaceAll(/\D/g, "").length}{" "}
                       dígitos
                     </small>
                   )}
