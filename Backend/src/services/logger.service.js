@@ -37,7 +37,14 @@ export async function registrarFallo(
             VALUES (?, ?, ?, ?, ?, ?);
         `;
 
-    const values = [ahora, nivel, username, rutaAfectada, mensajeError, stackTrace];
+    const values = [
+      ahora,
+      nivel,
+      username,
+      rutaAfectada,
+      mensajeError,
+      stackTrace,
+    ];
 
     await sequelize.query(sql, {
       replacements: values,

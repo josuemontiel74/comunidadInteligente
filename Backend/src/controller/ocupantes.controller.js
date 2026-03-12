@@ -36,7 +36,7 @@ export const crearOcupante = async (req, res) => {
       correoElectronico: dataOcupante.correoElectronico,
     };
 
-    // Validar documento 
+    // Validar documento
     const errorDoc = validarNumeroDocumento(
       dataOcupante.tipoDocumentoId,
       dataOcupante.numeroDocumento,
@@ -53,7 +53,7 @@ export const crearOcupante = async (req, res) => {
       return res.status(400).json({ message: errorTel, status: 400 });
     }
 
-    // Validar nombres antes de guardar 
+    // Validar nombres antes de guardar
     const errorNombre = validarCamposNombre({
       "Primer nombre": dataOcupante.primerNombre,
       "Segundo nombre": dataOcupante.segundoNombre,
@@ -65,7 +65,7 @@ export const crearOcupante = async (req, res) => {
       return res.status(400).json({ message: errorNombre, status: 400 });
     }
 
-    // Verificar que el apartamento no tenga ya un ocupante activo del mismo tipo 
+    // Verificar que el apartamento no tenga ya un ocupante activo del mismo tipo
     if (dataOcupante.apartamentosId && dataOcupante.tipoOcupacion) {
       const ocupanteExistente = await Ocupante.findOne({
         where: {
