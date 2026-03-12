@@ -139,13 +139,12 @@ export const getReservasHoy = async (req, res) => {
     // Obtener fecha actual en hora Colombia (inicio y fin del día)
     const inicioDelDia = dayjs().tz(TIMEZONE_COLOMBIA).startOf("day").toDate();
     const finDelDia = dayjs().tz(TIMEZONE_COLOMBIA).endOf("day").toDate();
+    const hoyStr = dayjs().tz(TIMEZONE_COLOMBIA).format("YYYY-MM-DD");
 
-    // Contar reservas para hoy
+    // Contar reservas para hoy (fechaReserva es DATEONLY)
     const reservasHoy = await ReservarAreas.count({
       where: {
-        fechaReserva: {
-          [Op.between]: [inicioDelDia, finDelDia],
-        },
+        fechaReserva: hoyStr,
       },
     });
 
@@ -156,9 +155,7 @@ export const getReservasHoy = async (req, res) => {
         [Sequelize.fn("COUNT", Sequelize.col("idReservas")), "cantidad"],
       ],
       where: {
-        fechaReserva: {
-          [Op.between]: [inicioDelDia, finDelDia],
-        },
+        fechaReserva: hoyStr,
       },
       group: ["areaComunId"],
     });
@@ -191,6 +188,7 @@ export const getResumenDashboard = async (req, res) => {
     // Fecha actual en hora Colombia
     const inicioDelDia = dayjs().tz(TIMEZONE_COLOMBIA).startOf("day").toDate();
     const finDelDia = dayjs().tz(TIMEZONE_COLOMBIA).endOf("day").toDate();
+    const hoyStr = dayjs().tz(TIMEZONE_COLOMBIA).format("YYYY-MM-DD");
 
     // Contar parqueaderos ocupados por tipo de vehículo
     // estadoId: 3 = Ocupado, 4 = Disponible
@@ -230,10 +228,10 @@ export const getResumenDashboard = async (req, res) => {
       },
     });
 
-    // Estadísticas de reservas
+    // Estadísticas de reservas (fechaReserva es DATEONLY)
     const reservasHoy = await ReservarAreas.count({
       where: {
-        fechaReserva: { [Op.between]: [inicioDelDia, finDelDia] },
+        fechaReserva: hoyStr,
       },
     });
 

@@ -1336,35 +1336,59 @@ BOTÓN
   RECIBO
   ═══════════════════════════════════════════════════
   */
-  .ac-btn-imprimir {
+/* Footer del modal detalles */
+.ac-modal-footer {
   display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 12px 20px;
-  margin-top: 12px;
-  background: linear-gradient(135deg, #c04000, #b85c00);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 600;
+  justify-content: flex-end;
+  padding: 12px 24px 20px;
+}
+.ac-btn-imprimir {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1.5px solid #27ae60;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.25s ease;
-  box-shadow: 0 2px 8px rgba(230, 81, 0, 0.25);
+  background: #d4f1e4;
+  color: #155724;
+  transition:
+    filter 0.15s,
+    transform 0.12s;
 }
 .ac-btn-imprimir:hover {
-  background: linear-gradient(135deg, #bf360c, #c04000);
-  box-shadow: 0 4px 14px rgba(230, 81, 0, 0.35);
+  filter: brightness(0.88);
   transform: translateY(-1px);
 }
 .ac-btn-imprimir:active {
   transform: translateY(0);
-  box-shadow: 0 1px 4px rgba(230, 81, 0, 0.2);
 }
 .ac-btn-imprimir i {
-  font-size: 17px;
+  font-size: 15px;
+}
+.ac-btn-cerrar {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border: 1.5px solid var(--ac-border, #cbd5e1);
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: var(--ac-text, #334155);
+  transition:
+    filter 0.15s,
+    transform 0.12s;
+}
+.ac-btn-cerrar:hover {
+  filter: brightness(0.88);
+  background: var(--ac-hover, #f1f5f9);
 }
 
 /* BOTÓN GESTIONAR ÁREAS

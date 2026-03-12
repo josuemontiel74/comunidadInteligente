@@ -1824,11 +1824,19 @@ function AreasComunes() {
               </div>
 
               {/* Botón imprimir recibo */}
+            </div>
+            <div className="ac-modal-footer">
               <button
                 className="ac-btn-imprimir"
                 onClick={() => imprimirRecibo(registroSeleccionado)}
               >
                 <i className="bi bi-printer" /> Imprimir Recibo
+              </button>
+              <button
+                className="ac-btn-cerrar"
+                onClick={() => setShowModalDetalles(false)}
+              >
+                Cerrar
               </button>
             </div>
           </div>
