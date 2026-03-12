@@ -321,7 +321,17 @@
   color: var(--rpt-text);
   background: var(--rpt-surface2);
   transition: border-color 0.2s;
+  color-scheme: light;
+}
+.rpt-filter-bar input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0);
+  cursor: pointer;
+}
+[data-modo="oscuro"] .rpt-filter-bar input[type="date"] {
   color-scheme: dark;
+}
+[data-modo="oscuro"] .rpt-filter-bar input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
 }
 .rpt-filter-bar input[type="date"]:focus {
   border-color: var(--rpt-accent);
