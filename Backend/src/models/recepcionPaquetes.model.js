@@ -44,7 +44,7 @@ class RecepcionPaquetes extends Model {
       {
         sequelize,
         modelName: "recepcionPaquetes",
-        tableName: "recepcionPaquetes",
+        tableName: "recepcionpaquetes",
         timestamps: false,
       }
     );

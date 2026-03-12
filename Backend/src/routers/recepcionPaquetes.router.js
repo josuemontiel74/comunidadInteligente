@@ -5,26 +5,35 @@ import validate from "../middlewares/user.middleware.js";
 import * as RecepcionPaquetesSchema from "../schemas/recepcionPaquetes.schema.js";
 
 const router = Router();
-router.post("/informePaqueteria/:por",validarJWT,validarRol(1),recepcionPaquetesController.informePaqueteria);
-router.get("/paquetesDia",validarJWT,validarRol(1,2,3),recepcionPaquetesController.paqueteDelDia);
+router.post(
+  "/informePaqueteria/:por",
+  validarJWT,
+  validarRol(1),
+  recepcionPaquetesController.informePaqueteria,
+);
+router.get(
+  "/paquetesDia",
+  validarJWT,
+  validarRol(1, 2, 3),
+  recepcionPaquetesController.paqueteDelDia,
+);
 router.post(
   "/recepcionPaquetes",
   validate(RecepcionPaquetesSchema.crearRecepcionPaquete, "body", true),
   validarJWT,
   validarRol(1, 2, 3),
-  recepcionPaquetesController.crearRecepcionPaquete
+  recepcionPaquetesController.crearRecepcionPaquete,
 );
 router.get(
   "/recepcionPaquetes",
-  validate(RecepcionPaquetesSchema.obtenerRecepcionPaquetePorId),
   validarJWT,
   validarRol(1, 2, 3),
-  recepcionPaquetesController.obtenerRecepcionesPaquetes
+  recepcionPaquetesController.obtenerRecepcionesPaquetes,
 );
 
 router.get(
   "/recepcion-paquetes",
-  recepcionPaquetesController.obtenerRecepcionPaquetesSQL
+  recepcionPaquetesController.obtenerRecepcionPaquetesSQL,
 );
 
 router.get(
@@ -32,18 +41,18 @@ router.get(
   validate(
     RecepcionPaquetesSchema.obtenerRecepcionPaquetePorId,
     "params",
-    true
+    true,
   ),
   validarJWT,
   validarRol(1, 2, 3),
-  recepcionPaquetesController.obtenerRecepcionPaquetePorId
+  recepcionPaquetesController.obtenerRecepcionPaquetePorId,
 );
 router.patch(
   "/recepcionPaquetes/:idPaquete",
   validate(RecepcionPaquetesSchema.actualizarRecepcionPaquete, "body", true),
   validarJWT,
   validarRol(1, 2, 3),
-  recepcionPaquetesController.actualizarRecepcionPaquete
+  recepcionPaquetesController.actualizarRecepcionPaquete,
 );
 
 router.delete(
@@ -51,7 +60,7 @@ router.delete(
   validate(RecepcionPaquetesSchema.eliminarRecepcionPaquete, "params", true),
   validarJWT,
   validarRol(1, 2, 3),
-  recepcionPaquetesController.FinalizarRecepcionPaquete
+  recepcionPaquetesController.FinalizarRecepcionPaquete,
 );
 
 export default router;

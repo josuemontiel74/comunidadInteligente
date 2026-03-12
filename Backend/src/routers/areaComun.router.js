@@ -9,23 +9,23 @@ const router = Router();
 router.get(
   "/areaComunes",
   validarJWT,
-  validarRol(1),
+  validarRol(1, 2),
   validate(areaComun.getAreaComunSchema),
-  areaComunController.ObtenerAreasComunes
+  areaComunController.ObtenerAreasComunes,
 );
 router.get(
   "/areaComunes/:idAreaComun",
   validarJWT,
-  validarRol(1),
+  validarRol(1, 2),
   validate(areaComun.getAreaComunSchema, "params", true),
-  areaComunController.ObtenerAreasComunesPorId
+  areaComunController.ObtenerAreasComunesPorId,
 );
 router.patch(
   "/areaComunes/:idAreaComun",
   validarJWT,
   validarRol(1),
   validate(areaComun.updateAreaComunSchema, "body", true),
-  areaComunController.ActualizarAreaComun
+  areaComunController.ActualizarAreaComun,
 );
 
 router.delete(
@@ -33,7 +33,7 @@ router.delete(
   validarJWT,
   validarRol(1),
   validate(areaComun.deleteAreaComunSchema, "params", true),
-  areaComunController.EliminarAreaComun
+  areaComunController.EliminarAreaComun,
 );
 
 export default router;

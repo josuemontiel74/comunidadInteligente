@@ -1,4 +1,4 @@
-   ÁREAS COMUNES — Tema Naranja
+ÁREAS COMUNES — Tema Naranja
    ══════════════════════════════════════════ */
 
 /* ====== RESET & LAYOUT ====== */
@@ -1331,9 +1331,12 @@ select.ac-form-control {
   }
 }
 
-   BOTÓN IMPRIMIR RECIBO
-   ═══════════════════════════════════════════════════ */
-.ac-btn-imprimir {
+BOTÓN
+  IMPRIMIR
+  RECIBO
+  ═══════════════════════════════════════════════════
+  */
+  .ac-btn-imprimir {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1364,22 +1367,24 @@ select.ac-form-control {
   font-size: 17px;
 }
 
-   BOTÓN GESTIONAR ÁREAS
+/* BOTÓN GESTIONAR ÁREAS
    ═══════════════════════════════════════════════════ */
 .ac-btn-gestionar-areas {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 10px 20px;
+  padding: 12px 20px;
   background: linear-gradient(135deg, #37474f, #546e7a);
   color: #fff;
   border: none;
   border-radius: 10px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.25s ease;
   box-shadow: 0 2px 8px rgba(55, 71, 79, 0.25);
+  white-space: nowrap;
 }
 .ac-btn-gestionar-areas:hover {
   background: linear-gradient(135deg, #263238, #37474f);
@@ -1387,12 +1392,15 @@ select.ac-form-control {
   transform: translateY(-1px);
 }
 .ac-btn-gestionar-areas i {
-  font-size: 16px;
+  font-size: 17px;
 }
 
-   MODAL GESTIONAR ÁREAS
-   ═══════════════════════════════════════════════════ */
-.ac-modal-areas {
+MODAL
+  GESTIONAR
+  ÁREAS
+  ═══════════════════════════════════════════════════
+  */
+  .ac-modal-areas {
   max-width: 540px;
   width: 95vw;
 }
