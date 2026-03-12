@@ -136,9 +136,6 @@ export const getPaquetesRecibidosHoy = async (req, res) => {
  */
 export const getReservasHoy = async (req, res) => {
   try {
-    // Obtener fecha actual en hora Colombia (inicio y fin del día)
-    const inicioDelDia = dayjs().tz(TIMEZONE_COLOMBIA).startOf("day").toDate();
-    const finDelDia = dayjs().tz(TIMEZONE_COLOMBIA).endOf("day").toDate();
     const hoyStr = dayjs().tz(TIMEZONE_COLOMBIA).format("YYYY-MM-DD");
 
     // Contar reservas para hoy (fechaReserva es DATEONLY)

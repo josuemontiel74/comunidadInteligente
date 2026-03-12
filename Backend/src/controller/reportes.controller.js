@@ -141,14 +141,14 @@ export const obtenerReporteVisitas = async (req, res) => {
       { replacements: [fechaInicio, fechaFin] },
     );
 
-    // Visitas con vehÃ­culo vs sin vehÃ­culo
+    // Visitas con vehículo vs sin vehículo
     const [porVehiculo] = await sequelize.query(
       `
       SELECT 
-        CASE WHEN vehiculoMatricula IS NOT NULL THEN 'Con vehÃ­culo' ELSE 'Sin vehÃ­culo' END as tipo,
+        CASE WHEN vehiculoMatricula IS NOT NULL THEN 'Con vehículo' ELSE 'Sin vehículo' END as tipo,
         COUNT(*) as cantidad
       FROM visitas WHERE DATE(fechaHoraIngreso) >= ? AND DATE(fechaHoraIngreso) <= ?
-      GROUP BY CASE WHEN vehiculoMatricula IS NOT NULL THEN 'Con vehÃ­culo' ELSE 'Sin vehÃ­culo' END
+      GROUP BY CASE WHEN vehiculoMatricula IS NOT NULL THEN 'Con vehículo' ELSE 'Sin vehículo' END
     `,
       { replacements: [fechaInicio, fechaFin] },
     );
@@ -326,7 +326,7 @@ export const obtenerReporteConsolidado = async (req, res) => {
         { replacements: [fechaInicio, fechaFin] },
       ),
       sequelize.query(
-        `SELECT CASE WHEN vehiculoMatricula IS NOT NULL THEN 'Con vehÃ­culo' ELSE 'Sin vehÃ­culo' END as tipo, COUNT(*) as cantidad FROM visitas WHERE DATE(fechaHoraIngreso) >= ? AND DATE(fechaHoraIngreso) <= ? GROUP BY CASE WHEN vehiculoMatricula IS NOT NULL THEN 'Con vehÃ­culo' ELSE 'Sin vehÃ­culo' END`,
+        `SELECT CASE WHEN vehiculoMatricula IS NOT NULL THEN 'Con vehículo' ELSE 'Sin vehículo' END as tipo, COUNT(*) as cantidad FROM visitas WHERE DATE(fechaHoraIngreso) >= ? AND DATE(fechaHoraIngreso) <= ? GROUP BY CASE WHEN vehiculoMatricula IS NOT NULL THEN 'Con vehículo' ELSE 'Sin vehículo' END`,
         { replacements: [fechaInicio, fechaFin] },
       ),
       sequelize.query(
@@ -480,7 +480,7 @@ export const obtenerReporteOcupacion = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error al generar reporte de ocupaciÃ³n",
+      message: "Error al generar reporte de ocupación",
       error: error.message,
     });
   }
@@ -550,7 +550,7 @@ export const obtenerReporteNinos = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error al generar reporte de niÃ±os",
+      message: "Error al generar reporte de niños",
       error: error.message,
     });
   }
@@ -685,7 +685,7 @@ export const obtenerReportePoblacionEspecial = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error al generar reporte de poblaciÃ³n especial",
+      message: "Error al generar reporte de población especial",
       error: error.message,
     });
   }
@@ -791,14 +791,14 @@ export const obtenerReporteUsuarios = async (req, res) => {
     // Mapa de nombres amigables para los mÃ³dulos
     const nombreModulo = {
       visitas: "Visitas",
-      recepcionpaquetes: "PaqueterÃ­a",
-      reservasareas: "Reservas Ãreas",
+      recepcionpaquetes: "Paquetería",
+      reservasareas: "Reservas Áreas",
       parqueaderos: "Parqueaderos",
-      usuarios: "GestiÃ³n Usuarios",
+      usuarios: "Gestión Usuarios",
       apartamentos: "Apartamentos",
       ocupante: "Residentes",
-      areacomun: "Ãreas Comunes",
-      vehiculo: "VehÃ­culos",
+      areacomun: "Áreas Comunes",
+      vehiculo: "Vehículos",
       personas: "Personas",
       torres: "Torres",
     };
