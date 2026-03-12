@@ -114,7 +114,7 @@ export const obtenerRecepcionPaquetesSQL = async (req, res) => {
         r.fechaEntrega,
         r.observaciones,
         e.nombreEstado
-      FROM recepcionpaquetes r
+      FROM recepcionPaquetes r
       JOIN apartamentos a ON r.apartamentoId = a.idApartamento
       JOIN torres t ON a.torresId = t.idTorre
       JOIN estados e ON r.estadoId = e.idEstado

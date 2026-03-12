@@ -16,7 +16,6 @@ router.post(
 );
 router.get(
   "/recepcionPaquetes",
-  validate(RecepcionPaquetesSchema.obtenerRecepcionPaquetePorId),
   validarJWT,
   validarRol(1, 2, 3),
   recepcionPaquetesController.obtenerRecepcionesPaquetes

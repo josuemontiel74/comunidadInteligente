@@ -125,6 +125,7 @@ export const listarReservasAreas = async (req, res) => {
         },
         {
           model: solicitantesModel,
+          as: "solicitante",
           attributes: [
             ["documentoSolicitante", "documentoSolicitante"],
             ["nombreSolicitante", "nombreSolicitante"],
@@ -186,6 +187,7 @@ export const obtenerReservaPorId = async (req, res) => {
         },
         {
           model: solicitantesModel,
+          as: "solicitante",
           attributes: [
             ["documentoSolicitante", "documentoSolicitante"],
             ["nombreSolicitante", "nombreSolicitante"],
@@ -636,6 +638,7 @@ export const calendariosReservas = async (req, res) => {
       include: [
         {
           model: solicitantesModel,
+          as: "solicitante",
           attributes: [
             ["documentoSolicitante", "documentoSolicitante"],
             ["nombreSolicitante", "nombreSolicitante"],
