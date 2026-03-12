@@ -20,7 +20,7 @@ import ModalOverlay from "../utils/ModalOverlay.jsx";
 import { verificarTokenVencido, obtenerRolFromToken } from "../utils/auth.js";
 import useLogout from "../utils/useLogout.js";
 
-// Torres y apartamentos (idéntico a Flutter) 
+// Torres y apartamentos (idéntico a Flutter)
 const TORRES = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 
 const getApartamentosPorTorre = (torre) => {
@@ -43,7 +43,7 @@ const obtenerApartamentoId = (torre, apartamento) => {
   return letraIndex * 5 + pos;
 };
 
-// Formatear fechas a Colombia UTC-5 
+// Formatear fechas a Colombia UTC-5
 const formatearFecha = (fechaStr) => {
   if (!fechaStr) return "N/A";
   try {
@@ -183,7 +183,7 @@ function Paqueteria() {
   const tokenLocal = localStorage.getItem("token");
   const rolesId = tokenLocal ? obtenerRolFromToken(tokenLocal) : null;
 
-  // Verificar sesión 
+  // Verificar sesión
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token || verificarTokenVencido(token)) {
@@ -217,12 +217,15 @@ function Paqueteria() {
   // Abrir modal de registro si se viene desde otro módulo
   useEffect(() => {
     if (location.state?.abrirModal) {
-      setFormCrear({ ...formCrearVacio, fechaHoraRecepcion: obtenerFechaHoraColombia() });
+      setFormCrear({
+        ...formCrearVacio,
+        fechaHoraRecepcion: obtenerFechaHoraColombia(),
+      });
       setModalCrear(true);
     }
   }, [location.state]);
 
-  // Cargar paquetes 
+  // Cargar paquetes
   const cargarPaquetes = useCallback(async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -270,7 +273,7 @@ function Paqueteria() {
     return () => clearInterval(interval);
   }, [cargarPaquetes]);
 
-  // Filtrado + ordenamiento (igual que Flutter) 
+  // Filtrado + ordenamiento (igual que Flutter)
   const paquetesFiltrados = paquetes
     .filter((p) => {
       const nombre = (p.nombreDestinatario || "").toLowerCase();
@@ -302,7 +305,7 @@ function Paqueteria() {
       return new Date(b.fechaRecepcion || 0) - new Date(a.fechaRecepcion || 0);
     });
 
-  // Paginación 
+  // Paginación
   const totalPaginas = Math.ceil(paquetesFiltrados.length / itemsPorPagina);
   const indiceInicio = (paginaActual - 1) * itemsPorPagina;
   const indiceFin = indiceInicio + itemsPorPagina;
@@ -339,7 +342,7 @@ function Paqueteria() {
     (p) => (p.nombreEstado || "").toLowerCase() === "entregado",
   ).length;
 
-  // Helpers de respuesta CRUD 
+  // Helpers de respuesta CRUD
   const manejarSesionExpiradaPaq = () => {
     Swal.fire({
       icon: "warning",
@@ -361,7 +364,7 @@ function Paqueteria() {
       return;
     }
     if (response.ok) {
-      Swal.fire({
+      await Swal.fire({
         icon: "success",
         title: tituloOk,
         timer: 2500,
@@ -374,7 +377,7 @@ function Paqueteria() {
     }
   };
 
-  // CRUD: Crear 
+  // CRUD: Crear
   const handleSubmitCrear = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
@@ -427,7 +430,7 @@ function Paqueteria() {
     }
   };
 
-  // CRUD: Editar 
+  // CRUD: Editar
   const abrirEditar = (paq) => {
     const torreLetra = (paq.nombreTorre || "").replace(/^Torre\s*/i, "").trim();
     setFormEditar({
@@ -499,7 +502,7 @@ function Paqueteria() {
     }
   };
 
-  // CRUD: Entregar (DELETE) 
+  // CRUD: Entregar (DELETE)
   const marcarEntregado = (paq) => {
     Swal.fire({
       title: "¿Marcar como entregado?",
@@ -518,7 +521,7 @@ function Paqueteria() {
         try {
           const response = await eliminarPaquete(paq.idPaquete, token);
           if (response.ok || response.status === 204) {
-            Swal.fire({
+            await Swal.fire({
               icon: "success",
               title: "Entregado correctamente",
               timer: 2500,
@@ -542,7 +545,7 @@ function Paqueteria() {
 
   const cerrarSesion = useLogout();
 
-  // Loading 
+  // Loading
   if (loading && paquetes.length === 0) {
     return (
       <div className="paq-loading-screen">
@@ -754,7 +757,10 @@ function Paqueteria() {
             <button
               className="btn paq-btn-retry mt-3"
               onClick={() => {
-                setFormCrear({ ...formCrearVacio, fechaHoraRecepcion: obtenerFechaHoraColombia() });
+                setFormCrear({
+                  ...formCrearVacio,
+                  fechaHoraRecepcion: obtenerFechaHoraColombia(),
+                });
                 setModalCrear(true);
               }}
             >
@@ -800,7 +806,10 @@ function Paqueteria() {
                 <button
                   className="paq-btn-registrar"
                   onClick={() => {
-                    setFormCrear({ ...formCrearVacio, fechaHoraRecepcion: obtenerFechaHoraColombia() });
+                    setFormCrear({
+                      ...formCrearVacio,
+                      fechaHoraRecepcion: obtenerFechaHoraColombia(),
+                    });
                     setModalCrear(true);
                   }}
                 >

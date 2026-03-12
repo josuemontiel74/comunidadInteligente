@@ -539,7 +539,7 @@ function AreasComunes() {
         : await crearReserva(reservaData, token);
 
       if (response.ok) {
-        Swal.fire({
+        await Swal.fire({
           icon: "success",
           title: isEditing
             ? "Actualizado correctamente"
@@ -592,7 +592,7 @@ function AreasComunes() {
       setLoading(true);
       const response = await eliminarReservaService(idReserva, token);
       if (response.ok) {
-        Swal.fire({
+        await Swal.fire({
           icon: "success",
           title: "Finalizado correctamente",
           timer: 3500,
@@ -675,7 +675,7 @@ function AreasComunes() {
         token,
       );
       if (resp.ok) {
-        Swal.fire({
+        await Swal.fire({
           icon: "success",
           title: `Área ${accion === "inhabilitar" ? "inhabilitada" : "habilitada"}`,
           timer: 2500,
