@@ -188,22 +188,22 @@ export const obtenerReportePaquetes = async (req, res) => {
     }
 
     const [totalPaquetes] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM recepcionpaquetes WHERE DATE(fechaRecepcion) >= ? AND DATE(fechaRecepcion) <= ?`,
+      `SELECT COUNT(*) as total FROM recepcionPaquetes WHERE DATE(fechaRecepcion) >= ? AND DATE(fechaRecepcion) <= ?`,
       { replacements: [fechaInicio, fechaFin] },
     );
 
     const [entregados] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM recepcionpaquetes WHERE DATE(fechaRecepcion) >= ? AND DATE(fechaRecepcion) <= ? AND fechaEntrega IS NOT NULL`,
+      `SELECT COUNT(*) as total FROM recepcionPaquetes WHERE DATE(fechaRecepcion) >= ? AND DATE(fechaRecepcion) <= ? AND fechaEntrega IS NOT NULL`,
       { replacements: [fechaInicio, fechaFin] },
     );
 
     const [pendientes] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM recepcionpaquetes WHERE DATE(fechaRecepcion) >= ? AND DATE(fechaRecepcion) <= ? AND fechaEntrega IS NULL`,
+      `SELECT COUNT(*) as total FROM recepcionPaquetes WHERE DATE(fechaRecepcion) >= ? AND DATE(fechaRecepcion) <= ? AND fechaEntrega IS NULL`,
       { replacements: [fechaInicio, fechaFin] },
     );
 
     const [porDia] = await sequelize.query(
-      `SELECT DATE(fechaRecepcion) as fecha, COUNT(*) as cantidad FROM recepcionpaquetes WHERE DATE(fechaRecepcion) >= ? AND DATE(fechaRecepcion) <= ? GROUP BY DATE(fechaRecepcion) ORDER BY fecha DESC`,
+      `SELECT DATE(fechaRecepcion) as fecha, COUNT(*) as cantidad FROM recepcionPaquetes WHERE DATE(fechaRecepcion) >= ? AND DATE(fechaRecepcion) <= ? GROUP BY DATE(fechaRecepcion) ORDER BY fecha DESC`,
       { replacements: [fechaInicio, fechaFin] },
     );
 
@@ -237,15 +237,15 @@ export const obtenerReporteReservas = async (req, res) => {
     }
 
     const [totalReservas] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM reservasareas WHERE fechaReserva >= ? AND fechaReserva <= ?`,
+      `SELECT COUNT(*) as total FROM reservasAreas WHERE fechaReserva >= ? AND fechaReserva <= ?`,
       { replacements: [fechaInicio, fechaFin] },
     );
 
     const [porArea] = await sequelize.query(
       `
       SELECT ac.nombreArea, COUNT(r.idReservas) as cantidad
-      FROM reservasareas r
-      INNER JOIN areacomun ac ON r.areaComunId = ac.idAreaComun
+      FROM reservasAreas r
+      INNER JOIN areaComun ac ON r.areaComunId = ac.idAreaComun
       WHERE r.fechaReserva >= ? AND r.fechaReserva <= ?
       GROUP BY ac.nombreArea, ac.idAreaComun ORDER BY cantidad DESC
     `,
@@ -255,7 +255,7 @@ export const obtenerReporteReservas = async (req, res) => {
     const [porEstado] = await sequelize.query(
       `
       SELECT e.nombreEstado, COUNT(r.idReservas) as cantidad
-      FROM reservasareas r
+      FROM reservasAreas r
       INNER JOIN estados e ON r.estadoId = e.IdEstado
       WHERE r.fechaReserva >= ? AND r.fechaReserva <= ?
       GROUP BY e.nombreEstado, r.estadoId ORDER BY cantidad DESC
@@ -264,12 +264,12 @@ export const obtenerReporteReservas = async (req, res) => {
     );
 
     const [promedioAsistentes] = await sequelize.query(
-      `SELECT ROUND(AVG(cantidadAsistentes), 2) as promedio FROM reservasareas WHERE fechaReserva >= ? AND fechaReserva <= ?`,
+      `SELECT ROUND(AVG(cantidadAsistentes), 2) as promedio FROM reservasAreas WHERE fechaReserva >= ? AND fechaReserva <= ?`,
       { replacements: [fechaInicio, fechaFin] },
     );
 
     const [reservasPorDia] = await sequelize.query(
-      `SELECT DATE(fechaReserva) as fecha, COUNT(*) as cantidad FROM reservasareas WHERE fechaReserva >= ? AND fechaReserva <= ? GROUP BY DATE(fechaReserva) ORDER BY cantidad DESC LIMIT 1`,
+      `SELECT DATE(fechaReserva) as fecha, COUNT(*) as cantidad FROM reservasAreas WHERE fechaReserva >= ? AND fechaReserva <= ? GROUP BY DATE(fechaReserva) ORDER BY cantidad DESC LIMIT 1`,
       { replacements: [fechaInicio, fechaFin] },
     );
 
@@ -330,27 +330,27 @@ export const obtenerReporteConsolidado = async (req, res) => {
         { replacements: [fechaInicio, fechaFin] },
       ),
       sequelize.query(
-        `SELECT COUNT(*) as total FROM recepcionpaquetes WHERE DATE(fechaRecepcion) >= ? AND DATE(fechaRecepcion) <= ?`,
+        `SELECT COUNT(*) as total FROM recepcionPaquetes WHERE DATE(fechaRecepcion) >= ? AND DATE(fechaRecepcion) <= ?`,
         { replacements: [fechaInicio, fechaFin] },
       ),
       sequelize.query(
-        `SELECT COUNT(*) as total FROM recepcionpaquetes WHERE DATE(fechaRecepcion) >= ? AND DATE(fechaRecepcion) <= ? AND fechaEntrega IS NOT NULL`,
+        `SELECT COUNT(*) as total FROM recepcionPaquetes WHERE DATE(fechaRecepcion) >= ? AND DATE(fechaRecepcion) <= ? AND fechaEntrega IS NOT NULL`,
         { replacements: [fechaInicio, fechaFin] },
       ),
       sequelize.query(
-        `SELECT COUNT(*) as total FROM recepcionpaquetes WHERE DATE(fechaRecepcion) >= ? AND DATE(fechaRecepcion) <= ? AND fechaEntrega IS NULL`,
+        `SELECT COUNT(*) as total FROM recepcionPaquetes WHERE DATE(fechaRecepcion) >= ? AND DATE(fechaRecepcion) <= ? AND fechaEntrega IS NULL`,
         { replacements: [fechaInicio, fechaFin] },
       ),
       sequelize.query(
-        `SELECT COUNT(*) as total FROM reservasareas WHERE fechaReserva >= ? AND fechaReserva <= ?`,
+        `SELECT COUNT(*) as total FROM reservasAreas WHERE fechaReserva >= ? AND fechaReserva <= ?`,
         { replacements: [fechaInicio, fechaFin] },
       ),
       sequelize.query(
-        `SELECT ac.nombreArea, COUNT(r.idReservas) as cantidad FROM reservasareas r INNER JOIN areacomun ac ON r.areaComunId = ac.idAreaComun WHERE r.fechaReserva >= ? AND r.fechaReserva <= ? GROUP BY ac.nombreArea, ac.idAreaComun ORDER BY cantidad DESC`,
+        `SELECT ac.nombreArea, COUNT(r.idReservas) as cantidad FROM reservasAreas r INNER JOIN areaComun ac ON r.areaComunId = ac.idAreaComun WHERE r.fechaReserva >= ? AND r.fechaReserva <= ? GROUP BY ac.nombreArea, ac.idAreaComun ORDER BY cantidad DESC`,
         { replacements: [fechaInicio, fechaFin] },
       ),
       sequelize.query(
-        `SELECT e.nombreEstado, COUNT(r.idReservas) as cantidad FROM reservasareas r INNER JOIN estados e ON r.estadoId = e.IdEstado WHERE r.fechaReserva >= ? AND r.fechaReserva <= ? GROUP BY e.nombreEstado, r.estadoId ORDER BY cantidad DESC`,
+        `SELECT e.nombreEstado, COUNT(r.idReservas) as cantidad FROM reservasAreas r INNER JOIN estados e ON r.estadoId = e.IdEstado WHERE r.fechaReserva >= ? AND r.fechaReserva <= ? GROUP BY e.nombreEstado, r.estadoId ORDER BY cantidad DESC`,
         { replacements: [fechaInicio, fechaFin] },
       ),
     ]);
