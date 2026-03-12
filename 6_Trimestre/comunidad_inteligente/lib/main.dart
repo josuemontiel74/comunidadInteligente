@@ -187,25 +187,6 @@ class _LoginScreenState extends State<LoginScreen>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (!ApiConfig.isProduction)
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(
-                            alpha: isDark ? 0.15 : 0.2,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.settings_rounded,
-                            color: Colors.white,
-                            size: 22,
-                          ),
-                          tooltip: 'Configurar servidor',
-                          onPressed: () => _mostrarConfigIp(context),
-                        ),
-                      ),
-                    if (!ApiConfig.isProduction) const SizedBox(width: 8),
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(
@@ -233,101 +214,6 @@ class _LoginScreenState extends State<LoginScreen>
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  void _mostrarConfigIp(BuildContext context) {
-    final controller = TextEditingController(text: ApiConfig.ip);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Icon(Icons.dns_rounded, color: Colors.green.shade600),
-            const SizedBox(width: 10),
-            const Text('Configurar Servidor'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Ingresa la dirección IP del servidor Backend:',
-              style: TextStyle(
-                fontSize: 13,
-                color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Dirección IP',
-                hintText: '192.168.1.X',
-                prefixIcon: const Icon(Icons.wifi_rounded),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: Colors.green.shade600,
-                    width: 2,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Puerto: ${ApiConfig.port}',
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton.icon(
-            onPressed: () async {
-              final newIp = controller.text.trim();
-              if (newIp.isNotEmpty) {
-                await ApiConfig.setIp(newIp);
-                if (ctx.mounted) Navigator.pop(ctx);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Servidor actualizado: ${ApiConfig.baseUrl}',
-                      ),
-                      backgroundColor: Colors.green.shade600,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  );
-                }
-              }
-            },
-            icon: const Icon(Icons.save_rounded),
-            label: const Text('Guardar'),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.green.shade600,
-            ),
-          ),
-        ],
       ),
     );
   }
