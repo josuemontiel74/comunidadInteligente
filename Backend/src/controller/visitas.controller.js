@@ -276,7 +276,7 @@ export const crearVisita = async (req, res) => {
     const visita = await Visita.create({
       numeroDocumento,
       apartamentoId,
-      fechaHoraIngreso: fechaIngreso.format("YYYY-MM-DD HH:mm"),
+      fechaHoraIngreso: fechaIngreso.toDate(),
       estadoId: estadoId || ESTADO_VISITA.ACTIVA,
       vehiculoMatricula,
       observaciones: observaciones || null,
@@ -423,6 +423,7 @@ export const obtenerVisitaPorId = async (req, res) => {
 function validarFechaIngreso(fechaHoraIngreso) {
   const fechaIngreso = dayjs(fechaHoraIngreso, "YYYY-MM-DD HH:mm", true).tz(
     TIMEZONE_COLOMBIA,
+    true,
   );
   if (!fechaIngreso.isValid()) {
     return { error: "La fecha de ingreso no es válida" };
@@ -430,7 +431,7 @@ function validarFechaIngreso(fechaHoraIngreso) {
   if (fechaIngreso.year() > 2100) {
     return { error: "El año de la fecha de ingreso no puede ser mayor a 2100" };
   }
-  return { formatted: fechaIngreso.format("YYYY-MM-DD HH:mm") };
+  return { formatted: fechaIngreso.toDate() };
 }
 
 /**
