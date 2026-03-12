@@ -90,9 +90,9 @@ function createPdfHelpers(pdf, ctx, { m, ph, pw, colLabel, colValue }) {
     pdf.rect(m, ctx.y + 9, pw - m * 2, 0.5, "F");
     pdf.setTextColor(255, 255, 255);
     pdf.setFontSize(11);
-    pdf.setFont(undefined, "bold");
+    pdf.setFont("helvetica", "bold");
     pdf.text(text, colLabel + 2, ctx.y + 6.5);
-    pdf.setFont(undefined, "normal");
+    pdf.setFont("helvetica", "normal");
     pdf.setTextColor(30, 30, 30);
     ctx.y += 14;
   };
@@ -100,10 +100,10 @@ function createPdfHelpers(pdf, ctx, { m, ph, pw, colLabel, colValue }) {
   const subTitle = (text) => {
     checkPage(10);
     pdf.setFontSize(10);
-    pdf.setFont(undefined, "bold");
+    pdf.setFont("helvetica", "bold");
     pdf.setTextColor(80, 40, 160);
     pdf.text(text, colLabel, ctx.y);
-    pdf.setFont(undefined, "normal");
+    pdf.setFont("helvetica", "normal");
     pdf.setTextColor(30, 30, 30);
     ctx.y += 7;
   };
@@ -112,15 +112,15 @@ function createPdfHelpers(pdf, ctx, { m, ph, pw, colLabel, colValue }) {
     checkPage(7);
     const valStr = String(value);
     pdf.setFontSize(9.5);
-    pdf.setFont(undefined, "normal");
+    pdf.setFont("helvetica", "normal");
     pdf.setTextColor(100, 100, 120);
     pdf.text(`${label}:`, colLabel + 2, ctx.y);
-    pdf.setFont(undefined, "bold");
+    pdf.setFont("helvetica", "bold");
     pdf.setTextColor(30, 30, 30);
     const maxW = pw - colLabel - 2 - 30;
     const splitVal = pdf.splitTextToSize(valStr, maxW);
     pdf.text(splitVal[0], colValue, ctx.y, { align: "right" });
-    pdf.setFont(undefined, "normal");
+    pdf.setFont("helvetica", "normal");
     pdf.setTextColor(30, 30, 30);
     ctx.y += 6.5;
   };
@@ -130,13 +130,13 @@ function createPdfHelpers(pdf, ctx, { m, ph, pw, colLabel, colValue }) {
     const pct = total > 0 ? val / total : 0;
     const pctText = `${(pct * 100).toFixed(1)}%`;
     pdf.setFontSize(9);
-    pdf.setFont(undefined, "normal");
+    pdf.setFont("helvetica", "normal");
     pdf.setTextColor(80, 80, 100);
     pdf.text(label, colLabel + 2, ctx.y);
-    pdf.setFont(undefined, "bold");
+    pdf.setFont("helvetica", "bold");
     pdf.setTextColor(50, 50, 50);
     pdf.text(`${val} / ${total}`, colValue, ctx.y, { align: "right" });
-    pdf.setFont(undefined, "normal");
+    pdf.setFont("helvetica", "normal");
     ctx.y += 5;
     pdf.setFillColor(220, 220, 230);
     pdf.roundedRect(barX + 2, ctx.y, barW - 4, 5, 2, 2, "F");
@@ -638,13 +638,13 @@ function Reportes() {
 
     pdf.setTextColor(255, 255, 255);
     pdf.setFontSize(18);
-    pdf.setFont(undefined, "bold");
+    pdf.setFont("helvetica", "bold");
     pdf.text("Comunidad Inteligente", pw / 2, 13, { align: "center" });
     pdf.setFontSize(12);
-    pdf.setFont(undefined, "normal");
+    pdf.setFont("helvetica", "normal");
     pdf.text("Reporte General de Actividad", pw / 2, 21, { align: "center" });
     pdf.setFontSize(10);
-    pdf.text(`Período: ${fechaInicio}  →  ${fechaFin}`, pw / 2, 30, {
+    pdf.text(`Periodo: ${fechaInicio}  ->  ${fechaFin}`, pw / 2, 30, {
       align: "center",
     });
     pdf.setFontSize(8.5);
@@ -654,7 +654,7 @@ function Reportes() {
     });
 
     pdf.setTextColor(30, 30, 30);
-    pdf.setFont(undefined, "normal");
+    pdf.setFont("helvetica", "normal");
     ctx.y = 52;
 
     // ====== PARQUEADEROS ======
@@ -752,10 +752,10 @@ function Reportes() {
     pdf.setFillColor(124, 58, 237);
     pdf.rect(m, ctx.y + 10, pw - m * 2, 1, "F");
     pdf.setFontSize(13);
-    pdf.setFont(undefined, "bold");
+    pdf.setFont("helvetica", "bold");
     pdf.setTextColor(80, 20, 200);
     pdf.text("REPORTES DE RESIDENTES", colLabel + 2, ctx.y + 7);
-    pdf.setFont(undefined, "normal");
+    pdf.setFont("helvetica", "normal");
     pdf.setTextColor(30, 30, 30);
     ctx.y += 17;
 
@@ -810,10 +810,10 @@ function Reportes() {
       pdf.setFillColor(3, 105, 161);
       pdf.rect(m, ctx.y + 10, pw - m * 2, 1, "F");
       pdf.setFontSize(13);
-      pdf.setFont(undefined, "bold");
+      pdf.setFont("helvetica", "bold");
       pdf.setTextColor(3, 80, 130);
       pdf.text("REPORTE DE USUARIOS DEL SISTEMA", colLabel + 2, ctx.y + 7);
-      pdf.setFont(undefined, "normal");
+      pdf.setFont("helvetica", "normal");
       pdf.setTextColor(30, 30, 30);
       ctx.y += 17;
 
