@@ -121,6 +121,17 @@ function visitaRequiereRenovacion(visita) {
   return Boolean(visita?.requiereRenovacion);
 }
 
+function obtenerConfigEstadoBadge(estado) {
+  switch (estado) {
+    case "activa":
+      return { badgeClass: "vis-badge-activa", label: "Activa" };
+    case "vencida":
+      return { badgeClass: "vis-badge-vencida", label: "Vencida" };
+    default:
+      return { badgeClass: "vis-badge-finalizada", label: "Finalizada" };
+  }
+}
+
 /** Helper para clase disabled en paginación */
 const disabledIf = (cond) => (cond ? "disabled" : "");
 
@@ -1193,18 +1204,10 @@ function Visitas() {
                   <tbody>
                     {visitasPaginadas.map((v) => {
                       const estado = obtenerEstadoReal(v);
-                      const estadoBadgeClass =
-                        estado === "activa"
-                          ? "vis-badge-activa"
-                          : estado === "vencida"
-                            ? "vis-badge-vencida"
-                            : "vis-badge-finalizada";
-                      const estadoLabel =
-                        estado === "activa"
-                          ? "Activa"
-                          : estado === "vencida"
-                            ? "Vencida"
-                            : "Finalizada";
+                      const {
+                        badgeClass: estadoBadgeClass,
+                        label: estadoLabel,
+                      } = obtenerConfigEstadoBadge(estado);
                       return (
                         <tr key={v.idVisita} className="vis-table-row">
                           <td>{v.nombreVisitante}</td>
@@ -1284,18 +1287,8 @@ function Visitas() {
               <div className="vis-cards-container">
                 {visitasPaginadas.map((v) => {
                   const estado = obtenerEstadoReal(v);
-                  const estadoBadgeClass =
-                    estado === "activa"
-                      ? "vis-badge-activa"
-                      : estado === "vencida"
-                        ? "vis-badge-vencida"
-                        : "vis-badge-finalizada";
-                  const estadoLabel =
-                    estado === "activa"
-                      ? "Activa"
-                      : estado === "vencida"
-                        ? "Vencida"
-                        : "Finalizada";
+                  const { badgeClass: estadoBadgeClass, label: estadoLabel } =
+                    obtenerConfigEstadoBadge(estado);
                   return (
                     <div key={v.idVisita} className="vis-card">
                       <div className="vis-card-header">
