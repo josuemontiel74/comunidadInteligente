@@ -704,7 +704,7 @@ function Residentes() {
       Swal.fire("Error", traducirMensajeBackend(errData), "warning");
       return false;
     }
-    Swal.fire({
+    await Swal.fire({
       icon: "success",
       title: "Actualizado correctamente",
       timer: 2500,
@@ -723,7 +723,7 @@ function Residentes() {
       Swal.fire("Error", traducirMensajeBackend(dataCreate), "warning");
       return false;
     }
-    Swal.fire({
+    await Swal.fire({
       icon: "success",
       title: "Registrado correctamente",
       timer: 2500,
@@ -819,7 +819,7 @@ function Residentes() {
         Swal.fire("Error", traducirMensajeBackend(errData), "warning");
         return;
       }
-      Swal.fire({
+      await Swal.fire({
         icon: "success",
         title: "Finalizado correctamente",
         timer: 2500,
@@ -1372,6 +1372,7 @@ function Residentes() {
       <ModalOverlay
         isOpen={modalAbierto}
         onClose={() => cerrarModal()}
+        confirmBeforeClose
         className="res-modal-overlay"
       >
         <div className="res-modal">

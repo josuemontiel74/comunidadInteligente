@@ -579,7 +579,7 @@ function GestionUsuarios() {
     if (result.isConfirmed) {
       const resAct = await activarUsuarioService(existente.username, token);
       if (resAct.ok) {
-        Swal.fire({
+        await Swal.fire({
           icon: "success",
           title: "Usuario reactivado",
           timer: 3000,
@@ -627,7 +627,7 @@ function GestionUsuarios() {
           body: JSON.stringify(payload),
         });
         if (resAct.ok) {
-          Swal.fire({
+          await Swal.fire({
             icon: "success",
             title: "Usuario reactivado",
             timer: 3000,
@@ -746,7 +746,7 @@ function GestionUsuarios() {
         dataRes.usuario?.username || "",
         token,
       );
-      Swal.fire({
+      await Swal.fire({
         icon: "success",
         title: "Registrado correctamente",
         text:
@@ -879,7 +879,7 @@ function GestionUsuarios() {
         targetUsername,
         token,
       );
-      Swal.fire({
+      await Swal.fire({
         icon: "success",
         title: "Actualizado correctamente",
         timer: 3000,
@@ -938,7 +938,7 @@ function GestionUsuarios() {
       setUsuarios((prev) =>
         prev.map((u) => (u.username === username ? { ...u, estadoId: 2 } : u)),
       );
-      Swal.fire({
+      await Swal.fire({
         icon: "success",
         title: "Usuario inactivado",
         timer: 2500,
@@ -1717,6 +1717,7 @@ function GestionUsuarios() {
       <ModalOverlay
         isOpen={showModalRegistrar}
         onClose={() => setShowModalRegistrar(false)}
+        confirmBeforeClose
         className="gu-modal-overlay"
       >
         <div className="gu-modal">
@@ -2016,6 +2017,7 @@ function GestionUsuarios() {
           setShowModalEditar(false);
           resetForm();
         }}
+        confirmBeforeClose
         className="gu-modal-overlay"
       >
         <div className="gu-modal">

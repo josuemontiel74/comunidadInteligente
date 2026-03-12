@@ -1,33 +1,56 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import PropTypes from "prop-types";
+import Swal from "sweetalert2";
 
 /**
  * Componente overlay reutilizable para modales.
  * Envuelve el contenido en un `<dialog open>` con handlers de
  * cierre al hacer click en el backdrop o presionar Escape.
  *
- * @example
- * <ModalOverlay isOpen={showModal} onClose={() => setShowModal(false)} className="paq-modal-overlay">
- *   <div className="paq-modal">…contenido…</div>
- * </ModalOverlay>
+ * Si `confirmBeforeClose` es true, al hacer clic fuera o presionar Escape
+ * se muestra una alerta de confirmación antes de cerrar.
  */
 export default function ModalOverlay({
   isOpen,
   onClose,
   className = "",
+  confirmBeforeClose = false,
   children,
 }) {
   const dialogRef = useRef(null);
+
+  const intentarCerrar = useCallback(() => {
+    if (!confirmBeforeClose) {
+      onClose();
+      return;
+    }
+    Swal.fire({
+      title: "¿Estás seguro?",
+      text: "Si sales, se perderán los datos que ingresaste.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#e74c3c",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Sí, salir",
+      cancelButtonText: "Cancelar",
+      reverseButtons: true,
+    }).then((result) => {
+      if (result.isConfirmed) onClose();
+    });
+  }, [confirmBeforeClose, onClose]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
 
     const handleClick = (e) => {
-      if (e.target === dialog) onClose();
+      if (e.target === dialog) intentarCerrar();
     };
     const handleKeyDown = (e) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        e.preventDefault();
+        intentarCerrar();
+      }
     };
 
     dialog.addEventListener("click", handleClick);
@@ -36,7 +59,7 @@ export default function ModalOverlay({
       dialog.removeEventListener("click", handleClick);
       dialog.removeEventListener("keydown", handleKeyDown);
     };
-  }, [onClose]);
+  }, [intentarCerrar]);
 
   if (!isOpen) return null;
 
@@ -57,5 +80,6 @@ ModalOverlay.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   className: PropTypes.string,
+  confirmBeforeClose: PropTypes.bool,
   children: PropTypes.node.isRequired,
 };
