@@ -20,7 +20,7 @@ dayjs.extend(timezone);
 // Regex de placa colombiana ─
 const PLACA_REGEX = /^[A-Z]{3}\d{2,3}[A-Z]?$/;
 
-// Helpers privados 
+// Helpers privados
 
 /** Construye el objeto de campos a actualizar para un Visitante */
 function buildVisitanteData(nombreVisitante, tipoDocumentoId) {

@@ -173,7 +173,7 @@ function createPdfHelpers(pdf, ctx, { m, ph, pw, colLabel, colValue }) {
   return { checkPage, sectionTitle, subTitle, stat, progressBar, divider };
 }
 
-// Mapeos de rol (fuera del componente para menor complejidad cognitiva) 
+// Mapeos de rol (fuera del componente para menor complejidad cognitiva)
 const RPT_MENU_TITLE = { 1: "Men\u00fa Super Admin", 2: "Men\u00fa Admin" };
 const RPT_DASH_PATH = { 1: "/Superadmin", 2: "/Admin" };
 const mapMenuTitle = (id) => RPT_MENU_TITLE[id] || "Men\u00fa Vigilante";
