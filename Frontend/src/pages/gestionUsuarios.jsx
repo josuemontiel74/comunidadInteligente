@@ -1717,6 +1717,7 @@ function GestionUsuarios() {
       <ModalOverlay
         isOpen={showModalRegistrar}
         onClose={() => setShowModalRegistrar(false)}
+        confirmBeforeClose
         className="gu-modal-overlay"
       >
         <div className="gu-modal">
@@ -2016,6 +2017,7 @@ function GestionUsuarios() {
           setShowModalEditar(false);
           resetForm();
         }}
+        confirmBeforeClose
         className="gu-modal-overlay"
       >
         <div className="gu-modal">

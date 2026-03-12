@@ -100,6 +100,19 @@ function getModalEditConfig(isEditing) {
   };
 }
 
+/** Devuelve la fecha/hora actual en Colombia (UTC-5) con formato YYYY-MM-DDTHH:mm */
+function obtenerFechaHoraColombia() {
+  const ahora = new Date();
+  const utcMs = ahora.getTime() + ahora.getTimezoneOffset() * 60000;
+  const col = new Date(utcMs + -5 * 60 * 60000);
+  const yyyy = col.getFullYear();
+  const mm = String(col.getMonth() + 1).padStart(2, "0");
+  const dd = String(col.getDate()).padStart(2, "0");
+  const hh = String(col.getHours()).padStart(2, "0");
+  const min = String(col.getMinutes()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+}
+
 /** Helper para clase disabled en paginación */
 const disabledIf = (cond) => (cond ? "disabled" : "");
 
@@ -548,6 +561,7 @@ function Visitas() {
   // Abrir modal crear 
   const abrirModalCrear = () => {
     resetForm();
+    setFormData((prev) => ({ ...prev, fechaHoraIngreso: obtenerFechaHoraColombia() }));
     setModalCrear(true);
   };
 
@@ -1398,6 +1412,7 @@ function Visitas() {
           setVisitaEditando(null);
           resetForm();
         }}
+        confirmBeforeClose
         className="vis-modal-overlay"
       >
         <div className="vis-modal">
@@ -1572,9 +1587,8 @@ function Visitas() {
                   type="datetime-local"
                   className="vis-form-control"
                   value={formData.fechaHoraIngreso}
-                  onChange={(e) =>
-                    handleChange("fechaHoraIngreso", e.target.value)
-                  }
+                  readOnly
+                  style={{ backgroundColor: "#f0f0f0", cursor: "not-allowed" }}
                   required
                 />
               </div>

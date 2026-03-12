@@ -121,6 +121,19 @@ function parsearFechaHoraColombia(fechaRaw) {
   }
 }
 
+/** Devuelve la fecha/hora actual en Colombia (UTC-5) con formato YYYY-MM-DDTHH:mm */
+function obtenerFechaHoraColombia() {
+  const ahora = new Date();
+  const utcMs = ahora.getTime() + ahora.getTimezoneOffset() * 60000;
+  const col = new Date(utcMs + -5 * 60 * 60000);
+  const yyyy = col.getFullYear();
+  const mm = String(col.getMonth() + 1).padStart(2, "0");
+  const dd = String(col.getDate()).padStart(2, "0");
+  const hh = String(col.getHours()).padStart(2, "0");
+  const min = String(col.getMinutes()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+}
+
 /** Helper para clase disabled en paginación */
 const disabledIf = (cond) => (cond ? "disabled" : "");
 
@@ -204,6 +217,7 @@ function Paqueteria() {
   // Abrir modal de registro si se viene desde otro módulo
   useEffect(() => {
     if (location.state?.abrirModal) {
+      setFormCrear({ ...formCrearVacio, fechaHoraRecepcion: obtenerFechaHoraColombia() });
       setModalCrear(true);
     }
   }, [location.state]);
@@ -739,7 +753,10 @@ function Paqueteria() {
             <h5>No hay paquetes registrados</h5>
             <button
               className="btn paq-btn-retry mt-3"
-              onClick={() => setModalCrear(true)}
+              onClick={() => {
+                setFormCrear({ ...formCrearVacio, fechaHoraRecepcion: obtenerFechaHoraColombia() });
+                setModalCrear(true);
+              }}
             >
               <i className="bi bi-plus-lg me-2"></i>Registrar primer paquete
             </button>
@@ -782,7 +799,10 @@ function Paqueteria() {
               <div className="paq-toolbar-top">
                 <button
                   className="paq-btn-registrar"
-                  onClick={() => setModalCrear(true)}
+                  onClick={() => {
+                    setFormCrear({ ...formCrearVacio, fechaHoraRecepcion: obtenerFechaHoraColombia() });
+                    setModalCrear(true);
+                  }}
                 >
                   <i className="bi bi-plus-lg"></i> Registrar Paquete
                 </button>
@@ -1116,6 +1136,7 @@ function Paqueteria() {
       <ModalOverlay
         isOpen={modalCrear}
         onClose={() => setModalCrear(false)}
+        confirmBeforeClose
         className="paq-modal-overlay"
       >
         <div className="paq-modal">
@@ -1254,12 +1275,8 @@ function Paqueteria() {
                   type="datetime-local"
                   className="paq-form-control"
                   value={formCrear.fechaHoraRecepcion}
-                  onChange={(e) =>
-                    setFormCrear({
-                      ...formCrear,
-                      fechaHoraRecepcion: e.target.value,
-                    })
-                  }
+                  readOnly
+                  style={{ backgroundColor: "#f0f0f0", cursor: "not-allowed" }}
                   required
                 />
               </div>
@@ -1315,6 +1332,7 @@ function Paqueteria() {
           setModalEditar(false);
           setPaqueteEditar(null);
         }}
+        confirmBeforeClose
         className="paq-modal-overlay"
       >
         <div className="paq-modal">
@@ -1457,12 +1475,8 @@ function Paqueteria() {
                   type="datetime-local"
                   className="paq-form-control"
                   value={formEditar.fechaHoraRecepcion}
-                  onChange={(e) =>
-                    setFormEditar({
-                      ...formEditar,
-                      fechaHoraRecepcion: e.target.value,
-                    })
-                  }
+                  readOnly
+                  style={{ backgroundColor: "#f0f0f0", cursor: "not-allowed" }}
                   required
                 />
               </div>

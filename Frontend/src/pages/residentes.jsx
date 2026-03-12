@@ -1372,6 +1372,7 @@ function Residentes() {
       <ModalOverlay
         isOpen={modalAbierto}
         onClose={() => cerrarModal()}
+        confirmBeforeClose
         className="res-modal-overlay"
       >
         <div className="res-modal">

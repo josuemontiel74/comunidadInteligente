@@ -1398,6 +1398,7 @@ function AreasComunes() {
       <ModalOverlay
         isOpen={modalAbierto}
         onClose={() => cerrarModal()}
+        confirmBeforeClose
         className="ac-modal-overlay"
       >
         <div className="ac-modal">
