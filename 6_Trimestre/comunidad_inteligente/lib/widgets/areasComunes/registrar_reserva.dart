@@ -1,7 +1,10 @@
+// ignore_for_file: use_build_context_synchronously
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import '../../main.dart';
+import '../../utils/validaciones.dart';
 
 class RegistrarReserva extends StatefulWidget {
   const RegistrarReserva({super.key, required this.token});
@@ -30,6 +33,8 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
   TimeOfDay? horaFin;
   DateTime? fechaReserva;
   int? aceptaReglamento;
+  List<dynamic> areasDisponibles = [];
+  bool cargandoAreas = true;
 
   final List<String> torres = [
     'A',
@@ -70,54 +75,157 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
     'I': ['901', '902', '903', '904', '905'],
     'J': ['1001', '1002', '1003', '1004', '1005'],
   };
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarAreasDisponibles();
+  }
+
+  Future<void> _cargarAreasDisponibles() async {
+    try {
+      final headers = <String, String>{'Content-Type': 'application/json'};
+      if (widget.token != null) {
+        headers['Authorization'] = 'Bearer ${widget.token}';
+      }
+
+      final response = await http.get(
+        Uri.parse('${LoginServe.baseUrl}/api/areaComunes'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final areas = data['data'] ?? [];
+
+        setState(() {
+          // Filtrar solo las áreas con estadoId: 4 (Disponible)
+          areasDisponibles = areas
+              .where((area) => area['estadoId'] == 4)
+              .toList();
+          cargandoAreas = false;
+        });
+      } else {
+        setState(() => cargandoAreas = false);
+      }
+    } catch (e) {
+      setState(() => cargandoAreas = false);
+    }
+  }
+
   Future<void> crearReserva() async {
-    final url = Uri.parse('${LoginServe.baseUrl}/api/ReservarAreaMovil');
-    final response = await http.post(
-      url,
-      headers: {
-        'Authorization': 'Bearer ${widget.token}',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'nombreSolicitante': nombreSolicitante,
-        'documentoSolicitante': documentoSolicitante,
-        'telefonoSolicitante': telefonoSolicitante,
-        'correoSolicitante': correoSolicitante,
-        'tipoDocumentoId': tipoDocumentoId,
-        'areaComunId': int.tryParse(areaComunId ?? '0'),
-        'motivoReserva': motivoReserva,
-        'cantidadAsistentes': int.tryParse(cantidadAsistentes ?? '0'),
-        'invitadosExternos': int.tryParse(invitadosExternos ?? '0'),
-        'numeroApartamento': apartamentoSeleccionado,
-        'aceptaReglamento': aceptaReglamento,
-        'horaInicio': horaInicio != null
-            ? '${horaInicio!.hour.toString().padLeft(2, '0')}:${horaInicio!.minute.toString().padLeft(2, '0')}'
-            : null,
-        'horaFin': horaFin != null
-            ? '${horaFin!.hour.toString().padLeft(2, '0')}:${horaFin!.minute.toString().padLeft(2, '0')}'
-            : null,
-        'fechaReserva': fechaReserva != null
-            ? '${fechaReserva!.year}-${fechaReserva!.month.toString().padLeft(2, '0')}-${fechaReserva!.day.toString().padLeft(2, '0')}'
-            : null,
-      }),
-    );
-    if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Reserva creada correctamente"),
-          backgroundColor: Colors.green,
-          showCloseIcon: true,
-        ),
+    try {
+      final url = Uri.parse('${LoginServe.baseUrl}/api/reservas-areas');
+      final response = await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'nombreSolicitante': nombreSolicitante,
+          'documentoSolicitante': documentoSolicitante,
+          'telefonoSolicitante': telefonoSolicitante,
+          'correoSolicitante': correoSolicitante,
+          'tipoDocumentoId': tipoDocumentoId,
+          'areaComunId': int.tryParse(areaComunId ?? '0'),
+          'motivoReserva': motivoReserva,
+          'cantidadAsistentes': int.tryParse(cantidadAsistentes ?? '0'),
+          'invitadosExternos': int.tryParse(invitadosExternos ?? '0'),
+          'numeroApartamento': apartamentoSeleccionado,
+          'aceptaReglamento': aceptaReglamento,
+          'horaInicio': horaInicio != null
+              ? '${horaInicio!.hour.toString().padLeft(2, '0')}:${horaInicio!.minute.toString().padLeft(2, '0')}'
+              : null,
+          'horaFin': horaFin != null
+              ? '${horaFin!.hour.toString().padLeft(2, '0')}:${horaFin!.minute.toString().padLeft(2, '0')}'
+              : null,
+          'fechaReserva': fechaReserva != null
+              ? '${fechaReserva!.year}-${fechaReserva!.month.toString().padLeft(2, '0')}-${fechaReserva!.day.toString().padLeft(2, '0')}'
+              : null,
+        }),
       );
-      await Future.delayed(const Duration(seconds: 1));
-      Navigator.pop(context);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error al crear la reserva (${response.statusCode})"),
-          backgroundColor: Colors.red,
-        ),
-      );
+
+      if (!context.mounted) return;
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Reserva creada correctamente"),
+            backgroundColor: Colors.green,
+            showCloseIcon: true,
+          ),
+        );
+        await Future.delayed(const Duration(seconds: 1));
+        if (!context.mounted) return;
+        Navigator.pop(context);
+      } else if (response.statusCode == 409) {
+        // Conflicto: ya existe una reserva en el mismo horario
+        final errorData = jsonDecode(response.body);
+        final rawMsg = errorData['message'];
+        final mensaje = rawMsg is String
+            ? rawMsg
+            : 'El área ya está reservada en la fecha y horario indicados.';
+
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              title: Row(
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.orange.shade700,
+                    size: 28,
+                  ),
+                  const SizedBox(width: 10),
+                  const Flexible(
+                    child: Text(
+                      'Horario No Disponible',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              content: Text(mensaje, style: const TextStyle(fontSize: 15)),
+              actions: [
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Entendido'),
+                ),
+              ],
+            ),
+          );
+        }
+      } else {
+        // Intentar extraer mensaje del servidor
+        String errorMsg = 'Error al crear la reserva (${response.statusCode})';
+        try {
+          final errorData = jsonDecode(response.body);
+          if (errorData['message'] is String) {
+            errorMsg = errorData['message'];
+          }
+        } catch (_) {}
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error de conexión: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -129,401 +237,622 @@ class _RegistrarReservaState extends State<RegistrarReserva> {
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Registrar Reserva"),
-        backgroundColor: Colors.orange,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Datos del solicitante",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      backgroundColor: Theme.of(context).cardColor,
+      body: Column(
+        children: [
+          // Header personalizado con botón cerrar
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.orange,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
               ),
-              const SizedBox(height: 10),
-
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 3,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      TextFormField(
-                        decoration: InputDecoration(
-                          labelText: "Nombre solicitante",
-                          border: border,
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'El nombre es requerido';
-                          }
-                          if (!RegExp(
-                            r'^[a-zA-Z\sÁÉÍÓÚáéíóúÑñ]+$',
-                          ).hasMatch(value)) {
-                            return 'El nombre solo puede contener letras';
-                          }
-                          return null;
-                        },
-                        onSaved: (val) => nombreSolicitante = val,
-                      ),
-                      const SizedBox(height: 12),
-
-                      TextFormField(
-                        decoration: InputDecoration(
-                          labelText: "Documento solicitante",
-                          border: border,
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'El documento es requerido';
-                          }
-                          if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                            return 'El documento solo puede contener números';
-                          }
-                          return null;
-                        },
-                        onSaved: (val) => documentoSolicitante = val,
-                      ),
-                      const SizedBox(height: 12),
-
-                      DropdownButtonFormField<String>(
-                        decoration: InputDecoration(
-                          labelText: "Tipo documento",
-                          border: border,
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: "1", child: Text("CC")),
-                          DropdownMenuItem(value: "2", child: Text("CE")),
-                          DropdownMenuItem(value: "3", child: Text("PP")),
-                          DropdownMenuItem(value: "4", child: Text("PEP")),
-                          DropdownMenuItem(value: "5", child: Text("PPT")),
-                        ],
-                        onChanged: (v) => tipoDocumentoId = v,
-                      ),
-                      const SizedBox(height: 12),
-
-                      TextFormField(
-                        decoration: InputDecoration(
-                          labelText: "Teléfono",
-                          border: border,
-                        ),
-                        keyboardType: TextInputType.phone,
-                        validator: (value) {
-                          if (value != null && value.trim().isNotEmpty) {
-                            if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
-                              return 'El teléfono debe tener exactamente 10 dígitos';
-                            }
-                          }
-                          return null;
-                        },
-                        onSaved: (val) => telefonoSolicitante = val,
-                      ),
-                      const SizedBox(height: 12),
-
-                      TextFormField(
-                        decoration: InputDecoration(
-                          labelText: "Correo",
-                          border: border,
-                        ),
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value != null && value.trim().isNotEmpty) {
-                            if (!RegExp(
-                              r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                            ).hasMatch(value)) {
-                              return 'Ingrese un correo válido';
-                            }
-                          }
-                          return null;
-                        },
-                        onSaved: (val) => correoSolicitante = val,
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Torre
-                      DropdownButtonFormField<String>(
-                        value: torreSeleccionada,
-                        decoration: InputDecoration(
-                          labelText: 'Torre *',
-                          border: border,
-                          prefixIcon: const Icon(Icons.apartment),
-                        ),
-                        items: torres.map((torre) {
-                          return DropdownMenuItem(
-                            value: torre,
-                            child: Text('Torre $torre'),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            torreSeleccionada = value;
-                            apartamentoSeleccionado = null;
-                            apartamentoIdSeleccionado = null;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null) {
-                            return 'Seleccione una torre';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Apartamento
-                      DropdownButtonFormField<String>(
-                        value: apartamentoSeleccionado,
-                        decoration: InputDecoration(
-                          labelText: 'Apartamento *',
-                          border: border,
-                          prefixIcon: const Icon(Icons.home),
-                        ),
-                        items: torreSeleccionada != null
-                            ? apartamentosPorTorre[torreSeleccionada]!.map((
-                                apt,
-                              ) {
-                                return DropdownMenuItem(
-                                  value: apt,
-                                  child: Text('Apartamento $apt'),
-                                );
-                              }).toList()
-                            : [],
-                        onChanged: (value) {
-                          setState(() {
-                            apartamentoSeleccionado = value;
-                            if (torreSeleccionada != null && value != null) {
-                              apartamentoIdSeleccionado =
-                                  apartamentosConId[torreSeleccionada]![value];
-                            }
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null) {
-                            return 'Seleccione un apartamento';
-                          }
-                          return null;
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 25),
-              // TITULO del apartado
-              const Text(
-                "Datos de la reserva",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-
-              //segundo apartado 2
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 3,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      DropdownButtonFormField<String>(
-                        decoration: InputDecoration(
-                          labelText: "Área común",
-                          border: border,
-                        ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: "1",
-                            child: Text("Salón comunal 1"),
-                          ),
-                          DropdownMenuItem(
-                            value: "2",
-                            child: Text("Salón comunal 2"),
-                          ),
-                          DropdownMenuItem(value: "3", child: Text("Zona BBQ")),
-                        ],
-                        onChanged: (v) => areaComunId = v,
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Fecha
-                      TextFormField(
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          labelText: "Fecha reserva",
-                          border: border,
-                          suffixIcon: const Icon(
-                            Icons.calendar_today,
-                            color: Colors.orange,
-                          ),
-                        ),
-                        controller: TextEditingController(
-                          text: fechaReserva != null
-                              ? "${fechaReserva!.day}/${fechaReserva!.month}/${fechaReserva!.year}"
-                              : "",
-                        ),
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: DateTime.now(),
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime(2100),
-                          );
-                          if (picked != null) {
-                            setState(() => fechaReserva = picked);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Hora inicio
-                      TextFormField(
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          labelText: "Hora inicio",
-                          border: border,
-                          suffixIcon: const Icon(
-                            Icons.access_time,
-                            color: Colors.orange,
-                          ),
-                        ),
-                        controller: TextEditingController(
-                          text: horaInicio?.format(context) ?? "",
-                        ),
-                        onTap: () async {
-                          final picked = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.now(),
-                          );
-                          if (picked != null) {
-                            setState(() => horaInicio = picked);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Hora fin
-                      TextFormField(
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          labelText: "Hora fin",
-                          border: border,
-                          suffixIcon: const Icon(
-                            Icons.access_time_filled,
-                            color: Colors.orange,
-                          ),
-                        ),
-                        controller: TextEditingController(
-                          text: horaFin?.format(context) ?? "",
-                        ),
-                        onTap: () async {
-                          final picked = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.now(),
-                          );
-                          if (picked != null) setState(() => horaFin = picked);
-                        },
-                      ),
-                      const SizedBox(height: 12),
-
-                      TextFormField(
-                        decoration: InputDecoration(
-                          labelText: "Motivo reserva",
-                          border: border,
-                        ),
-                        onSaved: (val) => motivoReserva = val,
-                      ),
-                      const SizedBox(height: 12),
-
-                      TextFormField(
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: "Cantidad asistentes",
-                          border: border,
-                        ),
-                        validator: (value) {
-                          if (value != null && value.isNotEmpty) {
-                            final numero = int.tryParse(value);
-                            if (numero == null) {
-                              return 'Ingrese un número válido';
-                            }
-                            if (numero < 0) {
-                              return 'La cantidad no puede ser negativa';
-                            }
-                            if (numero > 127) {
-                              return 'Máximo 127 asistentes permitidos';
-                            }
-                          }
-                          return null;
-                        },
-                        onSaved: (val) => cantidadAsistentes = val,
-                      ),
-                      const SizedBox(height: 12),
-
-                      DropdownButtonFormField<String>(
-                        decoration: InputDecoration(
-                          labelText: "Invitados externos",
-                          border: border,
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: "0", child: Text("No")),
-                          DropdownMenuItem(value: "1", child: Text("Sí")),
-                        ],
-                        onChanged: (v) => invitadosExternos = v,
-                      ),
-                      const SizedBox(height: 12),
-
-                      DropdownButtonFormField<String>(
-                        decoration: InputDecoration(
-                          labelText: "Acepta reglamento",
-                          border: border,
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: "0", child: Text("No")),
-                          DropdownMenuItem(value: "1", child: Text("Sí")),
-                        ],
-                        onChanged: (v) =>
-                            aceptaReglamento = int.tryParse(v ?? '0'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 30),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    "Registrar Reserva",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
-                  child: const Text("Guardar", style: TextStyle(fontSize: 18)),
-                  onPressed: () async {
-                    if (_formKey.currentState!.validate()) {
-                      _formKey.currentState!.save();
-                      await crearReserva();
-                    }
-                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+          // Contenido scrollable
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Datos del solicitante",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 3,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            TextFormField(
+                              decoration: InputDecoration(
+                                labelText: "Nombre solicitante",
+                                border: border,
+                              ),
+                              inputFormatters: [NombreInputFormatter()],
+                              validator: (value) =>
+                                  validarNombreCompleto(value),
+                              onSaved: (val) => nombreSolicitante = val,
+                            ),
+                            const SizedBox(height: 12),
+
+                            DropdownButtonFormField<String>(
+                              decoration: InputDecoration(
+                                labelText: "Tipo documento",
+                                border: border,
+                              ),
+                              items: const [
+                                DropdownMenuItem(value: "1", child: Text("CC")),
+                                DropdownMenuItem(value: "2", child: Text("CE")),
+                                DropdownMenuItem(value: "3", child: Text("PP")),
+                                DropdownMenuItem(
+                                  value: "4",
+                                  child: Text("PEP"),
+                                ),
+                                DropdownMenuItem(
+                                  value: "5",
+                                  child: Text("PPT"),
+                                ),
+                              ],
+                              onChanged: (v) {
+                                setState(() {
+                                  tipoDocumentoId = v;
+                                  // Limpiar documento al cambiar tipo
+                                  documentoSolicitante = null;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 12),
+
+                            TextFormField(
+                              key: ValueKey('doc_area_$tipoDocumentoId'),
+                              decoration: InputDecoration(
+                                labelText: "Documento solicitante",
+                                border: border,
+                              ),
+                              keyboardType: tipoDocumentoId == '3'
+                                  ? TextInputType.text
+                                  : TextInputType.number,
+                              inputFormatters: [
+                                tipoDocumentoId == '3'
+                                    ? PasaporteInputFormatter()
+                                    : DocumentoNumericoInputFormatter(),
+                                LengthLimitingTextInputFormatter(20),
+                              ],
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'El documento es requerido';
+                                }
+                                // Mapear IDs de áreas a validaciones:
+                                // CC=1→1, CE=2→3, PP=3→2, PEP=4→4, PPT=5→5
+                                int? validacionId;
+                                switch (tipoDocumentoId) {
+                                  case '1':
+                                    validacionId = 1;
+                                    break;
+                                  case '2':
+                                    validacionId = 3;
+                                    break;
+                                  case '3':
+                                    validacionId = 2;
+                                    break;
+                                  case '4':
+                                    validacionId = 4;
+                                    break;
+                                  case '5':
+                                    validacionId = 5;
+                                    break;
+                                }
+                                return validarDocumento(value, validacionId);
+                              },
+                              onSaved: (val) => documentoSolicitante = val,
+                            ),
+                            const SizedBox(height: 12),
+
+                            TextFormField(
+                              decoration: InputDecoration(
+                                labelText: "Teléfono",
+                                border: border,
+                              ),
+                              keyboardType: TextInputType.phone,
+                              inputFormatters: [TelefonoInputFormatter()],
+                              validator: (value) {
+                                if (value != null && value.trim().isNotEmpty) {
+                                  return validarTelefono(value);
+                                }
+                                return null;
+                              },
+                              onSaved: (val) => telefonoSolicitante = val,
+                            ),
+                            const SizedBox(height: 12),
+
+                            TextFormField(
+                              decoration: InputDecoration(
+                                labelText: "Correo",
+                                border: border,
+                              ),
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (value) {
+                                if (value != null && value.trim().isNotEmpty) {
+                                  if (!RegExp(
+                                    r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                                  ).hasMatch(value)) {
+                                    return 'Ingrese un correo válido';
+                                  }
+                                }
+                                return null;
+                              },
+                              onSaved: (val) => correoSolicitante = val,
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Torre
+                            DropdownButtonFormField<String>(
+                              initialValue: torreSeleccionada,
+                              decoration: InputDecoration(
+                                labelText: 'Torre *',
+                                border: border,
+                                prefixIcon: const Icon(Icons.apartment),
+                              ),
+                              items: torres.map((torre) {
+                                return DropdownMenuItem(
+                                  value: torre,
+                                  child: Text('Torre $torre'),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  torreSeleccionada = value;
+                                  apartamentoSeleccionado = null;
+                                  apartamentoIdSeleccionado = null;
+                                });
+                              },
+                              validator: (value) {
+                                if (value == null) {
+                                  return 'Seleccione una torre';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Apartamento
+                            DropdownButtonFormField<String>(
+                              initialValue: apartamentoSeleccionado,
+                              decoration: InputDecoration(
+                                labelText: 'Apartamento *',
+                                border: border,
+                                prefixIcon: const Icon(Icons.home),
+                              ),
+                              items: torreSeleccionada != null
+                                  ? apartamentosPorTorre[torreSeleccionada]!
+                                        .map((apt) {
+                                          return DropdownMenuItem(
+                                            value: apt,
+                                            child: Text('Apartamento $apt'),
+                                          );
+                                        })
+                                        .toList()
+                                  : [],
+                              onChanged: (value) {
+                                setState(() {
+                                  apartamentoSeleccionado = value;
+                                  if (torreSeleccionada != null &&
+                                      value != null) {
+                                    apartamentoIdSeleccionado =
+                                        apartamentosConId[torreSeleccionada]![value];
+                                  }
+                                });
+                              },
+                              validator: (value) {
+                                if (value == null) {
+                                  return 'Seleccione un apartamento';
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 25),
+                    // TITULO del apartado
+                    const Text(
+                      "Datos de la reserva",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    //segundo apartado 2
+                    Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 3,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            cargandoAreas
+                                ? const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(16.0),
+                                      child: CircularProgressIndicator(
+                                        color: Colors.orange,
+                                      ),
+                                    ),
+                                  )
+                                : DropdownButtonFormField<String>(
+                                    decoration: InputDecoration(
+                                      labelText: "Área común",
+                                      border: border,
+                                    ),
+                                    items: areasDisponibles.isEmpty
+                                        ? [
+                                            const DropdownMenuItem(
+                                              value: null,
+                                              enabled: false,
+                                              child: Text(
+                                                "No hay áreas disponibles",
+                                                style: TextStyle(
+                                                  color: Colors.red,
+                                                ),
+                                              ),
+                                            ),
+                                          ]
+                                        : areasDisponibles
+                                              .map<DropdownMenuItem<String>>((
+                                                area,
+                                              ) {
+                                                return DropdownMenuItem<String>(
+                                                  value: area['idAreaComun']
+                                                      .toString(),
+                                                  child: Text(
+                                                    area['nombreArea'] ??
+                                                        'Sin nombre',
+                                                  ),
+                                                );
+                                              })
+                                              .toList(),
+                                    onChanged: areasDisponibles.isEmpty
+                                        ? null
+                                        : (v) => areaComunId = v,
+                                    validator: (v) =>
+                                        v == null ? 'Seleccione un área' : null,
+                                  ),
+                            const SizedBox(height: 12),
+
+                            // Fecha
+                            TextFormField(
+                              readOnly: true,
+                              decoration: InputDecoration(
+                                labelText: "Fecha reserva",
+                                border: border,
+                                suffixIcon: const Icon(
+                                  Icons.calendar_today,
+                                  color: Colors.orange,
+                                ),
+                              ),
+                              controller: TextEditingController(
+                                text: fechaReserva != null
+                                    ? "${fechaReserva!.day}/${fechaReserva!.month}/${fechaReserva!.year}"
+                                    : "",
+                              ),
+                              onTap: () async {
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: DateTime.now(),
+                                  firstDate: DateTime.now(),
+                                  lastDate: DateTime(2100),
+                                );
+                                if (picked != null) {
+                                  setState(() => fechaReserva = picked);
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Hora inicio
+                            TextFormField(
+                              readOnly: true,
+                              decoration: InputDecoration(
+                                labelText: "Hora inicio",
+                                border: border,
+                                suffixIcon: const Icon(
+                                  Icons.access_time,
+                                  color: Colors.orange,
+                                ),
+                              ),
+                              controller: TextEditingController(
+                                text: horaInicio?.format(context) ?? "",
+                              ),
+                              onTap: () async {
+                                final picked = await showTimePicker(
+                                  context: context,
+                                  initialTime: TimeOfDay.now(),
+                                  builder:
+                                      (BuildContext context, Widget? child) {
+                                        return Localizations.override(
+                                          context: context,
+                                          locale: const Locale('en', 'US'),
+                                          child: MediaQuery(
+                                            data: MediaQuery.of(context)
+                                                .copyWith(
+                                                  alwaysUse24HourFormat: false,
+                                                ),
+                                            child: child!,
+                                          ),
+                                        );
+                                      },
+                                );
+                                if (picked != null) {
+                                  // Validar que no sea hora pasada si la fecha es hoy
+                                  final now = DateTime.now();
+                                  final esHoy =
+                                      fechaReserva != null &&
+                                      fechaReserva!.year == now.year &&
+                                      fechaReserva!.month == now.month &&
+                                      fechaReserva!.day == now.day;
+                                  if (esHoy &&
+                                      (picked.hour < now.hour ||
+                                          (picked.hour == now.hour &&
+                                              picked.minute < now.minute))) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'No puede seleccionar una hora pasada',
+                                          ),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                    return;
+                                  }
+                                  setState(() => horaInicio = picked);
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Hora fin
+                            TextFormField(
+                              readOnly: true,
+                              decoration: InputDecoration(
+                                labelText: "Hora fin",
+                                border: border,
+                                suffixIcon: const Icon(
+                                  Icons.access_time_filled,
+                                  color: Colors.orange,
+                                ),
+                              ),
+                              controller: TextEditingController(
+                                text: horaFin?.format(context) ?? "",
+                              ),
+                              onTap: () async {
+                                final picked = await showTimePicker(
+                                  context: context,
+                                  initialTime: TimeOfDay.now(),
+                                  builder:
+                                      (BuildContext context, Widget? child) {
+                                        return Localizations.override(
+                                          context: context,
+                                          locale: const Locale('en', 'US'),
+                                          child: MediaQuery(
+                                            data: MediaQuery.of(context)
+                                                .copyWith(
+                                                  alwaysUse24HourFormat: false,
+                                                ),
+                                            child: child!,
+                                          ),
+                                        );
+                                      },
+                                );
+                                if (picked != null) {
+                                  // Validar que la hora fin sea posterior a hora inicio
+                                  if (horaInicio != null) {
+                                    final inicioMin =
+                                        horaInicio!.hour * 60 +
+                                        horaInicio!.minute;
+                                    final finMin =
+                                        picked.hour * 60 + picked.minute;
+                                    if (finMin <= inicioMin) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'La hora fin debe ser posterior a la hora inicio',
+                                            ),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                      return;
+                                    }
+                                  }
+                                  // Validar que no sea hora pasada si la fecha es hoy
+                                  final now = DateTime.now();
+                                  final esHoy =
+                                      fechaReserva != null &&
+                                      fechaReserva!.year == now.year &&
+                                      fechaReserva!.month == now.month &&
+                                      fechaReserva!.day == now.day;
+                                  if (esHoy &&
+                                      (picked.hour < now.hour ||
+                                          (picked.hour == now.hour &&
+                                              picked.minute < now.minute))) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'No puede seleccionar una hora pasada',
+                                          ),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                    return;
+                                  }
+                                  setState(() => horaFin = picked);
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 12),
+
+                            TextFormField(
+                              decoration: InputDecoration(
+                                labelText: "Motivo reserva",
+                                border: border,
+                              ),
+                              maxLength: 255,
+                              validator: (value) {
+                                if (value != null && value.length > 255) {
+                                  return 'Máximo 255 caracteres';
+                                }
+                                return null;
+                              },
+                              onSaved: (val) => motivoReserva = val,
+                            ),
+                            const SizedBox(height: 12),
+
+                            TextFormField(
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: "Cantidad asistentes",
+                                border: border,
+                              ),
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(3),
+                              ],
+                              validator: (value) {
+                                if (value != null && value.isNotEmpty) {
+                                  final numero = int.tryParse(value);
+                                  if (numero == null) {
+                                    return 'Ingrese un número válido';
+                                  }
+                                  if (numero < 0) {
+                                    return 'La cantidad no puede ser negativa';
+                                  }
+                                  if (numero > 127) {
+                                    return 'Máximo 127 asistentes permitidos';
+                                  }
+                                }
+                                return null;
+                              },
+                              onSaved: (val) => cantidadAsistentes = val,
+                            ),
+                            const SizedBox(height: 12),
+
+                            DropdownButtonFormField<String>(
+                              decoration: InputDecoration(
+                                labelText: "Invitados externos",
+                                border: border,
+                              ),
+                              items: const [
+                                DropdownMenuItem(value: "0", child: Text("No")),
+                                DropdownMenuItem(value: "1", child: Text("Sí")),
+                              ],
+                              onChanged: (v) => invitadosExternos = v,
+                            ),
+                            const SizedBox(height: 12),
+
+                            DropdownButtonFormField<String>(
+                              decoration: InputDecoration(
+                                labelText: "Acepta reglamento *",
+                                border: border,
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: "1",
+                                  child: Text("Sí, acepto"),
+                                ),
+                              ],
+                              validator: (value) {
+                                if (value == null || value != "1") {
+                                  return 'Debe aceptar el reglamento para continuar';
+                                }
+                                return null;
+                              },
+                              onChanged: (v) =>
+                                  aceptaReglamento = int.tryParse(v ?? '0'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 30),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Text(
+                          "Guardar",
+                          style: TextStyle(fontSize: 18),
+                        ),
+                        onPressed: () async {
+                          if (_formKey.currentState!.validate()) {
+                            _formKey.currentState!.save();
+                            await crearReserva();
+                          }
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

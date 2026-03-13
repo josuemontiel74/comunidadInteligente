@@ -1,299 +1,421 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Routes, Route, Link, useNavigate, Outlet } from "react-router-dom";
-import Chart from "chart.js/auto";
-import VisitasAdmin from "./visitasAdmin.jsx";
-import Paqueteria from "./paqueteria.jsx";
-import "bootstrap/dist/css/bootstrap.min.css";
-import "../Styles/vigilanteDashboard.css";
+import React, { useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import "../Styles/dashboardVigilante.css";
 import logo from "../../img/logo.png";
-import paquetesImg from "../../img/paquetes.jpeg";
-import visitasImg from "../../img/visitas.jpg";
-import Visitas from "./visitas.jsx";
-import Paqueadero from "./seleccionparqueadero.jsx";
-import Login from "./login.jsx";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
+import { logoutUsuario } from "../services/gestionUsuarios.jsx";
+import DescargaAppMovil from "./DescargaAppMovil.jsx";
+import ModoOscuro from "./ModoOscuro.jsx";
+import WhatsAppModal from "./WhatsAppModal.jsx";
+import useDarkMode from "../utils/useDarkMode.js";
+import useSessionCheck from "../utils/useSessionCheck.js";
+import useDashboardData from "../utils/useDashboardData.js";
+import { barChartConfig, useChart } from "../utils/chartConfigs.js";
 
 function Dashboard() {
-  const navigate = useNavigate();
-  const CERRAR = (e) => {
-    e.preventDefault();
-    localStorage.clear();
-    navigate("/");
-  };
-
-  const chartRef = useRef(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const obtenerToken = () => {
-    const token =
-      localStorage.getItem("token") ||
-      localStorage.getItem("authToken") ||
-      sessionStorage.getItem("token") ||
-      sessionStorage.getItem("authToken");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [saliendo, setSaliendo] = useState(false);
 
-    // Si no hay token válido, usar token de desarrollo
-    if (!token) {
-      console.warn(
-        "No se encontró token de autenticación, usando token de desarrollo"
-      );
-      return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Impvc3VlMjAyMyIsInJvbGVzSWQiOjEsImlhdCI6MTc1OTUxNTQwMCwiZXhwIjoxNzU5NTE5MDAwfQ.wKzrnUttdHRGkHnnZL1LR1amxt2ZQ4PZR85khZauShQ";
-    }
+  const oscuro = useDarkMode();
+  const { loading, usuario, fotoUsuario } = useSessionCheck();
+  const {
+    dataLoading,
+    setDataLoading,
+    cargarDatos,
+    paquetesEntregados,
+    paquetesPendientes,
+    visitasHoy,
+    visitasActivas,
+  } = useDashboardData(!loading);
 
-    return token;
+  // Canvas refs
+  const visitasCanvasRef = useRef(null);
+  const paquetesCanvasRef = useRef(null);
+
+  // Gráficos
+  const ready = !loading && !dataLoading;
+  useChart(
+    visitasCanvasRef,
+    ready
+      ? barChartConfig(
+          ["Hoy", "Activas"],
+          [visitasHoy, visitasActivas],
+          ["rgba(59, 130, 246, 0.85)", "rgba(34, 197, 94, 0.85)"],
+          "visitas",
+          oscuro,
+        )
+      : null,
+    [ready, visitasHoy, visitasActivas, oscuro],
+  );
+  useChart(
+    paquetesCanvasRef,
+    ready
+      ? barChartConfig(
+          ["Entregados", "Pendientes"],
+          [paquetesEntregados, paquetesPendientes],
+          ["rgba(34, 197, 94, 0.85)", "rgba(249, 115, 22, 0.85)"],
+          "paquetes",
+          oscuro,
+        )
+      : null,
+    [ready, paquetesEntregados, paquetesPendientes, oscuro],
+  );
+
+  const cerrarSesion = async (e) => {
+    e.preventDefault();
+    setSaliendo(true);
+    setTimeout(async () => {
+      const token = localStorage.getItem("token");
+      if (token) await logoutUsuario(token);
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      globalThis.location.replace("/login");
+    }, 380);
   };
 
-  const token = obtenerToken();
-
-  // Función para verificar si el token está vencido
-  const verificarTokenVencido = (token) => {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      const fechaExpiracion = payload.exp * 1000; // Convertir a milisegundos
-      return Date.now() >= fechaExpiracion;
-    } catch (error) {
-      console.error("Error al verificar expiración del token:", error);
-      return true; // Considerar vencido si hay error
-    }
-  };
-
-  const obtenerUsuarioDelToken = () => {
-    try {
-      if (verificarTokenVencido(token)) {
-        console.warn("Token vencido, usando usuario por defecto...");
-        return "josue2023";
-      }
-
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload.username || "Usuario";
-    } catch (error) {
-      console.error("Error al decodificar el token:", error);
-      return "Usuario";
-    }
-  };
-  //obtener rol 
-  const obtenerRolDelToken = () => {
-    try {
-      if (verificarTokenVencido(token)) {
-        console.warn("Token vencido, usando rol por defecto...");
-        return "RolDesconocido";
-      }
-
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload.rolesId || "RolNoDefinido";
-    } catch (error) {
-      console.error("Error al decodificar el token:", error);
-      return "RolNoDefinido";
-    }
-  };
-  if (verificarTokenVencido(token)) {
-
-  }
-  const rolesId = obtenerRolDelToken();
-  let rolUsuario;
-
-  switch (rolesId) {
-    case 1:
-      rolUsuario = "superAdmin";
-      break;
-    case 2:
-      rolUsuario = "admin";
-      break;
-    case 3:
-      rolUsuario = "vigilante";
-      break;
-    default:
-      rolUsuario = "RolNoDefinido";
+  if (loading) {
+    return (
+      <div className="vi-loading-screen">
+        <output className="spinner-border" style={{ color: "#3b82f6" }}>
+          <span className="visually-hidden">Cargando...</span>
+        </output>
+        <p className="mt-3 fw-semibold" style={{ color: "#3b82f6" }}>
+          Verificando sesión...
+        </p>
+      </div>
+    );
   }
 
-  const nombreUsuario = obtenerUsuarioDelToken();
-  useEffect(() => {
-    const ctx = document.getElementById("parqueoChart");
+  const totalPaquetes = paquetesEntregados + paquetesPendientes;
+  const porcentajeEntregados =
+    totalPaquetes > 0
+      ? ((paquetesEntregados / totalPaquetes) * 100).toFixed(0)
+      : 0;
 
-    if (chartRef.current) {
-      chartRef.current.destroy();
-    }
-
-    chartRef.current = new Chart(ctx, {
-      type: "doughnut",
-      data: {
-        labels: ["Ocupados", "Disponibles"],
-        datasets: [
-          {
-            data: [7, 3],
-            backgroundColor: ["#dc3545", "#198754"], // rojo y verde
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: "bottom" },
-        },
-      },
-    });
-  }, []);
+  const modulos = [
+    {
+      icon: "bi-box-seam-fill",
+      title: "Gestión de Paquetería",
+      color: "#3b82f6",
+      to: "/Paqueteria",
+    },
+    {
+      icon: "bi-people-fill",
+      title: "Gestión de Visitas",
+      color: "#22c55e",
+      to: "/visitas",
+    },
+    {
+      icon: "bi-p-circle-fill",
+      title: "Parqueaderos",
+      color: "#ef4444",
+      to: "/parqueaderos",
+    },
+  ];
 
   return (
-    <div className="main-dashboard dashboard-container d-flex">
-      {/* Sidebar */}
-      <aside id="menuTrabajador" className="worker-menu bg-success text-white">
-        <div className="p-3 d-flex flex-column h-100">
-          <div className="d-flex align-items-center gap-3 mb-4">
-            <div
-              className="user-circle bg-white d-flex align-items-center justify-content-center"
-              style={{ width: "50px", height: "50px", borderRadius: "50%" }}
+    <div className={`vi-dashboard${saliendo ? " vi-saliendo" : ""}`}>
+      <button
+        type="button"
+        className={`vi-overlay ${menuOpen ? "active" : ""}`}
+        onClick={() => setMenuOpen(false)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setMenuOpen(false);
+        }}
+        tabIndex={0}
+        aria-label="Cerrar menú"
+      />
+      <aside className={`vi-drawer ${menuOpen ? "open" : ""}`}>
+        <div className="vi-drawer-header">
+          <div className="vi-drawer-avatar">
+            {fotoUsuario ? (
+              <img
+                src={fotoUsuario}
+                alt="Perfil"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  borderRadius: "50%",
+                }}
+              />
+            ) : (
+              <i className="bi bi-shield-check"></i>
+            )}
+          </div>
+          <h4 className="vi-drawer-title">Menú Vigilante</h4>
+          <span className="vi-drawer-user">
+            {usuario?.username || usuario?.nombre || "Usuario"}
+          </span>
+        </div>
+        <div className="vi-drawer-body">
+          <div className="vi-menu-section">
+            <h6 className="vi-menu-section-title">Navegación</h6>
+            <Link
+              className="vi-menu-item active"
+              to="/Vigilante"
+              onClick={() => setMenuOpen(false)}
             >
-              <span className="fw-bold text-success">
-                {nombreUsuario?.substring(0, 2).toUpperCase() || "US"}
-              </span>
-            </div>
-            <div className="d-flex flex-column">
-              <span className="fw-semibold text-white">
-                {nombreUsuario || "Usuario"}
-              </span>
-              <span className="fw-semibold text-white"> {rolUsuario || "Usuario"}</span>
-              <span className="small text-white-50">Sesión activa</span>
-            </div>
+              <i className="bi bi-speedometer2"></i>
+              <span>Dashboard</span>
+              <i className="bi bi-chevron-right vi-menu-arrow"></i>
+            </Link>
           </div>
-
-          
-
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold ">
-
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-seam-fill" viewBox="0 0 16 16">
-                <path fill-rule="evenodd" d="M15.528 2.973a.75.75 0 0 1 .472.696v8.662a.75.75 0 0 1-.472.696l-7.25 2.9a.75.75 0 0 1-.557 0l-7.25-2.9A.75.75 0 0 1 0 12.331V3.669a.75.75 0 0 1 .471-.696L7.443.184l.01-.003.268-.108a.75.75 0 0 1 .558 0l.269.108.01.003zM10.404 2 4.25 4.461 1.846 3.5 1 3.839v.4l6.5 2.6v7.922l.5.2.5-.2V6.84l6.5-2.6v-.4l-.846-.339L8 5.961 5.596 5l6.154-2.461z" />
-              </svg> Gestión de Paquetes
-            </h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li><Link className="nav-link  text-white" to="/Paqueteria" state={{ abrirModal: true }}>Registrar Paquete</Link></li>
-              <li><Link className="nav-link text-white" to="/Paqueteria">Historial de Paquetes</Link></li>
-            </ul>
+          <div className="vi-menu-section">
+            <h6 className="vi-menu-section-title">Módulos</h6>
+            <Link
+              className="vi-menu-item"
+              to="/Paqueteria"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-box-seam"></i>
+              <span>Paquetería</span>
+              <i className="bi bi-chevron-right vi-menu-arrow"></i>
+            </Link>
+            <Link
+              className="vi-menu-item"
+              to="/visitas"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-people"></i>
+              <span>Visitas</span>
+              <i className="bi bi-chevron-right vi-menu-arrow"></i>
+            </Link>
+            <Link
+              className="vi-menu-item"
+              to="/parqueaderos"
+              onClick={() => setMenuOpen(false)}
+            >
+              <i className="bi bi-p-circle"></i>
+              <span>Parqueaderos</span>
+              <i className="bi bi-chevron-right vi-menu-arrow"></i>
+            </Link>
           </div>
-
-          <div className="mb-4">
-            <h6 className="text-uppercase fw-bold">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-people-fill" viewBox="0 0 16 16">
-                <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-5.784 6A2.24 2.24 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.3 6.3 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5" />
-              </svg> Gestión de Visitas
-            </h6>
-            <ul className="nav flex-column mt-2 gap-2">
-              <li><Link className="nav-link text-white" to="/visitas" state={{ abrirModal: true }}>Registrar Visita</Link></li>
-              <li><Link className="nav-link text-white" to="/visitas">Consultar Visitas</Link></li>
-              <li><Link className="nav-link text-white" to="/parqueaderos">Consultar Parqueaderos</Link></li>
-            </ul>
-          </div>
-
-          <div className="mt-auto">
-            <div onClick={CERRAR} className="btn btn-light w-100">Cerrar sesión</div>
-          </div>
+        </div>
+        <div className="vi-drawer-footer">
+          <button className="vi-logout-btn" onClick={cerrarSesion}>
+            <i className="bi bi-box-arrow-right"></i> Cerrar Sesión
+          </button>
         </div>
       </aside>
 
-      {/* Contenido principal */}
-      <div className="main-content flex-grow-1">
-        {/* Barra superior */}
-        <div className="d-flex align-items-center justify-content-between px-3 py-2">
-          <div className="logo-container text-center flex-grow-1">
-            <Link to="/"><img src={logo} alt="Logo del sistema" className="logo-img" /></Link>
-          </div>
-          <div className="position-relative">
-                 <div
-              className="btn btn-outline-success d-flex align-items-center gap-2"
+      <div className="vi-main">
+        <header className="vi-header">
+          <div className="vi-profile-btn-wrap">
+            <button
+              className="vi-header-btn"
               onClick={() => setShowUserMenu(!showUserMenu)}
-              style={{ cursor: "pointer" }}
+              title="Ver perfil"
             >
-              {nombreUsuario}
-            </div>
-            {showUserMenu && (
-              <div
-                className="position-absolute end-0 mt-2 bg-white border rounded shadow p-3"
-                style={{ minWidth: "200px", zIndex: 1000 }}
+              {fotoUsuario ? (
+                <img
+                  src={fotoUsuario}
+                  alt="Perfil"
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    objectFit: "cover",
+                    borderRadius: "50%",
+                  }}
+                />
+              ) : (
+                <i className="bi bi-person-circle"></i>
+              )}
+            </button>
+            <span
+              className="vi-profile-status-dot"
+              title="Vigilante activo"
+            ></span>
+          </div>
+
+          {showUserMenu && (
+            <div className="vi-profile-popup">
+              <div className="vi-profile-popup-header">
+                {fotoUsuario ? (
+                  <img
+                    src={fotoUsuario}
+                    alt="Perfil"
+                    style={{
+                      width: "60px",
+                      height: "60px",
+                      objectFit: "cover",
+                      borderRadius: "50%",
+                    }}
+                  />
+                ) : (
+                  <i className="bi bi-person-circle vi-profile-icon"></i>
+                )}
+              </div>
+              <p>
+                <strong>Nombre:</strong>{" "}
+                {usuario?.username || usuario?.nombre || "Usuario"}
+              </p>
+              <p>
+                <strong>Rol:</strong> Vigilante
+              </p>
+              <p style={{ color: "#3b82f6" }}>
+                <strong>Estado:</strong> Activo
+              </p>
+              <button
+                className="btn btn-sm btn-outline-secondary w-100 mt-2"
+                onClick={() => setShowUserMenu(false)}
               >
-                <p className="mb-2">
-                  Usuario: <strong>{nombreUsuario}</strong>
-                </p>
-                <p className="mb-2">
-                  Rol: <strong>{rolUsuario}</strong>
-                </p>
-                <hr />
-                <button onClick={cerrarSesión} className="btn btn-danger w-100">
-                  Cerrar sesión
-                </button>
+                Cerrar
+              </button>
+            </div>
+          )}
+
+          <Link
+            to="/Vigilante"
+            className="vi-logo-wrapper"
+            title="Ir al Dashboard"
+          >
+            <div className="vi-logo-circle">
+              <img src={logo} alt="Logo" className="vi-logo-img" />
+            </div>
+          </Link>
+
+          <div className="vi-header-actions">
+            <DescargaAppMovil btnClass="vi-header-btn" />
+            <ModoOscuro btnClass="vi-header-btn" />
+            <button
+              className="vi-header-btn"
+              onClick={() => {
+                setDataLoading(true);
+                cargarDatos();
+              }}
+              disabled={dataLoading}
+              title="Actualizar datos"
+            >
+              <i
+                className={`bi ${dataLoading ? "bi-hourglass-split" : "bi-arrow-clockwise"}`}
+              ></i>
+            </button>
+            <button
+              className="vi-header-btn vi-hamburger"
+              onClick={() => setMenuOpen(true)}
+              title="Abrir menú"
+            >
+              <i className="bi bi-list"></i>
+            </button>
+          </div>
+        </header>
+
+        <div className="vi-welcome">
+          <h2 className="vi-welcome-title">
+            Bienvenido, {usuario?.username || usuario?.nombre || "Usuario"}
+          </h2>
+          <p className="vi-welcome-sub">
+            Selecciona el módulo que deseas gestionar en la plataforma
+          </p>
+        </div>
+
+        <div className="vi-modules-grid">
+          {modulos.map((mod) => (
+            <Link
+              to={mod.to}
+              key={mod.to}
+              className="vi-module-card"
+              style={{
+                background: `linear-gradient(135deg, ${mod.color}cc, ${mod.color})`,
+              }}
+            >
+              <div className="vi-module-icon-wrap">
+                <i className={`bi ${mod.icon}`}></i>
               </div>
-            )}
-          </div>
+              <span className="vi-module-title">{mod.title}</span>
+            </Link>
+          ))}
         </div>
 
-        {/* Bienvenida */}
-        <div className="text-center mt-3 my-4">
-          <h2 className="fw-bold ">Bienvenido, Vigilante</h2>
-          <p>Selecciona el módulo que deseas gestionar en la plataforma</p>
-        </div>
-
-        {/* Tarjetas principales */}
-        <div className="d-flex flex-wrap justify-content-center gap-4 my-4">
-          <div className="module-card">
-            <img src={paquetesImg} alt="Paquetería" />
-            <h5>Gestión de Paquetería</h5>
-            <Link to="/Paqueteria" className="btn btn-success">➜</Link>
-          </div>
-          <div className="module-card">
-            <img src={visitasImg} alt="Visitas" />
-            <h5>Gestión de Visitas</h5>
-            <Link to="/visitas" className="btn btn-success">➜</Link>
-          </div>
-        </div>
-
-        {/* Dashboard */}
-     <div className="d-flex flex-wrap justify-content-center gap-4 px-4 mb-4">
-          <div className="card text-center" style={{ width: "300px" }}>
-            <div className="card-body">
-              <h5 className="card-title">Visitas del Día</h5>
-              <div className="display-4 text-success fw-bold">9</div>
-              <p className="text-muted">Ingresos registrados hoy</p>
-              <Link to="/visitas" className="btn btn-success">
-                Ver Registro
-              </Link>
-            </div>
-          </div>
-
-          <div className="card text-center" style={{ width: "300px" }}>
-            <div className="card-body">
-              <h5 className="card-title">Parqueaderos Ocupados</h5>
-              <div style={{ height: "200px", position: "relative" }}>
-                <canvas id="parqueoChart"></canvas>
+        <div className="vi-stats-section">
+          <h3 className="vi-stats-title">Estadísticas del Día</h3>
+          <div className="vi-stats-grid">
+            {/* Visitas del Día */}
+            <Link to="/visitas" className="vi-stat-card vi-stat-card-link">
+              <div className="vi-stat-card-header">
+                <i
+                  className="bi bi-people-fill"
+                  style={{ color: "#3b82f6", fontSize: "28px" }}
+                ></i>
+                <h5>Visitas del Día</h5>
+                <i
+                  className="bi bi-chevron-right"
+                  style={{ color: "#9ca3af", marginLeft: "auto" }}
+                ></i>
               </div>
-              <Link to="/visitas" className="btn btn-success mt-3">
-                Ver Estado
-              </Link>
-            </div>
-          </div>
+              <div className="vi-bar-chart-container">
+                <canvas ref={visitasCanvasRef}></canvas>
+              </div>
+              <div className="vi-stat-summary">
+                <div className="vi-stat-summary-item">
+                  <span
+                    className="vi-stat-big-number"
+                    style={{ color: "#3b82f6" }}
+                  >
+                    {visitasHoy}
+                  </span>
+                  <span className="vi-stat-label">Registradas Hoy</span>
+                </div>
+                <div className="vi-stat-divider"></div>
+                <div className="vi-stat-summary-item">
+                  <span
+                    className="vi-stat-big-number"
+                    style={{ color: "#22c55e" }}
+                  >
+                    {visitasActivas}
+                  </span>
+                  <span className="vi-stat-label">Activas Ahora</span>
+                </div>
+              </div>
+            </Link>
 
-          <div className="card text-center" style={{ width: "300px" }}>
-            <div className="card-body">
-              <h5 className="card-title">Paquetes Recibidos</h5>
-              <div className="display-4 text-success fw-bold">8</div>
-              <p className="text-muted">Total de paquetes que llegaron hoy</p>
-              <Link to="/Paqueteria" className="btn btn-success">
-                Ver Detalles
-              </Link>
-            </div>
+            {/* Paquetes */}
+            <Link to="/Paqueteria" className="vi-stat-card vi-stat-card-link">
+              <div className="vi-stat-card-header">
+                <i
+                  className="bi bi-box-seam-fill"
+                  style={{ color: "#3b82f6", fontSize: "28px" }}
+                ></i>
+                <h5>Paquetes del Día</h5>
+                <i
+                  className="bi bi-chevron-right"
+                  style={{ color: "#9ca3af", marginLeft: "auto" }}
+                ></i>
+              </div>
+              <div className="vi-bar-chart-container">
+                <canvas ref={paquetesCanvasRef}></canvas>
+              </div>
+              <div className="vi-stat-summary">
+                <div className="vi-stat-summary-item">
+                  <span
+                    className="vi-stat-big-number"
+                    style={{ color: "#22c55e" }}
+                  >
+                    {paquetesEntregados}
+                  </span>
+                  <span className="vi-stat-label">Entregados</span>
+                </div>
+                <div className="vi-stat-divider"></div>
+                <div className="vi-stat-summary-item">
+                  <span
+                    className="vi-stat-big-number"
+                    style={{ color: "#3b82f6" }}
+                  >
+                    {porcentajeEntregados}%
+                  </span>
+                  <span className="vi-stat-label">Eficiencia</span>
+                </div>
+              </div>
+            </Link>
           </div>
         </div>
       </div>
+      <WhatsAppModal />
     </div>
   );
 }
 
-export default function App() {
-  return (
-    <Routes>
-      <Route path="/" element={<Dashboard />} />
-      <Route path="/VisitasAdmin" element={<VisitasAdmin />} />
-      <Route path="/Paqueteria" element={<Paqueteria />} />
-      <Route path="/visitas" element={<Visitas />} />
-      <Route path="/parqueaderos" element={<Paqueadero />} />
-      <Route path="/Login" element={<Login />} />
-    </Routes>
-  );
-}
+export default Dashboard;

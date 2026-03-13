@@ -12,7 +12,7 @@ export const crearVisitante = async (req, res) => {
     });
     res.status(201).json(nuevoVisitante);
   } catch (error) {
-    console.error("Error al crear visitante:", error);
+    console.error(error);
     res.status(500).json({ error: "Error al crear visitante" });
   }
 };
@@ -23,7 +23,7 @@ export const obtenerVisitantes = async (req, res) => {
     const visitantes = await VisitanteModel.findAll();
     res.status(200).json(visitantes);
   } catch (error) {
-    console.error("Error al obtener visitantes:", error);
+    console.error(error);
     res.status(500).json({ error: "Error al obtener visitantes" });
   }
 };
@@ -41,7 +41,7 @@ export const obtenerVisitantePorId = async (req, res) => {
       res.status(404).json({ error: "Visitante no encontrado" });
     }
   } catch (error) {
-    console.error("Error al obtener visitante:", error);
+    console.error(error);
     res.status(500).json({ error: "Error al obtener visitante" });
   }
 };
@@ -65,11 +65,11 @@ export const actualizarVisitante = async (req, res) => {
     } else {
       res.status(404).json({ error: "Visitante no encontrado" });
     }
-  } catch (error) {
-    console.error("Error al actualizar visitante:", error);
+  } catch (err) {
+    console.error(err);
     res
       .status(500)
-      .json({ error: "Error al actualizar visitante", error: error.message });
+      .json({ message: "Error al actualizar visitante", error: err.message });
   }
 };
 
@@ -87,7 +87,7 @@ export const eliminarVisitante = async (req, res) => {
       res.status(404).json({ error: "Visitante no encontrado" });
     }
   } catch (error) {
-    console.error("Error al eliminar visitante:", error);
+    console.error(error);
     res.status(500).json({ error: "Error al eliminar visitante" });
   }
 };

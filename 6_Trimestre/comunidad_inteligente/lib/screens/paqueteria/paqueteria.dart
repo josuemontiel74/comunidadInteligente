@@ -1,7 +1,10 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../main.dart';
+import '../../utils/helpers.dart';
+import '../../utils/validaciones.dart';
 
 class ModuloPaqueteria extends StatefulWidget {
   final bool abrirModalRegistro;
@@ -23,6 +26,37 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
   String? filtroTorre;
   String? filtroApartamento;
   final TextEditingController _searchController = TextEditingController();
+
+  // Método helper para mostrar SnackBar de forma segura
+  // ignore: unused_element
+  void _mostrarSnackBar(String mensaje, {Color? backgroundColor}) {
+    if (!mounted) return;
+
+    try {
+      _mostrarSnackBarSafe(
+        SnackBar(
+          content: Text(mensaje),
+          backgroundColor: backgroundColor ?? Colors.green,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      // Si falla, solo imprime en consola
+      debugPrint('SnackBar: $mensaje');
+    }
+  }
+
+  // Método para mostrar SnackBar con widget personalizado
+  void _mostrarSnackBarSafe(SnackBar snackBar) {
+    if (!mounted) return;
+
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    } catch (e) {
+      // Si falla, solo imprime en consola
+      debugPrint('SnackBar no disponible');
+    }
+  }
 
   @override
   void initState() {
@@ -56,10 +90,16 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
         headers: headers,
       );
 
+      if (!context.mounted) return;
+
+      // Validar si el token expiró
+      if (manejarTokenExpirado(context, response.statusCode, response.body)) {
+        setState(() => isLoading = false);
+        return;
+      }
+
       if (response.statusCode == 200) {
         final datos = json.decode(response.body);
-        print('Respuesta completa del GET: $datos'); // Debug
-        print('Estructura de datos: ${datos.keys}'); // Debug
 
         // Intentar diferentes estructuras de respuesta
         List<dynamic> todosPaquetes = [];
@@ -77,8 +117,6 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
           todosPaquetes = datos['recepcionPaquetes'];
         }
 
-        print('Total paquetes recibidos: ${todosPaquetes.length}'); // Debug
-
         // Filtrar por estado en el frontend
         List<dynamic> paquetesFiltrados = todosPaquetes;
         if (filtroEstado != 'todos') {
@@ -86,16 +124,9 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
             final estadoNombre = paquete['estado']?['nombreEstado']
                 ?.toString()
                 .toLowerCase();
-            print(
-              'Estado del paquete: $estadoNombre vs filtro: $filtroEstado',
-            ); // Debug
             return estadoNombre == filtroEstado;
           }).toList();
         }
-
-        print(
-          'Paquetes después del filtro: ${paquetesFiltrados.length}',
-        ); // Debug
 
         // Filtrar por búsqueda de nombre
         if (busquedaNombre.isNotEmpty) {
@@ -126,8 +157,21 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
           }).toList();
         }
 
-        // Ordenar por fecha de más reciente a más viejo
+        // Ordenar: primero los recibidos (sin entregar), luego los entregados, por fecha más reciente
         paquetesFiltrados.sort((a, b) {
+          // Determinar si están entregados
+          final estadoA =
+              a['estado']?['nombreEstado']?.toString().toLowerCase() ?? '';
+          final estadoB =
+              b['estado']?['nombreEstado']?.toString().toLowerCase() ?? '';
+          final esRecibidoA = estadoA == 'recibido';
+          final esRecibidoB = estadoB == 'recibido';
+
+          // Si uno es recibido y el otro no, el recibido va primero
+          if (esRecibidoA && !esRecibidoB) return -1;
+          if (!esRecibidoA && esRecibidoB) return 1;
+
+          // Si ambos son recibidos o ambos están entregados, ordenar por fecha más reciente
           final fechaA = DateTime.tryParse(
             a['fechaRecepcion']?.toString() ?? '',
           );
@@ -135,7 +179,9 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
             b['fechaRecepcion']?.toString() ?? '',
           );
           if (fechaA == null || fechaB == null) return 0;
-          return fechaB.compareTo(fechaA); // Orden descendente
+          return fechaB.compareTo(
+            fechaA,
+          ); // Orden descendente (más reciente primero)
         });
 
         // Implementar paginación manual
@@ -155,20 +201,16 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
           isLoading = false;
         });
       } else {
-        print(
-          'Error al cargar: ${response.statusCode} - ${response.body}',
-        ); // Debug
         setState(() {
           isLoading = false;
         });
       }
     } catch (error) {
-      print('Error en _cargarPaquetes: $error'); // Debug
       setState(() {
         isLoading = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        _mostrarSnackBarSafe(
           SnackBar(
             content: Text('Error al cargar paquetes: $error'),
             backgroundColor: Colors.red,
@@ -238,6 +280,79 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
   }
 
   Future<void> _marcarComoEntregado(dynamic paquete) async {
+    // Mostrar alerta de confirmación
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.local_shipping, color: Colors.blue, size: 28),
+            const SizedBox(width: 8),
+            const Flexible(
+              child: Text('Confirmar Entrega', overflow: TextOverflow.ellipsis),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '¿Está seguro de marcar este paquete como entregado?',
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Destinatario: ${paquete['nombreDestinatario'] ?? 'N/A'}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    'Apartamento: ${paquete['apartamento']?['numeroApartamento'] ?? 'N/A'}',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Esta acción no se puede deshacer.',
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Entregar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true) return;
+
     try {
       final headers = {'Content-Type': 'application/json'};
       if (LoginServe.token != null) {
@@ -245,21 +360,22 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
       }
 
       final idPaquete = paquete['idPaquete'];
-      print(
-        'Intentando marcar como entregado el paquete ID: $idPaquete',
-      ); // Debug
 
       final response = await http.delete(
         Uri.parse('${LoginServe.baseUrl}/api/recepcionPaquetes/$idPaquete'),
         headers: headers,
       );
 
-      print('Status Code: ${response.statusCode}'); // Debug
-      print('Response Body: ${response.body}'); // Debug
+      if (!context.mounted) return;
+
+      // Validar si el token expiró
+      if (manejarTokenExpirado(context, response.statusCode, response.body)) {
+        return;
+      }
 
       if (response.statusCode == 200 || response.statusCode == 204) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          _mostrarSnackBarSafe(
             const SnackBar(
               content: Text('Paquete marcado como entregado'),
               backgroundColor: Colors.green,
@@ -271,9 +387,8 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
         throw Exception('Error ${response.statusCode}: ${response.body}');
       }
     } catch (error) {
-      print('Error al marcar como entregado: $error'); // Debug
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        _mostrarSnackBarSafe(
           SnackBar(
             content: Text(
               'Error: ${error.toString().replaceAll('Exception: ', '')}',
@@ -364,7 +479,9 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                       'Torre ${_convertirTorreIdALetra(paquete['apartamento']?['torresId'])} - Apto ${paquete['apartamento']?['numeroApartamento']?.toString() ?? ''}',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade700,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -391,7 +508,9 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                         paquete['empresaMensajeria']?.toString() ?? '',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey.shade700,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ),
@@ -415,11 +534,14 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      paquete['fechaRecepcion']?.toString().substring(0, 10) ??
-                          '',
+                      formatearFechaParaMostrar(
+                        paquete['fechaRecepcion']?.toString(),
+                      ),
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade700,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -429,39 +551,60 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    Expanded(
+                    Flexible(
                       child: OutlinedButton.icon(
                         onPressed: () => _mostrarDetalles(paquete),
-                        icon: const Icon(Icons.info_outline, size: 18),
-                        label: const Text('Detalles'),
+                        icon: const Icon(Icons.info_outline, size: 16),
+                        label: const Text(
+                          'Detalles',
+                          style: TextStyle(fontSize: 12),
+                        ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.blue,
                           side: const BorderSide(color: Colors.blue),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
                         ),
                       ),
                     ),
                     if (!esEntregado) ...[
-                      const SizedBox(width: 8),
-                      Expanded(
+                      const SizedBox(width: 6),
+                      Flexible(
                         child: OutlinedButton.icon(
                           onPressed: () => _mostrarFormularioEdicion(paquete),
-                          icon: const Icon(Icons.edit, size: 18),
-                          label: const Text('Editar'),
+                          icon: const Icon(Icons.edit, size: 16),
+                          label: const Text(
+                            'Editar',
+                            style: TextStyle(fontSize: 12),
+                          ),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.orange,
                             side: const BorderSide(color: Colors.orange),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
+                      const SizedBox(width: 6),
+                      Flexible(
                         child: ElevatedButton.icon(
                           onPressed: () => _marcarComoEntregado(paquete),
-                          icon: const Icon(Icons.check_circle, size: 18),
-                          label: const Text('Entregar'),
+                          icon: const Icon(Icons.check_circle, size: 16),
+                          label: const Text(
+                            'Entregar',
+                            style: TextStyle(fontSize: 12),
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,
                             foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
                           ),
                         ),
                       ),
@@ -482,7 +625,11 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
       scrollDirection: Axis.horizontal,
       child: SingleChildScrollView(
         child: DataTable(
-          headingRowColor: WidgetStateProperty.all(Colors.blue.shade50),
+          headingRowColor: WidgetStateProperty.all(
+            Theme.of(context).brightness == Brightness.dark
+                ? Colors.blue.shade800
+                : Colors.blue.shade50,
+          ),
           columns: const [
             DataColumn(
               label: Text(
@@ -613,7 +760,6 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
@@ -627,7 +773,9 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
             padding: EdgeInsets.all(
               MediaQuery.of(context).size.width < 600 ? 12 : 20,
             ),
-            color: Colors.grey.shade50,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade900
+                : Colors.grey.shade50,
             child: Column(
               children: [
                 ElevatedButton.icon(
@@ -663,7 +811,7 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: Theme.of(context).cardColor,
                   ),
                   onChanged: (value) {
                     setState(() {
@@ -679,14 +827,14 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: filtroTorre,
+                        initialValue: filtroTorre,
                         decoration: InputDecoration(
                           labelText: 'Torre',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: Theme.of(context).cardColor,
                         ),
                         items: [
                           const DropdownMenuItem(
@@ -721,14 +869,14 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: filtroApartamento,
+                        initialValue: filtroApartamento,
                         decoration: InputDecoration(
                           labelText: 'Apartamento',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: Theme.of(context).cardColor,
                         ),
                         items: [
                           const DropdownMenuItem(
@@ -783,10 +931,15 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : paquetes.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       'No hay paquetes registrados',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.5),
+                      ),
                     ),
                   )
                 : MediaQuery.of(context).size.width < 600
@@ -853,7 +1006,9 @@ class _ModuloPaqueteriaState extends State<ModuloPaqueteria> {
       },
       selectedColor: Colors.blue,
       labelStyle: TextStyle(
-        color: seleccionado ? Colors.white : Colors.black,
+        color: seleccionado
+            ? Colors.white
+            : Theme.of(context).colorScheme.onSurface,
         fontWeight: seleccionado ? FontWeight.bold : FontWeight.normal,
       ),
     );
@@ -876,6 +1031,35 @@ class FormularioRegistroPaquete extends StatefulWidget {
 
 class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
   final _formKey = GlobalKey<FormState>();
+
+  // Helper para mostrar selector de hora en formato 12 horas (AM/PM)
+  Future<TimeOfDay?> mostrarSelectorHora(
+    BuildContext context,
+    TimeOfDay horaInicial,
+  ) async {
+    return await showTimePicker(
+      context: context,
+      initialTime: horaInicial,
+      builder: (BuildContext context, Widget? child) {
+        final theme = Theme.of(context);
+
+        return Theme(
+          data: theme.copyWith(
+            timePickerTheme: const TimePickerThemeData(
+              hourMinuteShape: RoundedRectangleBorder(), // evita bordes nuevos
+              dialBackgroundColor: null,
+              hourMinuteColor: null,
+            ),
+          ),
+          child: MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+            child: child!,
+          ),
+        );
+      },
+    );
+  }
+
   final TextEditingController residenteController = TextEditingController();
   final TextEditingController transportadoraController =
       TextEditingController();
@@ -937,7 +1121,7 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
     });
 
     try {
-      // Combinar fecha y hora - asegurar que no sea anterior a la actual
+      // Combinar fecha y hora
       DateTime fechaHora = DateTime(
         fechaSeleccionada.year,
         fechaSeleccionada.month,
@@ -946,25 +1130,22 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
         horaSeleccionada.minute,
       );
 
-      // Si la fecha seleccionada es anterior a ahora, usar la fecha/hora actual
-      final ahora = DateTime.now();
-      if (fechaHora.isBefore(ahora)) {
-        fechaHora = ahora;
-      }
+      // Formatear sin segundos: YYYY-MM-DD HH:mm
+      final fechaFormateada =
+          '${fechaHora.year}-${fechaHora.month.toString().padLeft(2, '0')}-${fechaHora.day.toString().padLeft(2, '0')} '
+          '${fechaHora.hour.toString().padLeft(2, '0')}:${fechaHora.minute.toString().padLeft(2, '0')}';
 
       final body = {
         'apartamentoId': apartamentoIdSeleccionado,
         'nombreDestinatario': residenteController.text.trim(),
         'empresaMensajeria': transportadoraController.text.trim(),
-        'fechaRecepcion': fechaHora.toIso8601String(),
+        'fechaRecepcion': fechaFormateada,
       };
 
       // Solo agregar observaciones si no está vacío
       if (observacionesController.text.trim().isNotEmpty) {
         body['observaciones'] = observacionesController.text.trim();
       }
-
-      print('Enviando datos: ${json.encode(body)}'); // Debug
 
       final headers = {'Content-Type': 'application/json'};
       if (LoginServe.token != null) {
@@ -977,13 +1158,17 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
         body: json.encode(body),
       );
 
-      print('Status Code: ${response.statusCode}'); // Debug
-      print('Response Body: ${response.body}'); // Debug
+      if (!context.mounted) return;
+
+      // Validar si el token expiró
+      if (manejarTokenExpirado(context, response.statusCode, response.body)) {
+        return;
+      }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (mounted) {
           Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
+          _mostrarSnackBarSafe(
             const SnackBar(
               content: Text('Paquete registrado exitosamente'),
               backgroundColor: Colors.green,
@@ -1000,7 +1185,7 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        _mostrarSnackBarSafe(
           SnackBar(
             content: Text(
               'Error: ${error.toString().replaceAll('Exception: ', '')}',
@@ -1019,17 +1204,26 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
     }
   }
 
+  void _mostrarSnackBarSafe(SnackBar snackBar) {
+    if (!mounted) return;
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    } catch (e) {
+      debugPrint('SnackBar no disponible');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
-        width: isSmallScreen ? MediaQuery.of(context).size.width * 0.9 : 600,
+        width: isSmallScreen ? MediaQuery.of(context).size.width * 0.95 : 600,
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.85,
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
         ),
-        padding: EdgeInsets.all(isSmallScreen ? 20 : 30),
+        padding: EdgeInsets.all(isSmallScreen ? 16 : 30),
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -1040,20 +1234,24 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Registrar Nuevo Paquete',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Text(
+                        'Registrar Nuevo Paquete',
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 18 : 24,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.close),
                       onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: isSmallScreen ? 16 : 20),
                 // Residente
                 TextFormField(
                   controller: residenteController,
@@ -1064,17 +1262,13 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
                     ),
                     prefixIcon: const Icon(Icons.person),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Este campo es obligatorio';
-                    }
-                    return null;
-                  },
+                  inputFormatters: [NombreInputFormatter()],
+                  validator: (v) => validarNombreCompleto(v),
                 ),
                 const SizedBox(height: 15),
                 // Torre
                 DropdownButtonFormField<String>(
-                  value: torreSeleccionada,
+                  initialValue: torreSeleccionada,
                   decoration: InputDecoration(
                     labelText: 'Torre *',
                     border: OutlineInputBorder(
@@ -1105,7 +1299,7 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
                 const SizedBox(height: 15),
                 // Apartamento
                 DropdownButtonFormField<String>(
-                  value: apartamentoSeleccionado,
+                  initialValue: apartamentoSeleccionado,
                   decoration: InputDecoration(
                     labelText: 'Apartamento *',
                     border: OutlineInputBorder(
@@ -1138,22 +1332,48 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
                   },
                 ),
                 const SizedBox(height: 15),
-                // Transportadora
-                TextFormField(
-                  controller: transportadoraController,
-                  decoration: InputDecoration(
-                    labelText: 'Transportadora *',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    prefixIcon: const Icon(Icons.local_shipping),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Este campo es obligatorio';
+                // Transportadora (Autocomplete)
+                Autocomplete<String>(
+                  optionsBuilder: (TextEditingValue textEditingValue) {
+                    if (textEditingValue.text.isEmpty) {
+                      return transportadorasCo.map(
+                        (t) => t[0].toUpperCase() + t.substring(1),
+                      );
                     }
-                    return null;
+                    return transportadorasCo
+                        .where(
+                          (t) => t.toLowerCase().contains(
+                            textEditingValue.text.toLowerCase(),
+                          ),
+                        )
+                        .map((t) => t[0].toUpperCase() + t.substring(1));
                   },
+                  onSelected: (String selection) {
+                    transportadoraController.text = selection;
+                  },
+                  fieldViewBuilder:
+                      (context, controller, focusNode, onFieldSubmitted) {
+                        if (controller.text.isEmpty &&
+                            transportadoraController.text.isNotEmpty) {
+                          controller.text = transportadoraController.text;
+                        }
+                        return TextFormField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          decoration: InputDecoration(
+                            labelText: 'Transportadora *',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            prefixIcon: const Icon(Icons.local_shipping),
+                            hintText: 'Escriba o seleccione',
+                          ),
+                          validator: (v) => validarTransportadora(v),
+                          onChanged: (v) {
+                            transportadoraController.text = v;
+                          },
+                        );
+                      },
                 ),
                 const SizedBox(height: 15),
                 // Fecha y Hora
@@ -1281,13 +1501,21 @@ class _FormularioRegistroPaqueteState extends State<FormularioRegistroPaquete> {
                 TextFormField(
                   controller: observacionesController,
                   maxLines: 3,
+                  maxLength: 255,
                   decoration: InputDecoration(
                     labelText: 'Observaciones',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                     prefixIcon: const Icon(Icons.note),
+                    helperText: 'Máximo 255 caracteres (opcional)',
                   ),
+                  validator: (value) {
+                    if (value != null && value.length > 255) {
+                      return 'Máximo 255 caracteres';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 25),
                 // Botón de registro
@@ -1348,6 +1576,35 @@ class FormularioEditarPaquete extends StatefulWidget {
 
 class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
   final _formKey = GlobalKey<FormState>();
+
+  // Helper para mostrar selector de hora en formato 12 horas (AM/PM)
+  Future<TimeOfDay?> mostrarSelectorHora(
+    BuildContext context,
+    TimeOfDay horaInicial,
+  ) async {
+    return await showTimePicker(
+      context: context,
+      initialTime: horaInicial,
+      builder: (BuildContext context, Widget? child) {
+        final theme = Theme.of(context);
+
+        return Theme(
+          data: theme.copyWith(
+            timePickerTheme: const TimePickerThemeData(
+              hourMinuteShape: RoundedRectangleBorder(), // evita bordes nuevos
+              dialBackgroundColor: null,
+              hourMinuteColor: null,
+            ),
+          ),
+          child: MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+            child: child!,
+          ),
+        );
+      },
+    );
+  }
+
   late TextEditingController residenteController;
   late TextEditingController transportadoraController;
   late TextEditingController observacionesController;
@@ -1416,16 +1673,16 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
 
     // Inicializar fecha y hora
     try {
-      final fechaRecepcion = DateTime.parse(
-        widget.paquete['fechaRecepcion']?.toString() ??
-            DateTime.now().toIso8601String(),
-      );
+      final fechaStr = widget.paquete['fechaRecepcion']?.toString() ?? '';
+      final fechaRecepcion = parsearFechaDesdeBackend(fechaStr);
+
       fechaSeleccionada = fechaRecepcion;
       horaSeleccionada = TimeOfDay(
         hour: fechaRecepcion.hour,
         minute: fechaRecepcion.minute,
       );
     } catch (e) {
+      debugPrint('Error parseando fecha: $e');
       fechaSeleccionada = DateTime.now();
       horaSeleccionada = TimeOfDay.now();
     }
@@ -1471,11 +1728,16 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
         horaSeleccionada.minute,
       );
 
+      // Formatear sin segundos: YYYY-MM-DD HH:mm
+      final fechaFormateada =
+          '${fechaHora.year}-${fechaHora.month.toString().padLeft(2, '0')}-${fechaHora.day.toString().padLeft(2, '0')} '
+          '${fechaHora.hour.toString().padLeft(2, '0')}:${fechaHora.minute.toString().padLeft(2, '0')}';
+
       final body = {
         'apartamentoId': apartamentoIdSeleccionado,
         'nombreDestinatario': residenteController.text.trim(),
         'empresaMensajeria': transportadoraController.text.trim(),
-        'fechaRecepcion': fechaHora.toIso8601String(),
+        'fechaRecepcion': fechaFormateada,
         'observaciones': observacionesController.text.trim().isEmpty
             ? null
             : observacionesController.text.trim(),
@@ -1490,8 +1752,6 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
       }
 
       final idPaquete = widget.paquete['idPaquete'];
-      print('Editando paquete ID: $idPaquete'); // Debug
-      print('Body: ${json.encode(body)}'); // Debug
 
       final response = await http.patch(
         Uri.parse('${LoginServe.baseUrl}/api/recepcionPaquetes/$idPaquete'),
@@ -1499,13 +1759,17 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
         body: json.encode(body),
       );
 
-      print('Status Code: ${response.statusCode}'); // Debug
-      print('Response Body: ${response.body}'); // Debug
+      if (!context.mounted) return;
+
+      // Validar si el token expiró
+      if (manejarTokenExpirado(context, response.statusCode, response.body)) {
+        return;
+      }
 
       if (response.statusCode == 200 || response.statusCode == 204) {
         if (mounted) {
           Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
+          _mostrarSnackBarSafe(
             const SnackBar(
               content: Text('Paquete actualizado exitosamente'),
               backgroundColor: Colors.green,
@@ -1521,7 +1785,7 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        _mostrarSnackBarSafe(
           SnackBar(
             content: Text(
               'Error: ${error.toString().replaceAll('Exception: ', '')}',
@@ -1537,6 +1801,15 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
           isSubmitting = false;
         });
       }
+    }
+  }
+
+  void _mostrarSnackBarSafe(SnackBar snackBar) {
+    if (!mounted) return;
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    } catch (e) {
+      debugPrint('SnackBar no disponible');
     }
   }
 
@@ -1585,17 +1858,13 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
                     ),
                     prefixIcon: const Icon(Icons.person),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Este campo es obligatorio';
-                    }
-                    return null;
-                  },
+                  inputFormatters: [NombreInputFormatter()],
+                  validator: (v) => validarNombreCompleto(v),
                 ),
                 const SizedBox(height: 15),
                 // Torre
                 DropdownButtonFormField<String>(
-                  value: torreSeleccionada,
+                  initialValue: torreSeleccionada,
                   decoration: InputDecoration(
                     labelText: 'Torre *',
                     border: OutlineInputBorder(
@@ -1626,7 +1895,7 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
                 const SizedBox(height: 15),
                 // Apartamento
                 DropdownButtonFormField<String>(
-                  value: apartamentoSeleccionado,
+                  initialValue: apartamentoSeleccionado,
                   decoration: InputDecoration(
                     labelText: 'Apartamento *',
                     border: OutlineInputBorder(
@@ -1659,22 +1928,47 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
                   },
                 ),
                 const SizedBox(height: 15),
-                // Transportadora
-                TextFormField(
-                  controller: transportadoraController,
-                  decoration: InputDecoration(
-                    labelText: 'Transportadora *',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    prefixIcon: const Icon(Icons.local_shipping),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Este campo es obligatorio';
+                // Transportadora (Autocomplete)
+                Autocomplete<String>(
+                  optionsBuilder: (TextEditingValue textEditingValue) {
+                    if (textEditingValue.text.isEmpty) {
+                      return transportadorasCo.map(
+                        (t) => t[0].toUpperCase() + t.substring(1),
+                      );
                     }
-                    return null;
+                    return transportadorasCo
+                        .where(
+                          (t) => t.toLowerCase().contains(
+                            textEditingValue.text.toLowerCase(),
+                          ),
+                        )
+                        .map((t) => t[0].toUpperCase() + t.substring(1));
                   },
+                  initialValue: TextEditingValue(
+                    text: transportadoraController.text,
+                  ),
+                  onSelected: (String selection) {
+                    transportadoraController.text = selection;
+                  },
+                  fieldViewBuilder:
+                      (context, controller, focusNode, onFieldSubmitted) {
+                        return TextFormField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          decoration: InputDecoration(
+                            labelText: 'Transportadora *',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            prefixIcon: const Icon(Icons.local_shipping),
+                            hintText: 'Escriba o seleccione',
+                          ),
+                          validator: (v) => validarTransportadora(v),
+                          onChanged: (v) {
+                            transportadoraController.text = v;
+                          },
+                        );
+                      },
                 ),
                 const SizedBox(height: 15),
                 // Fecha y Hora
@@ -1802,13 +2096,21 @@ class _FormularioEditarPaqueteState extends State<FormularioEditarPaquete> {
                 TextFormField(
                   controller: observacionesController,
                   maxLines: 3,
+                  maxLength: 255,
                   decoration: InputDecoration(
                     labelText: 'Observaciones',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                     prefixIcon: const Icon(Icons.note),
+                    helperText: 'Máximo 255 caracteres (opcional)',
                   ),
+                  validator: (value) {
+                    if (value != null && value.length > 255) {
+                      return 'Máximo 255 caracteres';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 25),
                 // Botón de actualización
@@ -1898,39 +2200,49 @@ class DetallesPaquete extends StatelessWidget {
               child: Column(
                 children: [
                   _buildDetalle(
+                    context,
                     'Residente',
                     paquete['nombreDestinatario']?.toString() ?? 'N/A',
                   ),
                   _buildDetalle(
+                    context,
                     'Torre',
                     _convertirTorreIdALetra(
                       paquete['apartamento']?['torresId'],
                     ),
                   ),
                   _buildDetalle(
+                    context,
                     'Apartamento',
                     paquete['apartamento']?['numeroApartamento']?.toString() ??
                         'N/A',
                   ),
                   _buildDetalle(
+                    context,
                     'Empresa Mensajería',
                     paquete['empresaMensajeria']?.toString() ?? 'N/A',
                   ),
                   _buildDetalle(
+                    context,
                     'Fecha Recepción',
-                    paquete['fechaRecepcion']?.toString().substring(0, 10) ??
-                        'N/A',
+                    formatearFechaParaMostrar(
+                      paquete['fechaRecepcion']?.toString(),
+                    ),
                   ),
                   _buildDetalle(
+                    context,
                     'Hora Recepción',
-                    paquete['fechaRecepcion']?.toString().substring(11, 16) ??
-                        'N/A',
+                    formatearHoraParaMostrar(
+                      paquete['fechaRecepcion']?.toString(),
+                    ),
                   ),
                   _buildDetalle(
+                    context,
                     'Estado',
                     paquete['estado']?['nombreEstado']?.toString() ?? 'N/A',
                   ),
                   _buildDetalle(
+                    context,
                     'Observaciones',
                     paquete['observaciones']?.toString() ?? 'Sin observaciones',
                   ),
@@ -1943,7 +2255,7 @@ class DetallesPaquete extends StatelessWidget {
     );
   }
 
-  Widget _buildDetalle(String titulo, String valor) {
+  Widget _buildDetalle(BuildContext context, String titulo, String valor) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
@@ -1956,7 +2268,10 @@ class DetallesPaquete extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             valor,
-            style: const TextStyle(fontSize: 15, color: Colors.black87),
+            style: TextStyle(
+              fontSize: 15,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
         ],
       ),

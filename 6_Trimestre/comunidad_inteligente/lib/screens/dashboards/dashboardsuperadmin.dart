@@ -1,11 +1,24 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import '../../main.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../paqueteria/paqueteria.dart';
-import '../gestionUsuarios/gestionusuarios.dart';
+import '../gestionUsuarios/gestion_usuarios.dart';
 import '../areasComunes/areascomunes.dart';
+import '../areasComunes/gestion_areas.dart';
 import '../../widgets/areasComunes/registrar_reserva.dart';
+import '../visitas/visitas.dart';
+import '../parqueaderos/parqueaderos.dart' show SeleccionarParqueaderoScreen;
+import '../reportes/reportes.dart';
+import '../residentes/residentes.dart';
+import '../auditorias/auditoria_screen.dart';
+import '../log_errores/log_errores_screen.dart';
+import '../torres/torres_screen.dart';
+import '../../utils/helpers.dart';
+import '../../utils/theme_provider.dart';
+import '../../utils/user_photo_service.dart';
+import '../../widgets/whatsapp_fab.dart';
 
 class Dashboardsuperadmin extends StatefulWidget {
   final String nombreUsuario;
@@ -19,15 +32,68 @@ class Dashboardsuperadmin extends StatefulWidget {
 class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
   int paquetesEntregados = 0;
   int paquetesPendientes = 0;
-  int parqueosResidentes = 0;
-  int parqueosVisitantes = 0;
+  int parqueosCarros = 0;
+  int parqueosMotos = 0;
   int parqueosLibres = 0;
+  int visitasHoy = 0;
+  int visitasActivas = 0;
+  int reservasHoy = 0;
+  int usuariosActivos = 0;
+  int residentesActivos = 0;
   bool isLoading = true;
+  String? _fotoBase64;
+
+  // Usuarios en línea
+  List<String> usuariosEnLinea = [];
+  int totalEnLinea = 0;
 
   @override
   void initState() {
     super.initState();
     _cargarDatos();
+    _cargarUsuariosEnLinea();
+    _cargarFotoPerfil();
+    // Auto-refresh cada 30 segundos
+    _iniciarAutoRefreshEnLinea();
+  }
+
+  Future<void> _cargarFotoPerfil() async {
+    final foto = await UserPhotoService.getPhoto(
+      LoginServe.usernameActual ?? widget.nombreUsuario,
+    );
+    if (mounted && foto != null) setState(() => _fotoBase64 = foto);
+  }
+
+  void _iniciarAutoRefreshEnLinea() {
+    Future.delayed(const Duration(seconds: 30), () {
+      if (mounted) {
+        _cargarUsuariosEnLinea();
+        _iniciarAutoRefreshEnLinea();
+      }
+    });
+  }
+
+  Future<void> _cargarUsuariosEnLinea() async {
+    try {
+      if (LoginServe.token == null) return;
+      final response = await http.get(
+        Uri.parse('${LoginServe.baseUrl}/api/usuario/en-linea'),
+        headers: {
+          'Authorization': 'Bearer ${LoginServe.token}',
+          'Content-Type': 'application/json',
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final enLinea = data['enLinea'] as Map<String, dynamic>? ?? {};
+        if (mounted) {
+          setState(() {
+            usuariosEnLinea = enLinea.keys.toList();
+            totalEnLinea = usuariosEnLinea.length;
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _cargarDatos() async {
@@ -36,17 +102,36 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
         Uri.parse('${LoginServe.baseUrl}/api/dashboard/resumen'),
       );
 
+      if (!context.mounted) return;
+
+      // Validar si el token expiró
+      if (manejarTokenExpirado(context, response.statusCode, response.body)) {
+        setState(() => isLoading = false);
+        return;
+      }
+
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
         final datos = responseData['data'];
+
         setState(() {
           paquetesEntregados = datos['paquetes']?['entregados'] ?? 0;
           paquetesPendientes = datos['paquetes']?['pendientes'] ?? 0;
-          parqueosResidentes =
-              datos['parqueaderos']?['ocupadosResidentes'] ?? 0;
-          parqueosVisitantes =
-              datos['parqueaderos']?['ocupadosVisitantes'] ?? 0;
-          parqueosLibres = datos['parqueaderos']?['disponibles'] ?? 0;
+          // Obtener parqueaderos por tipo de vehículo y validar que no sean negativos
+          parqueosCarros = (datos['parqueaderos']?['ocupadosCarros'] ?? 0)
+              .clamp(0, double.infinity)
+              .toInt();
+          parqueosMotos = (datos['parqueaderos']?['ocupadosMotos'] ?? 0)
+              .clamp(0, double.infinity)
+              .toInt();
+          parqueosLibres = (datos['parqueaderos']?['disponibles'] ?? 0)
+              .clamp(0, double.infinity)
+              .toInt();
+          visitasHoy = datos['visitas']?['hoy'] ?? 0;
+          visitasActivas = datos['visitas']?['activas'] ?? 0;
+          reservasHoy = datos['reservas']?['hoy'] ?? 0;
+          usuariosActivos = datos['usuarios']?['activos'] ?? 0;
+          residentesActivos = datos['residentes']?['activos'] ?? 0;
           isLoading = false;
         });
       } else {
@@ -71,10 +156,15 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final onSurface = theme.colorScheme.onSurface;
+    final surface = theme.colorScheme.surface;
+
     return Scaffold(
+      floatingActionButton: const WhatsAppFab(),
       // Es un menu desplegable
       endDrawer: Drawer(
-        backgroundColor: Colors.white,
         child: Column(
           children: [
             // Encabezado del menú con diseño mejorado
@@ -93,11 +183,16 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                   CircleAvatar(
                     radius: 40,
                     backgroundColor: Colors.white,
-                    child: Icon(
-                      Icons.admin_panel_settings,
-                      size: 50,
-                      color: Colors.green,
-                    ),
+                    backgroundImage: _fotoBase64 != null
+                        ? MemoryImage(base64Decode(_fotoBase64!))
+                        : null,
+                    child: _fotoBase64 == null
+                        ? Icon(
+                            Icons.admin_panel_settings,
+                            size: 50,
+                            color: Colors.green,
+                          )
+                        : null,
                   ),
                   SizedBox(height: 15),
                   Text(
@@ -116,7 +211,54 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                 ],
               ),
             ),
-            SizedBox(height: 10),
+            // Toggle de modo oscuro en el drawer
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: ListenableBuilder(
+                listenable: ThemeProvider(),
+                builder: (context, _) {
+                  final darkMode = ThemeProvider().isDarkMode;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: darkMode
+                          ? Colors.grey.shade800
+                          : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          darkMode ? Icons.dark_mode : Icons.light_mode,
+                          color: darkMode ? Colors.amber : Colors.orange,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            darkMode ? 'Modo Oscuro' : 'Modo Claro',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                        Switch(
+                          value: darkMode,
+                          onChanged: (_) => ThemeProvider().toggleTheme(),
+                          activeThumbColor: Colors.amber,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 4),
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
@@ -136,23 +278,29 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                       ),
                     ]),
                     _buildMenuSection('Gestión de Visitas', [
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
-                        Icons.person_add,
-                        'Crear Visitas',
+                        Icons.event,
+                        'Gestión de Visitas',
+                        HomeScreen(token: LoginServe.token),
                       ),
-                      _buildMenuItem(
-                        context,
-                        Icons.search,
-                        'Consultar Visitas',
-                      ),
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
                         Icons.local_parking,
                         'Consultar Parquedero',
+                        SeleccionarParqueaderoScreen(
+                          token: LoginServe.token,
+                          rolId: 1,
+                        ),
                       ),
                     ]),
                     _buildMenuSection('Gestión de Áreas Comunes', [
+                      _buildMenuItemNav(
+                        context,
+                        Icons.settings,
+                        'Gestionar Áreas',
+                        GestionAreas(token: LoginServe.token),
+                      ),
                       _buildMenuItemNav(
                         context,
                         Icons.event,
@@ -166,28 +314,62 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                         Areascomunes(token: LoginServe.token),
                       ),
                     ]),
+                    _buildMenuSection('Reportes', [
+                      _buildMenuItemNav(
+                        context,
+                        Icons.bar_chart,
+                        'Ver Reportes',
+                        ReportesScreen(token: LoginServe.token ?? ''),
+                      ),
+                    ]),
                     _buildMenuSection('Gestión de Usuarios', [
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
                         Icons.person_add_alt,
                         'Registrar Usuario',
+                        GestionUsuarios(openCreateDialog: true),
                       ),
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
                         Icons.people_outline,
                         'Consultar Usuario',
+                        GestionUsuarios(),
                       ),
                     ]),
                     _buildMenuSection('Gestión de Residentes', [
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
                         Icons.home_work,
                         'Registrar Residentes',
+                        const Residentes(openCreateDialog: true),
                       ),
-                      _buildMenuItem(
+                      _buildMenuItemNav(
                         context,
                         Icons.list_alt,
                         'Consultar Residentes',
+                        const Residentes(),
+                      ),
+                    ]),
+                    _buildMenuSection('Auditorías', [
+                      _buildMenuItemNav(
+                        context,
+                        Icons.history,
+                        'Ver Auditorías',
+                        const AuditoriaScreen(),
+                      ),
+                    ]),
+                    _buildMenuSection('Sistema', [
+                      _buildMenuItemNav(
+                        context,
+                        Icons.apartment,
+                        'Visualizar Torres',
+                        const TorresVisualizacion(),
+                      ),
+                      _buildMenuItemNav(
+                        context,
+                        Icons.bug_report,
+                        'Log de Errores',
+                        const LogErroresScreen(),
                       ),
                     ]),
                   ],
@@ -227,13 +409,14 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
         ),
       ),
       //fin del menu
-      backgroundColor: Colors.white,
+      backgroundColor: surface,
       //Encabezado tiene el logo
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: Colors.white,
+        backgroundColor: surface,
         elevation: 3,
         toolbarHeight: 90,
+        iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
         title: Stack(
           children: [
             // Logo centrado absolutamente
@@ -258,7 +441,7 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.green.withOpacity(0.3),
+                        color: Colors.green.withValues(alpha: 0.3),
                         blurRadius: 10,
                         spreadRadius: 2,
                       ),
@@ -288,7 +471,20 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
               bottom: 0,
               child: Center(
                 child: IconButton(
-                  icon: Icon(Icons.person, color: Colors.green, size: 32),
+                  icon: CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Colors.white,
+                    backgroundImage: _fotoBase64 != null
+                        ? MemoryImage(base64Decode(_fotoBase64!))
+                        : null,
+                    child: _fotoBase64 == null
+                        ? const Icon(
+                            Icons.person,
+                            color: Colors.green,
+                            size: 18,
+                          )
+                        : null,
+                  ),
                   onPressed: () {
                     _mostrarPerfilUsuario(context);
                   },
@@ -337,7 +533,7 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                     'Bienvenido, ${widget.nombreUsuario}',
                     style: TextStyle(
                       fontSize: 35,
-                      color: Colors.black,
+                      color: onSurface,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -348,7 +544,10 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Text(
                       'Selecciona el módulo que deseas gestionar en la plataforma',
-                      style: TextStyle(fontSize: 13, color: Colors.black),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: onSurface.withValues(alpha: 0.7),
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -371,7 +570,6 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
     );
   }
 
-  // Vista Web: Grid con todas las tarjetas visibles
   Widget _buildWebView(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 40),
@@ -442,7 +640,9 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => TerceraPantalla()),
+            MaterialPageRoute(
+              builder: (context) => HomeScreen(token: LoginServe.token),
+            ),
           );
         },
       ),
@@ -454,7 +654,12 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => TerceraPantalla()),
+            MaterialPageRoute(
+              builder: (context) => SeleccionarParqueaderoScreen(
+                token: LoginServe.token,
+                rolId: 1,
+              ),
+            ),
           );
         },
       ),
@@ -480,9 +685,7 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => MostrarUsuario(token: LoginServe.token),
-            ),
+            MaterialPageRoute(builder: (context) => GestionUsuarios()),
           );
         },
       ),
@@ -494,14 +697,66 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => TerceraPantalla()),
+            MaterialPageRoute(builder: (context) => const Residentes()),
+          );
+        },
+      ),
+      _buildModuleCard(
+        context,
+        icon: Icons.history,
+        title: 'Auditorías',
+        color: Colors.indigo,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AuditoriaScreen()),
+          );
+        },
+      ),
+      _buildModuleCard(
+        context,
+        icon: Icons.bar_chart,
+        title: 'Reportes',
+        color: Colors.deepPurple,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  ReportesScreen(token: LoginServe.token ?? ''),
+            ),
+          );
+        },
+      ),
+      _buildModuleCard(
+        context,
+        icon: Icons.apartment,
+        title: 'Visualizar Torres',
+        color: Colors.teal,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const TorresVisualizacion(),
+            ),
+          );
+        },
+      ),
+      _buildModuleCard(
+        context,
+        icon: Icons.bug_report,
+        title: 'Log de Errores',
+        color: Colors.red[700]!,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const LogErroresScreen()),
           );
         },
       ),
     ];
   }
 
-  // Tarjeta individual de módulo
   Widget _buildModuleCard(
     BuildContext context, {
     required IconData icon,
@@ -509,12 +764,12 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return Container(
+    return SizedBox(
       width: 180,
       height: 220,
       child: Card(
         elevation: 8,
-        shadowColor: color.withOpacity(0.4),
+        shadowColor: color.withValues(alpha: 0.4),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: InkWell(
           onTap: onTap,
@@ -525,7 +780,7 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [color.withOpacity(0.8), color],
+                colors: [color.withValues(alpha: 0.8), color],
               ),
             ),
             child: Column(
@@ -534,7 +789,7 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                 Container(
                   padding: EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
+                    color: Colors.white.withValues(alpha: 0.3),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(icon, size: 60, color: Colors.white),
@@ -584,7 +839,12 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
             SizedBox(height: 10),
             Text(
               'Rol: Super Administrador',
-              style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
             ),
             SizedBox(height: 10),
             Text(
@@ -626,20 +886,35 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
   }
 
   // Construir item del menú
+  // ignore: unused_element
   Widget _buildMenuItem(BuildContext context, IconData icon, String title) {
     return ListTile(
       leading: Icon(icon, color: Colors.green.shade600, size: 24),
-      title: Text(title, style: TextStyle(fontSize: 15, color: Colors.black87)),
-      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 15,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+      ),
+      trailing: Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+      ),
       onTap: () {
         Navigator.pop(context); // Cerrar el drawer
-        Navigator.push(
+        ScaffoldMessenger.of(
           context,
-          MaterialPageRoute(builder: (context) => TerceraPantalla()),
-        );
+        ).showSnackBar(SnackBar(content: Text('Módulo en construcción')));
       },
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      hoverColor: Colors.green.shade50,
+      hoverColor: Theme.of(context).brightness == Brightness.dark
+          ? Colors.green.shade900.withValues(alpha: 0.3)
+          : Colors.green.shade50,
+      splashColor: Theme.of(context).brightness == Brightness.dark
+          ? Colors.green.shade800.withValues(alpha: 0.3)
+          : null,
     );
   }
 
@@ -650,10 +925,21 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
     String title,
     Widget destino,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ListTile(
       leading: Icon(icon, color: Colors.green.shade600, size: 24),
-      title: Text(title, style: TextStyle(fontSize: 15, color: Colors.black87)),
-      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 15,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+      ),
+      trailing: Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+      ),
       onTap: () {
         Navigator.pop(context);
         Navigator.push(
@@ -662,7 +948,10 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
         );
       },
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      hoverColor: Colors.green.shade50,
+      hoverColor: isDark
+          ? Colors.green.shade900.withValues(alpha: 0.3)
+          : Colors.green.shade50,
+      splashColor: isDark ? Colors.green.shade800.withValues(alpha: 0.3) : null,
     );
   }
 
@@ -677,13 +966,12 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
         SizedBox(height: 30),
         if (isWeb)
-          // Vista web: gráficos lado a lado
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Row(
@@ -704,14 +992,41 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                 _buildPaquetesEntregadosCard(),
                 SizedBox(height: 20),
                 _buildParqueaderosCard(),
+                SizedBox(height: 20),
+                _buildVisitasCard(),
+                SizedBox(height: 20),
+                _buildResumenRapidoCard(),
+                SizedBox(height: 20),
+                _buildUsuariosEnLineaCard(),
               ],
             ),
           ),
+        if (isWeb) ...[
+          SizedBox(height: 30),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: _buildVisitasCard()),
+                SizedBox(width: 30),
+                Expanded(child: _buildResumenRapidoCard()),
+              ],
+            ),
+          ),
+          SizedBox(height: 30),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [Expanded(child: _buildUsuariosEnLineaCard())],
+            ),
+          ),
+        ],
       ],
     );
   }
 
-  // Tarjeta de paquetes entregados
   Widget _buildPaquetesEntregadosCard() {
     // Usar datos dinámicos
     int totalPaquetes = paquetesEntregados + paquetesPendientes;
@@ -735,7 +1050,7 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -765,7 +1080,9 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
             Container(
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.blue.shade900.withValues(alpha: 0.3)
+                    : Colors.blue.shade50,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -783,11 +1100,22 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                       ),
                       Text(
                         'Entregados',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
                       ),
                     ],
                   ),
-                  Container(width: 1, height: 40, color: Colors.grey.shade300),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.2),
+                  ),
                   Column(
                     children: [
                       Text(
@@ -800,7 +1128,12 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
                       ),
                       Text(
                         'Eficiencia',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
                       ),
                     ],
                   ),
@@ -813,74 +1146,90 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
     );
   }
 
-  // Tarjeta de parqueaderos ocupados con gráfico de torta
   Widget _buildParqueaderosCard() {
     // Usar datos dinámicos
-    int totalParqueos = parqueosResidentes + parqueosVisitantes;
+    int totalOcupados = parqueosCarros + parqueosMotos;
+    int totalParqueos = totalOcupados + parqueosLibres;
 
     return Card(
       elevation: 6,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Icon(Icons.local_parking, color: Colors.purple, size: 32),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Parqueaderos Ocupados',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 30),
-            // Gráfico de torta simplificado
-            SizedBox(
-              height: 180,
-              child: CustomPaint(
-                size: Size(180, 180),
-                painter: PieChartPainter(
-                  residentes: parqueosResidentes,
-                  visitantes: parqueosVisitantes,
-                  libres: parqueosLibres,
-                ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SeleccionarParqueaderoScreen(
+                token: LoginServe.token,
+                rolId: 1,
               ),
             ),
-            SizedBox(height: 25),
-            // Leyenda
-            Column(
-              children: [
-                _buildLeyendaItem(
-                  Colors.teal,
-                  'Residentes',
-                  parqueosResidentes,
-                  totalParqueos,
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.local_parking, color: Colors.purple, size: 32),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Parqueaderos Visitantes',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                  Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+                ],
+              ),
+              SizedBox(height: 30),
+              // Gráfico de torta simplificado
+              SizedBox(
+                height: 180,
+                child: CustomPaint(
+                  size: Size(180, 180),
+                  painter: PieChartPainter(
+                    residentes: parqueosCarros,
+                    visitantes: parqueosMotos,
+                    libres: parqueosLibres,
+                    isDark: Theme.of(context).brightness == Brightness.dark,
+                  ),
                 ),
-                SizedBox(height: 8),
-                _buildLeyendaItem(
-                  Colors.orange,
-                  'Visitantes',
-                  parqueosVisitantes,
-                  totalParqueos,
-                ),
-                SizedBox(height: 8),
-                _buildLeyendaItem(
-                  Colors.grey.shade300,
-                  'Libres',
-                  parqueosLibres,
-                  60,
-                ),
-              ],
-            ),
-          ],
+              ),
+              SizedBox(height: 25),
+              // Leyenda
+              Column(
+                children: [
+                  _buildLeyendaItem(
+                    Colors.teal,
+                    'Carros',
+                    parqueosCarros,
+                    totalParqueos > 0 ? totalParqueos : 1,
+                  ),
+                  SizedBox(height: 8),
+                  _buildLeyendaItem(
+                    Colors.orange,
+                    'Motos',
+                    parqueosMotos,
+                    totalParqueos > 0 ? totalParqueos : 1,
+                  ),
+                  SizedBox(height: 8),
+                  _buildLeyendaItem(
+                    Colors.grey.shade300,
+                    'Libres',
+                    parqueosLibres,
+                    totalParqueos > 0 ? totalParqueos : 1,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -905,12 +1254,12 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [color.withOpacity(0.7), color],
+              colors: [color.withValues(alpha: 0.7), color],
             ),
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: color.withOpacity(0.3),
+                color: color.withValues(alpha: 0.3),
                 blurRadius: 8,
                 offset: Offset(0, 4),
               ),
@@ -933,7 +1282,9 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: Colors.grey[700],
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
       ],
@@ -942,7 +1293,12 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
 
   // Item de leyenda para el gráfico de torta
   Widget _buildLeyendaItem(Color color, String label, int valor, int total) {
-    double porcentaje = (valor / total) * 100;
+    // Validar que los valores sean positivos y el total no sea cero
+    int valorSeguro = valor < 0 ? 0 : valor;
+    int totalSeguro = total > 0 ? total : 1;
+    double porcentaje = (valorSeguro / totalSeguro) * 100;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+
     return Row(
       children: [
         Container(
@@ -952,17 +1308,306 @@ class _DashboardsuperadminState extends State<Dashboardsuperadmin> {
         ),
         SizedBox(width: 12),
         Expanded(
-          child: Text(
-            label,
-            style: TextStyle(fontSize: 15, color: Colors.black87),
-          ),
+          child: Text(label, style: TextStyle(fontSize: 15, color: onSurface)),
         ),
         Text(
-          '$valor (${porcentaje.toStringAsFixed(0)}%)',
+          '$valorSeguro (${porcentaje.toStringAsFixed(0)}%)',
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: onSurface,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVisitasCard() {
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Icon(Icons.people_outline, color: Colors.deepPurple, size: 32),
+                SizedBox(width: 12),
+                Text(
+                  'Visitas del Día',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildStatCircle(
+                  '$visitasHoy',
+                  'Registradas',
+                  Colors.deepPurple,
+                ),
+                _buildStatCircle(
+                  '$visitasActivas',
+                  'En curso',
+                  Colors.amber.shade700,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResumenRapidoCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Icon(Icons.calendar_today, color: Colors.blue, size: 32),
+                SizedBox(width: 12),
+                Text(
+                  'Reservas del Día',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 30),
+            Container(
+              padding: EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.blue.shade900.withValues(alpha: 0.3)
+                    : Colors.blue.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                '$reservasHoy',
+                style: TextStyle(
+                  fontSize: 56,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
+              ),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Reservas registradas hoy',
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.people, size: 18, color: Colors.green),
+                SizedBox(width: 6),
+                Text(
+                  '$residentesActivos residentes activos',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUsuariosEnLineaCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => GestionUsuarios()),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.broadcast_on_personal,
+                    color: Colors.purple,
+                    size: 32,
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Usuarios en Línea',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                  Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+                ],
+              ),
+              SizedBox(height: 20),
+              // Contador grande
+              Text(
+                '$totalEnLinea',
+                style: TextStyle(
+                  fontSize: 48,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.purple,
+                ),
+              ),
+              Text(
+                totalEnLinea == 1 ? 'usuario conectado' : 'usuarios conectados',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+              SizedBox(height: 16),
+              // Lista de usuarios
+              Container(
+                constraints: const BoxConstraints(maxHeight: 200),
+                child: usuariosEnLinea.isNotEmpty
+                    ? ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: usuariosEnLinea.length,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.green,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    usuariosEnLinea[index],
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      )
+                    : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.wifi_off,
+                            size: 40,
+                            color: isDark
+                                ? Colors.grey.shade600
+                                : Colors.grey.shade400,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Ningún usuario en línea',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Círculo de estadística individual
+  Widget _buildStatCircle(String value, String label, Color color) {
+    return Column(
+      children: [
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [color.withValues(alpha: 0.7), color],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+        SizedBox(height: 8),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
       ],
@@ -975,11 +1620,13 @@ class PieChartPainter extends CustomPainter {
   final int residentes;
   final int visitantes;
   final int libres;
+  final bool isDark;
 
   PieChartPainter({
     required this.residentes,
     required this.visitantes,
     required this.libres,
+    this.isDark = false,
   });
 
   @override
@@ -988,9 +1635,20 @@ class PieChartPainter extends CustomPainter {
     final radius = size.width / 2;
     final total = residentes + visitantes + libres;
 
-    double startAngle = -90 * 3.14159 / 180; // Comenzar desde arriba
+    if (total == 0) {
+      final emptyPaint = Paint()
+        ..color = Colors.grey.shade300
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(center, radius, emptyPaint);
+      final innerPaint = Paint()
+        ..color = isDark ? const Color(0xFF1E1E1E) : Colors.white
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(center, radius * 0.5, innerPaint);
+      return;
+    }
 
-    // Dibujar sección de residentes
+    double startAngle = -90 * 3.14159 / 180;
+
     final residentesAngle = (residentes / total) * 2 * 3.14159;
     final residentesPaint = Paint()
       ..color = Colors.teal
@@ -1004,7 +1662,6 @@ class PieChartPainter extends CustomPainter {
     );
     startAngle += residentesAngle;
 
-    // Dibujar sección de visitantes
     final visitantesAngle = (visitantes / total) * 2 * 3.14159;
     final visitantesPaint = Paint()
       ..color = Colors.orange
@@ -1018,7 +1675,6 @@ class PieChartPainter extends CustomPainter {
     );
     startAngle += visitantesAngle;
 
-    // Dibujar sección de libres
     final libresAngle = (libres / total) * 2 * 3.14159;
     final libresPaint = Paint()
       ..color = Colors.grey.shade300
@@ -1031,20 +1687,20 @@ class PieChartPainter extends CustomPainter {
       libresPaint,
     );
 
-    // Dibujar círculo blanco en el centro para efecto de dona
+    // Círculo interno (dona) - adaptado a dark mode
     final innerCirclePaint = Paint()
-      ..color = Colors.white
+      ..color = isDark ? const Color(0xFF1E1E1E) : Colors.white
       ..style = PaintingStyle.fill;
     canvas.drawCircle(center, radius * 0.5, innerCirclePaint);
 
-    // Dibujar texto en el centro
+    // Texto central - adaptado a dark mode
     final textPainter = TextPainter(
       text: TextSpan(
         text: '${residentes + visitantes}',
         style: TextStyle(
           fontSize: 32,
           fontWeight: FontWeight.bold,
-          color: Colors.black87,
+          color: isDark ? Colors.white : Colors.black87,
         ),
         children: [
           TextSpan(
@@ -1052,7 +1708,7 @@ class PieChartPainter extends CustomPainter {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.normal,
-              color: Colors.grey[600],
+              color: isDark ? Colors.white70 : Colors.grey[600],
             ),
           ),
         ],
@@ -1074,14 +1730,7 @@ class PieChartPainter extends CustomPainter {
   bool shouldRepaint(PieChartPainter oldDelegate) {
     return oldDelegate.residentes != residentes ||
         oldDelegate.visitantes != visitantes ||
-        oldDelegate.libres != libres;
-  }
-}
-
-class TerceraPantalla extends StatelessWidget {
-  const TerceraPantalla({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: Text('Pantalla en construcción')));
+        oldDelegate.libres != libres ||
+        oldDelegate.isDark != isDark;
   }
 }

@@ -1,4 +1,4 @@
-export default (schema, property = "body") => {
+const validateSchema = (schema, property = "body") => {
   return async (req, res, next) => {
     try {
       await schema.validateAsync(req[property], { abortEarly: false });
@@ -10,3 +10,5 @@ export default (schema, property = "body") => {
     }
   };
 };
+
+export default validateSchema;

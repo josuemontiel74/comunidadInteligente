@@ -50,10 +50,6 @@ class ReservarAreas extends Model {
           type: DataTypes.TINYINT(1),
           allowNull: false,
         },
-        estadoId: {
-          type: DataTypes.INTEGER,
-          allowNull: false,
-        },
         documentoSolicitante: {
           type: DataTypes.STRING(20),
           allowNull: false,
@@ -62,9 +58,9 @@ class ReservarAreas extends Model {
       {
         sequelize,
         modelName: "ReservarAreas",
-        tableName: "reservasAreas",
+        tableName: "reservasareas",
         timestamps: false,
-      }
+      },
     );
     return ReservarAreas;
   }

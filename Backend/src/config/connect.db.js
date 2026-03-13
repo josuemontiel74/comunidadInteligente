@@ -14,22 +14,17 @@ const sequelize = new Sequelize(
     dialect: process.env.DB_DIALECT || "mysql",
     timezone: "-05:00",
     logging: false,
-  }
+  },
 );
 
-// 🔹 inicializa los modelos aquí
+// inicializa los modelos aquí
 const models = initModels(sequelize);
 
-async function testConnection() {
-  try {
-    await sequelize.authenticate();
-    console.log("La conexión ha sido establecida con éxito.");
-  } catch (error) {
-    console.error("No se pudo conectar a la base de datos:", error);
-  }
+try {
+  await sequelize.authenticate();
+} catch (error) {
+  console.error("Error de conexión con la base de datos:", error);
 }
 
-testConnection();
-
-// 🔹 exporta ambos: sequelize y models
+// exporta ambos: sequelize y models
 export { sequelize, models };

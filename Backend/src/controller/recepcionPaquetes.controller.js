@@ -1,13 +1,54 @@
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
+import { fn, col, literal, where, Op } from "sequelize";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 import RecepcionPaquetes from "../models/recepcionPaquetes.model.js";
 import Estado from "../models/estados.model.js";
 import Apartamento from "../models/apartamentos.model.js";
 import { sequelize } from "../config/connect.db.js";
-import { fn, col, where } from "sequelize";
+import { registrarAuditoria } from "../services/auditorias.service.js";
+import { registrarFallo } from "../services/logger.service.js";
+import {
+  ESTADO_PAQUETE,
+  USUARIO_DESCONOCIDO,
+  AÑO_MAXIMO,
+  TIMEZONE_COLOMBIA,
+} from "../utils/constantes.js";
+
+/** Columnas que se copian directamente de req.body si están presentes */
+const CAMPOS_OPCIONALES_PAQUETE = [
+  "nombreDestinatario",
+  "empresaMensajeria",
+  "fechaEntrega",
+  "observaciones",
+  "estadoId",
+];
+
+/** Atributos compartidos por todos los grupos del informe */
+const atributosBaseInforme = () => [
+  [fn("YEAR", col("fechaRecepcion")), "anio"],
+  [fn("COUNT", col("idPaquete")), "recibidos"],
+  [
+    literal(
+      `SUM(CASE WHEN estadoId = ${ESTADO_PAQUETE.RECIBIDO} THEN 1 ELSE 0 END)`,
+    ),
+    "pendientes",
+  ],
+  [
+    literal(
+      `SUM(CASE WHEN estadoId = ${ESTADO_PAQUETE.ENTREGADO} THEN 1 ELSE 0 END)`,
+    ),
+    "entregados",
+  ],
+];
+
 export const crearRecepcionPaquete = async (req, res) => {
   try {
     await RecepcionPaquetes.sync();
-    const ahora = dayjs();
+    const ahora = dayjs().tz(TIMEZONE_COLOMBIA);
 
     let fechaRecepcion = req.body.fechaRecepcion
       ? dayjs(req.body.fechaRecepcion, "YYYY-MM-DD HH:mm", true)
@@ -19,27 +60,37 @@ export const crearRecepcionPaquete = async (req, res) => {
         .json({ error: "La fecha de recepción no es válida" });
     }
 
-    // Permitir fechas con diferencia de hasta 5 minutos hacia atrás (por latencia de red)
-    const cincoMinutosAtras = ahora.subtract(5, "minute");
-    if (fechaRecepcion.isBefore(cincoMinutosAtras)) {
+    // Permitir fechas con diferencia de hasta 12 horas hacia atrás
+    // (cubre desfases de zona horaria entre cliente Colombia UTC-5 y servidor UTC)
+    const toleranciaAtras = ahora.subtract(12, "hour");
+    if (fechaRecepcion.isBefore(toleranciaAtras)) {
       return res.status(400).json({
         error: "La fecha de recepción no puede ser anterior a la actual",
       });
     }
 
-    if (fechaRecepcion.year() > 2100) {
+    if (fechaRecepcion.year() > AÑO_MAXIMO) {
       return res.status(400).json({
-        error: "El año de la fecha de recepción no puede ser mayor a 2100",
+        error: `El año de la fecha de recepción no puede ser mayor a ${AÑO_MAXIMO}`,
       });
     }
 
     const dataPaquete = {
       ...req.body,
-      estadoId: 14,
+      estadoId: ESTADO_PAQUETE.RECIBIDO,
       fechaRecepcion: fechaRecepcion.format("YYYY-MM-DD HH:mm"),
     };
 
     const nuevoPaquete = await RecepcionPaquetes.create(dataPaquete);
+
+    // Registrar en auditoría
+    const usuarioActual = req.user?.username || USUARIO_DESCONOCIDO;
+    await registrarAuditoria(
+      usuarioActual,
+      "recepcionpaquetes",
+      "INSERT",
+      nuevoPaquete.idPaquete,
+    );
 
     res.status(201).json({
       ok: true,
@@ -48,6 +99,11 @@ export const crearRecepcionPaquete = async (req, res) => {
       body: nuevoPaquete,
     });
   } catch (error) {
+    const username = req.user?.username || USUARIO_DESCONOCIDO;
+    const ruta = "POST /recepcionpaquetes";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     res.status(500).json({ error: error.message });
   }
 };
@@ -73,7 +129,11 @@ export const obtenerRecepcionPaquetesSQL = async (req, res) => {
 
     res.json(results);
   } catch (error) {
-    console.error(error);
+    const username = req.user?.username || USUARIO_DESCONOCIDO;
+    const ruta = "GET /recepcionpaquetes";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     res.status(500).json({ error: "Error al obtener los paquetes" });
   }
 };
@@ -91,6 +151,11 @@ export const obtenerRecepcionesPaquetes = async (req, res) => {
       body: recepcionesPaquetes,
     });
   } catch (error) {
+    const username = req.user?.username || USUARIO_DESCONOCIDO;
+    const ruta = "GET /recepcionpaquetes";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     return res.status(500).json({
       message: "Algo salió mal en la peticion :(",
       status: 500,
@@ -106,21 +171,25 @@ export const obtenerRecepcionPaquetePorId = async (req, res) => {
     const recepcionPaquete = await RecepcionPaquetes.findByPk(idPaquete, {
       include: [Estado, Apartamento],
     });
-    if (recepcionPaquete) {
-      res.status(200).json({
-        ok: true,
-        status: 200,
-        message: "Mostrando Recepcion de Paquete",
-        body: recepcionPaquete,
-      });
-    } else {
-      res.status(404).json({
+    if (!recepcionPaquete) {
+      return res.status(404).json({
         ok: false,
         status: 404,
         message: "Recepcion de Paquete no encontrado",
       });
     }
+    res.status(200).json({
+      ok: true,
+      status: 200,
+      message: "Mostrando Recepcion de Paquete",
+      body: recepcionPaquete,
+    });
   } catch (error) {
+    const username = req.user?.username || USUARIO_DESCONOCIDO;
+    const ruta = "GET /recepcionpaquetes/:id";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     return res.status(500).json({
       message: "Algo salió mal en la peticion :(",
       status: 500,
@@ -138,7 +207,7 @@ export const actualizarRecepcionPaquete = async (req, res) => {
     // Validar y agregar apartamentoId si se proporciona
     if (req.body.apartamentoId !== undefined) {
       const apartamentoExiste = await Apartamento.findByPk(
-        req.body.apartamentoId
+        req.body.apartamentoId,
       );
       if (!apartamentoExiste) {
         return res.status(400).json({
@@ -148,7 +217,6 @@ export const actualizarRecepcionPaquete = async (req, res) => {
       datosActualizacion.apartamentoId = req.body.apartamentoId;
     }
 
-    // Validar y agregar fechaRecepcion si se proporciona
     if (req.body.fechaRecepcion) {
       const fecha = dayjs(req.body.fechaRecepcion, "YYYY-MM-DD HH:mm", true);
 
@@ -158,30 +226,19 @@ export const actualizarRecepcionPaquete = async (req, res) => {
           .json({ error: "La fecha de recepción no es válida" });
       }
 
-      if (fecha.year() > 2100) {
+      if (fecha.year() > AÑO_MAXIMO) {
         return res.status(400).json({
-          error: "El año de la fecha de recepción no puede ser mayor a 2100",
+          error: `El año de la fecha de recepción no puede ser mayor a ${AÑO_MAXIMO}`,
         });
       }
 
       datosActualizacion.fechaRecepcion = fecha.format("YYYY-MM-DD HH:mm");
     }
 
-    // Agregar los demás campos opcionales
-    if (req.body.nombreDestinatario !== undefined) {
-      datosActualizacion.nombreDestinatario = req.body.nombreDestinatario;
-    }
-    if (req.body.empresaMensajeria !== undefined) {
-      datosActualizacion.empresaMensajeria = req.body.empresaMensajeria;
-    }
-    if (req.body.fechaEntrega !== undefined) {
-      datosActualizacion.fechaEntrega = req.body.fechaEntrega;
-    }
-    if (req.body.observaciones !== undefined) {
-      datosActualizacion.observaciones = req.body.observaciones;
-    }
-    if (req.body.estadoId !== undefined) {
-      datosActualizacion.estadoId = req.body.estadoId;
+    // Agregar campos opcionales presentes en el body
+    for (const campo of CAMPOS_OPCIONALES_PAQUETE) {
+      if (req.body[campo] !== undefined)
+        datosActualizacion[campo] = req.body[campo];
     }
 
     const [updated] = await RecepcionPaquetes.update(datosActualizacion, {
@@ -192,6 +249,15 @@ export const actualizarRecepcionPaquete = async (req, res) => {
       const recepcionPaqueteActualizado = await RecepcionPaquetes.findOne({
         where: { idPaquete },
       });
+
+      // Registrar en auditoría
+      const usuarioActual = req.user?.username || USUARIO_DESCONOCIDO;
+      await registrarAuditoria(
+        usuarioActual,
+        "recepcionpaquetes",
+        "UPDATE",
+        idPaquete,
+      );
 
       res.status(200).json({
         ok: true,
@@ -207,6 +273,11 @@ export const actualizarRecepcionPaquete = async (req, res) => {
       });
     }
   } catch (error) {
+    const username = req.user?.username || USUARIO_DESCONOCIDO;
+    const ruta = "PATCH /recepcionpaquetes/:id";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     return res.status(500).json({
       message: "Algo salió mal en la petición :(",
       status: 500,
@@ -227,11 +298,19 @@ export const FinalizarRecepcionPaquete = async (req, res) => {
         message: "Recepcion de Paquete no encontrado",
       });
     }
-    await paquete.update({ estadoId: 15 });
-
     await paquete.update({
-      fechaEntrega: dayjs().format("YYYY-MM-DD HH:mm"),
+      estadoId: ESTADO_PAQUETE.ENTREGADO,
+      fechaEntrega: dayjs().tz(TIMEZONE_COLOMBIA).format("YYYY-MM-DD HH:mm"),
     });
+
+    // Registrar en auditoría
+    const usuarioActual = req.user?.username || USUARIO_DESCONOCIDO;
+    await registrarAuditoria(
+      usuarioActual,
+      "recepcionpaquetes",
+      "DELETE",
+      idPaquete,
+    );
 
     res.status(200).json({
       ok: true,
@@ -239,6 +318,11 @@ export const FinalizarRecepcionPaquete = async (req, res) => {
       message: "Recepcion de Paquete finalizado exitosamente",
     });
   } catch (error) {
+    const username = req.user?.username || USUARIO_DESCONOCIDO;
+    const ruta = "DELETE /recepcionpaquetes/:id";
+
+    await registrarFallo("ERROR", username, ruta, error.message, error.stack);
+
     return res.status(500).json({
       ok: false,
       status: 500,
@@ -248,16 +332,125 @@ export const FinalizarRecepcionPaquete = async (req, res) => {
   }
 };
 // informacion
-export const paqueteDelDia = async(req,res)=>{
+export const paqueteDelDia = async (req, res) => {
   try {
-     const paqueteDia = await RecepcionPaquetes.count({
-      where: where(fn("Date",col("fechaRecepcion")),"=",fn("CURDATE"))
-     })
-     res.status(200).json({
-      ok:true,
-      paqueteDia
-     })
+    const paqueteDia = await RecepcionPaquetes.count({
+      where: where(fn("Date", col("fechaRecepcion")), "=", fn("CURDATE")),
+    });
+    res.status(200).json({
+      ok: true,
+      paqueteDia,
+    });
   } catch (error) {
-    console.log("Ocurrio un erro a la hora de trea la informacion",error.message);
+    console.error(error);
+    res.status(500).json({ error: "Error al obtener visitas del día" });
   }
-}
+};
+
+export const informePaqueteria = async (req, res) => {
+  try {
+    const reportPor = Number.parseInt(req.params.por, 10);
+    const rango = req.body.rango || req.body;
+    let { fechaInicio, fechaFin } = rango;
+
+    if (!fechaInicio || !fechaFin) {
+      return res
+        .status(400)
+        .json({ msg: "Las fechas de inicio y fin son obligatorias." });
+    }
+    const dateInicio = new Date(fechaInicio);
+    const dateFin = new Date(fechaFin);
+
+    if (Number.isNaN(dateInicio.getTime()) || Number.isNaN(dateFin.getTime())) {
+      return res.status(400).json({ msg: "Formato de fecha inválido." });
+    }
+
+    // Corregir orden de fechas si están invertidas
+    if (dateInicio > dateFin) {
+      [fechaInicio, fechaFin] = [fechaFin, fechaInicio];
+    } else {
+      fechaInicio = dateInicio.toISOString().split("T")[0];
+      fechaFin = dateFin.toISOString().split("T")[0];
+    }
+
+    const queryConfig = {
+      where: {
+        fechaRecepcion: {
+          [Op.between]: [fechaInicio, fechaFin],
+        },
+      },
+
+      raw: true,
+    };
+
+    let informepaqueteria;
+    switch (reportPor) {
+      case 1:
+        informepaqueteria = await RecepcionPaquetes.findAll({
+          attributes: atributosBaseInforme(),
+          ...queryConfig,
+          group: [fn("YEAR", col("fechaRecepcion"))],
+          order: [[fn("YEAR", col("fechaRecepcion")), "ASC"]],
+        });
+        break;
+
+      case 2:
+        informepaqueteria = await RecepcionPaquetes.findAll({
+          attributes: [
+            ...atributosBaseInforme(),
+            [fn("MONTH", col("fechaRecepcion")), "mes"],
+          ],
+          ...queryConfig,
+          group: [
+            fn("YEAR", col("fechaRecepcion")),
+            fn("MONTH", col("fechaRecepcion")),
+          ],
+          order: [
+            [fn("YEAR", col("fechaRecepcion")), "ASC"],
+            [fn("MONTH", col("fechaRecepcion")), "ASC"],
+          ],
+        });
+        break;
+
+      case 3:
+        informepaqueteria = await RecepcionPaquetes.findAll({
+          attributes: [
+            ...atributosBaseInforme(),
+            [fn("MONTH", col("fechaRecepcion")), "mes"],
+            [
+              literal(`FLOOR((DAYOFMONTH(fechaRecepcion) - 1) / 7) + 1`),
+              "semana",
+            ],
+          ],
+          ...queryConfig,
+          group: [
+            fn("YEAR", col("fechaRecepcion")),
+            fn("MONTH", col("fechaRecepcion")),
+            "semana",
+          ],
+          order: [
+            [fn("YEAR", col("fechaRecepcion")), "ASC"],
+            [fn("MONTH", col("fechaRecepcion")), "ASC"],
+            ["semana", "ASC"],
+          ],
+        });
+        break;
+
+      default:
+        return res
+          .status(400)
+          .json({ msg: `El parámetro 'por' (${reportPor}) no es válido.` });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      informe: informepaqueteria,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      msg: "Lo siento, ocurrió un error al procesar el informe.",
+      error: error.message,
+    });
+  }
+};

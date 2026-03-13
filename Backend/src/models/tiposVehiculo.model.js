@@ -1,8 +1,8 @@
 import { Model, DataTypes } from "sequelize";
 
-export default class tiposVehiculo extends Model {
+export default class TiposVehiculo extends Model {
   static initModel(sequelize) {
-    return tiposVehiculo.init(
+    return TiposVehiculo.init(
       {
         idTipoVehiculo: {
           type: DataTypes.INTEGER,
@@ -18,9 +18,9 @@ export default class tiposVehiculo extends Model {
       {
         sequelize,
         modelName: "tiposVehiculo",
-        tableName: "tiposVehiculo",
+        tableName: "tiposvehiculo",
         timestamps: false,
-      }
+      },
     );
   }
 }
