@@ -1772,6 +1772,9 @@ class DetallesVisitaDialog extends StatelessWidget {
               ),
             if (visita['observaciones'] != null)
               _buildInfoRow('Observaciones', visita['observaciones']),
+            if (visita['telefono'] != null &&
+                visita['telefono'].toString().isNotEmpty)
+              _buildInfoRow('Teléfono', visita['telefono']),
           ],
         ),
       ),
@@ -1811,6 +1814,7 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
   final _formKey = GlobalKey<FormState>();
   final numeroDocumentoController = TextEditingController();
   final nombreVisitanteController = TextEditingController();
+  final telefonoController = TextEditingController();
   final observacionesController = TextEditingController();
   final matriculaController = TextEditingController();
 
@@ -1914,6 +1918,7 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
   void dispose() {
     numeroDocumentoController.dispose();
     nombreVisitanteController.dispose();
+    telefonoController.dispose();
     observacionesController.dispose();
     matriculaController.dispose();
     super.dispose();
@@ -2259,6 +2264,40 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
                           ),
                           const SizedBox(height: 12),
                           TextFormField(
+                            controller: telefonoController,
+                            decoration: InputDecoration(
+                              labelText: "Teléfono del visitante *",
+                              border: border,
+                              prefixIcon: const Icon(
+                                Icons.phone,
+                                color: Colors.green,
+                              ),
+                              helperText: 'Entre 7 y 15 caracteres',
+                            ),
+                            keyboardType: TextInputType.phone,
+                            maxLength: 15,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'[0-9+\- ]'),
+                              ),
+                              LengthLimitingTextInputFormatter(15),
+                            ],
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'El teléfono es obligatorio';
+                              }
+                              final limpio = value.replaceAll(RegExp(r'[\s\-]'), '');
+                              if (limpio.length < 7) {
+                                return 'Mínimo 7 caracteres';
+                              }
+                              if (!RegExp(r'^[0-9+\- ]{7,15}$').hasMatch(value)) {
+                                return 'Solo dígitos, +, - y espacios';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
                             controller: observacionesController,
                             decoration: InputDecoration(
                               labelText: "Observaciones",
@@ -2585,6 +2624,7 @@ class _CrearVisitaDialogState extends State<CrearVisitaDialog> {
       'observaciones': observacionesController.text.isEmpty
           ? null
           : observacionesController.text,
+      'telefono': telefonoController.text.trim(),
     };
 
     // Agregar campos opcionales de vehículo si trae vehículo
@@ -2644,6 +2684,7 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController numeroDocumentoController;
   late final TextEditingController nombreVisitanteController;
+  late final TextEditingController telefonoController;
   late final TextEditingController observacionesController;
   late final TextEditingController matriculaController;
 
@@ -2736,6 +2777,9 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
     nombreVisitanteController = TextEditingController(
       text: visita['nombreVisitante']?.toString() ?? '',
     );
+    telefonoController = TextEditingController(
+      text: visita['telefono']?.toString() ?? '',
+    );
     observacionesController = TextEditingController(
       text: visita['observaciones']?.toString() ?? '',
     );
@@ -2817,6 +2861,7 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
   void dispose() {
     numeroDocumentoController.dispose();
     nombreVisitanteController.dispose();
+    telefonoController.dispose();
     observacionesController.dispose();
     matriculaController.dispose();
     super.dispose();
@@ -2987,6 +3032,34 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
                     _buildSeccionTitulo('Información de la Visita'),
                     const SizedBox(height: 12),
                     _buildDateTimePicker(),
+                    const SizedBox(height: 12),
+                    _buildCampoTexto(
+                      controller: telefonoController,
+                      label: 'Teléfono del visitante *',
+                      icono: Icons.phone,
+                      keyboardType: TextInputType.phone,
+                      maxLength: 15,
+                      helperText: 'Entre 7 y 15 caracteres',
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'[0-9+\- ]'),
+                        ),
+                        LengthLimitingTextInputFormatter(15),
+                      ],
+                      customValidator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'El teléfono es obligatorio';
+                        }
+                        final limpio = value.replaceAll(RegExp(r'[\s\-]'), '');
+                        if (limpio.length < 7) {
+                          return 'Mínimo 7 caracteres';
+                        }
+                        if (!RegExp(r'^[0-9+\- ]{7,15}$').hasMatch(value)) {
+                          return 'Solo dígitos, +, - y espacios';
+                        }
+                        return null;
+                      },
+                    ),
                     const SizedBox(height: 12),
                     _buildCampoTexto(
                       controller: observacionesController,
@@ -3396,6 +3469,7 @@ class _EditarVisitaDialogState extends State<EditarVisitaDialog> {
       'observaciones': observacionesController.text.isEmpty
           ? null
           : observacionesController.text,
+      'telefono': telefonoController.text.trim(),
     };
 
     if (traeVehiculo) {
