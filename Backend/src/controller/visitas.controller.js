@@ -242,6 +242,7 @@ export const crearVisita = async (req, res) => {
       fechaHoraIngreso,
       estadoId,
       observaciones,
+      telefono,
       matricula,
       tipoVehiculoId,
       codigoParqueadero,
