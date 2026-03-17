@@ -29,7 +29,9 @@ import {
   validarDocumento,
   filtrarInputDocumento,
   filtrarInputNombre,
+  filtrarInputTelefono,
 } from "../utils/validaciones.js";
+import useProtectedDOM from "../utils/useProtectedDOM.js";
 import ModalOverlay from "../utils/ModalOverlay.jsx";
 import { verificarTokenVencido, obtenerRolFromToken } from "../utils/auth.js";
 import useLogout from "../utils/useLogout.js";
@@ -209,6 +211,7 @@ const pluralS = (n) => (n === 1 ? "" : "s");
 function GestionUsuarios() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const protectedRef = useProtectedDOM();
   const [loading, setLoading] = useState(true);
   const [usuarios, setUsuarios] = useState([]);
   const [usuarioLog, setUsuarioLog] = useState(null);
@@ -264,29 +267,33 @@ function GestionUsuarios() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token || verificarTokenVencido(token)) {
-      Swal.fire({
-        icon: "warning",
-        title: "Sesion expirada",
-        text: "La sesion expiro. Vuelva a iniciar sesion.",
-        timer: 2000,
-        showConfirmButton: false,
-        timerProgressBar: true,
-      }).then(() => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigate("/");
-      });
+      setTimeout(() => {
+        Swal.fire({
+          icon: "warning",
+          title: "Sesion expirada",
+          text: "La sesion expiro. Vuelva a iniciar sesion.",
+          timer: 2000,
+          showConfirmButton: false,
+          timerProgressBar: true,
+        }).then(() => {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          navigate("/");
+        });
+      }, 0);
       return;
     }
     const rol = obtenerRolFromToken(token);
     if (rol !== 1) {
-      Swal.fire({
-        icon: "error",
-        title: "Sin permisos",
-        text: "Solo el Super Administrador puede acceder a Gestion de Usuarios.",
-        timer: 2500,
-        showConfirmButton: false,
-      }).then(() => navigate(-1));
+      setTimeout(() => {
+        Swal.fire({
+          icon: "error",
+          title: "Sin permisos",
+          text: "Solo el Super Administrador puede acceder a Gestion de Usuarios.",
+          timer: 2500,
+          showConfirmButton: false,
+        }).then(() => navigate(-1));
+      }, 0);
       return;
     }
     const userGuardado = localStorage.getItem("user");
@@ -1022,7 +1029,7 @@ function GestionUsuarios() {
   }
 
   return (
-    <div className="gu-dashboard">
+    <div className="gu-dashboard" ref={protectedRef}>
       {/* File input oculto para fotos (grid) */}
       <input
         type="file"
@@ -1919,10 +1926,15 @@ function GestionUsuarios() {
                     </label>
                     <input
                       id="gu-c-telefono"
-                      type="number"
+                      type="tel"
+                      inputMode="numeric"
                       className="gu-form-control"
                       value={formData.telefono}
-                      onChange={(e) => updateField("telefono", e.target.value)}
+                      onChange={(e) =>
+                        updateField("telefono", filtrarInputTelefono(e.target.value))
+                      }
+                      maxLength={15}
+                      placeholder="Solo números"
                     />
                   </div>
                   <div className="gu-form-group">
@@ -2213,10 +2225,15 @@ function GestionUsuarios() {
                     </label>
                     <input
                       id="gu-e-telefono"
-                      type="text"
+                      type="tel"
+                      inputMode="numeric"
                       className="gu-form-control"
                       value={formData.telefono}
-                      onChange={(e) => updateField("telefono", e.target.value)}
+                      onChange={(e) =>
+                        updateField("telefono", filtrarInputTelefono(e.target.value))
+                      }
+                      maxLength={15}
+                      placeholder="Solo números"
                     />
                   </div>
                   <div className="gu-form-group">

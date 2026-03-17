@@ -16,7 +16,7 @@ import { registrarAuditoria } from "../services/auditorias.service.js";
 import { registrarFallo } from "../services/logger.service.js";
 import { ESTADO_RESERVA, TIMEZONE_COLOMBIA } from "../utils/constantes.js";
 
-// Helpers para calcular estados de reservas ─
+// Helpers para calcular estados de reservas 
 
 /** Extrae la parte de fecha (YYYY-MM-DD) desde distintos formatos */
 const resolverFechaReservaStr = (fechaReserva) => {

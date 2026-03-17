@@ -1810,28 +1810,36 @@ class _ReportesScreenState extends State<ReportesScreen> {
                             ],
                           ),
                           pw.SizedBox(height: 4),
-                          pw.Stack(
-                            children: [
-                              pw.Container(
-                                height: 8,
-                                decoration: pw.BoxDecoration(
-                                  color: PdfColors.grey200,
-                                  borderRadius: pw.BorderRadius.circular(4),
-                                ),
-                              ),
-                              pw.Container(
-                                width:
-                                    (totalReservas > 0
-                                        ? (cantidad / totalReservas)
-                                        : 0) *
-                                    (PdfPageFormat.a4.availableWidth - 96),
-                                height: 8,
-                                decoration: pw.BoxDecoration(
-                                  color: PdfColors.teal400,
-                                  borderRadius: pw.BorderRadius.circular(4),
-                                ),
-                              ),
-                            ],
+                          pw.LayoutBuilder(
+                            builder: (context, constraints) {
+                              final maxWidth = constraints?.maxWidth ?? 400;
+                              final barWidth = (totalReservas > 0
+                                      ? (cantidad / totalReservas)
+                                      : 0.0) *
+                                  maxWidth;
+                              return pw.Stack(
+                                children: [
+                                  pw.Container(
+                                    width: maxWidth,
+                                    height: 8,
+                                    decoration: pw.BoxDecoration(
+                                      color: PdfColors.grey200,
+                                      borderRadius:
+                                          pw.BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                  pw.Container(
+                                    width: barWidth,
+                                    height: 8,
+                                    decoration: pw.BoxDecoration(
+                                      color: PdfColors.teal400,
+                                      borderRadius:
+                                          pw.BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -1911,12 +1919,14 @@ class _ReportesScreenState extends State<ReportesScreen> {
   ) {
     final porcentaje = total > 0 ? (valor / total) : 0.0;
     return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
       children: [
         pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
-            pw.Text(label, style: const pw.TextStyle(fontSize: 12)),
+            pw.Expanded(
+              child: pw.Text(label, style: const pw.TextStyle(fontSize: 12)),
+            ),
             pw.Text(
               '$valor (${(porcentaje * 100).toStringAsFixed(1)}%)',
               style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
@@ -1924,24 +1934,30 @@ class _ReportesScreenState extends State<ReportesScreen> {
           ],
         ),
         pw.SizedBox(height: 4),
-        pw.Stack(
-          children: [
-            pw.Container(
-              height: 12,
-              decoration: pw.BoxDecoration(
-                color: PdfColors.grey200,
-                borderRadius: pw.BorderRadius.circular(6),
-              ),
-            ),
-            pw.Container(
-              width: porcentaje * (PdfPageFormat.a4.availableWidth - 96),
-              height: 12,
-              decoration: pw.BoxDecoration(
-                color: color,
-                borderRadius: pw.BorderRadius.circular(6),
-              ),
-            ),
-          ],
+        pw.LayoutBuilder(
+          builder: (context, constraints) {
+            final maxWidth = constraints?.maxWidth ?? 400;
+            return pw.Stack(
+              children: [
+                pw.Container(
+                  width: maxWidth,
+                  height: 12,
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.grey200,
+                    borderRadius: pw.BorderRadius.circular(6),
+                  ),
+                ),
+                pw.Container(
+                  width: porcentaje * maxWidth,
+                  height: 12,
+                  decoration: pw.BoxDecoration(
+                    color: color,
+                    borderRadius: pw.BorderRadius.circular(6),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ],
     );
@@ -2311,23 +2327,25 @@ class _ReportesScreenState extends State<ReportesScreen> {
 
   /// Helper para crear estadística en PDF
   pw.Widget _buildPDFEstadistica(String label, String valor, PdfColor color) {
-    return pw.Column(
-      children: [
-        pw.Text(
-          valor,
-          style: pw.TextStyle(
-            fontSize: 18,
-            fontWeight: pw.FontWeight.bold,
-            color: color,
+    return pw.Expanded(
+      child: pw.Column(
+        children: [
+          pw.Text(
+            valor,
+            style: pw.TextStyle(
+              fontSize: 18,
+              fontWeight: pw.FontWeight.bold,
+              color: color,
+            ),
           ),
-        ),
-        pw.SizedBox(height: 4),
-        pw.Text(
-          label,
-          style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
-          textAlign: pw.TextAlign.center,
-        ),
-      ],
+          pw.SizedBox(height: 4),
+          pw.Text(
+            label,
+            style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+            textAlign: pw.TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 
@@ -2351,6 +2369,9 @@ class _ReportesScreenState extends State<ReportesScreen> {
         texto,
         style: const pw.TextStyle(fontSize: 9),
         textAlign: pw.TextAlign.center,
+        softWrap: true,
+        maxLines: 3,
+        overflow: pw.TextOverflow.clip,
       ),
     );
   }
