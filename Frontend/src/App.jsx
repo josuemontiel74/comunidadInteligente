@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
+import { useProtectedDOM } from "./utils/domGuard.js";
 import Landing from "./pages/Landing.jsx";
 import Login from "./pages/login.jsx";
 import Vigilante from "./pages/vigilanteDashboard.jsx";
@@ -51,6 +52,9 @@ function TitleManager() {
 }
 
 export default function App() {
+  // 🛡️ Activar protecciones contra manipulación de DOM por extensiones
+  useProtectedDOM();
+
   return (
     <>
       <TitleManager />
