@@ -20,3 +20,48 @@ dialog[open] {
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
 }
+
+/* ============================================================
+   🛡️ PROTECCIONES CONTRA EXTENSIONES (Google Translate, Grammarly)
+   ============================================================ */
+
+/* Prevenir que extensiones manipulen elementos críticos */
+[data-react-safe],
+.notranslate,
+[translate="no"],
+[id^="root"] {
+  /* Atributos protectores */
+}
+
+/* Ocultar elementos inyectados por extensiones */
+[id^="google_translate"],
+[class*="gTranslatorPanel"],
+[class*="grammarly"],
+[class*="gtranslate"],
+[data-gtranslate-element-id] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Asegurar que display:contents funcione correctamente en el layout */
+[style*="display: contents"] {
+  display: contents !important;
+}
+
+/* Proteger elementos de formulario contra manipulación */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="number"],
+textarea,
+select {
+  /* Evitar que extensiones cambien estilos */
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Prevenir cambios de atributos por extensiones */
+#root {
+  contain: layout style paint;
+}
