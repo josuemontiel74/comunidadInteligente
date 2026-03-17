@@ -29,6 +29,7 @@ import {
   validarDocumento,
   filtrarInputDocumento,
   filtrarInputNombre,
+  filtrarInputTelefono,
 } from "../utils/validaciones.js";
 import ModalOverlay from "../utils/ModalOverlay.jsx";
 import { verificarTokenVencido, obtenerRolFromToken } from "../utils/auth.js";
@@ -1919,10 +1920,14 @@ function GestionUsuarios() {
                     </label>
                     <input
                       id="gu-c-telefono"
-                      type="number"
+                      type="text"
                       className="gu-form-control"
+                      placeholder="Ej: 3101234567"
                       value={formData.telefono}
-                      onChange={(e) => updateField("telefono", e.target.value)}
+                      onChange={(e) =>
+                        updateField("telefono", filtrarInputTelefono(e.target.value))
+                      }
+                      maxLength={10}
                     />
                   </div>
                   <div className="gu-form-group">
@@ -2215,8 +2220,12 @@ function GestionUsuarios() {
                       id="gu-e-telefono"
                       type="text"
                       className="gu-form-control"
+                      placeholder="Ej: 3101234567"
                       value={formData.telefono}
-                      onChange={(e) => updateField("telefono", e.target.value)}
+                      onChange={(e) =>
+                        updateField("telefono", filtrarInputTelefono(e.target.value))
+                      }
+                      maxLength={10}
                     />
                   </div>
                   <div className="gu-form-group">
