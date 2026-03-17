@@ -46,7 +46,7 @@ export const crearOcupante = async (req, res) => {
       return res.status(400).json({ message: errorDoc, status: 400 });
     }
 
-    // Validar teléfono ─
+    // Validar teléfono 
     const errorTel = validarTelefono(dataOcupante.telefono);
     if (errorTel) {
       await t.rollback();

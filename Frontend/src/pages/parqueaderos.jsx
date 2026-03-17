@@ -310,7 +310,7 @@ function Parqueaderos() {
     );
   }
 
-  // ═════════════════════════════════════════ RENDER ═════════════════════════════════════════
+  // RENDER
   return (
     <div className="parq-dashboard">
       <button

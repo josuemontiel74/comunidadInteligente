@@ -20,3 +20,37 @@ dialog[open] {
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
 }
+
+/* ============================================================
+   Protección contra extensiones del navegador
+   ============================================================
+   Extensiones como Google Translate inyectan <font> y <span>
+   dentro de elementos controlados por React, causando errores
+   de DOM (insertBefore). Estos estilos mitigan el impacto visual.
+   ============================================================ */
+font[style],
+font[class] {
+  font: inherit !important;
+  color: inherit !important;
+}
+
+/* Ocultar elementos inyectados por Grammarly */
+grammarly-extension,
+grammarly-desktop-integration {
+  display: none !important;
+}
+
+/* ============================================================
+   Consistencia visual: inputs numéricos
+   ============================================================
+   Eliminar flechas spinner de <input type="number"> para
+   mantener una apariencia consistente en todos los campos.
+   ============================================================ */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}

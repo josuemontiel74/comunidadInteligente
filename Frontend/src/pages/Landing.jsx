@@ -137,7 +137,7 @@ export default function Landing() {
 
   return (
     <div className="ld-root">
-      {/* ────────── HEADER ────────── */}
+      {/*  HEADER  */}
       <header className={`ld-header ${scrolled ? "ld-header--compact" : ""}`}>
         <div className="ld-header-inner">
           <div className="ld-brand">
@@ -176,7 +176,7 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* ────────── HERO ────────── */}
+      {/*  HERO  */}
       <section className="ld-hero" ref={heroRef}>
         <div className="ld-hero-overlay" />
         <div className="ld-hero-content">
@@ -211,7 +211,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ────────── ABOUT ────────── */}
+      {/*  ABOUT  */}
       <section className="ld-about" id="about">
         <div className="ld-section-inner ld-about-grid">
           <div className="ld-about-text">
@@ -283,7 +283,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ────────── FEATURES ────────── */}
+      {/*  FEATURES  */}
       <section className="ld-features" id="features">
         <div className="ld-section-inner">
           <div className="ld-section-header">
@@ -309,7 +309,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ────────── CTA BAND ────────── */}
+      {/*  CTA BAND  */}
       <section className="ld-cta-band">
         <div className="ld-section-inner ld-cta-inner">
           <div>
@@ -326,7 +326,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ────────── DOWNLOADS ────────── */}
+      {/*  DOWNLOADS  */}
       <section className="ld-downloads" id="downloads">
         <div className="ld-section-inner">
           <div className="ld-section-header">
@@ -398,7 +398,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ────────── FOOTER ────────── */}
+      {/*  FOOTER  */}
       <footer className="ld-footer">
         <div className="ld-footer-inner">
           <div className="ld-footer-brand">

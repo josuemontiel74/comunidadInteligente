@@ -109,20 +109,32 @@ function createPdfHelpers(pdf, ctx, { m, ph, pw, colLabel, colValue }) {
   };
 
   const stat = (label, value) => {
-    checkPage(7);
     const valStr = String(value);
     pdf.setFontSize(9.5);
+    const labelMaxW = (pw - m * 2 - 12) * 0.55;
+    const valMaxW = (pw - m * 2 - 12) * 0.42;
     pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(100, 100, 120);
-    pdf.text(`${label}:`, colLabel + 2, ctx.y);
+    const splitLabel = pdf.splitTextToSize(`${label}:`, labelMaxW);
     pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(30, 30, 30);
-    const maxW = pw - colLabel - 2 - 30;
-    const splitVal = pdf.splitTextToSize(valStr, maxW);
-    pdf.text(splitVal[0], colValue, ctx.y, { align: "right" });
+    const splitVal = pdf.splitTextToSize(valStr, valMaxW);
+    const lines = Math.max(splitLabel.length, splitVal.length);
+    checkPage(lines * 5 + 2);
+    for (let i = 0; i < lines; i++) {
+      if (splitLabel[i]) {
+        pdf.setFont("helvetica", "normal");
+        pdf.setTextColor(100, 100, 120);
+        pdf.text(splitLabel[i], colLabel + 2, ctx.y);
+      }
+      if (splitVal[i]) {
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(30, 30, 30);
+        pdf.text(splitVal[i], colValue, ctx.y, { align: "right" });
+      }
+      ctx.y += 5;
+    }
     pdf.setFont("helvetica", "normal");
     pdf.setTextColor(30, 30, 30);
-    ctx.y += 6.5;
+    ctx.y += 1.5;
   };
 
   const progressBar = (label, val, total, fillColor) => {
@@ -132,7 +144,9 @@ function createPdfHelpers(pdf, ctx, { m, ph, pw, colLabel, colValue }) {
     pdf.setFontSize(9);
     pdf.setFont("helvetica", "normal");
     pdf.setTextColor(80, 80, 100);
-    pdf.text(label, colLabel + 2, ctx.y);
+    const lblMaxW = (barW - 4) * 0.6;
+    const splitLbl = pdf.splitTextToSize(label, lblMaxW);
+    pdf.text(splitLbl[0], colLabel + 2, ctx.y);
     pdf.setFont("helvetica", "bold");
     pdf.setTextColor(50, 50, 50);
     pdf.text(`${val} / ${total}`, colValue, ctx.y, { align: "right" });

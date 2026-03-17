@@ -772,7 +772,7 @@ function Paqueteria() {
         {/* Content */}
         {!error && paquetes.length > 0 && (
           <>
-            {/* ── Stats ── */}
+            {/*  Stats  */}
             <div className="paq-stats-container">
               <div className="paq-stat-box">
                 <div className="paq-stat-label" style={{ color: "#2563eb" }}>
@@ -800,7 +800,7 @@ function Paqueteria() {
               </div>
             </div>
 
-            {/* ── Toolbar: Registrar + Filtros (como Flutter) ── */}
+            {/*  Toolbar: Registrar + Filtros (como Flutter)  */}
             <div className="paq-toolbar">
               <div className="paq-toolbar-top">
                 <button
@@ -913,7 +913,7 @@ function Paqueteria() {
               </div>
             )}
 
-            {/* ── Tabla (escritorio >=801px) ── */}
+            {/*  Tabla (escritorio >=801px)  */}
             {paquetesFiltrados.length > 0 && (
               <div className="paq-table-container">
                 <table className="paq-table">
@@ -983,7 +983,7 @@ function Paqueteria() {
               </div>
             )}
 
-            {/* ── Cards (móvil <800px) ── */}
+            {/*  Cards (móvil <800px)  */}
             {paquetesFiltrados.length > 0 && (
               <div className="paq-cards-container">
                 {paquetesPaginados.map((p) => {
@@ -1070,7 +1070,7 @@ function Paqueteria() {
               </div>
             )}
 
-            {/* ── Paginación + Contador ── */}
+            {/*  Paginación + Contador  */}
             {paquetesFiltrados.length > 0 && (
               <div className="paq-pagination-wrapper">
                 <span className="paq-pagination-info">
