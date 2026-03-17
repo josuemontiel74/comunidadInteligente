@@ -28,9 +28,9 @@ dialog[open] {
 /* Prevenir que extensiones manipulen elementos críticos */
 [data-react-safe],
 .notranslate,
-[translate="no"],
-[id^="root"] {
-  /* Atributos protectores */
+[translate="no"] {
+  unicode-bidi: plaintext;
+  word-break: break-word;
 }
 
 /* Ocultar elementos inyectados por extensiones */
