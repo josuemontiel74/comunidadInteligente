@@ -11,28 +11,28 @@ router.post(
   validarJWT,
   validarRol(1),
   validate(ApartamentoSchema.createApartamentoSchema, "body", true),
-  apartamentosController.crearApartamento
+  apartamentosController.crearApartamento,
 );
 router.get(
   "/apartamento",
   validarJWT,
-  validarRol(1),
+  validarRol(1, 2, 3),
   validate(ApartamentoSchema.getApartamentoSchema),
-  apartamentosController.mostrarApartamento
+  apartamentosController.mostrarApartamento,
 );
 router.get(
   "/apartamento/:idApartamento",
   validarJWT,
   validarRol(1),
   validate(ApartamentoSchema.getApartamentoSchema, "params", true),
-  apartamentosController.mostrarIdApartamento
+  apartamentosController.mostrarIdApartamento,
 );
 router.patch(
   "/apartamento/:idApartamento",
   validarJWT,
   validarRol(1),
   validate(ApartamentoSchema.updateApartamentoSchema, "body", true),
-  apartamentosController.actualizarApartamento
+  apartamentosController.actualizarApartamento,
 );
 
 router.delete(
@@ -40,7 +40,7 @@ router.delete(
   validarJWT,
   validarRol(1),
   validate(ApartamentoSchema.deleteApartamentoSchema, "params", true),
-  apartamentosController.eliminarApartamento
+  apartamentosController.eliminarApartamento,
 );
 
 export default router;

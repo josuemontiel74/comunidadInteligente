@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../../main.dart';
@@ -7,20 +8,36 @@ import '../../widgets/areasComunes/registrar_reserva.dart';
 import '../../widgets/areasComunes/actualizar_reserva.dart';
 import '../../widgets/areasComunes/calendario_reservas.dart';
 import '../../utils/helpers.dart';
+import 'gestion_areas.dart';
 
 class Areascomunes extends StatelessWidget {
   const Areascomunes({super.key, required this.token});
   final String? token;
 
+  bool get _esSuperAdmin {
+    final rol = LoginServe.rolActual?.toLowerCase() ?? '';
+    return rol == 'superadmin' || rol == 'superadministrador';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
         title: const Text('Gestión de Áreas Comunes'),
         elevation: 3,
+        actions: [
+          if (_esSuperAdmin)
+            IconButton(
+              icon: const Icon(Icons.settings, color: Colors.white),
+              tooltip: 'Habilitar / Deshabilitar Áreas',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => GestionAreas(token: token)),
+              ),
+            ),
+        ],
       ),
       body: MostrarAreasComunes(token: token),
     );
@@ -160,18 +177,23 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
             ),
           ],
         ),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               '¿Está seguro de finalizar esta reserva?',
               style: TextStyle(fontSize: 16),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               'La reserva será marcada como completada.',
-              style: TextStyle(color: Colors.grey, fontSize: 13),
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
+                fontSize: 13,
+              ),
             ),
           ],
         ),
@@ -194,43 +216,60 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
 
     if (confirmar != true) return;
 
-    final url = Uri.parse(
-      '${LoginServe.baseUrl}/api/ActualizarReserva/$idReservas',
-    );
-
-    final response = await http.patch(
-      url,
-      headers: {
-        'Authorization': 'Bearer ${widget.token}',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({'estadoId': 9}),
-    );
-
-    // Validar si el token expiró
-    if (manejarTokenExpirado(context, response.statusCode, response.body)) {
-      return;
-    }
-
-    if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Reserva finalizada correctamente"),
-          backgroundColor: Colors.green,
-          showCloseIcon: true,
-        ),
+    try {
+      final url = Uri.parse(
+        '${LoginServe.baseUrl}/api/reservas-areas/$idReservas',
       );
-      // Recargar las reservas después de finalizar
-      await cargarReservas();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "Error al finalizar la reserva (${response.statusCode})",
+
+      final response = await http.patch(
+        url,
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'estadoId': 9}),
+      );
+
+      if (!context.mounted) return;
+
+      // Validar si el token expiró
+      if (manejarTokenExpirado(context, response.statusCode, response.body)) {
+        return;
+      }
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Reserva finalizada correctamente"),
+            backgroundColor: Colors.green,
+            showCloseIcon: true,
           ),
-          backgroundColor: Colors.red,
-        ),
-      );
+        );
+        // Recargar las reservas después de finalizar
+        await cargarReservas();
+      } else {
+        // Intentar extraer mensaje del servidor
+        String errorMsg =
+            'Error al finalizar la reserva (${response.statusCode})';
+        try {
+          final errorData = jsonDecode(response.body);
+          if (errorData['message'] is String) {
+            errorMsg = errorData['message'];
+          }
+        } catch (_) {}
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error de conexión: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -241,13 +280,15 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
 
     try {
       final response = await http.get(
-        Uri.parse('${LoginServe.baseUrl}/api/ReservasAreasComunesMovil'),
+        Uri.parse('${LoginServe.baseUrl}/api/reservas-areas'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
           'Cache-Control': 'no-store',
         },
       );
+
+      if (!context.mounted) return;
 
       // Validar si el token expiró
       if (manejarTokenExpirado(context, response.statusCode, response.body)) {
@@ -322,7 +363,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
             if (fechaStrB.isEmpty) return -1;
 
             // Parsear fecha sin conversión de timezone (son fechas locales YYYY-MM-DD)
-            DateTime _parsearFechaSinTimezone(String fechaStr) {
+            DateTime parsearFechaSinTimezone(String fechaStr) {
               // Formato: YYYY-MM-DD
               final partes = fechaStr.split('-');
               return DateTime(
@@ -332,11 +373,11 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
               );
             }
 
-            final fechaBaseA = _parsearFechaSinTimezone(fechaStrA);
-            final fechaBaseB = _parsearFechaSinTimezone(fechaStrB);
+            final fechaBaseA = parsearFechaSinTimezone(fechaStrA);
+            final fechaBaseB = parsearFechaSinTimezone(fechaStrB);
 
             // Parsear hora correctamente manejando formato AM/PM
-            int _parsearHora(String horaStr) {
+            int parsearHora(String horaStr) {
               final horaUpper = horaStr.toUpperCase();
               final esPM = horaUpper.contains('PM');
               final esAM = horaUpper.contains('AM');
@@ -354,7 +395,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
               return hora;
             }
 
-            int _parsearMinutos(String horaStr) {
+            int parsearMinutos(String horaStr) {
               final horaLimpia = horaStr.replaceAll(RegExp(r'[^0-9:]'), '');
               final partes = horaLimpia.split(':');
               return partes.length > 1 ? (int.tryParse(partes[1]) ?? 0) : 0;
@@ -364,16 +405,16 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
               fechaBaseA.year,
               fechaBaseA.month,
               fechaBaseA.day,
-              _parsearHora(horaA),
-              _parsearMinutos(horaA),
+              parsearHora(horaA),
+              parsearMinutos(horaA),
             );
 
             final fechaCompletaB = DateTime(
               fechaBaseB.year,
               fechaBaseB.month,
               fechaBaseB.day,
-              _parsearHora(horaB),
-              _parsearMinutos(horaB),
+              parsearHora(horaB),
+              parsearMinutos(horaB),
             );
 
             return fechaCompletaB.compareTo(fechaCompletaA);
@@ -455,7 +496,9 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                       ),
                       decoration: BoxDecoration(
                         color: estaFinalizada
-                            ? Colors.grey.shade100
+                            ? Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest
                             : Colors.orange.shade100,
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -463,7 +506,9 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                         r.nombreEstado ?? 'N/A',
                         style: TextStyle(
                           color: estaFinalizada
-                              ? Colors.grey.shade700
+                              ? Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.7)
                               : Colors.orange.shade700,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
@@ -494,7 +539,9 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                         obtenerNombreAreaComun(r.areaComunId),
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey.shade700,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ),
@@ -522,7 +569,9 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                         '${r.fechaReserva ?? "N/A"} | ${r.horaInicio ?? ""} - ${r.horaFin ?? ""}',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey.shade700,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ),
@@ -549,7 +598,9 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                       'Apto ${r.numeroApartamento ?? "N/A"}',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade700,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -603,29 +654,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                       Flexible(
                         child: ElevatedButton.icon(
                           onPressed: () async {
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Confirmar'),
-                                content: const Text(
-                                  '¿Deseas finalizar esta reserva?',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, false),
-                                    child: const Text('Cancelar'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, true),
-                                    child: const Text('Sí'),
-                                  ),
-                                ],
-                              ),
-                            );
-
-                            if (confirm == true && r.idReservas != null) {
+                            if (r.idReservas != null) {
                               await finalizarReserva(r.idReservas!);
                             }
                           },
@@ -661,7 +690,11 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
       scrollDirection: Axis.horizontal,
       child: SingleChildScrollView(
         child: DataTable(
-          headingRowColor: WidgetStateProperty.all(Colors.orange.shade50),
+          headingRowColor: WidgetStateProperty.all(
+            Theme.of(context).brightness == Brightness.dark
+                ? Colors.orange.shade800
+                : Colors.orange.shade50,
+          ),
           columns: const [
             DataColumn(
               label: Text(
@@ -731,7 +764,9 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                     ),
                     decoration: BoxDecoration(
                       color: estaFinalizada
-                          ? Colors.grey.shade100
+                          ? Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest
                           : Colors.orange.shade100,
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -739,7 +774,9 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                       r.nombreEstado ?? 'N/A',
                       style: TextStyle(
                         color: estaFinalizada
-                            ? Colors.grey.shade700
+                            ? Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.7)
                             : Colors.orange.shade700,
                         fontWeight: FontWeight.bold,
                       ),
@@ -768,29 +805,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                           icon: const Icon(Icons.check_circle),
                           color: Colors.green,
                           onPressed: () async {
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Confirmar'),
-                                content: const Text(
-                                  '¿Deseas finalizar esta reserva?',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, false),
-                                    child: const Text('Cancelar'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, true),
-                                    child: const Text('Sí'),
-                                  ),
-                                ],
-                              ),
-                            );
-
-                            if (confirm == true && r.idReservas != null) {
+                            if (r.idReservas != null) {
                               await finalizarReserva(r.idReservas!);
                             }
                           },
@@ -824,7 +839,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
           padding: EdgeInsets.all(
             MediaQuery.of(context).size.width < 600 ? 12 : 20,
           ),
-          color: Colors.grey.shade50,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
           child: Column(
             children: [
               Row(
@@ -895,7 +910,7 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: Theme.of(context).cardColor,
                 ),
                 onChanged: (value) {
                   setState(() {
@@ -911,14 +926,14 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: filtroTorre,
+                      initialValue: filtroTorre,
                       decoration: InputDecoration(
                         labelText: 'Torre',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: Theme.of(context).cardColor,
                       ),
                       items: [
                         const DropdownMenuItem(
@@ -953,14 +968,14 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: filtroApartamento,
+                      initialValue: filtroApartamento,
                       decoration: InputDecoration(
                         labelText: 'Apartamento',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: Theme.of(context).cardColor,
                       ),
                       items: [
                         const DropdownMenuItem(
@@ -1017,10 +1032,15 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
               : errorMessage.isNotEmpty
               ? Center(child: Text(errorMessage))
               : reservas.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text(
                     'No hay reservas registradas',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.5),
+                    ),
                   ),
                 )
               : MediaQuery.of(context).size.width < 600
@@ -1086,7 +1106,9 @@ class _MostrarAreasComunesState extends State<MostrarAreasComunes> {
       },
       selectedColor: Colors.orange,
       labelStyle: TextStyle(
-        color: seleccionado ? Colors.white : Colors.black,
+        color: seleccionado
+            ? Colors.white
+            : Theme.of(context).colorScheme.onSurface,
         fontWeight: seleccionado ? FontWeight.bold : FontWeight.normal,
       ),
     );
@@ -1119,12 +1141,14 @@ class Reserva {
     final nombre = tipodocumento!.toLowerCase();
     if (nombre.contains('cédula') ||
         nombre.contains('cedula') ||
-        nombre == 'cc')
+        nombre == 'cc') {
       return '1';
+    }
     if (nombre.contains('extranjería') ||
         nombre.contains('extranjeria') ||
-        nombre == 'ce')
+        nombre == 'ce') {
       return '2';
+    }
     if (nombre.contains('pasaporte') || nombre == 'pp') return '3';
     if (nombre == 'pep') return '4';
     if (nombre == 'ppt') return '5';
@@ -1181,7 +1205,7 @@ class Reserva {
       telefonoSolicitante:
           json['Solicitante']?['telefonoSolicitante'] as String?,
       tipodocumento:
-          json['Solicitante']?['tipodocumento']?['nombreDocumento'] as String?,
+          json['Solicitante']?['TipoDocumento']?['nombreDocumento'] as String?,
       areaComun: json['areaComun']?['nombreArea'] as String?,
       areaComunId: idAreaComun,
       aceptaReglamento: json['aceptaReglamento'] as int?,

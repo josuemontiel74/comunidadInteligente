@@ -9,7 +9,7 @@ import Rol from "./rol.model.js";
 import Permiso from "./permisos.model.js";
 import initRolesPermisos from "./rolespermisos.model.js";
 import tiposVehiculo from "./tiposVehiculo.model.js";
-import tipodocumento from "./tipoDocumento.model.js";
+import tipodocumento from "./tipodocumento.model.js";
 import Parqueadero from "./parqueaderos.model.js";
 import Vehiculo from "./vehiculo.model.js";
 import Visitante from "./visitantes.model.js";
@@ -46,7 +46,7 @@ export function initModels(sequelize) {
   const RolesPermisosModel = initRolesPermisos(
     sequelize,
     RolModel,
-    PermisoModel
+    PermisoModel,
   );
 
   // 2. Asociaciones
@@ -166,6 +166,7 @@ export function initModels(sequelize) {
   });
   ReservasAreasModel.belongsTo(SolicitanteModel, {
     foreignKey: "documentoSolicitante",
+    as: "Solicitante",
     onDelete: "CASCADE",
   });
 

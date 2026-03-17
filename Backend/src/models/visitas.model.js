@@ -38,13 +38,17 @@ class Visitas extends Model {
           type: DataTypes.TEXT,
           allowNull: true,
         },
+        telefono: {
+          type: DataTypes.STRING(15),
+          allowNull: true,
+        },
       },
       {
         sequelize,
         modelName: "visitas",
         tableName: "visitas",
         timestamps: false,
-      }
+      },
     );
     return Visitas;
   }

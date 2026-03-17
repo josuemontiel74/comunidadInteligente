@@ -1,4 +1,12 @@
 import { sequelize } from "../config/connect.db.js";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+const TIMEZONE_COLOMBIA = "America/Bogota";
 
 /**
  * Registra un fallo crítico en la tabla logErrores.
@@ -13,11 +21,12 @@ export async function registrarFallo(
   username,
   rutaAfectada,
   mensajeError,
-  stackTrace
+  stackTrace,
 ) {
   try {
+    const ahora = dayjs().tz(TIMEZONE_COLOMBIA).format("YYYY-MM-DD HH:mm:ss");
     const sql = `
-            INSERT INTO logErrores (
+            INSERT INTO logerrores (
                 fechaHora, 
                 nivel, 
                 username, 
@@ -25,19 +34,23 @@ export async function registrarFallo(
                 mensajeError, 
                 stackTrace
             )
-            VALUES (NOW(), ?, ?, ?, ?, ?);
+            VALUES (?, ?, ?, ?, ?, ?);
         `;
 
-    const values = [nivel, username, rutaAfectada, mensajeError, stackTrace];
+    const values = [
+      ahora,
+      nivel,
+      username,
+      rutaAfectada,
+      mensajeError,
+      stackTrace,
+    ];
 
     await sequelize.query(sql, {
       replacements: values,
     });
   } catch (dbError) {
-    console.error(
-      "⛔️ ERROR CRÍTICO: Falló el registro del error en la tabla logErrores."
-    );
-    console.error("Error original a registrar:", mensajeError);
-    console.error("Error al registrar el log:", dbError.message);
+    console.error(dbError);
+    // fallo critico al registrar en logErrores
   }
 }

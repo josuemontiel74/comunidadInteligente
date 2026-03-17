@@ -1,9 +1,18 @@
 import { Sequelize, Op } from "sequelize";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
 import Parqueadero from "../models/parqueaderos.model.js";
 import Vehiculo from "../models/vehiculo.model.js";
 import RecepcionPaquetes from "../models/recepcionPaquetes.model.js";
 import ReservarAreas from "../models/reservasAreas.model.js";
 import Visitas from "../models/visitas.model.js";
+import Usuario from "../models/user.model.js";
+import Ocupante from "../models/ocupante.model.js";
+import { TIMEZONE_COLOMBIA } from "../utils/constantes.js";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 /**
  * Obtiene estadísticas de ocupación de parqueaderos
@@ -55,14 +64,13 @@ export const getEstadisticasParqueaderos = async (req, res) => {
         ocupadosVisitantes: parqueaderosVisitantes,
         disponibles: parqueaderosDisponibles,
         porcentajes: {
-          residentes: parseFloat(porcentajeResidentes),
-          visitantes: parseFloat(porcentajeVisitantes),
-          disponibles: parseFloat(porcentajeDisponibles),
+          residentes: Number.parseFloat(porcentajeResidentes),
+          visitantes: Number.parseFloat(porcentajeVisitantes),
+          disponibles: Number.parseFloat(porcentajeDisponibles),
         },
       },
     });
   } catch (error) {
-    console.error("Error al obtener estadísticas de parqueaderos:", error);
     res.status(500).json({
       success: false,
       message: "Error al obtener estadísticas de parqueaderos",
@@ -76,12 +84,9 @@ export const getEstadisticasParqueaderos = async (req, res) => {
  */
 export const getPaquetesRecibidosHoy = async (req, res) => {
   try {
-    // Obtener fecha actual (inicio y fin del día)
-    const inicioDelDia = new Date();
-    inicioDelDia.setHours(0, 0, 0, 0);
-
-    const finDelDia = new Date();
-    finDelDia.setHours(23, 59, 59, 999);
+    // Obtener fecha actual en hora Colombia (inicio y fin del día)
+    const inicioDelDia = dayjs().tz(TIMEZONE_COLOMBIA).startOf("day").toDate();
+    const finDelDia = dayjs().tz(TIMEZONE_COLOMBIA).endOf("day").toDate();
 
     // Contar paquetes recibidos hoy
     const paquetesRecibidos = await RecepcionPaquetes.count({
@@ -92,32 +97,32 @@ export const getPaquetesRecibidosHoy = async (req, res) => {
       },
     });
 
-    // Contar paquetes entregados hoy
+    // Contar paquetes entregados hoy (entregados hoy, sin importar cuándo se recibieron)
     const paquetesEntregados = await RecepcionPaquetes.count({
       where: {
-        fechaRecepcion: {
-          [Op.between]: [inicioDelDia, finDelDia],
-        },
         fechaEntrega: {
-          [Op.ne]: null,
+          [Op.between]: [inicioDelDia, finDelDia],
         },
       },
     });
 
-    // Paquetes pendientes de entrega (recibidos hoy)
-    const paquetesPendientes = paquetesRecibidos - paquetesEntregados;
+    // Paquetes pendientes: todos los que no han sido entregados
+    const paquetesPendientes = await RecepcionPaquetes.count({
+      where: {
+        fechaEntrega: null,
+      },
+    });
 
     res.status(200).json({
       success: true,
       data: {
-        fecha: new Date().toISOString().split("T")[0],
+        fecha: dayjs().tz(TIMEZONE_COLOMBIA).format("YYYY-MM-DD"),
         recibidos: paquetesRecibidos,
         entregados: paquetesEntregados,
         pendientes: paquetesPendientes,
       },
     });
   } catch (error) {
-    console.error("Error al obtener paquetes recibidos hoy:", error);
     res.status(500).json({
       success: false,
       message: "Error al obtener paquetes recibidos hoy",
@@ -131,19 +136,12 @@ export const getPaquetesRecibidosHoy = async (req, res) => {
  */
 export const getReservasHoy = async (req, res) => {
   try {
-    // Obtener fecha actual (inicio y fin del día)
-    const inicioDelDia = new Date();
-    inicioDelDia.setHours(0, 0, 0, 0);
+    const hoyStr = dayjs().tz(TIMEZONE_COLOMBIA).format("YYYY-MM-DD");
 
-    const finDelDia = new Date();
-    finDelDia.setHours(23, 59, 59, 999);
-
-    // Contar reservas para hoy
+    // Contar reservas para hoy (fechaReserva es DATEONLY)
     const reservasHoy = await ReservarAreas.count({
       where: {
-        fechaReserva: {
-          [Op.between]: [inicioDelDia, finDelDia],
-        },
+        fechaReserva: hoyStr,
       },
     });
 
@@ -154,9 +152,7 @@ export const getReservasHoy = async (req, res) => {
         [Sequelize.fn("COUNT", Sequelize.col("idReservas")), "cantidad"],
       ],
       where: {
-        fechaReserva: {
-          [Op.between]: [inicioDelDia, finDelDia],
-        },
+        fechaReserva: hoyStr,
       },
       group: ["areaComunId"],
     });
@@ -164,16 +160,15 @@ export const getReservasHoy = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        fecha: new Date().toISOString().split("T")[0],
+        fecha: dayjs().tz(TIMEZONE_COLOMBIA).format("YYYY-MM-DD"),
         totalReservas: reservasHoy,
         reservasPorArea: reservasPorArea.map((r) => ({
           areaComunId: r.areaComunId,
-          cantidad: parseInt(r.dataValues.cantidad),
+          cantidad: Number.parseInt(r.dataValues.cantidad, 10),
         })),
       },
     });
   } catch (error) {
-    console.error("Error al obtener reservas de hoy:", error);
     res.status(500).json({
       success: false,
       message: "Error al obtener reservas de hoy",
@@ -187,14 +182,10 @@ export const getReservasHoy = async (req, res) => {
  */
 export const getResumenDashboard = async (req, res) => {
   try {
-    // Fecha actual
-    const inicioDelDia = new Date();
-    inicioDelDia.setHours(0, 0, 0, 0);
-    const finDelDia = new Date();
-    finDelDia.setHours(23, 59, 59, 999);
-
-    // Estadísticas de parqueaderos
-    const totalParqueaderos = await Parqueadero.count();
+    // Fecha actual en hora Colombia
+    const inicioDelDia = dayjs().tz(TIMEZONE_COLOMBIA).startOf("day").toDate();
+    const finDelDia = dayjs().tz(TIMEZONE_COLOMBIA).endOf("day").toDate();
+    const hoyStr = dayjs().tz(TIMEZONE_COLOMBIA).format("YYYY-MM-DD");
 
     // Contar parqueaderos ocupados por tipo de vehículo
     // estadoId: 3 = Ocupado, 4 = Disponible
@@ -220,24 +211,53 @@ export const getResumenDashboard = async (req, res) => {
     });
 
     // Estadísticas de paquetes
-    const paquetesRecibidos = await RecepcionPaquetes.count({
+    // Pendientes: todos los paquetes sin entregar (cualquier fecha de recepción)
+    const paquetesPendientes = await RecepcionPaquetes.count({
       where: {
-        fechaRecepcion: { [Op.between]: [inicioDelDia, finDelDia] },
+        fechaEntrega: null,
       },
     });
 
+    // Entregados hoy: paquetes cuya fecha de entrega es hoy
     const paquetesEntregados = await RecepcionPaquetes.count({
       where: {
-        fechaRecepcion: { [Op.between]: [inicioDelDia, finDelDia] },
-        fechaEntrega: { [Op.ne]: null },
+        fechaEntrega: { [Op.between]: [inicioDelDia, finDelDia] },
       },
     });
 
-    // Estadísticas de reservas
+    // Estadísticas de reservas (fechaReserva es DATEONLY)
     const reservasHoy = await ReservarAreas.count({
       where: {
-        fechaReserva: { [Op.between]: [inicioDelDia, finDelDia] },
+        fechaReserva: hoyStr,
       },
+    });
+
+    // Estadísticas de visitas
+    const visitasHoy = await Visitas.count({
+      where: {
+        fechaHoraIngreso: { [Op.between]: [inicioDelDia, finDelDia] },
+      },
+    });
+
+    // estadoId 8 = Activa/En curso, estadoId 9 = Finalizada
+    const visitasActivas = await Visitas.count({
+      where: {
+        estadoId: 8,
+      },
+    });
+
+    // Estadísticas de usuarios
+    const usuariosActivos = await Usuario.count({
+      where: { estadoId: 1 },
+    });
+
+    const usuariosInactivos = await Usuario.count({
+      where: { estadoId: 2 },
+    });
+
+    // Estadísticas de residentes (ocupantes activos)
+    const residentesActivos = await Ocupante.count({
+      where: { estadoId: 1 },
     });
 
     res.status(200).json({
@@ -250,12 +270,26 @@ export const getResumenDashboard = async (req, res) => {
         },
         paquetes: {
           entregados: paquetesEntregados,
-          pendientes: paquetesRecibidos - paquetesEntregados,
+          pendientes: paquetesPendientes,
+        },
+        reservas: {
+          hoy: reservasHoy,
+        },
+        visitas: {
+          hoy: visitasHoy,
+          activas: visitasActivas,
+        },
+        usuarios: {
+          activos: usuariosActivos,
+          inactivos: usuariosInactivos,
+          total: usuariosActivos + usuariosInactivos,
+        },
+        residentes: {
+          activos: residentesActivos,
         },
       },
     });
   } catch (error) {
-    console.error("Error al obtener resumen del dashboard:", error);
     res.status(500).json({
       success: false,
       message: "Error al obtener resumen del dashboard",

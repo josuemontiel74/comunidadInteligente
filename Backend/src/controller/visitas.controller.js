@@ -8,9 +8,229 @@ import timezone from "dayjs/plugin/timezone.js";
 import tiposVehiculoModel from "../models/tiposVehiculo.model.js";
 import { sequelize } from "../config/connect.db.js";
 import { registrarAuditoria } from "../services/auditorias.service.js";
+import {
+  ESTADO_PARQUEADERO,
+  ESTADO_VISITA,
+  TIMEZONE_COLOMBIA,
+} from "../utils/constantes.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
+
+// Regex de placa colombiana ─
+const PLACA_REGEX = /^[A-Z]{3}\d{2,3}[A-Z]?$/;
+const HORAS_VENCIMIENTO_PARQUEADERO = 24;
+
+// Helpers privados
+
+/** Construye el objeto de campos a actualizar para un Visitante */
+function buildVisitanteData(nombreVisitante, tipoDocumentoId) {
+  const data = {};
+  if (nombreVisitante) data.nombreVisitante = nombreVisitante;
+  if (tipoDocumentoId) data.tipoDocumentoId = tipoDocumentoId;
+  return data;
+}
+
+/** Libera el parqueadero asignado a un vehículo por matrícula */
+async function liberarParqueaderoDeVehiculo(matricula) {
+  if (!matricula) return;
+  const vehiculo = await Vehiculo.findByPk(matricula);
+  if (vehiculo?.codigoParqueadero) {
+    await Parqueadero.update(
+      { estadoId: ESTADO_PARQUEADERO.DISPONIBLE },
+      { where: { codigoParqueadero: vehiculo.codigoParqueadero } },
+    );
+  }
+}
+
+/**
+ * Procesa la asignación de vehículo al crear una visita.
+ * @returns {Promise<{ vehiculoMatricula: string, parqueadero: object }>}
+ */
+async function procesarVehiculoNuevo(
+  matricula,
+  tipoVehiculoId,
+  codigoParqueadero,
+) {
+  const placaLimpia = matricula.trim().toUpperCase();
+  if (!PLACA_REGEX.test(placaLimpia)) {
+    throw Object.assign(
+      new Error(
+        "La matrícula no tiene un formato válido. Use el formato colombiano: ABC123 (carro) o ABC12D / ABC12 (moto). Sin caracteres especiales ni secuencias inválidas.",
+      ),
+      { status: 400 },
+    );
+  }
+
+  if (
+    !tipoVehiculoId ||
+    !codigoParqueadero ||
+    codigoParqueadero.trim() === ""
+  ) {
+    throw Object.assign(
+      new Error("Debe proporcionar tipo de vehículo y código de parqueadero"),
+      { status: 400 },
+    );
+  }
+
+  const parqueadero = await Parqueadero.findByPk(codigoParqueadero);
+  if (!parqueadero)
+    throw Object.assign(new Error("El parqueadero no existe"), { status: 400 });
+  if (Number(parqueadero.estadoId) !== ESTADO_PARQUEADERO.DISPONIBLE) {
+    throw Object.assign(new Error("El parqueadero no está disponible"), {
+      status: 400,
+    });
+  }
+
+  const vehiculo = await Vehiculo.findByPk(matricula);
+  if (vehiculo) {
+    if (
+      vehiculo.codigoParqueadero &&
+      vehiculo.codigoParqueadero !== codigoParqueadero
+    ) {
+      await Parqueadero.update(
+        { estadoId: ESTADO_PARQUEADERO.DISPONIBLE },
+        { where: { codigoParqueadero: vehiculo.codigoParqueadero } },
+      );
+    }
+    await vehiculo.update({ tipoVehiculoId, codigoParqueadero });
+  } else {
+    await Vehiculo.create({
+      matricula,
+      tipoVehiculoId,
+      codigoParqueadero,
+    });
+  }
+  return { vehiculoMatricula: matricula, parqueadero };
+}
+
+/**
+ * Analiza y valida la fecha de ingreso para una visita.
+ * @returns {import("dayjs").Dayjs} fecha válida en zona Colombia
+ */
+function parseFechaIngreso(fechaHoraIngreso, fechaActual) {
+  if (!fechaHoraIngreso) return fechaActual;
+  let fecha = dayjs(fechaHoraIngreso, "YYYY-MM-DD HH:mm", true);
+  if (!fecha.isValid())
+    fecha = dayjs(fechaHoraIngreso, "YYYY-MM-DD hh:mm A", true);
+  if (fecha.isValid()) fecha = fecha.tz(TIMEZONE_COLOMBIA, true);
+  return fecha;
+}
+
+/** Agrega metadatos operativos para identificar visitas que requieren renovación */
+function enriquecerVisitaConVencimiento(visita) {
+  const ahora = dayjs().tz(TIMEZONE_COLOMBIA);
+  const fechaIngreso = dayjs(visita.fechaHoraIngreso).tz(TIMEZONE_COLOMBIA);
+  const horasTranscurridas = fechaIngreso.isValid()
+    ? Math.floor(ahora.diff(fechaIngreso, "minute") / 60)
+    : null;
+  const visitaActiva =
+    Number(visita.estadoId) === ESTADO_VISITA.ACTIVA ||
+    String(visita.estadoVisita || "")
+      .toLowerCase()
+      .includes("activ");
+  const tieneParqueaderoAsignado = Boolean(
+    visita.codigoParqueadero || visita.vehiculoMatricula || visita.matricula,
+  );
+
+  return {
+    ...visita,
+    horasTranscurridas,
+    fechaLimiteParqueadero: fechaIngreso.isValid()
+      ? fechaIngreso.add(HORAS_VENCIMIENTO_PARQUEADERO, "hour").toISOString()
+      : null,
+    requiereRenovacion:
+      fechaIngreso.isValid() &&
+      visitaActiva &&
+      tieneParqueaderoAsignado &&
+      horasTranscurridas >= HORAS_VENCIMIENTO_PARQUEADERO,
+  };
+}
+
+/**
+ * Procesa el cambio de vehículo al actualizar una visita.
+ * @returns {Promise<string|null>} vehiculoMatricula resultante
+ */
+async function procesarActualizacionVehiculo(
+  visita,
+  matricula,
+  tipoVehiculoId,
+  codigoParqueadero,
+) {
+  // Quitar vehículo
+  if (!matricula || matricula.trim() === "") {
+    await liberarParqueaderoDeVehiculo(visita.vehiculoMatricula);
+    return null;
+  }
+
+  // Faltan datos obligatorios
+  if (
+    !tipoVehiculoId ||
+    !codigoParqueadero ||
+    codigoParqueadero.trim() === ""
+  ) {
+    throw Object.assign(
+      new Error(
+        "Debe proporcionar tipo de vehículo y código de parqueadero para asignar un vehículo",
+      ),
+      { status: 400 },
+    );
+  }
+
+  const parqueadero = await Parqueadero.findByPk(codigoParqueadero);
+  if (!parqueadero)
+    throw Object.assign(new Error("El parqueadero no existe"), { status: 400 });
+
+  const vehiculoActual = visita.vehiculoMatricula
+    ? await Vehiculo.findByPk(visita.vehiculoMatricula)
+    : null;
+  const esElMismoParqueadero =
+    vehiculoActual?.codigoParqueadero === codigoParqueadero;
+
+  if (
+    !esElMismoParqueadero &&
+    parqueadero.estadoId !== ESTADO_PARQUEADERO.DISPONIBLE
+  ) {
+    throw Object.assign(new Error("El parqueadero no está disponible"), {
+      status: 400,
+    });
+  }
+
+  // Liberar parqueadero anterior si el vehículo de la visita cambia
+  if (visita.vehiculoMatricula && visita.vehiculoMatricula !== matricula) {
+    await liberarParqueaderoDeVehiculo(visita.vehiculoMatricula);
+  }
+
+  // Crear o actualizar el vehículo
+  const vehiculo = await Vehiculo.findByPk(matricula);
+  if (vehiculo) {
+    if (
+      vehiculo.codigoParqueadero &&
+      vehiculo.codigoParqueadero !== codigoParqueadero
+    ) {
+      await Parqueadero.update(
+        { estadoId: ESTADO_PARQUEADERO.DISPONIBLE },
+        { where: { codigoParqueadero: vehiculo.codigoParqueadero } },
+      );
+    }
+    await vehiculo.update({ tipoVehiculoId, codigoParqueadero });
+  } else {
+    await Vehiculo.create({
+      matricula,
+      tipoVehiculoId,
+      codigoParqueadero,
+    });
+  }
+
+  if (!esElMismoParqueadero) {
+    await Parqueadero.update(
+      { estadoId: ESTADO_PARQUEADERO.OCUPADO },
+      { where: { codigoParqueadero } },
+    );
+  }
+
+  return vehiculo.matricula;
+}
 
 export const crearVisita = async (req, res) => {
   try {
@@ -22,172 +242,93 @@ export const crearVisita = async (req, res) => {
       fechaHoraIngreso,
       estadoId,
       observaciones,
+      telefono,
       matricula,
       tipoVehiculoId,
       codigoParqueadero,
     } = req.body;
 
-    console.log(" Datos recibidos:", req.body);
+    const fechaActual = dayjs().tz(TIMEZONE_COLOMBIA);
+    const fechaIngreso = parseFechaIngreso(fechaHoraIngreso, fechaActual);
 
-    const fechaActual = dayjs().tz("America/Bogota");
-
-    // Parsear fecha con múltiples formatos posibles
-    let fechaIngreso = fechaActual;
-    if (fechaHoraIngreso) {
-      console.log("Parseando fecha:", fechaHoraIngreso);
-      // Intentar primero con formato 24h
-      fechaIngreso = dayjs(fechaHoraIngreso, "YYYY-MM-DD HH:mm", true);
-      console.log(
-        "  Intento 1 (24h):",
-        fechaIngreso.isValid() ? "VALIDO" : "INVALIDO"
-      );
-      // Si no es válido, intentar con formato AM/PM
-      if (!fechaIngreso.isValid()) {
-        fechaIngreso = dayjs(fechaHoraIngreso, "YYYY-MM-DD hh:mm A", true);
-        console.log(
-          "  Intento 2 (AM/PM):",
-          fechaIngreso.isValid() ? "VALIDO" : "INVALIDO"
-        );
-      }
-      // Aplicar timezone de Colombia
-      if (fechaIngreso.isValid()) {
-        fechaIngreso = fechaIngreso.tz("America/Bogota", true);
-        console.log(
-          "  Fecha parseada:",
-          fechaIngreso.format("YYYY-MM-DD HH:mm")
-        );
-      }
-    }
-
-    // Validaciones de fecha
     if (!fechaIngreso.isValid()) {
-      console.log("Fecha invalida - Rechazando peticion");
       return res
         .status(400)
         .json({ error: "La fecha de ingreso no es válida" });
     }
-
-    // Período de gracia: permitir hasta 2 horas antes de la hora actual
     if (fechaIngreso.isBefore(fechaActual.subtract(2, "hour"))) {
       return res.status(400).json({
         error:
           "La fecha y hora de ingreso no puede ser anterior a 2 horas de la actual",
       });
     }
-
     if (fechaIngreso.year() > 2100) {
       return res.status(400).json({
         error: "El año de la fecha de ingreso no puede ser mayor a 2100",
       });
     }
 
-    //  Crear o actualizar visitante
-    let visitante = await Visitante.findByPk(numeroDocumento);
+    // Crear o actualizar visitante
+    const visitante = await Visitante.findByPk(numeroDocumento);
+    const camposVisitante = buildVisitanteData(
+      nombreVisitante,
+      tipoDocumentoId,
+    );
     if (!visitante) {
-      visitante = await Visitante.create({
+      await Visitante.create({
         numeroDocumento,
-        ...(nombreVisitante && { nombreVisitante }),
-        ...(tipoDocumentoId && { tipoDocumentoId }),
+        ...camposVisitante,
       });
-      console.log(" Nuevo visitante creado:", visitante.numeroDocumento);
-    } else if (nombreVisitante || tipoDocumentoId) {
-      await visitante.update({
-        ...(nombreVisitante && { nombreVisitante }),
-        ...(tipoDocumentoId && { tipoDocumentoId }),
+    } else if (Object.keys(camposVisitante).length > 0) {
+      await visitante.update(camposVisitante);
+    }
+
+    // Verificar visita activa duplicada
+    const visitaActiva = await Visita.findOne({
+      where: { numeroDocumento, estadoId: ESTADO_VISITA.ACTIVA },
+    });
+    if (visitaActiva) {
+      return res.status(409).json({
+        error: `Ya hay una persona con el número de documento ${numeroDocumento} en visita. Todavía no ha salido.`,
+        codigo: "VISITA_DUPLICADA",
       });
-      console.log(" Visitante actualizado:", visitante.numeroDocumento);
     }
 
     let vehiculoMatricula = null;
     let parqueadero = null;
 
-    // Procesar vehículo solo si se envía matrícula
     if (matricula && matricula.trim() !== "") {
-      if (
-        !tipoVehiculoId ||
-        !codigoParqueadero ||
-        codigoParqueadero.trim() === ""
-      ) {
-        return res.status(400).json({
-          error: "Debe proporcionar tipo de vehículo y código de parqueadero",
-        });
-      }
-
-      parqueadero = await Parqueadero.findByPk(codigoParqueadero);
-      if (!parqueadero) {
-        return res.status(400).json({ error: "El parqueadero no existe" });
-      }
-
-      if (Number(parqueadero.estadoId) !== 4) {
-        return res
-          .status(400)
-          .json({ error: "El parqueadero no está disponible" });
-      }
-
-      let vehiculo = await Vehiculo.findByPk(matricula);
-      if (!vehiculo) {
-        vehiculo = await Vehiculo.create({
-          matricula,
-          tipoVehiculoId,
-          codigoParqueadero,
-        });
-        console.log(`Nuevo vehiculo creado: ${matricula}`);
-      } else {
-        // Si tenía parqueadero distinto → liberarlo
-        if (
-          vehiculo.codigoParqueadero &&
-          vehiculo.codigoParqueadero !== codigoParqueadero
-        ) {
-          await Parqueadero.update(
-            { estadoId: 4 },
-            { where: { codigoParqueadero: vehiculo.codigoParqueadero } }
-          );
-          console.log(`Parqueadero ${vehiculo.codigoParqueadero} liberado`);
-        }
-
-        await vehiculo.update({
-          tipoVehiculoId,
-          codigoParqueadero,
-        });
-        console.log(`Vehiculo actualizado: ${matricula}`);
-      }
-
-      vehiculoMatricula = matricula;
+      ({ vehiculoMatricula, parqueadero } = await procesarVehiculoNuevo(
+        matricula,
+        tipoVehiculoId,
+        codigoParqueadero,
+      ));
     }
 
-    //  Crear la visita
     const visita = await Visita.create({
       numeroDocumento,
       apartamentoId,
-      fechaHoraIngreso: fechaIngreso.format("YYYY-MM-DD HH:mm"),
-      estadoId: estadoId || 8, // Por defecto "En curso" o "Activa"
+      fechaHoraIngreso: fechaIngreso.toDate(),
+      estadoId: estadoId || ESTADO_VISITA.ACTIVA,
       vehiculoMatricula,
       observaciones: observaciones || null,
+      telefono: telefono || null,
     });
 
-    console.log(" Visita creada exitosamente:", visita.toJSON());
-
-    // Registrar en auditoría
     const usuarioActual = req.user?.username || "desconocido";
     await registrarAuditoria(
       usuarioActual,
       "visitas",
       "INSERT",
-      visita.idVisita
+      visita.idVisita,
     );
 
-    // Ocupar parqueadero SOLO si la visita fue creada correctamente
     if (parqueadero && vehiculoMatricula) {
-      await parqueadero.update({ estadoId: 3 });
-      console.log(`Parqueadero ${codigoParqueadero} ocupado`);
+      await parqueadero.update({ estadoId: ESTADO_PARQUEADERO.OCUPADO });
     }
 
-    res.status(201).json({
-      mensaje: "Visita creada correctamente",
-      visita,
-    });
+    res.status(201).json({ mensaje: "Visita creada correctamente", visita });
   } catch (error) {
-    console.error(" Error al crear visita:", error);
     return res.status(400).json({ error: error.message });
   }
 };
@@ -206,6 +347,7 @@ SELECT
     vi.fechaHoraIngreso,
     vi.fechaHoraSalida,
     vi.observaciones,
+    vi.telefono,
     veh.matricula,
     veh.tipoVehiculoId,
     et.nombreEstado AS estadoVisita,
@@ -232,7 +374,7 @@ LEFT JOIN tiposvehiculo AS ti
 ORDER BY vi.fechaHoraIngreso DESC;
     `);
 
-    res.json(results);
+    res.json(results.map(enriquecerVisitaConVencimiento));
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error al listar visitas" });
@@ -250,12 +392,12 @@ export const obtenerVisitas = async (req, res) => {
       body: visita.map((visita) => ({
         ...visita.toJSON(),
         fechaHoraIngreso: dayjs(visita.fechaHoraIngreso)
-          .tz("America/Bogota")
+          .tz(TIMEZONE_COLOMBIA)
           .format("YYYY-MM-DD hh:mm A"),
         fechaHoraSalida: visita.fechaHoraSalida
           ? dayjs(visita.fechaHoraSalida)
-            .tz("America/Bogota")
-            .format("YYYY-MM-DD hh:mm A")
+              .tz(TIMEZONE_COLOMBIA)
+              .format("YYYY-MM-DD hh:mm A")
           : null,
       })),
     });
@@ -289,12 +431,12 @@ export const obtenerVisitaPorId = async (req, res) => {
       body: {
         ...visita.toJSON(),
         fechaHoraIngreso: dayjs(visita.fechaHoraIngreso)
-          .tz("America/Bogota")
+          .tz(TIMEZONE_COLOMBIA)
           .format("YYYY-MM-DD hh:mm A"),
         fechaHoraSalida: visita.fechaHoraSalida
           ? dayjs(visita.fechaHoraSalida)
-            .tz("America/Bogota")
-            .format("YYYY-MM-DD hh:mm A")
+              .tz(TIMEZONE_COLOMBIA)
+              .format("YYYY-MM-DD hh:mm A")
           : null,
       },
     });
@@ -307,6 +449,50 @@ export const obtenerVisitaPorId = async (req, res) => {
   }
 };
 
+/**
+ * Valida y formatea la fecha de ingreso.
+ * @param {string} fechaHoraIngreso
+ * @returns {{ error: string }|{ formatted: string }} error o valor formateado
+ */
+function validarFechaIngreso(fechaHoraIngreso) {
+  const fechaIngreso = dayjs(fechaHoraIngreso, "YYYY-MM-DD HH:mm", true).tz(
+    TIMEZONE_COLOMBIA,
+    true,
+  );
+  if (!fechaIngreso.isValid()) {
+    return { error: "La fecha de ingreso no es válida" };
+  }
+  if (fechaIngreso.year() > 2100) {
+    return { error: "El año de la fecha de ingreso no puede ser mayor a 2100" };
+  }
+  return { formatted: fechaIngreso.toDate() };
+}
+
+/**
+ * Actualiza o crea el visitante asociado a una visita.
+ * @returns {Promise<string|undefined>} nuevo numeroDocumento si cambió
+ */
+async function actualizarVisitanteAsociado(
+  visita,
+  numeroDocumento,
+  camposVisitante,
+) {
+  if (numeroDocumento && numeroDocumento !== visita.numeroDocumento) {
+    const visitante = await Visitante.findByPk(numeroDocumento);
+    if (!visitante) {
+      await Visitante.create({ numeroDocumento, ...camposVisitante });
+    } else if (Object.keys(camposVisitante).length > 0) {
+      await visitante.update(camposVisitante);
+    }
+    return numeroDocumento;
+  }
+  if (Object.keys(camposVisitante).length > 0) {
+    const visitanteActual = await Visitante.findByPk(visita.numeroDocumento);
+    if (visitanteActual) await visitanteActual.update(camposVisitante);
+  }
+  return undefined;
+}
+
 export const actualizarVisita = async (req, res) => {
   try {
     const { idVisita } = req.params;
@@ -318,229 +504,63 @@ export const actualizarVisita = async (req, res) => {
       fechaHoraIngreso,
       estadoId,
       observaciones,
+      telefono,
       matricula,
       tipoVehiculoId,
       codigoParqueadero,
     } = req.body;
 
-    console.log("📝 Datos de actualización recibidos:", req.body);
-
     const visita = await Visita.findByPk(idVisita);
     if (!visita) {
-      return res.status(404).json({
-        error: "Visita no encontrada",
-        status: 404,
-      });
+      return res
+        .status(404)
+        .json({ error: "Visita no encontrada", status: 404 });
     }
 
     const updateData = {};
 
-    // Validar fecha solo si se proporciona
+    // Validar fecha
     if (fechaHoraIngreso) {
-      const fechaIngreso = dayjs(fechaHoraIngreso, "YYYY-MM-DD HH:mm", true).tz(
-        "America/Bogota"
-      );
-
-      if (!fechaIngreso.isValid()) {
-        return res.status(400).json({
-          error: "La fecha de ingreso no es válida",
-        });
+      const resultado = validarFechaIngreso(fechaHoraIngreso);
+      if (resultado.error) {
+        return res.status(400).json({ error: resultado.error });
       }
-
-      if (fechaIngreso.year() > 2100) {
-        return res.status(400).json({
-          error: "El año de la fecha de ingreso no puede ser mayor a 2100",
-        });
-      }
-
-      updateData.fechaHoraIngreso = fechaIngreso.format("YYYY-MM-DD HH:mm");
+      updateData.fechaHoraIngreso = resultado.formatted;
     }
 
-    // Actualizar campos básicos
     if (apartamentoId !== undefined) updateData.apartamentoId = apartamentoId;
     if (estadoId !== undefined) updateData.estadoId = estadoId;
     if (observaciones !== undefined) updateData.observaciones = observaciones;
+    if (telefono !== undefined) updateData.telefono = telefono;
 
-    // Actualizar visitante si cambió
-    if (numeroDocumento && numeroDocumento !== visita.numeroDocumento) {
-      let visitante = await Visitante.findByPk(numeroDocumento);
-      if (!visitante) {
-        const visitanteData = {
-          numeroDocumento,
-          ...(nombreVisitante && { nombreVisitante }),
-          ...(tipoDocumentoId && { tipoDocumentoId }),
-        };
-        visitante = await Visitante.create(visitanteData);
-        console.log("Nuevo visitante creado:", numeroDocumento);
-      } else if (nombreVisitante || tipoDocumentoId) {
-        const visitanteUpdateData = {};
-        if (nombreVisitante)
-          visitanteUpdateData.nombreVisitante = nombreVisitante;
-        if (tipoDocumentoId)
-          visitanteUpdateData.tipoDocumentoId = tipoDocumentoId;
+    // Actualizar visitante
+    const camposVisitante = buildVisitanteData(
+      nombreVisitante,
+      tipoDocumentoId,
+    );
+    const nuevoDoc = await actualizarVisitanteAsociado(
+      visita,
+      numeroDocumento,
+      camposVisitante,
+    );
+    if (nuevoDoc) updateData.numeroDocumento = nuevoDoc;
 
-        await visitante.update(visitanteUpdateData);
-        console.log("Visitante actualizado:", numeroDocumento);
-      }
-      updateData.numeroDocumento = numeroDocumento;
-    } else if (nombreVisitante || tipoDocumentoId) {
-      // Actualizar visitante actual
-      const visitanteActual = await Visitante.findByPk(visita.numeroDocumento);
-      if (visitanteActual) {
-        const visitanteUpdateData = {};
-        if (nombreVisitante)
-          visitanteUpdateData.nombreVisitante = nombreVisitante;
-        if (tipoDocumentoId)
-          visitanteUpdateData.tipoDocumentoId = tipoDocumentoId;
-
-        await visitanteActual.update(visitanteUpdateData);
-        console.log("Visitante actual actualizado:", visita.numeroDocumento);
-      }
-    }
-
-    // Manejar actualización de vehículo
+    // Actualizar vehículo
     if (
       matricula !== undefined ||
       tipoVehiculoId !== undefined ||
       codigoParqueadero !== undefined
     ) {
-      // Si se está removiendo el vehículo
-      if (!matricula || matricula.trim() === "") {
-        // Liberar parqueadero anterior si existía
-        if (visita.vehiculoMatricula) {
-          const vehiculoAnterior = await Vehiculo.findByPk(
-            visita.vehiculoMatricula
-          );
-          if (vehiculoAnterior && vehiculoAnterior.codigoParqueadero) {
-            await Parqueadero.update(
-              { estadoId: 4 },
-              {
-                where: {
-                  codigoParqueadero: vehiculoAnterior.codigoParqueadero,
-                },
-              }
-            );
-            console.log(
-              `Parqueadero ${vehiculoAnterior.codigoParqueadero} liberado al remover vehículo`
-            );
-          }
-        }
-        updateData.vehiculoMatricula = null;
-      }
-      // Si se está asignando o cambiando un vehículo
-      else if (
-        matricula &&
-        tipoVehiculoId &&
-        codigoParqueadero &&
-        codigoParqueadero.trim() !== ""
-      ) {
-        const parqueadero = await Parqueadero.findByPk(codigoParqueadero);
-        if (!parqueadero) {
-          return res.status(400).json({ error: "El parqueadero no existe" });
-        }
-
-        // Verificar disponibilidad del parqueadero
-        const vehiculoActual = visita.vehiculoMatricula
-          ? await Vehiculo.findByPk(visita.vehiculoMatricula)
-          : null;
-
-        const esElMismoVehiculo = visita.vehiculoMatricula === matricula;
-        const esElMismoParqueadero =
-          vehiculoActual &&
-          vehiculoActual.codigoParqueadero === codigoParqueadero;
-
-        if (!esElMismoParqueadero && parqueadero.estadoId !== 4) {
-          return res
-            .status(400)
-            .json({ error: "El parqueadero no está disponible" });
-        }
-
-        // Liberar parqueadero anterior si la visita tenía un vehículo diferente
-        if (
-          visita.vehiculoMatricula &&
-          visita.vehiculoMatricula !== matricula
-        ) {
-          const vehiculoAnterior = await Vehiculo.findByPk(
-            visita.vehiculoMatricula
-          );
-          if (vehiculoAnterior && vehiculoAnterior.codigoParqueadero) {
-            await Parqueadero.update(
-              { estadoId: 4 },
-              {
-                where: {
-                  codigoParqueadero: vehiculoAnterior.codigoParqueadero,
-                },
-              }
-            );
-            console.log(
-              `Parqueadero anterior ${vehiculoAnterior.codigoParqueadero} liberado`
-            );
-          }
-        }
-
-        // Manejar el vehículo
-        let vehiculo = await Vehiculo.findByPk(matricula);
-        if (!vehiculo) {
-          vehiculo = await Vehiculo.create({
-            matricula,
-            tipoVehiculoId,
-            codigoParqueadero,
-          });
-          console.log(`✅ Nuevo vehículo creado: ${matricula}`);
-        } else {
-          // Liberar parqueadero anterior del vehículo si es diferente
-          if (
-            vehiculo.codigoParqueadero &&
-            vehiculo.codigoParqueadero !== codigoParqueadero
-          ) {
-            await Parqueadero.update(
-              { estadoId: 4 },
-              { where: { codigoParqueadero: vehiculo.codigoParqueadero } }
-            );
-            console.log(
-              `Parqueadero anterior del vehículo ${vehiculo.codigoParqueadero} liberado`
-            );
-          }
-
-          await vehiculo.update({
-            tipoVehiculoId,
-            codigoParqueadero,
-          });
-          console.log(`✅ Vehículo actualizado: ${matricula}`);
-        }
-
-        // Ocupar el nuevo parqueadero
-        if (!esElMismoParqueadero) {
-          await Parqueadero.update(
-            { estadoId: 3 },
-            { where: { codigoParqueadero } }
-          );
-          console.log(`Parqueadero ${codigoParqueadero} ocupado`);
-        }
-
-        updateData.vehiculoMatricula = vehiculo.matricula;
-      }
-      // Si faltan datos del vehículo
-      else if (
-        matricula &&
-        matricula.trim() !== "" &&
-        (!tipoVehiculoId ||
-          !codigoParqueadero ||
-          codigoParqueadero.trim() === "")
-      ) {
-        return res.status(400).json({
-          error:
-            "Debe proporcionar tipo de vehículo y código de parqueadero para asignar un vehículo",
-        });
-      }
+      updateData.vehiculoMatricula = await procesarActualizacionVehiculo(
+        visita,
+        matricula,
+        tipoVehiculoId,
+        codigoParqueadero,
+      );
     }
 
-    // Actualizar la visita
     await visita.update(updateData);
 
-    console.log("Visita actualizada exitosamente:", updateData);
-
-    // Registrar en auditoría
     const usuarioActual = req.user?.username || "desconocido";
     await registrarAuditoria(usuarioActual, "visitas", "UPDATE", idVisita);
 
@@ -551,18 +571,16 @@ export const actualizarVisita = async (req, res) => {
       body: visita,
     });
   } catch (error) {
-    console.error("Error al actualizar visita:", error);
-    res.status(500).json({
-      error: error.message,
-      message: "Error al actualizar la visita",
-    });
+    res
+      .status(500)
+      .json({ error: error.message, message: "Error al actualizar la visita" });
   }
 };
 
 export const finalizarVisita = async (req, res) => {
   try {
     const { idVisita } = req.params;
-    let fechaHoraSalida = dayjs().tz("America/Bogota").toDate();
+    let fechaHoraSalida = dayjs().tz(TIMEZONE_COLOMBIA).toDate();
 
     const visita = await Visita.findByPk(idVisita);
     if (!visita) {
@@ -572,7 +590,7 @@ export const finalizarVisita = async (req, res) => {
       });
     }
 
-    if (visita.estadoId === 9) {
+    if (visita.estadoId === ESTADO_VISITA.FINALIZADA) {
       return res.status(400).json({
         error: "La visita ya está finalizada",
         status: 400,
@@ -582,15 +600,15 @@ export const finalizarVisita = async (req, res) => {
     // Liberar parqueadero si el vehículo lo tiene asignado
     if (visita.vehiculoMatricula) {
       const vehiculo = await Vehiculo.findByPk(visita.vehiculoMatricula);
-      if (vehiculo && vehiculo.codigoParqueadero) {
+      if (vehiculo?.codigoParqueadero) {
         await Parqueadero.update(
-          { estadoId: 4 }, // Disponible
-          { where: { codigoParqueadero: vehiculo.codigoParqueadero } }
+          { estadoId: ESTADO_PARQUEADERO.DISPONIBLE }, // Disponible
+          { where: { codigoParqueadero: vehiculo.codigoParqueadero } },
         );
       }
     }
     await visita.update({
-      estadoId: 9,
+      estadoId: ESTADO_VISITA.FINALIZADA,
       fechaHoraSalida,
     });
 
@@ -615,7 +633,6 @@ export const finalizarVisita = async (req, res) => {
       body: visitaActualizada.toJSON(),
     });
   } catch (error) {
-    console.error("Error al finalizar visita:", error);
     res.status(500).json({
       error: "Error interno al finalizar visita",
       status: 500,
@@ -627,32 +644,29 @@ export const finalizarVisita = async (req, res) => {
 export const visitasDelDia = async (req, res) => {
   try {
     const visitasDia = await Visita.count({
-
-      where: where(fn("DATE", col("fechaHoraIngreso")), "=", fn("CURDATE"))
-
-    })
+      where: where(fn("DATE", col("fechaHoraIngreso")), "=", fn("CURDATE")),
+    });
     res.status(200).json({
       ok: true,
-      visitasDia
+      visitasDia,
     });
   } catch (error) {
-    console.log("Lo siento esta ocurriendo un erro al trae la informacion", error.message)
+    console.error(error);
+    res.status(500).json({ error: "Error al obtener visitas del día" });
   }
-}
+};
 function corregirFecha(fecha) {
   const d = new Date(fecha);
-  if (isNaN(d.getTime())) return null;
+  if (Number.isNaN(d.getTime())) return null;
 
   // Normaliza a formato YYYY-MM-DD
   return d.toISOString().slice(0, 10);
 }
 
-
-
 export const informeVisintante = async (req, res) => {
   try {
     const { por } = req.params;
-    const tipoFiltro = parseInt(por);
+    const tipoFiltro = Number.parseInt(por, 10);
 
     let { fechaInicio, fechaFin } = req.body.rango || req.body;
 
@@ -670,20 +684,19 @@ export const informeVisintante = async (req, res) => {
     let informevisitante;
     const commonWhere = {
       fechaHoraIngreso: {
-        [Op.between]: [fechaInicio, fechaFin]
-      }
+        [Op.between]: [fechaInicio, fechaFin],
+      },
     };
-    
- 
+
     if (tipoFiltro === 1) {
       informevisitante = await Visita.findAll({
         attributes: [
           [literal("YEAR(fechaHoraIngreso)"), "anio"],
-          [fn("COUNT", col("idVisita")), "numeroVisitas"]
+          [fn("COUNT", col("idVisita")), "numeroVisitas"],
         ],
         where: commonWhere,
         group: [literal("anio")],
-        order: [[literal("anio"), "ASC"]]
+        order: [[literal("anio"), "ASC"]],
       });
     }
 
@@ -692,17 +705,14 @@ export const informeVisintante = async (req, res) => {
         attributes: [
           [literal("YEAR(fechaHoraIngreso)"), "anio"],
           [literal("MONTH(fechaHoraIngreso)"), "mes"],
-          [fn("COUNT", col("idVisita")), "numeroVisitas"]
+          [fn("COUNT", col("idVisita")), "numeroVisitas"],
         ],
         where: commonWhere,
-        group: [
-          literal("anio"),
-          literal("mes")
-        ],
+        group: [literal("anio"), literal("mes")],
         order: [
           [literal("anio"), "ASC"],
-          [literal("mes"), "ASC"]
-        ]
+          [literal("mes"), "ASC"],
+        ],
       });
     }
 
@@ -710,26 +720,22 @@ export const informeVisintante = async (req, res) => {
       informevisitante = await Visita.findAll({
         attributes: [
           [literal("YEAR(fechaHoraIngreso)"), "anio"],
-          [literal("MONTH(fechaHoraIngreso)"), "mes"], 
+          [literal("MONTH(fechaHoraIngreso)"), "mes"],
           [literal("FLOOR((DAY(fechaHoraIngreso)-1)/7)+1"), "semanaMes"],
-          [fn("COUNT", col("idVisita")), "numeroVisitas"]
+          [fn("COUNT", col("idVisita")), "numeroVisitas"],
         ],
         where: commonWhere,
-        group: [
-          literal("anio"),
-          literal("mes"),
-          literal("semanaMes")
-        ],
+        group: [literal("anio"), literal("mes"), literal("semanaMes")],
         order: [
           [literal("anio"), "ASC"],
           [literal("mes"), "ASC"],
-          [literal("semanaMes"), "ASC"]
-        ]
+          [literal("semanaMes"), "ASC"],
+        ],
       });
     }
     return res.json(informevisitante);
   } catch (error) {
-    console.error("Error en informeVisintante:", error.message);
+    console.error(error);
     return res.status(500).json({ ok: false, msg: "Error interno" });
   }
 };

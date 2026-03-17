@@ -1,0 +1,11 @@
+/* Gestión Usuarios — Layout compacto centrado */
+.main-content .container {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.main-content .row.g-3 {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
