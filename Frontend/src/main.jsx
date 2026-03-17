@@ -6,7 +6,12 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "./Styles/global.css";
 
+import { installDomGuard } from "./utils/domGuard.js";
 import App from "./App.jsx";
+
+// Instalar protección DOM antes de cualquier render
+// Previene errores insertBefore causados por extensiones (Google Translate, Grammarly)
+installDomGuard();
 
 // Modo oscuro: aplicar preferencia guardada antes del primer render ─
 // Así todos los módulos tienen el tema correcto desde el instante 0,

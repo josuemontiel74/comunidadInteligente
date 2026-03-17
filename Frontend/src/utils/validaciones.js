@@ -82,6 +82,16 @@ export const filtrarInputDocumento = (valor, esPasaporte = false) => {
 export const filtrarInputNombre = (valor) =>
   valor.replaceAll(/[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]/g, "");
 
+/**
+ * Filtra caracteres no numéricos de un campo de teléfono.
+ * Solo permite dígitos y opcionalmente un '+' al inicio.
+ */
+export const filtrarInputTelefono = (valor) => {
+  const tieneSigno = valor.startsWith("+");
+  const soloDigitos = valor.replaceAll(/\D/g, "");
+  return tieneSigno ? `+${soloDigitos}` : soloDigitos;
+};
+
 // ─
 // NOMBRES / APELLIDOS
 // ─
