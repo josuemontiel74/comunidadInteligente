@@ -366,9 +366,9 @@ function Visitas() {
   ${generarSeccionVehiculo(v)}
   <hr/>
   <div class="aviso">
-    &#9888; ESTE COMPROBANTE NO DEBE SER DESECHADO<br/>
-    Consérvelo hasta retirarse del conjunto.<br/>
-    Puede ser requerido por seguridad.
+    &#9888; TICKET DE SALIDA &mdash; OBLIGATORIO<br/>
+    Este comprobante debe ser presentado en porter&iacute;a al momento de retirarse.<br/>
+    <strong>NO debe ser desechado.</strong> Cons&eacute;rvelo hasta abandonar el conjunto.
   </div>
   <div class="barcode">*${String(id).padStart(6, "0")}*</div>
   <hr/>
@@ -2093,14 +2093,12 @@ function Visitas() {
             </div>
 
             <div className="vis-modal-footer vis-modal-footer-acciones">
-              {modalDetalle.matricula && (
-                <button
-                  className="vis-btn-imprimir vis-btn-ingreso"
-                  onClick={() => imprimirReciboVisita(modalDetalle, "INGRESO")}
-                >
-                  <i className="bi bi-printer"></i> Imprimir Recibo
-                </button>
-              )}
+              <button
+                className="vis-btn-imprimir vis-btn-ingreso"
+                onClick={() => imprimirReciboVisita(modalDetalle, "INGRESO")}
+              >
+                <i className="bi bi-printer"></i> Imprimir Recibo
+              </button>
               <button
                 className="vis-btn-cerrar"
                 onClick={() => setModalDetalle(null)}

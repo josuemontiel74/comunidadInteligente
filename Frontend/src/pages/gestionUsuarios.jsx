@@ -264,29 +264,33 @@ function GestionUsuarios() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token || verificarTokenVencido(token)) {
-      Swal.fire({
-        icon: "warning",
-        title: "Sesion expirada",
-        text: "La sesion expiro. Vuelva a iniciar sesion.",
-        timer: 2000,
-        showConfirmButton: false,
-        timerProgressBar: true,
-      }).then(() => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigate("/");
-      });
+      setTimeout(() => {
+        Swal.fire({
+          icon: "warning",
+          title: "Sesion expirada",
+          text: "La sesion expiro. Vuelva a iniciar sesion.",
+          timer: 2000,
+          showConfirmButton: false,
+          timerProgressBar: true,
+        }).then(() => {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          navigate("/");
+        });
+      }, 0);
       return;
     }
     const rol = obtenerRolFromToken(token);
     if (rol !== 1) {
-      Swal.fire({
-        icon: "error",
-        title: "Sin permisos",
-        text: "Solo el Super Administrador puede acceder a Gestion de Usuarios.",
-        timer: 2500,
-        showConfirmButton: false,
-      }).then(() => navigate(-1));
+      setTimeout(() => {
+        Swal.fire({
+          icon: "error",
+          title: "Sin permisos",
+          text: "Solo el Super Administrador puede acceder a Gestion de Usuarios.",
+          timer: 2500,
+          showConfirmButton: false,
+        }).then(() => navigate(-1));
+      }, 0);
       return;
     }
     const userGuardado = localStorage.getItem("user");
