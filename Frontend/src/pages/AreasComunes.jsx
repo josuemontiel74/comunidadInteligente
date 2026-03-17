@@ -119,16 +119,16 @@ function obtenerLabelSubmitReserva(isLoading, isEditing) {
   return isEditing ? "Guardar Cambios" : "Registrar Reserva";
 }
 
-/* ═══════════════════════════════════════════════════════════
+/* 
    ÁREAS COMUNES — Gestión de Reservas
    Tema naranja · Layout responsivo (tabla desktop / cards móvil)
-   ═══════════════════════════════════════════════════════════ */
+    */
 
 function AreasComunes() {
   const navegacion = useNavigate();
   const location = useLocation();
 
-  // ─ Sesión ─
+  //  Sesión 
   useEffect(() => {
     const tk = localStorage.getItem("token");
     if (!tk) {
@@ -149,7 +149,7 @@ function AreasComunes() {
 
   const cerrarSesion = useLogout();
 
-  // ─ Token helpers ─
+  //  Token helpers 
   const obtenerToken = () => {
     const token =
       localStorage.getItem("token") ||
@@ -180,7 +180,7 @@ function AreasComunes() {
   const rolUsuario = mapRolLabel(rolesId);
   const dashboardPath = mapDashboardPath(rolesId);
 
-  // ─ Estado UI ─
+  //  Estado UI 
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [showModalDetalles, setShowModalDetalles] = useState(false);
@@ -190,7 +190,7 @@ function AreasComunes() {
   const [editIndex, setEditIndex] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // ─ Datos ─
+  //  Datos 
   const [reservas, setReservas] = useState([]);
   const [apartamentos, setApartamentos] = useState([]);
   const [areasComunes, setAreasComunes] = useState([]);
@@ -202,7 +202,7 @@ function AreasComunes() {
     { tipoDocumentoId: 5, nombre: "PPT" },
   ]);
 
-  // ─ Formulario ─
+  //  Formulario 
   const reservaVacia = {
     torre: "",
     apartamentoId: "",
@@ -222,23 +222,23 @@ function AreasComunes() {
   };
   const [reserva, setReserva] = useState({ ...reservaVacia });
 
-  // ─ Filtros + Paginación ─
+  //  Filtros + Paginación 
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todas"); // todas | activas | finalizadas
   const [paginaActual, setPaginaActual] = useState(1);
   const reservasPorPagina = 5;
 
-  // ─ Calendario ─
+  //  Calendario 
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [selectedDay, setSelectedDay] = useState(null);
   const [calendarData, setCalendarData] = useState([]);
 
-  // ─ Responsive (manejado por CSS media queries) ─
+  //  Responsive (manejado por CSS media queries) 
 
-  // ════════════════════════════════════════════════════════
+
   // DATA FETCHING
-  // ════════════════════════════════════════════════════════
+
 
   const obtenerReservas = useCallback(async () => {
     try {
@@ -371,9 +371,9 @@ function AreasComunes() {
     if (location.state?.abrirModal) abrirModal(location.state?.prefill || null);
   }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ════════════════════════════════════════════════════════
+
   // FILTRADO POR TORRE
-  // ════════════════════════════════════════════════════════
+
 
   // Extraer torres únicas de los apartamentos cargados
   const torresDisponibles = React.useMemo(() => {
@@ -405,9 +405,9 @@ function AreasComunes() {
     }));
   };
 
-  // ════════════════════════════════════════════════════════
+
   // MODAL HANDLERS
-  // ════════════════════════════════════════════════════════
+
 
   const abrirModal = (prefill = null) => {
     setReserva({
@@ -449,9 +449,9 @@ function AreasComunes() {
     }));
   };
 
-  // ════════════════════════════════════════════════════════
+
   // CRUD OPERATIONS
-  // ════════════════════════════════════════════════════════
+
 
   const validarFechasReserva = (r) => {
     const hoy = new Date();
@@ -644,9 +644,9 @@ function AreasComunes() {
     setShowModalDetalles(true);
   };
 
-  // ════════════════════════════════════════════════════════
+
   // GESTIÓN DE ÁREAS COMUNES (SuperAdmin)
-  // ════════════════════════════════════════════════════════
+
 
   const toggleEstadoArea = async (area) => {
     const estaDisponible = area.estadoId === 4;
@@ -707,9 +707,9 @@ function AreasComunes() {
     }
   };
 
-  // ════════════════════════════════════════════════════════
+
   // CALENDARIO
-  // ════════════════════════════════════════════════════════
+
 
   const abrirCalendario = () => {
     const ahora = new Date();
@@ -805,9 +805,9 @@ function AreasComunes() {
     return fecha < hoy;
   };
 
-  // ════════════════════════════════════════════════════════
+
   // FILTROS + PAGINACIÓN
-  // ════════════════════════════════════════════════════════
+
 
   const reservasFiltradas = reservas
     .filter((r) => {
@@ -850,9 +850,9 @@ function AreasComunes() {
     (r) => r.nombreEstado?.toLowerCase() === "finalizada",
   ).length;
 
-  // ════════════════════════════════════════════════════════
+
   // GENERAR TICKET PDF
-  // ════════════════════════════════════════════════════════
+
 
   const normalizeTime = (t) => {
     if (!t) return "";
@@ -920,9 +920,9 @@ function AreasComunes() {
     };
   };
 
-  // ════════════════════════════════════════════════════════
+
   // HELPERS DE RENDER
-  // ════════════════════════════════════════════════════════
+
 
   const badgeEstado = (estado) => {
     const e = (estado || "").toLowerCase();
@@ -936,9 +936,9 @@ function AreasComunes() {
     return h.substring(0, 5);
   };
 
-  // ════════════════════════════════════════════════════════
+
   // RENDER
-  // ════════════════════════════════════════════════════════
+
 
   if (loading && reservas.length === 0) {
     return (
@@ -951,7 +951,7 @@ function AreasComunes() {
 
   return (
     <div className="ac-dashboard">
-      {/* ── Overlay ── */}
+      {/*  Overlay  */}
       <button
         type="button"
         className={`ac-overlay ${menuOpen ? "active" : ""}`}
@@ -963,7 +963,7 @@ function AreasComunes() {
         aria-label="Cerrar menú"
       />
 
-      {/* ══════════ DRAWER ══════════ */}
+      {/*  DRAWER  */}
       <aside className={`ac-drawer ${menuOpen ? "open" : ""}`}>
         <div className="ac-drawer-header">
           <div className="ac-drawer-avatar">
@@ -1090,9 +1090,9 @@ function AreasComunes() {
         </div>
       </aside>
 
-      {/* ══════════ MAIN ══════════ */}
+      {/*  MAIN  */}
       <div className="ac-main">
-        {/* ── Header ── */}
+        {/*  Header  */}
         <header className="ac-header">
           <button
             className="ac-header-btn"
@@ -1115,7 +1115,7 @@ function AreasComunes() {
           </div>
         </header>
 
-        {/* ── Content ── */}
+        {/*  Content  */}
         <div className="ac-content">
           {/* Estadísticas */}
           <div className="ac-stats-container">
@@ -1213,7 +1213,7 @@ function AreasComunes() {
             </div>
           </div>
 
-          {/* ── Estado vacío ── */}
+          {/*  Estado vacío  */}
           {reservasFiltradas.length === 0 && (
             <div className="ac-empty-container">
               <i className="bi bi-calendar-x ac-empty-icon" />
@@ -1221,7 +1221,7 @@ function AreasComunes() {
             </div>
           )}
 
-          {/* ── Tabla (desktop ≥ 800px, ocultada por CSS en móvil) ── */}
+          {/*  Tabla (desktop ≥ 800px, ocultada por CSS en móvil)  */}
           {reservasPaginadas.length > 0 && (
             <div className="ac-table-container">
               <table className="ac-table">
@@ -1294,7 +1294,7 @@ function AreasComunes() {
             </div>
           )}
 
-          {/* ── Cards (móvil < 800px, ocultadas por CSS en desktop) ── */}
+          {/*  Cards (móvil < 800px, ocultadas por CSS en desktop)  */}
           {reservasPaginadas.length > 0 && (
             <div className="ac-cards-container">
               {reservasPaginadas.map((r) => (
@@ -1360,7 +1360,7 @@ function AreasComunes() {
             </div>
           )}
 
-          {/* ── Paginación ── */}
+          {/*  Paginación  */}
           {totalPaginas > 1 && (
             <div className="ac-pagination">
               <button
@@ -1394,7 +1394,7 @@ function AreasComunes() {
         </div>
       </div>
 
-      {/* ══════════ MODAL — REGISTRAR / EDITAR ══════════ */}
+      {/*  MODAL — REGISTRAR / EDITAR  */}
       <ModalOverlay
         isOpen={modalAbierto}
         onClose={() => cerrarModal()}
@@ -1720,7 +1720,7 @@ function AreasComunes() {
         </div>
       </ModalOverlay>
 
-      {/* ══════════ MODAL — DETALLES ══════════ */}
+      {/*  MODAL — DETALLES  */}
       {showModalDetalles && registroSeleccionado && (
         <ModalOverlay
           isOpen
@@ -1844,7 +1844,7 @@ function AreasComunes() {
         </ModalOverlay>
       )}
 
-      {/* ══════════ MODAL — CALENDARIO ══════════ */}
+      {/*  MODAL — CALENDARIO  */}
       <ModalOverlay
         isOpen={showCalendario}
         onClose={() => setShowCalendario(false)}
@@ -1970,7 +1970,7 @@ function AreasComunes() {
         </div>
       </ModalOverlay>
 
-      {/* ══════════ MODAL GESTIONAR ÁREAS (SuperAdmin) ══════════ */}
+      {/*  MODAL GESTIONAR ÁREAS (SuperAdmin)  */}
       <ModalOverlay
         isOpen={showModalAreas && rolesId === 1}
         onClose={() => setShowModalAreas(false)}

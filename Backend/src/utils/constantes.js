@@ -10,13 +10,13 @@ export const ESTADO_PARQUEADERO = {
   OCUPADO: 3,
 };
 
-// Estados de visita ─
+// Estados de visita 
 export const ESTADO_VISITA = {
   ACTIVA: 8,
   FINALIZADA: 9,
 };
 
-// Estados de ocupante ─
+// Estados de ocupante 
 export const ESTADO_OCUPANTE = {
   ACTIVO: 5,
   INACTIVOS: [2, 3, 4],
@@ -35,13 +35,13 @@ export const ESTADO_RESERVA = {
   FINALIZADA: 9,
 };
 
-// Zona horaria Colombia ─
+// Zona horaria Colombia 
 export const TIMEZONE_COLOMBIA = "America/Bogota";
 
 // Año máximo permitido en fechas 
 export const AÑO_MAXIMO = 2100;
 
-// Formato de fecha y hora ─
+// Formato de fecha y hora 
 export const FORMATO_FECHA_HORA = "YYYY-MM-DD HH:mm";
 
 // Valor por defecto para usuario desconocido (auditorías) 

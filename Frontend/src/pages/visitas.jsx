@@ -830,7 +830,7 @@ function Visitas() {
 
   const modalConfig = getModalEditConfig(modalEditar);
 
-  // ══════════════════════ RENDER ══════════════════════
+  // RENDER
   return (
     <div className="vis-dashboard">
       <button
@@ -1042,7 +1042,7 @@ function Visitas() {
         {/* Content */}
         {!error && visitas.length > 0 && (
           <>
-            {/* ── Stats diarios ── */}
+            {/*  Stats diarios  */}
             <div className="vis-stats-container">
               <div className="vis-stat-box">
                 <div className="vis-stat-label" style={{ color: "#388e3c" }}>
@@ -1078,7 +1078,7 @@ function Visitas() {
               </div>
             </div>
 
-            {/* ── TOOLBAR ── */}
+            {/*  TOOLBAR  */}
             <div className="vis-toolbar">
               <div className="vis-toolbar-top">
                 <button className="vis-btn-registrar" onClick={abrirModalCrear}>
@@ -1184,7 +1184,7 @@ function Visitas() {
               </div>
             )}
 
-            {/* ── TABLA (escritorio ≥ 800px) ── */}
+            {/*  TABLA (escritorio ≥ 800px)  */}
             {visitasFiltradas.length > 0 && (
               <div className="vis-table-container">
                 <table className="vis-table">
@@ -1282,7 +1282,7 @@ function Visitas() {
               </div>
             )}
 
-            {/* ── CARDS (móvil < 800px) ── */}
+            {/*  CARDS (móvil < 800px)  */}
             {visitasFiltradas.length > 0 && (
               <div className="vis-cards-container">
                 {visitasPaginadas.map((v) => {
@@ -1401,7 +1401,7 @@ function Visitas() {
               </div>
             )}
 
-            {/* ── PAGINACIÓN ── */}
+            {/*  PAGINACIÓN  */}
             {visitasFiltradas.length > 0 && (
               <div className="vis-pagination-wrapper">
                 <span className="vis-pagination-info">
@@ -1473,7 +1473,7 @@ function Visitas() {
         )}
       </div>
 
-      {/* ══════════ MODAL CREAR / EDITAR ══════════ */}
+      {/*  MODAL CREAR / EDITAR  */}
       <ModalOverlay
         isOpen={modalCrear || modalEditar}
         onClose={() => {
@@ -1916,7 +1916,7 @@ function Visitas() {
         </div>
       </ModalOverlay>
 
-      {/* ══════════ MODAL DETALLE ══════════ */}
+      {/*  MODAL DETALLE  */}
       {modalDetalle && (
         <ModalOverlay
           isOpen
