@@ -13,7 +13,7 @@ const contarDigitos = (str) => (str.match(/\d/g) || []).length;
 /** Nombres de tipo de documento por ID numérico */
 const NOMBRES_TIPO_DOC = { 2: "CE", 3: "Pasaporte", 4: "PEP", 5: "PPT" };
 
-// Helpers por tipo de documento ─
+// Helpers por tipo de documento 
 
 const validarDocCC = (doc) => {
   if (!/^\d+$/.test(doc))

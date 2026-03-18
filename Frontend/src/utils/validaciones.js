@@ -3,9 +3,9 @@
  * Reglas enfocadas en el contexto colombiano.
  */
 
-// ─
+
 // TRANSPORTADORAS COLOMBIANAS RECONOCIDAS
-// ─
+
 export const TRANSPORTADORAS_CO = [
   "Servientrega",
   "Interrapidísimo",
@@ -26,9 +26,9 @@ export const TRANSPORTADORAS_CO = [
   "Adpostal",
 ];
 
-// ─
+
 // HELPERS INTERNOS
-// ─
+
 
 /** Solo letras (incl. tildes y ñ), espacios y guiones */
 const REGEX_SOLO_LETRAS = /^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/;
@@ -45,9 +45,9 @@ const tieneSentido = (str) => {
   return vocales / letras.length >= 0.15;
 };
 
-// ─
+
 // FILTROS DE ENTRADA EN TIEMPO REAL (para usar en onChange / onInput)
-// ─
+
 
 /**
  * Filtra caracteres no permitidos en un campo de número de documento.
@@ -96,7 +96,7 @@ export const filtrarInputTelefono = (valor) => {
 
 // ─
 // NOMBRES / APELLIDOS
-// ─
+
 
 /**
  * Valida un nombre o apellido.
@@ -126,9 +126,9 @@ export const validarNombreCompleto = (str) => {
   return null;
 };
 
-// ─
+
 // TELÉFONO COLOMBIANO
-// ─
+
 
 /**
  * Valida un número celular colombiano.
@@ -156,9 +156,9 @@ export const validarTelefono = (str) => {
   return null;
 };
 
-// ─
+
 // CORREO ELECTRÓNICO
-// ─
+
 
 /**
  * Valida un correo electrónico con formato estándar.
@@ -176,9 +176,9 @@ export const validarEmail = (str) => {
   return null;
 };
 
-// ─
+
 // NÚMERO DE DOCUMENTO (según tipo)
-// ─
+
 
 /**
  * Tipos de documento y sus reglas:
@@ -231,9 +231,9 @@ export const validarDocumento = (str, tipoId, tipoNombre = "") => {
   return null;
 };
 
-// ─
+
 // TRANSPORTADORA
-// ─
+
 
 /**
  * Valida el nombre de una transportadora.

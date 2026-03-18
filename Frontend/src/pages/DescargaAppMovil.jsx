@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import ModalOverlay from "../utils/ModalOverlay.jsx";
 import "../Styles/DescargaAppMovil.css";
 
-// ─ Ruta del APK (coloca aquí el nombre del archivo cuando lo tengas) 
+//  Ruta del APK (coloca aquí el nombre del archivo cuando lo tengas) 
 // El archivo debe estar en /Frontend/public/  → se servirá como /tuComunidadInteligente.apk
 const APK_URL = "/tuComunidadInteligente.apk";
 const DISMISS_KEY = "dap_movil_dismissido";
@@ -50,7 +50,7 @@ export default function DescargaAppMovil({ btnClass = "" }) {
 
   return (
     <>
-      {/* ── Botón en el header ─────────────────────────────────── */}
+      {/*  Botón en el header  */}
       <button
         className={`dap-header-btn ${btnClass}`}
         onClick={() => setModalAbierto(true)}
@@ -60,7 +60,7 @@ export default function DescargaAppMovil({ btnClass = "" }) {
         <i className="bi bi-android2"></i>
       </button>
 
-      {/* ── Modal ──────────────────────────────────────────────── */}
+      {/*  Modal  */}
       <ModalOverlay
         isOpen={modalAbierto}
         onClose={cerrar}
