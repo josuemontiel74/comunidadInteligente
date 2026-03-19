@@ -17,7 +17,7 @@ import {
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-// Regex de placa colombiana 
+// Regex de placa colombiana
 const PLACA_REGEX = /^[A-Z]{3}\d{2,3}[A-Z]?$/;
 const HORAS_VENCIMIENTO_PARQUEADERO = 24;
 
@@ -338,6 +338,7 @@ export const listarVisitas = async (req, res) => {
     const [results] = await sequelize.query(`
 SELECT 
     vi.idVisita,
+    vi.estadoId,
     vi.numeroDocumento,
     ve.nombreVisitante,
     ve.tipoDocumentoId,
