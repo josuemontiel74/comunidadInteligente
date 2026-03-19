@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
-import { useProtectedDOM } from "./utils/domGuard.js";
+import useProtectedDOM from "./utils/useProtectedDOM.js";
 import Landing from "./pages/Landing.jsx";
 import Login from "./pages/login.jsx";
 import Vigilante from "./pages/vigilanteDashboard.jsx";
