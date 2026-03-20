@@ -22,35 +22,46 @@ dialog[open] {
 }
 
 /* ============================================================
-   Protección contra extensiones del navegador
-   ============================================================
-   Extensiones como Google Translate inyectan <font> y <span>
-   dentro de elementos controlados por React, causando errores
-   de DOM (insertBefore). Estos estilos mitigan el impacto visual.
+   🛡️ PROTECCIONES CONTRA EXTENSIONES (Google Translate, Grammarly)
    ============================================================ */
-font[style],
-font[class] {
-  font: inherit !important;
-  color: inherit !important;
+
+/* Prevenir que extensiones manipulen elementos críticos */
+[data-react-safe],
+.notranslate,
+[translate="no"] {
+  unicode-bidi: plaintext;
+  word-break: break-word;
 }
 
-/* Ocultar elementos inyectados por Grammarly */
-grammarly-extension,
-grammarly-desktop-integration {
+/* Ocultar elementos inyectados por extensiones */
+[id^="google_translate"],
+[class*="gTranslatorPanel"],
+[class*="grammarly"],
+[class*="gtranslate"],
+[data-gtranslate-element-id] {
   display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
-/* ============================================================
-   Consistencia visual: inputs numéricos
-   ============================================================
-   Eliminar flechas spinner de <input type="number"> para
-   mantener una apariencia consistente en todos los campos.
-   ============================================================ */
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+/* Asegurar que display:contents funcione correctamente en el layout */
+[style*="display: contents"] {
+  display: contents !important;
 }
-input[type="number"] {
-  -moz-appearance: textfield;
+
+/* Proteger elementos de formulario contra manipulación */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="number"],
+textarea,
+select {
+  /* Evitar que extensiones cambien estilos */
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Prevenir cambios de atributos por extensiones */
+#root {
+  contain: layout style paint;
 }

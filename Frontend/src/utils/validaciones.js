@@ -83,16 +83,18 @@ export const filtrarInputNombre = (valor) =>
   valor.replaceAll(/[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]/g, "");
 
 /**
- * Filtra caracteres no numéricos de un campo de teléfono.
- * Solo permite dígitos y opcionalmente un '+' al inicio.
+ * Filtra caracteres no permitidos en un campo de teléfono colombiano.
+ * Solo permite dígitos (0-9) y limita a máximo 10 dígitos.
+ * Devuelve el valor filtrado para asignar al estado del input.
  */
 export const filtrarInputTelefono = (valor) => {
-  const tieneSigno = valor.startsWith("+");
-  const soloDigitos = valor.replaceAll(/\D/g, "");
-  return tieneSigno ? `+${soloDigitos}` : soloDigitos;
+  // Remove all non-digit characters
+  const soloNumeros = valor.replaceAll(/\D/g, "");
+  // Limit to 10 digits maximum
+  return soloNumeros.slice(0, 10);
 };
 
-
+// ─
 // NOMBRES / APELLIDOS
 
 
@@ -130,17 +132,27 @@ export const validarNombreCompleto = (str) => {
 
 /**
  * Valida un número celular colombiano.
- * Reglas: solo dígitos, empieza por 3, exactamente 10 dígitos.
+ * Reglas: solo dígitos, empieza por 310-320 (operadores colombianos), exactamente 10 dígitos.
+ * Si está vacío, no retorna error (es campo opcional).
  */
 export const validarTelefono = (str) => {
   const s = (str || "").trim();
-  if (!s) return "El teléfono es obligatorio.";
+  
+  // Si está vacío, se considera válido (campo opcional)
+  if (!s) return null;
+  
+  // Solo debe contener números
   if (!/^\d+$/.test(s))
-    return "El teléfono solo puede contener números, sin espacios ni guiones.";
-  if (!s.startsWith("3"))
-    return "El número celular colombiano debe empezar por 3 (ej: 3001234567).";
+    return "El teléfono solo puede contener números. No se permiten letras ni caracteres especiales (sin espacios, guiones, etc.).";
+  
+  // Debe empezar con 310-320 (operadores celulares colombianos válidos)
+  if (!s.startsWith("31") && !s.startsWith("32"))
+    return "El número celular colombiano debe empezar con 31x o 32x (ej: 3101234567, 3201234567).";
+  
+  // Debe tener exactamente 10 dígitos
   if (s.length !== 10)
-    return "El número celular debe tener exactamente 10 dígitos.";
+    return "El número celular debe tener exactamente 10 dígitos (ej: 3101234567).";
+  
   return null;
 };
 

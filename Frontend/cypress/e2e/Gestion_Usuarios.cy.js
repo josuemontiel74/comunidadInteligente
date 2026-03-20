@@ -74,12 +74,16 @@ console.log(correoAleatorio);
     cy.get('input.gu-form-control').eq(4).type(segundoApellido, { delay: 50 });
     
     // Teléfono y Correo
-    cy.get('input[type="number"]').last().type('3' + idUnico);
-    cy.get('input[type="email"]').type(correoAleatorio);
+    cy.get('#gu-c-telefono').click();
+cy.get('#gu-c-telefono').type('3120320503');
+cy.get('#gu-c-correo').click();
+cy.get('#gu-c-correo').type(correoAleatorio);
+    
     
     // Password y Rol
-    cy.get('input[minlength="6"]').type('Pass123456');
-    cy.get('select.gu-form-control').eq(1).select('3'); // Rol específico
+    cy.get('#gu-c-password').click();
+cy.get('#gu-c-password').type('holavskikgb');
+cy.get('#gu-c-rol').select('3'); // Rol específico
     
     cy.get('button.gu-form-submit').click();
     cy.wait(3000);
