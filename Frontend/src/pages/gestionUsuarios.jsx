@@ -1440,7 +1440,7 @@ function GestionUsuarios() {
                           <i className="bi bi-eye-fill"></i>
                         </button>
                         {u.estadoId === 1 && (
-                          <>
+                          <div style={{ display: 'contents' }}>
                             <button
                               className="gu-action-btn edit"
                               title="Editar"
@@ -1457,7 +1457,7 @@ function GestionUsuarios() {
                                 <i className="bi bi-person-dash-fill"></i>
                               </button>
                             )}
-                          </>
+                          </div>
                         )}
                         {u.estadoId === 2 && (
                           <button
@@ -1529,7 +1529,7 @@ function GestionUsuarios() {
                       <i className="bi bi-eye"></i> Detalles
                     </button>
                     {u.estadoId === 1 && (
-                      <>
+                      <div style={{ display: 'contents' }}>
                         <button
                           className="gu-card-btn editar"
                           onClick={() => abrirModalEditar(u)}
@@ -1544,7 +1544,7 @@ function GestionUsuarios() {
                             <i className="bi bi-person-dash"></i> Inactivar
                           </button>
                         )}
-                      </>
+                      </div>
                     )}
                     {u.estadoId === 2 && (
                       <button
@@ -1629,7 +1629,7 @@ function GestionUsuarios() {
                         <i className="bi bi-eye"></i>
                       </button>
                       {u.estadoId === 1 && (
-                        <>
+                        <div style={{ display: 'contents' }}>
                           <button
                             className="gu-grid-action-btn edit"
                             title="Editar"
@@ -1646,7 +1646,7 @@ function GestionUsuarios() {
                               <i className="bi bi-person-dash"></i>
                             </button>
                           )}
-                        </>
+                        </div>
                       )}
                       {u.estadoId === 2 && (
                         <button
@@ -1926,15 +1926,14 @@ function GestionUsuarios() {
                     </label>
                     <input
                       id="gu-c-telefono"
-                      type="tel"
-                      inputMode="numeric"
+                      type="text"
                       className="gu-form-control"
+                      placeholder="Ej: 3101234567"
                       value={formData.telefono}
                       onChange={(e) =>
                         updateField("telefono", filtrarInputTelefono(e.target.value))
                       }
-                      maxLength={15}
-                      placeholder="Solo números"
+                      maxLength={10}
                     />
                   </div>
                   <div className="gu-form-group">
@@ -2007,14 +2006,14 @@ function GestionUsuarios() {
                 disabled={submitting}
               >
                 {submitting ? (
-                  <>
+                  <div style={{ display: 'contents' }}>
                     <span className="spinner-border spinner-border-sm me-2"></span>{" "}
                     Registrando...
-                  </>
+                  </div>
                 ) : (
-                  <>
+                  <div style={{ display: 'contents' }}>
                     <i className="bi bi-person-plus me-2"></i>Registrar Usuario
-                  </>
+                  </div>
                 )}
               </button>
             </form>
@@ -2228,12 +2227,12 @@ function GestionUsuarios() {
                       type="tel"
                       inputMode="numeric"
                       className="gu-form-control"
+                      placeholder="Ej: 3101234567"
                       value={formData.telefono}
                       onChange={(e) =>
                         updateField("telefono", filtrarInputTelefono(e.target.value))
                       }
-                      maxLength={15}
-                      placeholder="Solo números"
+                      maxLength={10}
                     />
                   </div>
                   <div className="gu-form-group">
@@ -2306,14 +2305,14 @@ function GestionUsuarios() {
                 disabled={submitting}
               >
                 {submitting ? (
-                  <>
+                  <div style={{ display: 'contents' }}>
                     <span className="spinner-border spinner-border-sm me-2"></span>{" "}
                     Guardando...
-                  </>
+                  </div>
                 ) : (
-                  <>
+                  <div style={{ display: 'contents' }}>
                     <i className="bi bi-save me-2"></i>Guardar Cambios
-                  </>
+                  </div>
                 )}
               </button>
             </form>
