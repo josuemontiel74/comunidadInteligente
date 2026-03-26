@@ -1,27 +1,6 @@
 /* ============================================================
-   Global reset: <dialog> como overlay de modal
-   ============================================================
-   El navegador aplica estilos UA a <dialog> (position: absolute,
-   margin: auto, border, padding, max-width/height, width/height
-   fit-content) que rompen los overlays custom con position: fixed.
-   Este reset los neutraliza para que las clases CSS existentes
-   (.paq-modal-overlay, .res-modal-overlay, etc.) funcionen bien.
+   Base para overlays de modal (ModalOverlay usa <div>)
    ============================================================ */
-dialog[open] {
-  position: fixed;
-  inset: 0;
-  margin: 0;
-  padding: 0;
-  border: none;
-  max-width: none;
-  max-height: none;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.45);
-  color: inherit;
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-}
 
 /* ============================================================
    Protección contra extensiones del navegador
