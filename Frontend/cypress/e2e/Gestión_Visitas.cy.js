@@ -118,8 +118,7 @@ cy.get('#vis-telefono').type('3120123256');
     cy.wait(2000);
 
     // --- CERRAR SESIÓN ---
-    cy.get('#root i.bi-list').click();
-    cy.wait(1000);
-    cy.get('button.vis-logout-btn').click({ force: true });
+   cy.get('#root i.bi-list').click();
+cy.get('#root button.vis-logout-btn').click();
   });
 });
