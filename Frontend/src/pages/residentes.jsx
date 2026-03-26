@@ -1366,6 +1366,106 @@ function Residentes() {
               />
             </>
           )}
+
+          {/* CARDS MOBILE - se muestran automáticamente en pantallas ≤800px */}
+          {residentesFiltrados.length > 0 && (
+            <div className="res-cards-mobile">
+              {residentesPaginados.map((r) => (
+                <div key={r.idOcupante} className="res-card">
+                  <div className="res-card-header">
+                    <div>
+                      <p className="res-card-name">{r.nombreCompleto}</p>
+                      <p className="res-card-doc">
+                        {r.tipoDocumento} {r.numeroDocumento}
+                      </p>
+                    </div>
+                    <span
+                      className={`res-badge ${r.estado === "Activo" ? "res-badge-activo" : "res-badge-finalizado"}`}
+                    >
+                      {r.estado}
+                    </span>
+                  </div>
+                  <div className="res-card-body">
+                    <div className="res-card-row">
+                      <span className="label">Torre - Apto</span>
+                      <span className="value">
+                        {r.torre} - {r.numeroApartamento || r.apartamentosId}
+                      </span>
+                    </div>
+                    <div className="res-card-row">
+                      <span className="label">Ocupación</span>
+                      <span className="value">{r.tipoOcupacion}</span>
+                    </div>
+                    <div className="res-card-row">
+                      <span className="label">Fecha Inicio</span>
+                      <span className="value">{r.fechaInicio || "-"}</span>
+                    </div>
+                    <div className="res-card-row">
+                      <span className="label">Teléfono</span>
+                      <span className="value">{r.telefono || "-"}</span>
+                    </div>
+                    <div className="res-card-row">
+                      <span className="label">Personas a cargo</span>
+                      <span className="value">{r.personasACargo}</span>
+                    </div>
+                  </div>
+                  <div className="res-card-conditions">
+                    <span
+                      className={`res-card-condition ${r.tieneNinos === 1 ? "active" : "inactive"}`}
+                    >
+                      <i className="bi bi-emoji-smile"></i> Niños
+                    </span>
+                    <span
+                      className={`res-card-condition ${r.tieneAdultoMayor === 1 ? "active" : "inactive"}`}
+                    >
+                      <i className="bi bi-person-walking"></i> Adulto Mayor
+                    </span>
+                    <span
+                      className={`res-card-condition ${r.tieneDiscapacidad === 1 ? "active" : "inactive"}`}
+                    >
+                      <i className="bi bi-person-wheelchair"></i> Discapacidad
+                    </span>
+                  </div>
+                  <div className="res-card-actions">
+                    <button
+                      className="res-action-btn res-btn-ver"
+                      title="Ver detalles"
+                      onClick={() => {
+                        setResidenteSeleccionado(r);
+                        setShowModalDetalles(true);
+                      }}
+                    >
+                      <i className="bi bi-eye"></i>
+                    </button>
+                    {r.estado === "Activo" && (
+                      <>
+                        <button
+                          className="res-action-btn res-btn-editar"
+                          title="Editar"
+                          onClick={() => abrirModalEditar(r)}
+                        >
+                          <i className="bi bi-pencil"></i>
+                        </button>
+                        <button
+                          className="res-action-btn res-btn-finalizar"
+                          title="Finalizar"
+                          onClick={() => ejecutarFinalizar(r)}
+                        >
+                          <i className="bi bi-x-circle"></i>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+              <PaginacionResidentes
+                totalPaginas={totalPaginas}
+                paginaActual={paginaActual}
+                setPaginaActual={setPaginaActual}
+                totalResidentes={residentesFiltrados.length}
+              />
+            </div>
+          )}
         </div>
       </main>
 
