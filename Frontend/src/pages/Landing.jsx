@@ -6,7 +6,7 @@ import logo from "../../img/logo.png";
 import "bootstrap-icons/font/bootstrap-icons.css";
 
 const APK_URL = "/tuComunidadInteligente.apk";
-const MANUAL_USUARIO_URL = "/MANUAL%20DE%20USUARIO.docx";
+const MANUAL_USUARIO_URL = "/manualUsuario.docx";
 const WA_URL = "https://chat.whatsapp.com/FPvNvN2Ubvc4AyK2IDM67p?mode=gi_t";
 const DARK_KEY = "ci_modo_oscuro";
 
