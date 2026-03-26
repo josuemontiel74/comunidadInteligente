@@ -11,28 +11,28 @@ router.post(
   validate(rolespermisosSchema.crearRolesPermisosSchema, "body", true),
   validarJWT,
   validarRol(1),
-  rolespermisosController.asignarPermiso
+  rolespermisosController.asignarPermiso,
 );
 router.get(
   "/rol/:idRol",
   validate(rolespermisosSchema.obtenerPermisosPorRolSchema, "params", true),
   validarJWT,
   validarRol(1),
-  rolespermisosController.permisosPorRol
+  rolespermisosController.permisosPorRol,
 );
 router.get(
   "/permiso/:idPermiso",
-  validate(rolespermisosSchema.obtenerPermisosPorRolSchema, "params", true),
+  validate(rolespermisosSchema.obtenerRolesPorPermisoSchema, "params", true),
   validarJWT,
   validarRol(1),
-  rolespermisosController.rolesPorPermiso
+  rolespermisosController.rolesPorPermiso,
 );
 router.delete(
   "/eliminar",
   validate(rolespermisosSchema.eliminarRolesPermisosSchema, "body", true),
   validarJWT,
   validarRol(1),
-  rolespermisosController.eliminarPermisoDeRol
+  rolespermisosController.eliminarPermisoDeRol,
 );
 
 export default router;
