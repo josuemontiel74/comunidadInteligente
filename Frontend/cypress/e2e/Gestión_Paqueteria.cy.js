@@ -89,8 +89,7 @@ cy.get('#root div:nth-child(2) > select.form-select').select('202');
     cy.wait(1500);
 
     // --- LOGOUT ---
-    cy.get('#root i.bi-list').click();
-    cy.wait(800);
-    cy.get('#root button.paq-logout-btn').click();
+ cy.get('#root button.paq-hamburger').click();
+cy.get('#root button.paq-logout-btn').click();
   })
 })
