@@ -838,38 +838,78 @@
   .res-content {
     padding: 12px;
   }
+
+  /* Stats: 3 cajas en una fila */
   .res-stats-container {
     gap: 8px;
+    flex-wrap: nowrap;
   }
   .res-stat-box {
-    min-width: 100px;
-    padding: 12px;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 10px 6px;
+    text-align: center;
+  }
+  .res-stat-label {
+    font-size: 11px;
   }
   .res-stat-value {
-    font-size: 22px;
+    font-size: 20px;
   }
+
+  /* Action bar: columna pero toggle en su propia fila centrada */
   .res-action-bar {
     flex-direction: column;
     align-items: stretch;
+    gap: 8px;
+  }
+  .res-btn-registrar {
+    width: 100%;
+    justify-content: center;
+  }
+  .res-btn-torres {
+    width: 100%;
+    justify-content: center;
   }
   .res-view-toggle {
     margin-left: 0;
     justify-content: center;
+    align-self: center;
   }
+
+  /* Toolbar en columna */
   .res-toolbar {
     flex-direction: column;
+    gap: 8px;
+  }
+  .res-search-box {
+    min-width: 0;
+    width: 100%;
+  }
+  .res-search-box input {
+    width: 100%;
+    box-sizing: border-box;
   }
   .res-filter-select {
     width: 100%;
-    min-width: unset;
+    min-width: 0;
+    box-sizing: border-box;
   }
-  .res-search-box {
-    min-width: unset;
-    width: 100%;
+
+  /* Tabla: ocultar F. Inicio y Teléfono */
+  .res-table th:nth-child(5),
+  .res-table td:nth-child(5),
+  .res-table th:nth-child(6),
+  .res-table td:nth-child(6) {
+    display: none;
   }
+
+  /* Cards */
   .res-grid {
     grid-template-columns: 1fr;
   }
+
+  /* Formulario modal */
   .res-form-row {
     grid-template-columns: 1fr;
   }
@@ -880,6 +920,8 @@
     max-width: 95vw;
     margin: 10px;
   }
+
+  /* Modal detalle */
   .res-detail-row {
     flex-direction: column;
     gap: 2px;
@@ -887,29 +929,9 @@
   .res-detail-label {
     width: auto;
   }
+
   .res-header-title {
     font-size: 14px;
-  }
-  /* Ocultar columnas menos prioritarias en tablet/móvil */
-  .res-table th:nth-child(5),
-  .res-table td:nth-child(5),
-  .res-table th:nth-child(6),
-  .res-table td:nth-child(6) {
-    display: none;
-  }
-}
-
-@media (max-width: 480px) {
-  /* En móvil pequeño ocultar también Documento y Ocupación */
-  .res-table th:nth-child(2),
-  .res-table td:nth-child(2),
-  .res-table th:nth-child(4),
-  .res-table td:nth-child(4) {
-    display: none;
-  }
-  /* Nombre más compacto */
-  .res-table td:nth-child(1) {
-    max-width: 110px;
   }
 }
 
@@ -917,6 +939,25 @@
   .res-header {
     padding: 10px 12px;
   }
+
+  /* Ocultar también Documento y Ocupación */
+  .res-table th:nth-child(2),
+  .res-table td:nth-child(2),
+  .res-table th:nth-child(4),
+  .res-table td:nth-child(4) {
+    display: none;
+  }
+  .res-table td:nth-child(1) {
+    max-width: 120px;
+  }
+
+  /* Acciones más compactas */
+  .res-action-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
   .res-modal-body {
     padding: 16px;
   }
@@ -928,6 +969,7 @@
   .res-btn-submit {
     width: 100%;
     text-align: center;
+    justify-content: center;
   }
 }
 
