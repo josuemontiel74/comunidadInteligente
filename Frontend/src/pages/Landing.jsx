@@ -6,7 +6,7 @@ import logo from "../../img/logo.png";
 import "bootstrap-icons/font/bootstrap-icons.css";
 
 const APK_URL = "/tuComunidadInteligente.apk";
-const MANUAL_USUARIO_URL = "/MANUAL DE USUARIO.docx";
+const MANUAL_USUARIO_URL = "/MANUAL%20DE%20USUARIO.docx";
 const WA_URL = "https://chat.whatsapp.com/FPvNvN2Ubvc4AyK2IDM67p?mode=gi_t";
 const DARK_KEY = "ci_modo_oscuro";
 
@@ -366,8 +366,8 @@ export default function Landing() {
               </div>
               <h3 className="ld-download-title">Manual de Usuario</h3>
               <p className="ld-download-desc">
-                Guía completa para residentes y personal del conjunto: cómo
-                usar cada módulo del sistema paso a paso.
+                Guía completa para residentes y personal del conjunto: cómo usar
+                cada módulo del sistema paso a paso.
               </p>
               <a
                 href={MANUAL_USUARIO_URL}

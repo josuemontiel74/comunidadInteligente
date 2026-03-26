@@ -97,7 +97,7 @@ export const mapTorreId = (torre) => {
 export async function obtenerResidentes(token) {
   if (!token)
     throw new Error("Token de autenticación requerido para obtener residentes");
-  return fetch(`${API_BASE_URL}/ocupantes`, {
+  return fetch(`${API_BASE_URL}/ocupante`, {
     method: "GET",
     headers: { Authorization: `Bearer ${token}` },
   });
