@@ -14,6 +14,10 @@ export const obtenerPermisosPorRolSchema = Joi.object({
   idRol: Joi.number().integer().required(),
 }).required();
 
+export const obtenerRolesPorPermisoSchema = Joi.object({
+  idPermiso: Joi.number().integer().required(),
+}).required();
+
 export const actualizarRolesPermisosSchema = Joi.object({
   idRol: Joi.number().integer().required(),
   idPermiso: Joi.number().integer().required(),

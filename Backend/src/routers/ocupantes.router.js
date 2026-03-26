@@ -6,16 +6,17 @@ import * as OcupanteSchema from "../schemas/ocupantes.schema.js";
 
 const router = Router();
 
-router.get('/ocupante/verificar-documentos', ocupantesController.verificarDocumentos);
+router.get(
+  "/ocupante/verificar-documentos",
+  ocupantesController.verificarDocumentos,
+);
 
 router.get(
   "/ocupante",
   validarJWT,
   validarRol(1, 2),
-  ocupantesController.listarOcupantes  
+  ocupantesController.listarOcupantes,
 );
-
-router.get("/ocupantes", ocupantesController.listarOcupantes);
 
 // Crear ocupante
 router.post(
@@ -23,7 +24,7 @@ router.post(
   validate(OcupanteSchema.createOcupanteSchema, "body", true),
   validarJWT,
   validarRol(1, 2),
-  ocupantesController.crearOcupante
+  ocupantesController.crearOcupante,
 );
 
 // Obtener ocupante por ID
@@ -32,7 +33,7 @@ router.get(
   validate(OcupanteSchema.getOcupanteSchema, "params", true),
   validarJWT,
   validarRol(1, 2),
-  ocupantesController.obtenerOcupantePorId
+  ocupantesController.obtenerOcupantePorId,
 );
 
 // Actualizar ocupante
@@ -41,7 +42,7 @@ router.patch(
   validate(OcupanteSchema.updateOcupanteSchema, "body", true),
   validarJWT,
   validarRol(1, 2),
-  ocupantesController.actualizarOcupante
+  ocupantesController.actualizarOcupante,
 );
 
 // Finalizar ocupante
@@ -50,7 +51,7 @@ router.delete(
   validate(OcupanteSchema.deleteOcupanteSchema, "params", true),
   validarJWT,
   validarRol(1, 2),
-  ocupantesController.finalizarOcupante
+  ocupantesController.finalizarOcupante,
 );
 
 export default router;
