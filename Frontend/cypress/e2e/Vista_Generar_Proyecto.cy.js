@@ -139,5 +139,8 @@ describe('template spec', () => {
     cy.get('div.swal2-popup').click();
     cy.get('#swal2-select').select('4');
     cy.get('button.swal2-confirm').click();
+    cy.get('#root i.bi-list').click();
+ 
+cy.get('#root button.sa-logout-btn').click();
   })
 })

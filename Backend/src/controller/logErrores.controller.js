@@ -90,11 +90,9 @@ export const obtenerResumenLogErrores = async (req, res) => {
 
 export const limpiarLogErrores = async (req, res) => {
   try {
-    const { diasAntiguedad = 30 } = req.body;
-    const limite = dayjs()
-      .tz(TIMEZONE_COLOMBIA)
-      .subtract(Number.parseInt(diasAntiguedad, 10), "day")
-      .toDate();
+    const { diasAntiguedad = 30 } = req.body || {};
+    const dias = Math.max(1, Number.parseInt(diasAntiguedad, 10) || 30);
+    const limite = dayjs().tz(TIMEZONE_COLOMBIA).subtract(dias, "day").toDate();
 
     const eliminados = await logErrores.destroy({
       where: { fechaHora: { [Op.lt]: limite } },
