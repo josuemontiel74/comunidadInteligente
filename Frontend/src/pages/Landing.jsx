@@ -371,7 +371,7 @@ export default function Landing() {
               </p>
               <a
                 href={MANUAL_USUARIO_URL}
-                download="Manual de Usuario - Comunidad Inteligente.docx"
+                download
                 className="ld-btn-download ld-btn-download--blue"
               >
                 <i className="bi bi-file-earmark-arrow-down" /> Descargar manual

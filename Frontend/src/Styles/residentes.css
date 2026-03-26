@@ -459,6 +459,11 @@
   transform: scale(1.1);
 }
 
+/* ====== CARDS MOBILE (auto-switch) ====== */
+.res-cards-mobile {
+  display: none;
+}
+
 /* ====== CUADRICULA (Cards) ====== */
 .res-grid {
   display: grid;
@@ -1348,4 +1353,28 @@
 /* -- DRAWER MODO OSCURO -- */
 [data-modo="oscuro"] .res-drawer {
   background: linear-gradient(180deg, #09685f, #0e8174, #209486) !important;
+}
+
+/* ====== AUTO-SWITCH TABLA ↔ CARDS MOBILE (800px) ====== */
+@media (max-width: 800px) {
+  .res-table-wrapper {
+    display: none !important;
+  }
+  .res-grid {
+    display: none !important;
+  }
+  .res-view-toggle {
+    display: none !important;
+  }
+  .res-cards-mobile {
+    display: flex !important;
+    flex-direction: column;
+    gap: 16px;
+    padding: 0;
+  }
+}
+@media (min-width: 801px) {
+  .res-cards-mobile {
+    display: none !important;
+  }
 }
