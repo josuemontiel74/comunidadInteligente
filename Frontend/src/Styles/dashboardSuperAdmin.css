@@ -206,6 +206,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  aspect-ratio: 1;
+  overflow: hidden;
 }
 /* Wrapper con dot de estado verde */
 .sa-profile-btn-wrap {

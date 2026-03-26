@@ -198,6 +198,9 @@ body {
   align-items: center;
   justify-content: center;
   transition: background 0.15s;
+  flex-shrink: 0;
+  aspect-ratio: 1;
+  overflow: hidden;
 }
 .adm-header-btn:hover {
   background: #f3f4f6;
