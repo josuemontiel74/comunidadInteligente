@@ -6,6 +6,8 @@ import logo from "../../img/logo.png";
 import "bootstrap-icons/font/bootstrap-icons.css";
 
 const APK_URL = "/tuComunidadInteligente.apk";
+const MANUAL_USUARIO_URL = "/MANUAL DE USUARIO.docx";
+const WA_URL = "https://chat.whatsapp.com/FPvNvN2Ubvc4AyK2IDM67p?mode=gi_t";
 const DARK_KEY = "ci_modo_oscuro";
 
 const features = [
@@ -357,41 +359,42 @@ export default function Landing() {
               </a>
             </div>
 
-            {/* Manual Admin */}
+            {/* Manual Usuario */}
             <div className="ld-download-card">
               <div className="ld-download-icon ld-download-icon--blue">
-                <i className="bi bi-file-earmark-pdf-fill" />
+                <i className="bi bi-file-earmark-word-fill" />
               </div>
-              <h3 className="ld-download-title">Manual de Administrador</h3>
+              <h3 className="ld-download-title">Manual de Usuario</h3>
               <p className="ld-download-desc">
-                Guía completa para administradores del conjunto: configuración,
-                reportes y gestión de usuarios.
+                Guía completa para residentes y personal del conjunto: cómo
+                usar cada módulo del sistema paso a paso.
               </p>
               <a
-                href="/manuales/manual-admin.pdf"
-                download
+                href={MANUAL_USUARIO_URL}
+                download="Manual de Usuario - Comunidad Inteligente.docx"
                 className="ld-btn-download ld-btn-download--blue"
               >
                 <i className="bi bi-file-earmark-arrow-down" /> Descargar manual
               </a>
             </div>
 
-            {/* Manual Vigilante */}
+            {/* Soporte WhatsApp */}
             <div className="ld-download-card">
               <div className="ld-download-icon ld-download-icon--purple">
-                <i className="bi bi-person-badge-fill" />
+                <i className="bi bi-whatsapp" />
               </div>
-              <h3 className="ld-download-title">Manual del Vigilante</h3>
+              <h3 className="ld-download-title">Soporte y Contacto</h3>
               <p className="ld-download-desc">
-                Instrucciones para el control de acceso, registro de visitas y
-                gestión de paquetería desde el puesto de vigilancia.
+                ¿Olvidaste tu contraseña o tienes alguna duda? Contáctanos
+                directamente por WhatsApp y te ayudamos de inmediato.
               </p>
               <a
-                href="/manuales/manual-vigilante.pdf"
-                download
+                href={WA_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="ld-btn-download ld-btn-download--purple"
               >
-                <i className="bi bi-file-earmark-arrow-down" /> Descargar manual
+                <i className="bi bi-whatsapp" /> Contactar por WhatsApp
               </a>
             </div>
           </div>

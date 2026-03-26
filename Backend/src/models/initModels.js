@@ -7,7 +7,7 @@ import Ocupante from "./ocupante.model.js";
 import Personas from "./personas.model.js";
 import Rol from "./rol.model.js";
 import Permiso from "./permisos.model.js";
-import initRolesPermisos from "./rolespermisos.model.js";
+import RolesPermisos from "./rolespermisos.model.js";
 import tiposVehiculo from "./tiposVehiculo.model.js";
 import tipodocumento from "./tipodocumento.model.js";
 import Parqueadero from "./parqueaderos.model.js";
@@ -43,11 +43,16 @@ export function initModels(sequelize) {
   const AuditoriasModel = Auditorias.initModel(sequelize);
   const LogErroresModel = logErrores.initModel(sequelize);
 
-  const RolesPermisosModel = initRolesPermisos(
-    sequelize,
-    RolModel,
-    PermisoModel,
-  );
+  const RolesPermisosModel = RolesPermisos.initModel(sequelize);
+
+  RolModel.belongsToMany(PermisoModel, {
+    through: RolesPermisosModel,
+    foreignKey: "idRol",
+  });
+  PermisoModel.belongsToMany(RolModel, {
+    through: RolesPermisosModel,
+    foreignKey: "idPermiso",
+  });
 
   // 2. Asociaciones
   EstadoModel.hasMany(ApartamentoModel, { foreignKey: "estadoId" });

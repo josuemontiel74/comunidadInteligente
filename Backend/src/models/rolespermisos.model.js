@@ -1,43 +1,27 @@
-import { DataTypes } from "sequelize";
+import { Model, DataTypes } from "sequelize";
 
-function initRolesPermisos(sequelize, Rol, Permiso) {
-  const RolesPermisos = sequelize.define(
-    "rolesPermisos",
-    {
-      idRol: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        references: {
-          model: Rol,
-          key: "idRol",
+class RolesPermisos extends Model {
+  static initModel(sequelize) {
+    RolesPermisos.init(
+      {
+        idRol: {
+          type: DataTypes.INTEGER,
+          primaryKey: true,
+        },
+        idPermiso: {
+          type: DataTypes.INTEGER,
+          primaryKey: true,
         },
       },
-      idPermiso: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        references: {
-          model: Permiso,
-          key: "idPermiso",
-        },
+      {
+        sequelize,
+        modelName: "rolesPermisos",
+        tableName: "rolespermisos",
+        timestamps: false,
       },
-    },
-    {
-      tableName: "rolespermisos",
-      timestamps: false,
-    }
-  );
-
-  Rol.belongsToMany(Permiso, {
-    through: RolesPermisos,
-    foreignKey: "idRol",
-  });
-
-  Permiso.belongsToMany(Rol, {
-    through: RolesPermisos,
-    foreignKey: "idPermiso",
-  });
-
-  return RolesPermisos;
+    );
+    return RolesPermisos;
+  }
 }
 
-export default initRolesPermisos;
+export default RolesPermisos;
