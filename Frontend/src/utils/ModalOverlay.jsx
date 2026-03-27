@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import PropTypes from "prop-types";
 import Swal from "sweetalert2";
 
@@ -62,10 +63,11 @@ export default function ModalOverlay({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div ref={dialogRef} role="dialog" className={className} aria-modal="true">
       {children}
-    </div>
+    </div>,
+    document.body,
   );
 }
 
