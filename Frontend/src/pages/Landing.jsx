@@ -6,7 +6,7 @@ import logo from "../../img/logo.png";
 import "bootstrap-icons/font/bootstrap-icons.css";
 
 const APK_URL = "/tuComunidadInteligente.apk";
-const MANUAL_USUARIO_URL = "/manualUsuario.docx";
+const MANUAL_USUARIO_URL = "/manualUsuario.pdf";
 const WA_URL = "https://chat.whatsapp.com/FPvNvN2Ubvc4AyK2IDM67p?mode=gi_t";
 const DARK_KEY = "ci_modo_oscuro";
 
@@ -362,7 +362,7 @@ export default function Landing() {
             {/* Manual Usuario */}
             <div className="ld-download-card">
               <div className="ld-download-icon ld-download-icon--blue">
-                <i className="bi bi-file-earmark-word-fill" />
+                <i className="bi bi-file-earmark-pdf-fill" />
               </div>
               <h3 className="ld-download-title">Manual de Usuario</h3>
               <p className="ld-download-desc">
