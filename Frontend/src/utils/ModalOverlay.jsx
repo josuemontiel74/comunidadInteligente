@@ -4,8 +4,7 @@ import Swal from "sweetalert2";
 
 /**
  * Componente overlay reutilizable para modales.
- * Envuelve el contenido en un `<dialog open>` con handlers de
- * cierre al hacer click en el backdrop o presionar Escape.
+ * Usa un <div> con position:fixed para compatibilidad total en móviles.
  *
  * Si `confirmBeforeClose` es true, al hacer clic fuera o presionar Escape
  * se muestra una alerta de confirmación antes de cerrar.
@@ -64,15 +63,14 @@ export default function ModalOverlay({
   if (!isOpen) return null;
 
   return (
-    <dialog
+    <div
       ref={dialogRef}
-      open
+      role="dialog"
       className={className}
       aria-modal="true"
-      aria-label="Cerrar"
     >
       {children}
-    </dialog>
+    </div>
   );
 }
 

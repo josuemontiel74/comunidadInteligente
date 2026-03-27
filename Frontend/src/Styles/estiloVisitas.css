@@ -486,6 +486,7 @@
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 .vis-badge-activa {
   background: #c8e6c9;

@@ -1,4 +1,3 @@
-
 /* ====== RESET & LAYOUT ====== */
 .res-dashboard {
   display: flex;
@@ -460,6 +459,11 @@
   transform: scale(1.1);
 }
 
+/* ====== CARDS MOBILE (auto-switch) ====== */
+.res-cards-mobile {
+  display: none;
+}
+
 /* ====== CUADRICULA (Cards) ====== */
 .res-grid {
   display: grid;
@@ -839,33 +843,78 @@
   .res-content {
     padding: 12px;
   }
+
+  /* Stats: 3 cajas en una fila */
   .res-stats-container {
     gap: 8px;
+    flex-wrap: nowrap;
   }
   .res-stat-box {
-    min-width: 100px;
-    padding: 12px;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 10px 6px;
+    text-align: center;
+  }
+  .res-stat-label {
+    font-size: 11px;
   }
   .res-stat-value {
-    font-size: 22px;
+    font-size: 20px;
   }
+
+  /* Action bar: columna pero toggle en su propia fila centrada */
   .res-action-bar {
     flex-direction: column;
     align-items: stretch;
+    gap: 8px;
+  }
+  .res-btn-registrar {
+    width: 100%;
+    justify-content: center;
+  }
+  .res-btn-torres {
+    width: 100%;
+    justify-content: center;
   }
   .res-view-toggle {
     margin-left: 0;
     justify-content: center;
+    align-self: center;
   }
+
+  /* Toolbar en columna */
   .res-toolbar {
     flex-direction: column;
+    gap: 8px;
+  }
+  .res-search-box {
+    min-width: 0;
+    width: 100%;
+  }
+  .res-search-box input {
+    width: 100%;
+    box-sizing: border-box;
   }
   .res-filter-select {
     width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
+
+  /* Tabla: ocultar F. Inicio y TelÃ©fono */
+  .res-table th:nth-child(5),
+  .res-table td:nth-child(5),
+  .res-table th:nth-child(6),
+  .res-table td:nth-child(6) {
+    display: none;
+  }
+
+  /* Cards */
   .res-grid {
     grid-template-columns: 1fr;
   }
+
+  /* Formulario modal */
   .res-form-row {
     grid-template-columns: 1fr;
   }
@@ -876,6 +925,8 @@
     max-width: 95vw;
     margin: 10px;
   }
+
+  /* Modal detalle */
   .res-detail-row {
     flex-direction: column;
     gap: 2px;
@@ -883,8 +934,9 @@
   .res-detail-label {
     width: auto;
   }
+
   .res-header-title {
-    font-size: 15px;
+    font-size: 14px;
   }
 }
 
@@ -892,6 +944,25 @@
   .res-header {
     padding: 10px 12px;
   }
+
+  /* Ocultar tambiÃ©n Documento y OcupaciÃ³n */
+  .res-table th:nth-child(2),
+  .res-table td:nth-child(2),
+  .res-table th:nth-child(4),
+  .res-table td:nth-child(4) {
+    display: none;
+  }
+  .res-table td:nth-child(1) {
+    max-width: 120px;
+  }
+
+  /* Acciones mÃ¡s compactas */
+  .res-action-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
   .res-modal-body {
     padding: 16px;
   }
@@ -903,6 +974,7 @@
   .res-btn-submit {
     width: 100%;
     text-align: center;
+    justify-content: center;
   }
 }
 
@@ -1210,8 +1282,8 @@
 }
 
 /* =====================================================
-   DARK MODE — Modal Crear/Editar + Modal Detalles
-   (Ampliación — el overlay ya estaba en dark mode)
+   DARK MODE ï¿½ Modal Crear/Editar + Modal Detalles
+   (Ampliaciï¿½n ï¿½ el overlay ya estaba en dark mode)
    ===================================================== */
 
 /* Formulario crear/editar */
@@ -1281,4 +1353,28 @@
 /* -- DRAWER MODO OSCURO -- */
 [data-modo="oscuro"] .res-drawer {
   background: linear-gradient(180deg, #09685f, #0e8174, #209486) !important;
+}
+
+/* ====== AUTO-SWITCH TABLA â†” CARDS MOBILE (800px) ====== */
+@media (max-width: 800px) {
+  .res-table-wrapper {
+    display: none !important;
+  }
+  .res-grid {
+    display: none !important;
+  }
+  .res-view-toggle {
+    display: none !important;
+  }
+  .res-cards-mobile {
+    display: flex !important;
+    flex-direction: column;
+    gap: 16px;
+    padding: 0;
+  }
+}
+@media (min-width: 801px) {
+  .res-cards-mobile {
+    display: none !important;
+  }
 }
