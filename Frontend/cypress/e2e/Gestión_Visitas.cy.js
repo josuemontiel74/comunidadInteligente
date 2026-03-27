@@ -47,6 +47,7 @@ cy.get('#root input.form-control').type('Josue Montiel');
 cy.get('#root div.vis-toolbar').click();
 cy.get('#root input.form-control').clear();
    cy.wait(1000);
+   
 cy.get('#root div:nth-child(1) > select.form-select').select('B');
 cy.get('#root div:nth-child(2) > select.form-select').select('202');
    cy.wait(1000);
@@ -59,9 +60,12 @@ cy.get('#root i.bi-arrow-left').click();
     cy.get('select.vis-form-control').eq(0).select('1', { force: true });
     cy.get('#root input[placeholder="Ej: 12345678"]').type(documentoDinamico);
     cy.get('#root input[placeholder*="Juan Carlos"]').type(nombreDinamico);
+    cy.get('#vis-telefono').click();
+cy.get('#vis-telefono').clear();
+cy.get('#vis-telefono').type('3120123256');
     cy.get('select.vis-form-control').eq(1).select('1', { force: true });
     cy.get('select.vis-form-control').eq(2).select('2', { force: true });
-    cy.get('#root input[type="datetime-local"]').first().type(fechaHoy);
+   
     
     // Vehículo SI
     cy.get('select.vis-form-control').eq(3).select('SI', { force: true });
@@ -114,8 +118,7 @@ cy.get('#root i.bi-arrow-left').click();
     cy.wait(2000);
 
     // --- CERRAR SESIÓN ---
-    cy.get('#root i.bi-list').click();
-    cy.wait(1000);
-    cy.get('button.vis-logout-btn').click({ force: true });
+   cy.get('#root i.bi-list').click();
+cy.get('#root button.vis-logout-btn').click();
   });
 });

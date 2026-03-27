@@ -14,8 +14,7 @@ describe('Módulo: Gestión de Paquetería - Ritmo Humano', () => {
 
   // Nombre aleatorio solo con letras
   const nombreDinamico = `Visitante${generarLetrasAleatorias(9)}`;
-  const transportadora = `Express${generarLetrasAleatorias(8)}`;
-  
+  const transportadora = "Inter Rapidísimo"
   const ahora = new Date();
   const fechaHoy = ahora.toISOString().slice(0, 16); 
 
@@ -51,7 +50,7 @@ cy.get('#root div:nth-child(2) > select.form-select').select('202');
     cy.get('#root div:nth-child(2) > select.paq-form-control').select('202');
     cy.get('#root input[placeholder="Ej: Servientrega, Inter Rapidísimo..."]').type(transportadora, { delay: 80 });
     
-    cy.get('#root input[type="datetime-local"]').first().type(fechaHoy);
+   
     cy.wait(500);
     
     cy.get('#root textarea.paq-form-control').type('Observación lenta para supervisión', { delay: 50 });
@@ -90,8 +89,7 @@ cy.get('#root div:nth-child(2) > select.form-select').select('202');
     cy.wait(1500);
 
     // --- LOGOUT ---
-    cy.get('#root i.bi-list').click();
-    cy.wait(800);
-    cy.get('#root button.paq-logout-btn').click();
+ cy.get('#root button.paq-hamburger').click();
+cy.get('#root button.paq-logout-btn').click();
   })
 })

@@ -35,18 +35,18 @@ console.log(correoAleatorio);
 
   it('Debe registrar, filtrar, editar y cambiar estado de usuario', () => {
     cy.visit('http://localhost:5173');
-
+    
     // ─── LOGIN ───────────────────────────────────────────────
     cy.get('#root button.ld-btn-login').click();
     cy.get('#root input[placeholder="Ingresa tu usuario"]').type('josue2023');
     cy.get('#root input[placeholder="••••••••"]').type('3117325j');
     cy.get('#root button.lgn-btn-submit').click();
     cy.wait(2000);
-
+    
     // ─── NAVEGACIÓN A GESTIÓN DE USUARIOS ────────────────────
     cy.get('#root div.sa-modules-grid a[href="/GestionUsuario"]').click();
     cy.wait(1000);
-
+    
     // ─── PROBAR FILTROS Y VISTAS ─────────────────────────────
     cy.get('div.gu-filter-chips button').eq(1).click(); // Filtro 2
     cy.wait(500);
@@ -55,14 +55,14 @@ console.log(correoAleatorio);
     cy.get('div.gu-filter-chips button').eq(0).click(); // Todos
     
     
- 
+     
     // ─── REGISTRAR NUEVO USUARIO ─────────────────────────────
     cy.get('button.gu-btn-registrar').click();
     cy.wait(1000);
-
+    
     cy.get('select.gu-form-control').eq(0).select('1'); // Tipo Documento
-   cy.get('#gu-c-numDoc').first().type(documentoAleatorio);
- 
+       cy.get('#gu-c-numDoc').first().type(documentoAleatorio);
+     
     // Nombres y Apellidos
     // Primer Nombre
     cy.get('input.gu-form-control').eq(1).type(primerNombre, { delay: 50 });
@@ -74,26 +74,30 @@ console.log(correoAleatorio);
     cy.get('input.gu-form-control').eq(4).type(segundoApellido, { delay: 50 });
     
     // Teléfono y Correo
-    cy.get('input[type="number"]').last().type('3' + idUnico);
-    cy.get('input[type="email"]').type(correoAleatorio);
+    cy.get('#gu-c-telefono').click();
+    cy.get('#gu-c-telefono').type('3120320503');
+    cy.get('#gu-c-correo').click();
+    cy.get('#gu-c-correo').type(correoAleatorio);
+    
     
     // Password y Rol
-    cy.get('input[minlength="6"]').type('Pass123456');
-    cy.get('select.gu-form-control').eq(1).select('3'); // Rol específico
+    cy.get('#gu-c-password').click();
+    cy.get('#gu-c-password').type('holavskikgb');
+    cy.get('#gu-c-rol').select('3'); // Rol específico
     
     cy.get('button.gu-form-submit').click();
     cy.wait(3000);
     
-
+    
     // ─── BUSQUEDA Y VER INFO ─────────────────────────────────
     // Usamos el buscador para encontrar al usuario recién creado
     cy.get('input.form-control').first().type(primerNombre +'{enter}');
     cy.wait(1000);
-
+    
     cy.get('table tbody tr').first().find('button.info').click({ force: true });
     cy.wait(1500);
     cy.get('button.gu-form-submit').click(); // Botón para cerrar o salir del modo info
-
+    
     // ─── EDITAR USUARIO ──────────────────────────────────────
     cy.get('table tbody tr').first().find('button.edit').click({ force: true });
     cy.wait(1000);
@@ -102,13 +106,13 @@ console.log(correoAleatorio);
     cy.get('input.gu-form-control').eq(1).clear().type(nombreAleatorio+ 'Mod');
     
     // Re-confirmamos el rol para asegurar que el form sea válido
-
     
- cy.get('#root button.gu-form-submit').click();
+    
+     cy.get('#root button.gu-form-submit').click();
     cy.wait(1000);
- 
+     
     cy.wait(1500);
-
+    
     // ─── CAMBIAR ESTADO (ACTIVAR/DESACTIVAR) ────────────────
     // Probamos el toggle de estado en la primera fila
     cy.get('#root input.form-control').clear();
@@ -116,10 +120,9 @@ console.log(correoAleatorio);
     cy.wait(800);
     cy.get('button.swal2-confirm').click();
     cy.wait(1500);
-
+    
     // ─── CERRAR SESIÓN ───────────────────────────────────────
-    cy.get('#root i.bi-list').click();
-    cy.wait(800);
-    cy.get('button.gu-logout-btn').click({ force: true });
+      cy.get('#root i.bi-list').click();
+     cy.get('#root button.gu-logout-btn').click();
   });
 });
