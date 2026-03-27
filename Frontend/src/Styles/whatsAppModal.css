@@ -1,6 +1,6 @@
 .wa-fab {
   position: fixed;
-  bottom: 28px;
+  top: 90px;
   right: 24px;
   width: 56px;
   height: 56px;
@@ -223,10 +223,10 @@
     padding: 28px 22px 22px;
   }
   .wa-fab {
-    bottom: 18px;
-    right: 16px;
-    width: 50px;
-    height: 50px;
-    font-size: 22px;
+    top: 70px;
+    right: 12px;
+    width: 46px;
+    height: 46px;
+    font-size: 20px;
   }
 }
