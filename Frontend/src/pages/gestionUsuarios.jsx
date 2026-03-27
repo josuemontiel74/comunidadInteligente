@@ -1931,7 +1931,10 @@ function GestionUsuarios() {
                       placeholder="Ej: 3101234567"
                       value={formData.telefono}
                       onChange={(e) =>
-                        updateField("telefono", filtrarInputTelefono(e.target.value))
+                        updateField(
+                          "telefono",
+                          filtrarInputTelefono(e.target.value),
+                        )
                       }
                       maxLength={10}
                     />
@@ -2230,7 +2233,10 @@ function GestionUsuarios() {
                       placeholder="Ej: 3101234567"
                       value={formData.telefono}
                       onChange={(e) =>
-                        updateField("telefono", filtrarInputTelefono(e.target.value))
+                        updateField(
+                          "telefono",
+                          filtrarInputTelefono(e.target.value),
+                        )
                       }
                       maxLength={10}
                     />

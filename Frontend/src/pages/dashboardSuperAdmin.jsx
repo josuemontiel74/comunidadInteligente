@@ -259,489 +259,508 @@ function Dashboard() {
   const modulos = buildModulos(showAreasComunes, showUserManagement);
 
   return (
-    <div className={`sa-dashboard${saliendo ? " sa-saliendo" : ""}`}>
-      <button
-        type="button"
-        className={`sa-overlay ${menuOpen ? "active" : ""}`}
-        onClick={() => setMenuOpen(false)}
-        aria-label="Cerrar menú"
-      />
-      <aside className={`sa-drawer ${menuOpen ? "open" : ""}`}>
-        <div className="sa-drawer-header">
-          <div className="sa-drawer-avatar">
-            {fotoUsuario ? (
-              <img
-                src={fotoUsuario}
-                alt="Perfil"
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  borderRadius: "50%",
-                }}
-              />
-            ) : (
-              <i className="bi bi-shield-lock-fill"></i>
-            )}
-          </div>
-          <h4 className="sa-drawer-title">Menú Super Admin</h4>
-          <span className="sa-drawer-user">
-            {usuario?.username || usuario?.nombre || "Usuario"}
-          </span>
-        </div>
-        <div className="sa-drawer-body">
-          <div className="sa-menu-section">
-            <h6 className="sa-menu-section-title">Navegación</h6>
-            <Link
-              className="sa-menu-item active"
-              to="/Superadmin"
-              onClick={() => setMenuOpen(false)}
-            >
-              <i className="bi bi-speedometer2"></i>
-              <span>Dashboard</span>
-              <i className="bi bi-chevron-right sa-menu-arrow"></i>
-            </Link>
-          </div>
-          <div className="sa-menu-section">
-            <h6 className="sa-menu-section-title">Módulos</h6>
-            <Link
-              className="sa-menu-item"
-              to="/Paqueteria"
-              onClick={() => setMenuOpen(false)}
-            >
-              <i className="bi bi-box-seam"></i>
-              <span>Paquetería</span>
-              <i className="bi bi-chevron-right sa-menu-arrow"></i>
-            </Link>
-            <Link
-              className="sa-menu-item"
-              to="/visitas"
-              onClick={() => setMenuOpen(false)}
-            >
-              <i className="bi bi-people"></i>
-              <span>Visitas</span>
-              <i className="bi bi-chevron-right sa-menu-arrow"></i>
-            </Link>
-            <Link
-              className="sa-menu-item"
-              to="/parqueaderos"
-              onClick={() => setMenuOpen(false)}
-            >
-              <i className="bi bi-p-circle"></i>
-              <span>Parqueaderos</span>
-              <i className="bi bi-chevron-right sa-menu-arrow"></i>
-            </Link>
-            {showAreasComunes && (
-              <Link
-                className="sa-menu-item"
-                to="/AreasComunes"
-                onClick={() => setMenuOpen(false)}
-              >
-                <i className="bi bi-calendar2-event"></i>
-                <span>Áreas Comunes</span>
-                <i className="bi bi-chevron-right sa-menu-arrow"></i>
-              </Link>
-            )}
-            <Link
-              className="sa-menu-item"
-              to="/Residentes"
-              onClick={() => setMenuOpen(false)}
-            >
-              <i className="bi bi-house-door"></i>
-              <span>Residentes</span>
-              <i className="bi bi-chevron-right sa-menu-arrow"></i>
-            </Link>
-            <Link
-              className="sa-menu-item"
-              to="/Reportes"
-              onClick={() => setMenuOpen(false)}
-            >
-              <i className="bi bi-graph-up-arrow"></i>
-              <span>Reportes</span>
-              <i className="bi bi-chevron-right sa-menu-arrow"></i>
-            </Link>
-            {showUserManagement && (
-              <>
-                <Link
-                  className="sa-menu-item"
-                  to="/Auditorias"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <i className="bi bi-journal-text"></i>
-                  <span>Auditorías</span>
-                  <i className="bi bi-chevron-right sa-menu-arrow"></i>
-                </Link>
-                <Link
-                  className="sa-menu-item"
-                  to="/LogErrores"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <i className="bi bi-bug"></i>
-                  <span>Log de Errores</span>
-                  <i className="bi bi-chevron-right sa-menu-arrow"></i>
-                </Link>
-                <Link
-                  className="sa-menu-item"
-                  to="/GestionUsuario"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <i className="bi bi-person-gear"></i>
-                  <span>Gestión Usuarios</span>
-                  <i className="bi bi-chevron-right sa-menu-arrow"></i>
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-        <div className="sa-drawer-footer">
-          <button className="sa-logout-btn" onClick={cerrarSesion}>
-            <i className="bi bi-box-arrow-right"></i> Cerrar Sesión
-          </button>
-        </div>
-      </aside>
-
-      <div className="sa-main">
-        <header className="sa-header">
-          <div className="sa-profile-btn-wrap">
-            <button
-              className="sa-header-btn"
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              title="Ver perfil"
-              style={{ overflow: "hidden" }}
-            >
+    <>
+      <div className={`sa-dashboard${saliendo ? " sa-saliendo" : ""}`}>
+        <button
+          type="button"
+          className={`sa-overlay ${menuOpen ? "active" : ""}`}
+          onClick={() => setMenuOpen(false)}
+          aria-label="Cerrar menú"
+        />
+        <aside className={`sa-drawer ${menuOpen ? "open" : ""}`}>
+          <div className="sa-drawer-header">
+            <div className="sa-drawer-avatar">
               {fotoUsuario ? (
                 <img
                   src={fotoUsuario}
                   alt="Perfil"
                   style={{
-                    width: "32px",
-                    height: "32px",
+                    width: "100%",
+                    height: "100%",
                     objectFit: "cover",
                     borderRadius: "50%",
                   }}
                 />
               ) : (
-                <i className="bi bi-person-circle"></i>
+                <i className="bi bi-shield-lock-fill"></i>
               )}
-            </button>
-            <span
-              className="sa-profile-status-dot"
-              title="Super Administrador activo"
-            ></span>
+            </div>
+            <h4 className="sa-drawer-title">Menú Super Admin</h4>
+            <span className="sa-drawer-user">
+              {usuario?.username || usuario?.nombre || "Usuario"}
+            </span>
           </div>
+          <div className="sa-drawer-body">
+            <div className="sa-menu-section">
+              <h6 className="sa-menu-section-title">Navegación</h6>
+              <Link
+                className="sa-menu-item active"
+                to="/Superadmin"
+                onClick={() => setMenuOpen(false)}
+              >
+                <i className="bi bi-speedometer2"></i>
+                <span>Dashboard</span>
+                <i className="bi bi-chevron-right sa-menu-arrow"></i>
+              </Link>
+            </div>
+            <div className="sa-menu-section">
+              <h6 className="sa-menu-section-title">Módulos</h6>
+              <Link
+                className="sa-menu-item"
+                to="/Paqueteria"
+                onClick={() => setMenuOpen(false)}
+              >
+                <i className="bi bi-box-seam"></i>
+                <span>Paquetería</span>
+                <i className="bi bi-chevron-right sa-menu-arrow"></i>
+              </Link>
+              <Link
+                className="sa-menu-item"
+                to="/visitas"
+                onClick={() => setMenuOpen(false)}
+              >
+                <i className="bi bi-people"></i>
+                <span>Visitas</span>
+                <i className="bi bi-chevron-right sa-menu-arrow"></i>
+              </Link>
+              <Link
+                className="sa-menu-item"
+                to="/parqueaderos"
+                onClick={() => setMenuOpen(false)}
+              >
+                <i className="bi bi-p-circle"></i>
+                <span>Parqueaderos</span>
+                <i className="bi bi-chevron-right sa-menu-arrow"></i>
+              </Link>
+              {showAreasComunes && (
+                <Link
+                  className="sa-menu-item"
+                  to="/AreasComunes"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-calendar2-event"></i>
+                  <span>Áreas Comunes</span>
+                  <i className="bi bi-chevron-right sa-menu-arrow"></i>
+                </Link>
+              )}
+              <Link
+                className="sa-menu-item"
+                to="/Residentes"
+                onClick={() => setMenuOpen(false)}
+              >
+                <i className="bi bi-house-door"></i>
+                <span>Residentes</span>
+                <i className="bi bi-chevron-right sa-menu-arrow"></i>
+              </Link>
+              <Link
+                className="sa-menu-item"
+                to="/Reportes"
+                onClick={() => setMenuOpen(false)}
+              >
+                <i className="bi bi-graph-up-arrow"></i>
+                <span>Reportes</span>
+                <i className="bi bi-chevron-right sa-menu-arrow"></i>
+              </Link>
+              {showUserManagement && (
+                <>
+                  <Link
+                    className="sa-menu-item"
+                    to="/Auditorias"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <i className="bi bi-journal-text"></i>
+                    <span>Auditorías</span>
+                    <i className="bi bi-chevron-right sa-menu-arrow"></i>
+                  </Link>
+                  <Link
+                    className="sa-menu-item"
+                    to="/LogErrores"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <i className="bi bi-bug"></i>
+                    <span>Log de Errores</span>
+                    <i className="bi bi-chevron-right sa-menu-arrow"></i>
+                  </Link>
+                  <Link
+                    className="sa-menu-item"
+                    to="/GestionUsuario"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <i className="bi bi-person-gear"></i>
+                    <span>Gestión Usuarios</span>
+                    <i className="bi bi-chevron-right sa-menu-arrow"></i>
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="sa-drawer-footer">
+            <button className="sa-logout-btn" onClick={cerrarSesion}>
+              <i className="bi bi-box-arrow-right"></i> Cerrar Sesión
+            </button>
+          </div>
+        </aside>
 
-          {showUserMenu && (
-            <div className="sa-profile-popup">
-              <div className="sa-profile-popup-header">
+        <div className="sa-main">
+          <header className="sa-header">
+            <div className="sa-profile-btn-wrap">
+              <button
+                className="sa-header-btn"
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                title="Ver perfil"
+                style={{ overflow: "hidden" }}
+              >
                 {fotoUsuario ? (
                   <img
                     src={fotoUsuario}
                     alt="Perfil"
                     style={{
-                      width: "60px",
-                      height: "60px",
+                      width: "32px",
+                      height: "32px",
                       objectFit: "cover",
                       borderRadius: "50%",
                     }}
                   />
                 ) : (
-                  <i className="bi bi-person-circle sa-profile-icon"></i>
+                  <i className="bi bi-person-circle"></i>
                 )}
+              </button>
+              <span
+                className="sa-profile-status-dot"
+                title="Super Administrador activo"
+              ></span>
+            </div>
+
+            {showUserMenu && (
+              <div className="sa-profile-popup">
+                <div className="sa-profile-popup-header">
+                  {fotoUsuario ? (
+                    <img
+                      src={fotoUsuario}
+                      alt="Perfil"
+                      style={{
+                        width: "60px",
+                        height: "60px",
+                        objectFit: "cover",
+                        borderRadius: "50%",
+                      }}
+                    />
+                  ) : (
+                    <i className="bi bi-person-circle sa-profile-icon"></i>
+                  )}
+                </div>
+                <p>
+                  <strong>Nombre:</strong>{" "}
+                  {usuario?.username || usuario?.nombre || "Usuario"}
+                </p>
+                <p>
+                  <strong>Rol:</strong> Super Administrador
+                </p>
+                <p className="text-success">
+                  <strong>Estado:</strong> Activo
+                </p>
+                <button
+                  className="btn btn-sm btn-outline-secondary w-100 mt-2"
+                  onClick={() => setShowUserMenu(false)}
+                >
+                  Cerrar
+                </button>
               </div>
-              <p>
-                <strong>Nombre:</strong>{" "}
-                {usuario?.username || usuario?.nombre || "Usuario"}
-              </p>
-              <p>
-                <strong>Rol:</strong> Super Administrador
-              </p>
-              <p className="text-success">
-                <strong>Estado:</strong> Activo
-              </p>
+            )}
+
+            <Link
+              to="/Superadmin"
+              className="sa-logo-wrapper"
+              title="Ir al Dashboard"
+            >
+              <div className="sa-logo-circle">
+                <img src={logo} alt="Logo" className="sa-logo-img" />
+              </div>
+            </Link>
+
+            <div className="sa-header-actions">
+              <DescargaAppMovil btnClass="sa-header-btn" />
+              <ModoOscuro btnClass="sa-header-btn" />
               <button
-                className="btn btn-sm btn-outline-secondary w-100 mt-2"
-                onClick={() => setShowUserMenu(false)}
+                className="sa-header-btn"
+                onClick={() => {
+                  setDataLoading(true);
+                  cargarDatos();
+                }}
+                disabled={dataLoading}
+                title="Actualizar datos"
               >
-                Cerrar
+                <i
+                  className={`bi ${dataLoading ? "bi-hourglass-split" : "bi-arrow-clockwise"}`}
+                ></i>
+              </button>
+              <button
+                className="sa-header-btn sa-hamburger"
+                onClick={() => setMenuOpen(true)}
+                title="Abrir menú"
+              >
+                <i className="bi bi-list"></i>
               </button>
             </div>
-          )}
+          </header>
 
-          <Link
-            to="/Superadmin"
-            className="sa-logo-wrapper"
-            title="Ir al Dashboard"
-          >
-            <div className="sa-logo-circle">
-              <img src={logo} alt="Logo" className="sa-logo-img" />
-            </div>
-          </Link>
-
-          <div className="sa-header-actions">
-            <DescargaAppMovil btnClass="sa-header-btn" />
-            <ModoOscuro btnClass="sa-header-btn" />
-            <button
-              className="sa-header-btn"
-              onClick={() => {
-                setDataLoading(true);
-                cargarDatos();
-              }}
-              disabled={dataLoading}
-              title="Actualizar datos"
-            >
-              <i
-                className={`bi ${dataLoading ? "bi-hourglass-split" : "bi-arrow-clockwise"}`}
-              ></i>
-            </button>
-            <button
-              className="sa-header-btn sa-hamburger"
-              onClick={() => setMenuOpen(true)}
-              title="Abrir menú"
-            >
-              <i className="bi bi-list"></i>
-            </button>
+          <div className="sa-welcome">
+            <h2 className="sa-welcome-title">
+              Bienvenido, {usuario?.username || usuario?.nombre || "Usuario"}
+            </h2>
+            <p className="sa-welcome-sub">
+              Selecciona el módulo que deseas gestionar en la plataforma
+            </p>
           </div>
-        </header>
 
-        <div className="sa-welcome">
-          <h2 className="sa-welcome-title">
-            Bienvenido, {usuario?.username || usuario?.nombre || "Usuario"}
-          </h2>
-          <p className="sa-welcome-sub">
-            Selecciona el módulo que deseas gestionar en la plataforma
-          </p>
-        </div>
-
-        <div className="sa-modules-grid">
-          {modulos.map((mod) => (
-            <Link
-              to={mod.to}
-              key={mod.to}
-              className="sa-module-card"
-              style={{
-                background: `linear-gradient(135deg, ${mod.color}cc, ${mod.color})`,
-              }}
-            >
-              <div className="sa-module-icon-wrap">
-                <i className={`bi ${mod.icon}`}></i>
-              </div>
-              <span className="sa-module-title">{mod.title}</span>
-            </Link>
-          ))}
-        </div>
-
-        <div className="sa-stats-section">
-          <h3 className="sa-stats-title">Estadísticas del Día</h3>
-          <div className="sa-stats-grid">
-            {/* Paquetes */}
-            <div className="sa-stat-card">
-              <div className="sa-stat-card-header">
-                <i
-                  className="bi bi-box-seam-fill"
-                  style={{ color: "#3b82f6", fontSize: "28px" }}
-                ></i>
-                <h5>Paquetes Entregados Hoy</h5>
-              </div>
-              <div className="sa-bar-chart-container">
-                <canvas ref={paquetesCanvasRef}></canvas>
-              </div>
-              <div className="sa-stat-summary">
-                <div className="sa-stat-summary-item">
-                  <span
-                    className="sa-stat-big-number"
-                    style={{ color: "#22c55e" }}
-                  >
-                    {paquetesEntregados}
-                  </span>
-                  <span className="sa-stat-label">Entregados</span>
-                </div>
-                <div className="sa-stat-divider"></div>
-                <div className="sa-stat-summary-item">
-                  <span
-                    className="sa-stat-big-number"
-                    style={{ color: "#3b82f6" }}
-                  >
-                    {porcentajeEntregados}%
-                  </span>
-                  <span className="sa-stat-label">Eficiencia</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Parqueaderos */}
-            <Link to="/parqueaderos" className="sa-stat-card sa-stat-card-link">
-              <div className="sa-stat-card-header">
-                <i
-                  className="bi bi-p-circle-fill"
-                  style={{ color: "#a855f7", fontSize: "28px" }}
-                ></i>
-                <h5>Parqueaderos Visitantes</h5>
-                <i
-                  className="bi bi-chevron-right"
-                  style={{ color: "#9ca3af", marginLeft: "auto" }}
-                ></i>
-              </div>
-              <div className="sa-donut-chart-container">
-                <canvas ref={parqueoCanvasRef}></canvas>
-              </div>
-              <div className="sa-legend">
-                {[
-                  { label: "Carros", value: parqueosCarros, color: "#0d9488" },
-                  { label: "Motos", value: parqueosMotos, color: "#f97316" },
-                  { label: "Libres", value: parqueosLibres, color: "#d1d5db" },
-                ].map((item) => (
-                  <div className="sa-legend-item" key={item.label}>
-                    <span
-                      className="sa-legend-dot"
-                      style={{ backgroundColor: item.color }}
-                    ></span>
-                    <span className="sa-legend-label">{item.label}</span>
-                    <span className="sa-legend-value">
-                      {item.value} ({calcPctStr(item.value, totalParqueos)}%)
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </Link>
-
-            {/* Visitas del Día */}
-            <Link to="/visitas" className="sa-stat-card sa-stat-card-link">
-              <div className="sa-stat-card-header">
-                <i
-                  className="bi bi-people-fill"
-                  style={{ color: "#22c55e", fontSize: "28px" }}
-                ></i>
-                <h5>Visitas del Día</h5>
-                <i
-                  className="bi bi-chevron-right"
-                  style={{ color: "#9ca3af", marginLeft: "auto" }}
-                ></i>
-              </div>
-              <div className="sa-bar-chart-container">
-                <canvas ref={visitasCanvasRef}></canvas>
-              </div>
-              <div className="sa-stat-summary">
-                <div className="sa-stat-summary-item">
-                  <span
-                    className="sa-stat-big-number"
-                    style={{ color: "#22c55e" }}
-                  >
-                    {visitasHoy}
-                  </span>
-                  <span className="sa-stat-label">Registradas Hoy</span>
-                </div>
-                <div className="sa-stat-divider"></div>
-                <div className="sa-stat-summary-item">
-                  <span
-                    className="sa-stat-big-number"
-                    style={{ color: "#3b82f6" }}
-                  >
-                    {visitasActivas}
-                  </span>
-                  <span className="sa-stat-label">Activas Ahora</span>
-                </div>
-              </div>
-            </Link>
-
-            {/* Reservas del Día */}
-            <Link to="/AreasComunes" className="sa-stat-card sa-stat-card-link">
-              <div className="sa-stat-card-header">
-                <i
-                  className="bi bi-calendar-event-fill"
-                  style={{ color: "#f97316", fontSize: "28px" }}
-                ></i>
-                <h5>Reservas del Día</h5>
-                <i
-                  className="bi bi-chevron-right"
-                  style={{ color: "#9ca3af", marginLeft: "auto" }}
-                ></i>
-              </div>
-              <div className="sa-info-card-body">
-                <div className="sa-info-big-value" style={{ color: "#f97316" }}>
-                  {reservasHoy}
-                </div>
-                <span className="sa-info-sub-label">
-                  Áreas comunes reservadas hoy
-                </span>
-              </div>
-              <div className="sa-stat-summary">
-                <div className="sa-stat-summary-item">
-                  <span
-                    className="sa-stat-big-number"
-                    style={{ color: "#f97316" }}
-                  >
-                    {reservasHoy}
-                  </span>
-                  <span className="sa-stat-label">Total Hoy</span>
-                </div>
-                <div className="sa-stat-divider"></div>
-                <div className="sa-stat-summary-item">
-                  <span
-                    className="sa-stat-big-number"
-                    style={{ color: "#14b8a6" }}
-                  >
-                    {residentesActivos}
-                  </span>
-                  <span className="sa-stat-label">Residentes</span>
-                </div>
-              </div>
-            </Link>
-
-            {/* Usuarios en Línea */}
-            {showUserManagement && (
+          <div className="sa-modules-grid">
+            {modulos.map((mod) => (
               <Link
-                to="/GestionUsuario"
+                to={mod.to}
+                key={mod.to}
+                className="sa-module-card"
+                style={{
+                  background: `linear-gradient(135deg, ${mod.color}cc, ${mod.color})`,
+                }}
+              >
+                <div className="sa-module-icon-wrap">
+                  <i className={`bi ${mod.icon}`}></i>
+                </div>
+                <span className="sa-module-title">{mod.title}</span>
+              </Link>
+            ))}
+          </div>
+
+          <div className="sa-stats-section">
+            <h3 className="sa-stats-title">Estadísticas del Día</h3>
+            <div className="sa-stats-grid">
+              {/* Paquetes */}
+              <div className="sa-stat-card">
+                <div className="sa-stat-card-header">
+                  <i
+                    className="bi bi-box-seam-fill"
+                    style={{ color: "#3b82f6", fontSize: "28px" }}
+                  ></i>
+                  <h5>Paquetes Entregados Hoy</h5>
+                </div>
+                <div className="sa-bar-chart-container">
+                  <canvas ref={paquetesCanvasRef}></canvas>
+                </div>
+                <div className="sa-stat-summary">
+                  <div className="sa-stat-summary-item">
+                    <span
+                      className="sa-stat-big-number"
+                      style={{ color: "#22c55e" }}
+                    >
+                      {paquetesEntregados}
+                    </span>
+                    <span className="sa-stat-label">Entregados</span>
+                  </div>
+                  <div className="sa-stat-divider"></div>
+                  <div className="sa-stat-summary-item">
+                    <span
+                      className="sa-stat-big-number"
+                      style={{ color: "#3b82f6" }}
+                    >
+                      {porcentajeEntregados}%
+                    </span>
+                    <span className="sa-stat-label">Eficiencia</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Parqueaderos */}
+              <Link
+                to="/parqueaderos"
                 className="sa-stat-card sa-stat-card-link"
               >
                 <div className="sa-stat-card-header">
                   <i
-                    className="bi bi-broadcast"
+                    className="bi bi-p-circle-fill"
                     style={{ color: "#a855f7", fontSize: "28px" }}
                   ></i>
-                  <h5>Usuarios en Línea</h5>
+                  <h5>Parqueaderos Visitantes</h5>
                   <i
                     className="bi bi-chevron-right"
                     style={{ color: "#9ca3af", marginLeft: "auto" }}
                   ></i>
                 </div>
-                <div className="sa-online-header">
-                  <span
-                    className="sa-online-count"
-                    style={{ color: "#a855f7" }}
-                  >
-                    {totalEnLinea}
-                  </span>
-                  <span className="sa-online-label">
-                    {totalEnLinea === 1
-                      ? "usuario conectado"
-                      : "usuarios conectados"}
-                  </span>
+                <div className="sa-donut-chart-container">
+                  <canvas ref={parqueoCanvasRef}></canvas>
                 </div>
-                <div className="sa-online-users-list">
-                  {usuariosEnLinea.length > 0 ? (
-                    usuariosEnLinea.map((username) => (
-                      <div key={username} className="sa-online-user-item">
-                        <span className="sa-online-dot"></span>
-                        <span className="sa-online-username">{username}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="sa-online-empty">
-                      <i
-                        className="bi bi-wifi-off"
-                        style={{ fontSize: "24px", color: "#d1d5db" }}
-                      ></i>
-                      <span>Ningún usuario en línea</span>
+                <div className="sa-legend">
+                  {[
+                    {
+                      label: "Carros",
+                      value: parqueosCarros,
+                      color: "#0d9488",
+                    },
+                    { label: "Motos", value: parqueosMotos, color: "#f97316" },
+                    {
+                      label: "Libres",
+                      value: parqueosLibres,
+                      color: "#d1d5db",
+                    },
+                  ].map((item) => (
+                    <div className="sa-legend-item" key={item.label}>
+                      <span
+                        className="sa-legend-dot"
+                        style={{ backgroundColor: item.color }}
+                      ></span>
+                      <span className="sa-legend-label">{item.label}</span>
+                      <span className="sa-legend-value">
+                        {item.value} ({calcPctStr(item.value, totalParqueos)}%)
+                      </span>
                     </div>
-                  )}
+                  ))}
                 </div>
               </Link>
-            )}
+
+              {/* Visitas del Día */}
+              <Link to="/visitas" className="sa-stat-card sa-stat-card-link">
+                <div className="sa-stat-card-header">
+                  <i
+                    className="bi bi-people-fill"
+                    style={{ color: "#22c55e", fontSize: "28px" }}
+                  ></i>
+                  <h5>Visitas del Día</h5>
+                  <i
+                    className="bi bi-chevron-right"
+                    style={{ color: "#9ca3af", marginLeft: "auto" }}
+                  ></i>
+                </div>
+                <div className="sa-bar-chart-container">
+                  <canvas ref={visitasCanvasRef}></canvas>
+                </div>
+                <div className="sa-stat-summary">
+                  <div className="sa-stat-summary-item">
+                    <span
+                      className="sa-stat-big-number"
+                      style={{ color: "#22c55e" }}
+                    >
+                      {visitasHoy}
+                    </span>
+                    <span className="sa-stat-label">Registradas Hoy</span>
+                  </div>
+                  <div className="sa-stat-divider"></div>
+                  <div className="sa-stat-summary-item">
+                    <span
+                      className="sa-stat-big-number"
+                      style={{ color: "#3b82f6" }}
+                    >
+                      {visitasActivas}
+                    </span>
+                    <span className="sa-stat-label">Activas Ahora</span>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Reservas del Día */}
+              <Link
+                to="/AreasComunes"
+                className="sa-stat-card sa-stat-card-link"
+              >
+                <div className="sa-stat-card-header">
+                  <i
+                    className="bi bi-calendar-event-fill"
+                    style={{ color: "#f97316", fontSize: "28px" }}
+                  ></i>
+                  <h5>Reservas del Día</h5>
+                  <i
+                    className="bi bi-chevron-right"
+                    style={{ color: "#9ca3af", marginLeft: "auto" }}
+                  ></i>
+                </div>
+                <div className="sa-info-card-body">
+                  <div
+                    className="sa-info-big-value"
+                    style={{ color: "#f97316" }}
+                  >
+                    {reservasHoy}
+                  </div>
+                  <span className="sa-info-sub-label">
+                    Áreas comunes reservadas hoy
+                  </span>
+                </div>
+                <div className="sa-stat-summary">
+                  <div className="sa-stat-summary-item">
+                    <span
+                      className="sa-stat-big-number"
+                      style={{ color: "#f97316" }}
+                    >
+                      {reservasHoy}
+                    </span>
+                    <span className="sa-stat-label">Total Hoy</span>
+                  </div>
+                  <div className="sa-stat-divider"></div>
+                  <div className="sa-stat-summary-item">
+                    <span
+                      className="sa-stat-big-number"
+                      style={{ color: "#14b8a6" }}
+                    >
+                      {residentesActivos}
+                    </span>
+                    <span className="sa-stat-label">Residentes</span>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Usuarios en Línea */}
+              {showUserManagement && (
+                <Link
+                  to="/GestionUsuario"
+                  className="sa-stat-card sa-stat-card-link"
+                >
+                  <div className="sa-stat-card-header">
+                    <i
+                      className="bi bi-broadcast"
+                      style={{ color: "#a855f7", fontSize: "28px" }}
+                    ></i>
+                    <h5>Usuarios en Línea</h5>
+                    <i
+                      className="bi bi-chevron-right"
+                      style={{ color: "#9ca3af", marginLeft: "auto" }}
+                    ></i>
+                  </div>
+                  <div className="sa-online-header">
+                    <span
+                      className="sa-online-count"
+                      style={{ color: "#a855f7" }}
+                    >
+                      {totalEnLinea}
+                    </span>
+                    <span className="sa-online-label">
+                      {totalEnLinea === 1
+                        ? "usuario conectado"
+                        : "usuarios conectados"}
+                    </span>
+                  </div>
+                  <div className="sa-online-users-list">
+                    {usuariosEnLinea.length > 0 ? (
+                      usuariosEnLinea.map((username) => (
+                        <div key={username} className="sa-online-user-item">
+                          <span className="sa-online-dot"></span>
+                          <span className="sa-online-username">{username}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="sa-online-empty">
+                        <i
+                          className="bi bi-wifi-off"
+                          style={{ fontSize: "24px", color: "#d1d5db" }}
+                        ></i>
+                        <span>Ningún usuario en línea</span>
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </div>
       <WhatsAppModal />
-    </div>
+    </>
   );
 }
 

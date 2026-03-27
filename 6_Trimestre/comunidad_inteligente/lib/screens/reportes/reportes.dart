@@ -1813,7 +1813,8 @@ class _ReportesScreenState extends State<ReportesScreen> {
                           pw.LayoutBuilder(
                             builder: (context, constraints) {
                               final maxWidth = constraints?.maxWidth ?? 400;
-                              final barWidth = (totalReservas > 0
+                              final barWidth =
+                                  (totalReservas > 0
                                       ? (cantidad / totalReservas)
                                       : 0.0) *
                                   maxWidth;
@@ -1824,8 +1825,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                                     height: 8,
                                     decoration: pw.BoxDecoration(
                                       color: PdfColors.grey200,
-                                      borderRadius:
-                                          pw.BorderRadius.circular(4),
+                                      borderRadius: pw.BorderRadius.circular(4),
                                     ),
                                   ),
                                   pw.Container(
@@ -1833,8 +1833,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                                     height: 8,
                                     decoration: pw.BoxDecoration(
                                       color: PdfColors.teal400,
-                                      borderRadius:
-                                          pw.BorderRadius.circular(4),
+                                      borderRadius: pw.BorderRadius.circular(4),
                                     ),
                                   ),
                                 ],

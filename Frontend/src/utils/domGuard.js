@@ -12,7 +12,8 @@
  * opcional que limpia nodos huérfanos inyectados por extensiones.
  */
 
-const EXTENSION_SELECTORS = "font[style], font[class], grammarly-extension, grammarly-desktop-integration";
+const EXTENSION_SELECTORS =
+  "font[style], font[class], grammarly-extension, grammarly-desktop-integration";
 
 let _installed = false;
 
@@ -56,7 +57,10 @@ export function observeExtensionNodes(container) {
   const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       for (const node of mutation.addedNodes) {
-        if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(EXTENSION_SELECTORS)) {
+        if (
+          node.nodeType === Node.ELEMENT_NODE &&
+          node.matches?.(EXTENSION_SELECTORS)
+        ) {
           node.remove();
         }
       }
