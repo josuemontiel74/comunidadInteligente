@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import ModalOverlay from "../utils/ModalOverlay.jsx";
 import "../Styles/whatsAppModal.css";
 
@@ -13,15 +14,18 @@ export default function WhatsAppModal() {
 
   return (
     <>
-      {/* Botón flotante */}
-      <button
-        className="wa-fab"
-        onClick={() => setOpen(true)}
-        title="Grupo de WhatsApp de la comunidad"
-        aria-label="Abrir información del grupo de WhatsApp"
-      >
-        <i className="bi bi-whatsapp"></i>
-      </button>
+      {/* Botón flotante — portal para que position:fixed sea siempre relativo al viewport */}
+      {createPortal(
+        <button
+          className="wa-fab"
+          onClick={() => setOpen(true)}
+          title="Grupo de WhatsApp de la comunidad"
+          aria-label="Abrir información del grupo de WhatsApp"
+        >
+          <i className="bi bi-whatsapp"></i>
+        </button>,
+        document.body,
+      )}
 
       {/* Modal */}
       <ModalOverlay

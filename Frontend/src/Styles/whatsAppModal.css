@@ -1,6 +1,6 @@
 .wa-fab {
   position: fixed;
-  top: 90px;
+  bottom: 28px;
   right: 24px;
   width: 56px;
   height: 56px;
@@ -220,13 +220,33 @@
 /* Responsive */
 @media (max-width: 480px) {
   .wa-modal {
-    padding: 28px 22px 22px;
+    padding: 24px 18px 20px;
+    max-width: calc(100vw - 32px);
+    border-radius: 18px;
+  }
+  .wa-modal-icon-wrap {
+    width: 64px;
+    height: 64px;
+    font-size: 32px;
+    margin-bottom: 14px;
+  }
+  .wa-modal-title {
+    font-size: 19px;
+  }
+  .wa-modal-text {
+    font-size: 13px;
+  }
+  .wa-join-btn {
+    padding: 12px 22px;
+    font-size: 14px;
+    width: 100%;
+    justify-content: center;
   }
   .wa-fab {
-    top: 70px;
-    right: 12px;
-    width: 46px;
-    height: 46px;
-    font-size: 20px;
+    top: 18px;
+    right: 16px;
+    width: 50px;
+    height: 50px;
+    font-size: 22px;
   }
 }
