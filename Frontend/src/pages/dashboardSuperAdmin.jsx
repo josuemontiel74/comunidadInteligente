@@ -259,6 +259,7 @@ function Dashboard() {
   const modulos = buildModulos(showAreasComunes, showUserManagement);
 
   return (
+    <>
     <div className={`sa-dashboard${saliendo ? " sa-saliendo" : ""}`}>
       <button
         type="button"
@@ -740,8 +741,9 @@ function Dashboard() {
           </div>
         </div>
       </div>
-      <WhatsAppModal />
     </div>
+    <WhatsAppModal />
+    </>
   );
 }
 

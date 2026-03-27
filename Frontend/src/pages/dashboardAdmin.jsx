@@ -159,6 +159,7 @@ function Dashboard() {
   ];
 
   return (
+    <>
     <div className={`adm-dashboard${saliendo ? " adm-saliendo" : ""}`}>
       <button
         type="button"
@@ -572,8 +573,9 @@ function Dashboard() {
           </div>
         </div>
       </div>
-      <WhatsAppModal />
     </div>
+    <WhatsAppModal />
+    </>
   );
 }
 

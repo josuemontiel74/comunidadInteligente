@@ -32,10 +32,9 @@
   backdrop-filter: blur(4px);
   z-index: 9999;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   padding: 16px;
-  padding-top: 60px;
   box-sizing: border-box;
   overflow-y: auto;
   animation: dap-fade-in 0.25s ease;
@@ -275,11 +274,4 @@
 }
 [data-modo="oscuro"] .dap-no-mostrar input {
   accent-color: #4ade80;
-}
-
-@media (max-width: 600px) {
-  .dap-overlay {
-    padding-top: 24px;
-    align-items: flex-start;
-  }
 }
