@@ -1931,7 +1931,10 @@ function GestionUsuarios() {
                       className="gu-form-control"
                       value={formData.telefono}
                       onChange={(e) =>
-                        updateField("telefono", filtrarInputTelefono(e.target.value))
+                        updateField(
+                          "telefono",
+                          filtrarInputTelefono(e.target.value),
+                        )
                       }
                       maxLength={15}
                       placeholder="Solo números"
@@ -2230,7 +2233,10 @@ function GestionUsuarios() {
                       className="gu-form-control"
                       value={formData.telefono}
                       onChange={(e) =>
-                        updateField("telefono", filtrarInputTelefono(e.target.value))
+                        updateField(
+                          "telefono",
+                          filtrarInputTelefono(e.target.value),
+                        )
                       }
                       maxLength={15}
                       placeholder="Solo números"

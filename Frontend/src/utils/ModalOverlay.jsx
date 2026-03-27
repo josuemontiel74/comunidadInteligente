@@ -63,12 +63,7 @@ export default function ModalOverlay({
   if (!isOpen) return null;
 
   return (
-    <div
-      ref={dialogRef}
-      role="dialog"
-      className={className}
-      aria-modal="true"
-    >
+    <div ref={dialogRef} role="dialog" className={className} aria-modal="true">
       {children}
     </div>
   );
